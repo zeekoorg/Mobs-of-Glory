@@ -22,7 +22,6 @@ class MainActivity : AppCompatActivity() {
     private var player: ExoPlayer? = null
     private var tempSelectedImageUri: Uri? = null
 
-    // أداة فتح معرض الصور الحديثة
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             tempSelectedImageUri = result.data?.data
@@ -37,13 +36,28 @@ class MainActivity : AppCompatActivity() {
 
         setupBackgroundVideo()
 
-        // فتح النافذة عند الضغط على اسم اللاعب أو صورته
+        // 1. فتح نافذة اللاعب
         binding.playerProfileContainer.setOnClickListener {
             showProfileDialog()
         }
 
+        // 2. زر المعركة
         binding.btnBattle.setOnClickListener {
             Toast.makeText(this, "بدء المعركة الملحمية...", Toast.LENGTH_SHORT).show()
+            // سننتقل لـ GameActivity من هنا قريباً
+        }
+
+        // 3. برمجة الأزرار الجديدة (الإعدادات، المهام، وعجلة الحظ)
+        binding.btnSettings.setOnClickListener {
+            Toast.makeText(this, "فتح قائمة الإعدادات...", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.btnDailyQuests.setOnClickListener {
+            Toast.makeText(this, "فتح المهام اليومية...", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.btnLuckyWheel.setOnClickListener {
+            Toast.makeText(this, "تدوير عجلة الحظ الملحمية...", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -69,30 +83,22 @@ class MainActivity : AppCompatActivity() {
         val imgAvatar = dialog.findViewById<ImageView>(R.id.imgDialogAvatar)
         val btnSave = dialog.findViewById<Button>(R.id.btnSaveProfile)
 
-        // وضع الاسم الحالي في الحقل
         etName.setText(binding.tvPlayerName.text)
-
-        // إذا كان هناك صورة اختارها مسبقاً، اعرضها في النافذة
         tempSelectedImageUri?.let { imgAvatar.setImageURI(it) }
 
-        // عند الضغط على الصورة لفتح معرض الهاتف
         imgAvatar.setOnClickListener {
             val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
             pickImageLauncher.launch(intent)
-            dialog.dismiss() // نغلق النافذة مؤقتاً لتسهيل العودة بعد اختيار الصورة
+            dialog.dismiss()
         }
 
-        // عند الضغط على زر الحفظ
         btnSave.setOnClickListener {
             val newName = etName.text.toString()
             if (newName.isNotEmpty()) {
                 binding.tvPlayerName.text = newName
-                
-                // تحديث الصورة في الشاشة الرئيسية
                 tempSelectedImageUri?.let { uri ->
                     binding.imgMainAvatar.setImageURI(uri)
                 }
-
                 dialog.dismiss()
                 Toast.makeText(this, "تم تحديث هويتك يا قائد!", Toast.LENGTH_SHORT).show()
             } else {
