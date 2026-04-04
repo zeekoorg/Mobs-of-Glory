@@ -33,18 +33,45 @@ class MainActivity : AppCompatActivity() {
     private fun setupBackgroundVideo() {
         player = ExoPlayer.Builder(this).build()
         binding.mainVideoBackground.player = player
-        
+
         val videoUri = Uri.parse("android.resource://$packageName/${R.raw.main_bg}")
         val mediaItem = MediaItem.fromUri(videoUri)
-        
+
         player?.setMediaItem(mediaItem)
-        player?.repeatMode = Player.REPEAT_MODE_ALL 
+        player?.repeatMode = Player.REPEAT_MODE_ALL
         player?.prepare()
         player?.play()
     }
 
     private fun showProfileDialog() {
-        Toast.makeText(this, "فتح ملف الشخصية التاريخية", Toast.LENGTH_SHORT).show()
+        // 1. إنشاء النافذة
+        val dialog = android.app.Dialog(this)
+        dialog.setContentView(R.layout.dialog_profile)
+
+        // 2. جعل خلفية النافذة الأصلية شفافة لكي تظهر صورة الخشب/الورق بوضوح
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        // 3. تعريف العناصر داخل النافذة
+        val etName = dialog.findViewById<android.widget.EditText>(R.id.etPlayerName)
+        val btnSave = dialog.findViewById<android.widget.Button>(R.id.btnSaveProfile)
+
+        // وضع الاسم الحالي في حقل الإدخال
+        etName.setText(binding.tvPlayerName.text)
+
+        // 4. برمجة زر الحفظ
+        btnSave.setOnClickListener {
+            val newName = etName.text.toString()
+            if (newName.isNotEmpty()) {
+                // تحديث الاسم في الشاشة الرئيسية
+                binding.tvPlayerName.text = newName
+                dialog.dismiss() // إغلاق النافذة
+                Toast.makeText(this, "تم تحديث هويتك يا قائد!", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "لا يمكن للقائد البقاء بدون اسم!", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        dialog.show()
     }
 
     override fun onDestroy() {
