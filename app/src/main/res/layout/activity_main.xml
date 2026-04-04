@@ -1,196 +1,145 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout 
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#000000">
+    android:layout_height="match_parent">
 
     <androidx.media3.ui.PlayerView
         android:id="@+id/mainVideoBackground"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:use_controller="false"
-        app:resize_mode="zoom" />
-
-    <ImageView
-        android:id="@+id/castleImageView"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintWidth_percent="0.6"
-        app:layout_constraintHeight_percent="0.4"
-        android:src="@drawable/castle_sprite" 
-        app:layout_constraintBottom_toTopOf="@+id/bottomNavigationView"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="30dp" />
+        app:surface_type="texture_view" />
 
     <LinearLayout
-        android:id="@+id/topBar"
-        android:layout_width="match_parent"
+        android:id="@+id/playerProfileContainer"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="32dp"
+        android:background="@drawable/bg_dialog_scroll" 
         android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageView
-            android:id="@+id/btnSettings"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:src="@drawable/ic_settings_gear"
-            android:layout_marginEnd="8dp"
-            android:clickable="true"
-            android:focusable="true"/>
-
-        <LinearLayout
-            android:id="@+id/playerProfileContainer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_wood_board" 
-            android:padding="6dp"
-            android:gravity="center_vertical"
-            android:clickable="true"
-            android:focusable="true">
-            
-            <androidx.constraintlayout.utils.widget.ImageFilterView
-                android:id="@+id/imgMainAvatar"
-                android:layout_width="35dp"
-                android:layout_height="35dp"
-                android:src="@drawable/ic_player_avatar"
-                android:scaleType="centerCrop"
-                app:roundPercent="1" />
-                
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp">
-                
-                <TextView
-                    android:id="@+id/tvPlayerName"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="ZEEKO"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold"
-                    android:textSize="12sp" />
-                    
-                <TextView
-                    android:id="@+id/tvPlayerLevel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="مستوى 12"
-                    android:textColor="#FFD700"
-                    android:textStyle="bold"
-                    android:textSize="10sp" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <Space
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1" />
+            android:id="@+id/imgMainAvatar"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:src="@drawable/ic_player_avatar" />
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="end">
-            
-            <LinearLayout
+            android:layout_marginStart="8dp"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/tvPlayerName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_wood_board"
-                android:padding="4dp"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="4dp">
-                <TextView
-                    android:id="@+id/tvCoins"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="15.4K"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold"
-                    android:layout_marginEnd="6dp"
-                    android:layout_marginStart="6dp"/>
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_gold_coin" />
-            </LinearLayout>
-
-            <LinearLayout
+                android:text="زيكو"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/tvPlayerLevel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_wood_board"
-                android:padding="4dp"
-                android:gravity="center_vertical">
-                <TextView
-                    android:id="@+id/tvStones"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="2,300"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold"
-                    android:layout_marginEnd="6dp"
-                    android:layout_marginStart="6dp"/>
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_stone_block" />
-            </LinearLayout>
+                android:text="مستوى 12"
+                android:textColor="#FFD700"
+                android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
 
     <ImageView
-        android:id="@+id/btnDailyQuests"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:src="@drawable/ic_daily_quests"
-        app:layout_constraintTop_toBottomOf="@id/topBar"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="40dp"
-        android:clickable="true"
-        android:focusable="true"/>
+        android:id="@+id/btnSettings"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginRight="16dp"
+        android:src="@drawable/ic_settings"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
-        android:id="@+id/btnLuckyWheel"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:src="@drawable/ic_lucky_wheel"
-        app:layout_constraintTop_toBottomOf="@id/topBar"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginEnd="16dp"
-        android:layout_marginTop="40dp"
-        android:clickable="true"
-        android:focusable="true"/>
+        android:id="@+id/imgCastle"
+        android:layout_width="350dp"
+        android:layout_height="350dp"
+        android:src="@drawable/castle_sprite"
+        app:layout_constraintBottom_toTopOf="@+id/btnBattle"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/playerProfileContainer"
+        app:layout_constraintVertical_bias="0.3" />
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
+    <LinearLayout
+        android:id="@+id/btnDailyQuests"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="16dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="@+id/imgCastle"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/imgCastle">
+        <ImageView
+            android:layout_width="55dp"
+            android:layout_height="55dp"
+            android:src="@drawable/ic_quests" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="المهام"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/btnLuckyWheel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="16dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="@+id/imgCastle"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/imgCastle">
+        <ImageView
+            android:layout_width="55dp"
+            android:layout_height="55dp"
+            android:src="@drawable/ic_wheel" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="العجلة"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/btnBattle"
+        android:layout_width="180dp"
+        android:layout_height="180dp"
+        android:background="@android:color/transparent"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_battle_btn"
+        app:layout_constraintBottom_toTopOf="@+id/bottomNavigationView"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_marginBottom="-20dp" />
+        <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigationView"
         android:layout_width="match_parent"
-        android:layout_height="75dp"
-        android:background="@drawable/bg_bottom_bar"
+        android:layout_height="80dp"
+        android:background="#2E1B0F"
         app:itemIconTint="@null" 
-        app:itemTextColor="#FFD700"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:menu="@menu/bottom_nav_menu" />
-
-    <Button
-        android:id="@+id/btnBattle"
-        android:layout_width="110dp"
-        android:layout_height="110dp"
-        android:background="@drawable/bg_battle_button"
-        android:text="المعركة\nمرحلة 13"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="25dp"
-        android:elevation="12dp" />
+        app:itemTextColor="#FFFFFF"
+        app:labelVisibilityMode="labeled" 
+        app:menu="@menu/bottom_nav_menu"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
