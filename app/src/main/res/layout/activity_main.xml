@@ -8,6 +8,7 @@
         android:id="@+id/mainVideoBackground"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        app:resize_mode="zoom" 
         app:use_controller="false"
         app:surface_type="texture_view" />
 
@@ -77,7 +78,7 @@
         android:layout_width="320dp"
         android:layout_height="320dp"
         android:src="@drawable/castle_sprite"
-        app:layout_constraintBottom_toTopOf="@+id/btnBattle"
+        app:layout_constraintBottom_toTopOf="@+id/customBottomBar"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/playerProfileContainer"
@@ -92,9 +93,8 @@
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="@+id/imgCastle"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/imgCastle">
-
-        <ImageView
+        app:layout_constraintTop_toTopOf="@+id/imgCastle"
+        app:layout_constraintVertical_bias="0.85"> <ImageView
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:src="@drawable/ic_daily_quests" />
@@ -117,9 +117,8 @@
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="@+id/imgCastle"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/imgCastle">
-
-        <ImageView
+        app:layout_constraintTop_toTopOf="@+id/imgCastle"
+        app:layout_constraintVertical_bias="0.85"> <ImageView
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:src="@drawable/ic_lucky_wheel" />
@@ -133,27 +132,108 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <ImageView
-        android:id="@+id/btnBattle"
-        android:layout_width="180dp"
-        android:layout_height="80dp"
-        android:layout_marginBottom="16dp"
-        android:background="@null"
-        android:scaleType="fitCenter"
-        android:src="@drawable/bg_battle_button"
-        app:layout_constraintBottom_toTopOf="@+id/bottomNavigationView"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent" />
-
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottomNavigationView"
+    <LinearLayout
+        android:id="@+id/customBottomBar"
         android:layout_width="match_parent"
         android:layout_height="80dp"
         android:background="@drawable/bg_bottom_bar"
-        app:itemIconTint="@null"
-        app:itemTextColor="#FFFFFF"
-        app:labelVisibilityMode="labeled"
-        app:menu="@menu/bottom_nav_menu"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        android:orientation="horizontal"
+        android:weightSum="4"
+        app:layout_constraintBottom_toBottomOf="parent">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <LinearLayout
+            android:id="@+id/btnNavAlliance"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_clan_shield" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="التحالف"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/btnNavKingdom"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_kingdom_castle" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="المملكة"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/btnNavArsenal"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_armory_sword" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="الترسانة"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/btnNavStore"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_shop_scroll" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="المتجر"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/btnBattle"
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        android:src="@drawable/bg_battle_button"
+        android:elevation="10dp" 
+        app:layout_constraintBottom_toTopOf="@+id/customBottomBar"
+        app:layout_constraintTop_toTopOf="@+id/customBottomBar"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
