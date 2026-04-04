@@ -1,4 +1,4 @@
-name: Build Mobs Of Glory APK
+name: Build Mobs Of Glory APK (SDK 35)
 
 on:
   workflow_dispatch: 
@@ -12,10 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      - name: Setup Java 21 # ضروري لدعم SDK 35
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
           cache: gradle
 
@@ -31,5 +31,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Mobs-Of-Glory-Release
+          name: Mobs-Of-Glory-SDK35-Release
           path: app/build/outputs/apk/release/*.apk
