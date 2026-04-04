@@ -43,10 +43,13 @@
             android:clickable="true"
             android:focusable="true">
             
-            <ImageView
+            <androidx.constraintlayout.utils.widget.ImageFilterView
+                android:id="@+id/imgMainAvatar"
                 android:layout_width="45dp"
                 android:layout_height="45dp"
-                android:src="@drawable/ic_player_avatar" />
+                android:src="@drawable/ic_player_avatar"
+                android:scaleType="centerCrop"
+                app:roundPercent="1" />
                 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -126,4 +129,3 @@
         android:elevation="12dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
-
