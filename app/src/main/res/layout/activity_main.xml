@@ -31,22 +31,32 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="16dp"
+        android:gravity="center_vertical"
         app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:id="@+id/btnSettings"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_settings_gear"
+            android:layout_marginEnd="8dp"
+            android:clickable="true"
+            android:focusable="true"/>
 
         <LinearLayout
             android:id="@+id/playerProfileContainer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/bg_wood_board" 
-            android:padding="10dp"
+            android:padding="6dp"
             android:gravity="center_vertical"
             android:clickable="true"
             android:focusable="true">
             
             <androidx.constraintlayout.utils.widget.ImageFilterView
                 android:id="@+id/imgMainAvatar"
-                android:layout_width="45dp"
-                android:layout_height="45dp"
+                android:layout_width="35dp"
+                android:layout_height="35dp"
                 android:src="@drawable/ic_player_avatar"
                 android:scaleType="centerCrop"
                 app:roundPercent="1" />
@@ -55,7 +65,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_marginStart="8dp">
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp">
                 
                 <TextView
                     android:id="@+id/tvPlayerName"
@@ -64,7 +75,7 @@
                     android:text="ZEEKO"
                     android:textColor="#FFFFFF"
                     android:textStyle="bold"
-                    android:textSize="14sp" />
+                    android:textSize="12sp" />
                     
                 <TextView
                     android:id="@+id/tvPlayerLevel"
@@ -73,7 +84,7 @@
                     android:text="مستوى 12"
                     android:textColor="#FFD700"
                     android:textStyle="bold"
-                    android:textSize="12sp" />
+                    android:textSize="10sp" />
             </LinearLayout>
         </LinearLayout>
 
@@ -85,23 +96,77 @@
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_wood_board"
-            android:padding="10dp"
-            android:gravity="center_vertical">
-            <TextView
-                android:id="@+id/tvCoins"
+            android:orientation="vertical"
+            android:gravity="end">
+            
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="15,400"
-                android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                android:layout_marginEnd="8dp" />
-            <ImageView
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:src="@drawable/ic_gold_coin" />
+                android:background="@drawable/bg_wood_board"
+                android:padding="4dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+                <TextView
+                    android:id="@+id/tvCoins"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="15.4K"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"
+                    android:layout_marginEnd="6dp"
+                    android:layout_marginStart="6dp"/>
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_gold_coin" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_wood_board"
+                android:padding="4dp"
+                android:gravity="center_vertical">
+                <TextView
+                    android:id="@+id/tvStones"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="2,300"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"
+                    android:layout_marginEnd="6dp"
+                    android:layout_marginStart="6dp"/>
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_stone_block" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
+
+    <ImageView
+        android:id="@+id/btnDailyQuests"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:src="@drawable/ic_daily_quests"
+        app:layout_constraintTop_toBottomOf="@id/topBar"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="40dp"
+        android:clickable="true"
+        android:focusable="true"/>
+
+    <ImageView
+        android:id="@+id/btnLuckyWheel"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:src="@drawable/ic_lucky_wheel"
+        app:layout_constraintTop_toBottomOf="@id/topBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="40dp"
+        android:clickable="true"
+        android:focusable="true"/>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigationView"
