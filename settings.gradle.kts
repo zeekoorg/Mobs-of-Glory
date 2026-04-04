@@ -3,7 +3,7 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
-        maven { url 'https://developer.huawei.com/repo/' }
+        maven { url = uri("https://developer.huawei.com/repo/") }
     }
 }
 dependencyResolutionManagement {
@@ -11,8 +11,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://developer.huawei.com/repo/' }
+        maven { url = uri("https://developer.huawei.com/repo/") }
+        maven { url = uri("https://android-sdk.is.com/") }
     }
 }
 rootProject.name = "MobsOfGlory"
-include ':app'
+include(":app")
