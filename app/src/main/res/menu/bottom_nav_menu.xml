@@ -1,21 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:id="@+id/nav_shop"
-        android:icon="@drawable/ic_shop_scroll"
+        android:id="@+id/nav_store"
+        android:icon="@drawable/ic_store"
         android:title="المتجر" />
     <item
-        android:id="@+id/nav_armory"
-        android:icon="@drawable/ic_armory_sword"
+        android:id="@+id/nav_arsenal"
+        android:icon="@drawable/ic_arsenal"
         android:title="الترسانة" />
     <item
-        android:id="@+id/nav_empty"
-        android:title="" /> <item
         android:id="@+id/nav_kingdom"
-        android:icon="@drawable/ic_kingdom_castle"
+        android:icon="@drawable/ic_kingdom"
         android:title="المملكة" />
     <item
-        android:id="@+id/nav_clan"
-        android:icon="@drawable/ic_clan_shield"
+        android:id="@+id/nav_alliance"
+        android:icon="@drawable/ic_alliance"
         android:title="التحالف" />
 </menu>
