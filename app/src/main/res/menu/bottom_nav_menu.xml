@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_shop"
+        android:icon="@android:drawable/ic_menu_search"
+        android:title="المتجر" />
+    <item
+        android:id="@+id/nav_armory"
+        android:icon="@android:drawable/ic_menu_compass"
+        android:title="الترسانة" />
+    <item
+        android:id="@+id/nav_empty"
+        android:title="" /> <item
+        android:id="@+id/nav_kingdom"
+        android:icon="@android:drawable/ic_menu_myplaces"
+        android:title="المملكة" />
+    <item
+        android:id="@+id/nav_clan"
+        android:icon="@android:drawable/ic_menu_share"
+        android:title="التحالف" />
+</menu>
