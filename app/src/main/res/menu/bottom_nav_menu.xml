@@ -2,20 +2,20 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/nav_shop"
-        android:icon="@android:drawable/ic_menu_search"
+        android:icon="@drawable/ic_shop_scroll"
         android:title="المتجر" />
     <item
         android:id="@+id/nav_armory"
-        android:icon="@android:drawable/ic_menu_compass"
+        android:icon="@drawable/ic_armory_sword"
         android:title="الترسانة" />
     <item
         android:id="@+id/nav_empty"
         android:title="" /> <item
         android:id="@+id/nav_kingdom"
-        android:icon="@android:drawable/ic_menu_myplaces"
+        android:icon="@drawable/ic_kingdom_castle"
         android:title="المملكة" />
     <item
         android:id="@+id/nav_clan"
-        android:icon="@android:drawable/ic_menu_share"
+        android:icon="@drawable/ic_clan_shield"
         android:title="التحالف" />
 </menu>
