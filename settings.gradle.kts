@@ -10,8 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://jitpack.io") } // مهم لبعض المكتبات الخارجية لاحقاً
     }
 }
-rootProject.name = "Mobs of Glory"
+
+rootProject.name = "Mobs Of Glory"
 include(":app")
