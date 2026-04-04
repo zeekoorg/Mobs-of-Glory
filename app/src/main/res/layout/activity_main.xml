@@ -37,15 +37,15 @@
             android:id="@+id/playerProfileContainer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_rounded_dark" 
-            android:padding="8dp"
+            android:background="@drawable/bg_wood_board" 
+            android:padding="10dp"
             android:gravity="center_vertical"
             android:clickable="true"
             android:focusable="true">
             
             <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="45dp"
+                android:layout_height="45dp"
                 android:src="@drawable/ic_player_avatar" />
                 
             <LinearLayout
@@ -60,7 +60,8 @@
                     android:layout_height="wrap_content"
                     android:text="ZEEKO"
                     android:textColor="#FFFFFF"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:textSize="14sp" />
                     
                 <TextView
                     android:id="@+id/tvPlayerLevel"
@@ -68,6 +69,7 @@
                     android:layout_height="wrap_content"
                     android:text="مستوى 12"
                     android:textColor="#FFD700"
+                    android:textStyle="bold"
                     android:textSize="12sp" />
             </LinearLayout>
         </LinearLayout>
@@ -80,8 +82,8 @@
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_rounded_dark"
-            android:padding="8dp"
+            android:background="@drawable/bg_wood_board"
+            android:padding="10dp"
             android:gravity="center_vertical">
             <TextView
                 android:id="@+id/tvCoins"
@@ -89,10 +91,11 @@
                 android:layout_height="wrap_content"
                 android:text="15,400"
                 android:textColor="#FFFFFF"
+                android:textStyle="bold"
                 android:layout_marginEnd="8dp" />
             <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
                 android:src="@drawable/ic_gold_coin" />
         </LinearLayout>
     </LinearLayout>
@@ -100,26 +103,27 @@
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigationView"
         android:layout_width="match_parent"
-        android:layout_height="70dp"
-        android:background="#E61A1A1A"
-        app:itemIconTint="#A9A9A9"
-        app:itemTextColor="#A9A9A9"
+        android:layout_height="75dp"
+        android:background="@drawable/bg_bottom_bar"
+        app:itemIconTint="@null" 
+        app:itemTextColor="#FFD700"
         app:layout_constraintBottom_toBottomOf="parent"
         app:menu="@menu/bottom_nav_menu" />
 
     <Button
         android:id="@+id/btnBattle"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
+        android:layout_width="110dp"
+        android:layout_height="110dp"
         android:background="@drawable/bg_battle_button"
         android:text="المعركة\nمرحلة 13"
         android:textColor="#FFFFFF"
-        android:textSize="18sp"
+        android:textSize="16sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="20dp"
-        android:elevation="10dp" />
+        android:layout_marginBottom="25dp"
+        android:elevation="12dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+
