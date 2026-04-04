@@ -1,8 +1,7 @@
 name: Manual Mobs Of Glory Builder
 
-# هنا السر: قمت بإلغاء "push" ووضعت "workflow_dispatch" فقط
 on:
-  workflow_dispatch: # هذا الأمر يجعل البناء يدوياً فقط عبر زر في غيت هوب
+  workflow_dispatch: # تشغيل يدوياً فقط
 
 jobs:
   build:
@@ -19,22 +18,28 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
+    # الخطوة السحرية: إذا كان ملف gradlew مفقوداً، قم بتوليده الآن
+    - name: Generate Gradle Wrapper if missing
+      run: |
+        if [ ! -f gradlew ]; then
+          gradle wrapper
+        fi
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    # بناء نسخة Debug (أسرع وأسهل للتثبيت اليدوي على الهواتف)
-    - name: Build APK (Debug)
+    - name: Build Debug APK
       run: ./gradlew assembleDebug
 
-    - name: Upload APK
+    - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Mobs-Of-Glory-Debug-APK
+        name: Mobs-Of-Glory-Build
         path: app/build/outputs/apk/debug/*.apk
-        retention-days: 1 # سيحذف الملف بعد يوم واحد لتوفير مساحتك
+        retention-days: 1
 
-    # تنظيف تلقائي للمخلفات القديمة لضمان عدم امتلاء مساحة المستودع
-    - name: Cleanup Old Builds
+    # تنظيف الأرشيف القديم لضمان عدم امتلاء المساحة
+    - name: Cleanup Old Artifacts
       uses: actions/github-script@v6
       with:
         script: |
@@ -49,4 +54,3 @@ jobs:
               artifact_id: artifact.id,
             });
           }
-
