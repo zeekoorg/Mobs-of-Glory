@@ -1,5 +1,14 @@
-// ملف بناء المشروع الرئيسي - إصدارات 2026
-plugins {
-    id("com.android.application") version "8.2.2" apply false
-    id("org.jetbrains.kotlin.android") version "1.9.22" apply false
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.7.0'
+        classpath 'com.google.gms:google-services:4.4.2'
+    }
+}
+
+tasks.register('clean', Delete) {
+    delete rootProject.buildDir
 }
