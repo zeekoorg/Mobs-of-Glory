@@ -17,40 +17,39 @@
         android:layout_height="match_parent"
         android:background="#40000000" />
 
-    <ImageView
-        android:id="@+id/btnSettings"
-        android:layout_width="45dp"
-        android:layout_height="45dp"
-        android:layout_marginLeft="16dp"
-        android:layout_marginTop="32dp"
-        android:src="@drawable/ic_settings_gear" 
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/playerProfileContainer"
-        android:layout_width="wrap_content" 
-        android:layout_height="65dp"
-        android:layout_marginTop="28dp"
+        android:id="@+id/topBarContainer"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:layout_marginTop="16dp"
         android:background="@drawable/bg_wood_board"
-        android:paddingLeft="12dp"
-        android:paddingRight="12dp"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <FrameLayout
-            android:id="@+id/avatarFrameContainer"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+        <ImageView
+            android:id="@+id/btnSettings"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:layout_marginLeft="24dp"
+            android:src="@drawable/ic_settings_gear"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <FrameLayout
+            android:id="@+id/avatarFrameContainer"
+            android:layout_width="55dp"
+            android:layout_height="55dp"
+            android:layout_marginLeft="16dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toRightOf="@id/btnSettings"
             app:layout_constraintTop_toTopOf="parent">
             
             <ImageView
                 android:id="@+id/imgMainAvatar"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_player_avatar"
                 android:scaleType="centerCrop" />
@@ -64,6 +63,7 @@
         </FrameLayout>
 
         <LinearLayout
+            android:id="@+id/layoutProfileText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="8dp"
@@ -85,88 +85,72 @@
                 android:layout_height="wrap_content"
                 android:text="⭐ مستوى 12"
                 android:textColor="#FFD700"
-                android:textSize="10sp" />
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/resourceContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="24dp"
+            android:gravity="end"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="21,200"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginLeft="6dp"
+                    android:src="@drawable/ic_gold_coin" />
+                <ImageView
+                    android:id="@+id/btnAddGold"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_marginLeft="6dp"
+                    android:src="@drawable/ic_add_button" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="1,500"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginLeft="6dp"
+                    android:src="@drawable/ic_stone_block" />
+                <ImageView
+                    android:id="@+id/btnAddStones"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_marginLeft="6dp"
+                    android:src="@drawable/ic_add_button" />
+            </LinearLayout>
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <LinearLayout
-        android:id="@+id/currencyContainer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="28dp"
-        android:layout_marginRight="16dp"
-        android:gravity="end"
-        android:orientation="vertical"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <LinearLayout
-            android:id="@+id/containerGold"
-            android:layout_width="110dp"
-            android:layout_height="32dp"
-            android:background="@drawable/bg_dialog_scroll" 
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingRight="4dp">
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="21,200"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-            <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:src="@drawable/ic_gold_coin" />
-            <TextView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:layout_marginLeft="4dp"
-                android:background="@drawable/bg_dialog_scroll"
-                android:gravity="center"
-                android:text="+"
-                android:textColor="#FFD700"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/containerStones"
-            android:layout_width="110dp"
-            android:layout_height="32dp"
-            android:layout_marginTop="4dp"
-            android:background="@drawable/bg_dialog_scroll" 
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingRight="4dp">
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="1,500"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-            <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:src="@drawable/ic_stone_block" />
-            <TextView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:layout_marginLeft="4dp"
-                android:background="@drawable/bg_dialog_scroll"
-                android:gravity="center"
-                android:text="+"
-                android:textColor="#FFD700"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-    </LinearLayout>
 
     <ImageView
         android:id="@+id/imgCastle"
@@ -177,7 +161,7 @@
         app:layout_constraintBottom_toTopOf="@+id/customBottomBar"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/playerProfileContainer"
+        app:layout_constraintTop_toBottomOf="@+id/topBarContainer"
         app:layout_constraintVertical_bias="0.30" />
 
     <LinearLayout
