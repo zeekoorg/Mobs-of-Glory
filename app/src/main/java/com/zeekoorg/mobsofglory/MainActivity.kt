@@ -22,12 +22,11 @@ class MainActivity : AppCompatActivity() {
     private var player: ExoPlayer? = null
     private var tempSelectedImageUri: Uri? = null
 
-    // أداة اختيار الصور من المعرض
+    // أداة اختيار الصور من المعرض لتغيير رمز القائد
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             tempSelectedImageUri = result.data?.data
-            Toast.makeText(this, "تم اختيار الصورة بنجاح!", Toast.LENGTH_SHORT).show()
-            // ملاحظة: الصورة ستظهر في الشاشة الرئيسية بعد الضغط على "حفظ المجد" في النافذة
+            Toast.makeText(this, "تم اختيار الرمز الملكي بنجاح!", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -36,31 +35,31 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // إعداد فيديو خلفية القصر
         setupBackgroundVideo()
 
-        // 1. الضغط على حاوية ملف اللاعب لفتح النافذة
-        binding.playerProfileContainer.setOnClickListener {
+        // 1. تفعيل النقر على إطار اللاعب (الجديد) لفتح اللفيفة الملكية
+        binding.avatarFrameContainer.setOnClickListener {
             showProfileDialog()
         }
 
-        // 2. زر المعركة الملحمي - الانتقال لساحة القتال
+        // 2. تفعيل زر المعركة الملحمي (التنين) للانتقال للقتال
         binding.btnBattle.setOnClickListener {
             val intent = Intent(this, GameActivity::class.java)
             startActivity(intent)
-            // لا نضع finish() هنا لكي يتمكن اللاعب من العودة للقائمة الرئيسية بعد المعركة
         }
 
-        // 3. أزرار الخدمات الجانبية
+        // 3. برمجة أزرار الخدمات الملكية الجانبية
         binding.btnSettings.setOnClickListener {
-            Toast.makeText(this, "قريباً: قائمة الإعدادات التاريخية", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "قريباً: ديوان الإعدادات الملكي", Toast.LENGTH_SHORT).show()
         }
 
         binding.btnDailyQuests.setOnClickListener {
-            Toast.makeText(this, "قريباً: لوحة المهام اليومية", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "قريباً: لوحة المهام اليومية الملحمية", Toast.LENGTH_SHORT).show()
         }
 
         binding.btnLuckyWheel.setOnClickListener {
-            Toast.makeText(this, "قريباً: عجلة الحظ الملحمية", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "قريباً: عجلة الحظ الملكية", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -68,7 +67,7 @@ class MainActivity : AppCompatActivity() {
         player = ExoPlayer.Builder(this).build()
         binding.mainVideoBackground.player = player
         
-        // جلب فيديو الخلفية من مجلد raw
+        // ربط فيديو الخلفية (تأكد من وجود ملف باسم main_bg في مجلد raw)
         val videoUri = Uri.parse("android.resource://$packageName/${R.raw.main_bg}")
         val mediaItem = MediaItem.fromUri(videoUri)
         
@@ -87,34 +86,35 @@ class MainActivity : AppCompatActivity() {
         val imgAvatar = dialog.findViewById<ImageView>(R.id.imgDialogAvatar)
         val btnSave = dialog.findViewById<Button>(R.id.btnSaveProfile)
 
-        // عرض الاسم الحالي
+        // جلب الاسم الحالي للقائد من الواجهة الرئيسية
         etName.setText(binding.tvPlayerName.text)
 
-        // إذا كان اللاعب قد اختار صورة، نعرضها في النافذة
+        // إذا تم اختيار صورة جديدة مسبقاً، تظهر داخل اللفيفة
         tempSelectedImageUri?.let { imgAvatar.setImageURI(it) }
 
-        // الضغط على الصورة لتغييرها من المعرض
+        // النقر على الصورة داخل اللفيفة لفتح معرض الصور
         imgAvatar.setOnClickListener {
             val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
             pickImageLauncher.launch(intent)
-            dialog.dismiss() // نغلق النافذة لضمان تحديث البيانات عند العودة
+            dialog.dismiss() 
+            Toast.makeText(this, "اختر صورتك ثم أعد فتح اللفيفة للحفظ", Toast.LENGTH_LONG).show()
         }
 
-        // زر الحفظ وتأكيد الهوية
+        // زر "حفظ المجد" لتأكيد التغييرات
         btnSave.setOnClickListener {
             val newName = etName.text.toString()
             if (newName.isNotEmpty()) {
                 binding.tvPlayerName.text = newName
                 
-                // تحديث الصورة في الشاشة الرئيسية (الأفاتار الصغير)
+                // تحديث الرمز الشخصي في القائمة الرئيسية
                 tempSelectedImageUri?.let { uri ->
                     binding.imgMainAvatar.setImageURI(uri)
                 }
 
                 dialog.dismiss()
-                Toast.makeText(this, "تم تحديث هويتك يا قائد!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "تم توثيق هويتك يا قائد زيكو!", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this, "الاسم مطلوب لتوثيق المجد!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "الاسم مطلوب لتخليد ذكراك!", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -123,12 +123,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        player?.play() // استئناف الفيديو عند العودة للشاشة
+        player?.play() 
     }
 
     override fun onPause() {
         super.onPause()
-        player?.pause() // إيقاف مؤقت لتوفير البطارية
+        player?.pause() 
     }
 
     override fun onDestroy() {
