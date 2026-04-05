@@ -1,8 +1,12 @@
 package com.zeekoorg.mobsofglory
 
+import android.Manifest
 import android.app.Dialog
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.widget.Button
@@ -21,12 +25,24 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var player: ExoPlayer? = null
     private var tempSelectedImageUri: Uri? = null
+    private var profileDialog: Dialog? = null // جعلنا النافذة متغيرة عامة للتحكم بها
+    private lateinit var sharedPrefs: SharedPreferences
 
-    // أداة اختيار الصور من المعرض لتغيير رمز القائد
+    // أداة اختيار الصور (لا تغلق النافذة، فقط تحدث الصورة بداخلها)
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             tempSelectedImageUri = result.data?.data
-            Toast.makeText(this, "تم اختيار الرمز الملكي بنجاح!", Toast.LENGTH_SHORT).show()
+            // تحديث الصورة في النافذة فوراً وهي لا تزال مفتوحة
+            profileDialog?.findViewById<ImageView>(R.id.imgDialogAvatar)?.setImageURI(tempSelectedImageUri)
+        }
+    }
+
+    // أداة طلب صلاحية المعرض
+    private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) {
+            openGallery()
+        } else {
+            Toast.makeText(this, "يجب السماح بالوصول للمعرض لتغيير رمز القائد!", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -35,42 +51,38 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // إعداد فيديو خلفية القصر
+        // إعداد الحفظ الدائم
+        sharedPrefs = getSharedPreferences("MobControlPrefs", Context.MODE_PRIVATE)
+        
+        // استرجاع البيانات المحفوظة عند فتح اللعبة
+        val savedName = sharedPrefs.getString("PLAYER_NAME", "زيكو")
+        val savedImage = sharedPrefs.getString("PLAYER_IMAGE", null)
+        
+        binding.tvPlayerName.text = savedName
+        if (savedImage != null) {
+            tempSelectedImageUri = Uri.parse(savedImage)
+            binding.imgMainAvatar.setImageURI(tempSelectedImageUri)
+        }
+
         setupBackgroundVideo()
 
-        // 1. تفعيل النقر على إطار اللاعب (الجديد) لفتح اللفيفة الملكية
+        // النقر على إطار اللاعب لفتح اللفيفة الملكية
         binding.avatarFrameContainer.setOnClickListener {
             showProfileDialog()
         }
 
-        // 2. تفعيل زر المعركة الملحمي (التنين) للانتقال للقتال
+        // زر المعركة
         binding.btnBattle.setOnClickListener {
             val intent = Intent(this, GameActivity::class.java)
             startActivity(intent)
-        }
-
-        // 3. برمجة أزرار الخدمات الملكية الجانبية
-        binding.btnSettings.setOnClickListener {
-            Toast.makeText(this, "قريباً: ديوان الإعدادات الملكي", Toast.LENGTH_SHORT).show()
-        }
-
-        binding.btnDailyQuests.setOnClickListener {
-            Toast.makeText(this, "قريباً: لوحة المهام اليومية الملحمية", Toast.LENGTH_SHORT).show()
-        }
-
-        binding.btnLuckyWheel.setOnClickListener {
-            Toast.makeText(this, "قريباً: عجلة الحظ الملكية", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun setupBackgroundVideo() {
         player = ExoPlayer.Builder(this).build()
         binding.mainVideoBackground.player = player
-        
-        // ربط فيديو الخلفية (تأكد من وجود ملف باسم main_bg في مجلد raw)
         val videoUri = Uri.parse("android.resource://$packageName/${R.raw.main_bg}")
         val mediaItem = MediaItem.fromUri(videoUri)
-        
         player?.setMediaItem(mediaItem)
         player?.repeatMode = Player.REPEAT_MODE_ALL 
         player?.prepare()
@@ -78,47 +90,63 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showProfileDialog() {
-        val dialog = Dialog(this)
-        dialog.setContentView(R.layout.dialog_profile)
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        profileDialog = Dialog(this)
+        profileDialog?.setContentView(R.layout.dialog_profile)
+        profileDialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
-        val etName = dialog.findViewById<EditText>(R.id.etPlayerName)
-        val imgAvatar = dialog.findViewById<ImageView>(R.id.imgDialogAvatar)
-        val btnSave = dialog.findViewById<Button>(R.id.btnSaveProfile)
+        val etName = profileDialog?.findViewById<EditText>(R.id.etPlayerName)
+        val imgAvatar = profileDialog?.findViewById<ImageView>(R.id.imgDialogAvatar)
+        val btnChangePic = profileDialog?.findViewById<Button>(R.id.btnChangePicture)
+        val btnSave = profileDialog?.findViewById<Button>(R.id.btnSaveProfile)
 
-        // جلب الاسم الحالي للقائد من الواجهة الرئيسية
-        etName.setText(binding.tvPlayerName.text)
+        // عرض البيانات الحالية
+        etName?.setText(binding.tvPlayerName.text)
+        tempSelectedImageUri?.let { imgAvatar?.setImageURI(it) }
 
-        // إذا تم اختيار صورة جديدة مسبقاً، تظهر داخل اللفيفة
-        tempSelectedImageUri?.let { imgAvatar.setImageURI(it) }
-
-        // النقر على الصورة داخل اللفيفة لفتح معرض الصور
-        imgAvatar.setOnClickListener {
-            val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-            pickImageLauncher.launch(intent)
-            dialog.dismiss() 
-            Toast.makeText(this, "اختر صورتك ثم أعد فتح اللفيفة للحفظ", Toast.LENGTH_LONG).show()
+        // النقر على زر "تعديل الصورة" يطلب الصلاحية أولاً
+        btnChangePic?.setOnClickListener {
+            checkPermissionAndOpenGallery()
         }
 
-        // زر "حفظ المجد" لتأكيد التغييرات
-        btnSave.setOnClickListener {
-            val newName = etName.text.toString()
+        // حفظ البيانات نهائياً
+        btnSave?.setOnClickListener {
+            val newName = etName?.text.toString().trim()
             if (newName.isNotEmpty()) {
                 binding.tvPlayerName.text = newName
-                
-                // تحديث الرمز الشخصي في القائمة الرئيسية
                 tempSelectedImageUri?.let { uri ->
                     binding.imgMainAvatar.setImageURI(uri)
                 }
 
-                dialog.dismiss()
-                Toast.makeText(this, "تم توثيق هويتك يا قائد زيكو!", Toast.LENGTH_SHORT).show()
+                // حفظ البيانات في الشريحة الدائمة (SharedPreferences)
+                val editor = sharedPrefs.edit()
+                editor.putString("PLAYER_NAME", newName)
+                if (tempSelectedImageUri != null) {
+                    editor.putString("PLAYER_IMAGE", tempSelectedImageUri.toString())
+                }
+                editor.apply()
+
+                profileDialog?.dismiss()
+                Toast.makeText(this, "تم حفظ المجد للأبد!", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this, "الاسم مطلوب لتخليد ذكراك!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "الاسم مطلوب!", Toast.LENGTH_SHORT).show()
             }
         }
 
-        dialog.show()
+        profileDialog?.show()
+    }
+
+    private fun checkPermissionAndOpenGallery() {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+        requestPermissionLauncher.launch(permission)
+    }
+
+    private fun openGallery() {
+        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+        pickImageLauncher.launch(intent)
     }
 
     override fun onResume() {
