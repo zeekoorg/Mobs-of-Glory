@@ -8,7 +8,7 @@
         android:id="@+id/mainVideoBackground"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:resize_mode="zoom"
+        app:resize_mode="zoom" 
         app:use_controller="false"
         app:surface_type="texture_view" />
 
@@ -37,15 +37,30 @@
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <ImageView
-            android:id="@+id/imgMainAvatar"
-            android:layout_width="45dp"
-            android:layout_height="45dp"
+        <FrameLayout
+            android:id="@+id/avatarFrameContainer"
+            android:layout_width="55dp"
+            android:layout_height="55dp"
             android:layout_marginLeft="12dp"
-            android:src="@drawable/ic_player_avatar"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:id="@+id/imgMainAvatar"
+                android:layout_width="45dp"
+                android:layout_height="45dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_player_avatar"
+                android:scaleType="centerCrop" />
+
+            <ImageView
+                android:id="@+id/imgAvatarFrame"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_player_avatar_frame" />
+        </FrameLayout>
 
         <TextView
             android:id="@+id/tvPlayerName"
@@ -57,7 +72,7 @@
             android:textSize="14sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toTopOf="@+id/tvPlayerLevel"
-            app:layout_constraintLeft_toRightOf="@id/imgMainAvatar"
+            app:layout_constraintLeft_toRightOf="@id/avatarFrameContainer"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintVertical_chainStyle="packed" />
 
@@ -73,6 +88,86 @@
             app:layout_constraintTop_toBottomOf="@id/tvPlayerName" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <LinearLayout
+        android:id="@+id/containerGold"
+        android:layout_width="wrap_content"
+        android:layout_height="35dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginRight="16dp"
+        android:background="@drawable/bg_dialog_scroll" 
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="8dp"
+        android:paddingRight="4dp"
+        app:layout_constraintRight_toLeftOf="@+id/btnSettings"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="8dp"
+            android:fontFamily="serif"
+            android:text="21,200"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:src="@drawable/ic_gold_coin" />
+
+        <TextView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginLeft="6dp"
+            android:background="@drawable/bg_dialog_scroll"
+            android:gravity="center"
+            android:text="+"
+            android:textColor="#FFD700"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/containerStones"
+        android:layout_width="wrap_content"
+        android:layout_height="35dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="24dp"
+        android:background="@drawable/bg_dialog_scroll" 
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="4dp"
+        android:paddingRight="8dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginRight="6dp"
+            android:background="@drawable/bg_dialog_scroll"
+            android:gravity="center"
+            android:text="+"
+            android:textColor="#FFD700"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:src="@drawable/ic_stone_block" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="8dp"
+            android:fontFamily="serif"
+            android:text="1,500"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
     <ImageView
         android:id="@+id/imgCastle"
         android:layout_width="320dp"
@@ -83,7 +178,7 @@
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/playerProfileContainer"
-        app:layout_constraintVertical_bias="0.4" />
+        app:layout_constraintVertical_bias="0.30" />
 
     <LinearLayout
         android:id="@+id/btnDailyQuests"
@@ -94,7 +189,8 @@
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="@+id/imgCastle"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/imgCastle">
+        app:layout_constraintTop_toTopOf="@+id/imgCastle"
+        app:layout_constraintVertical_bias="0.85">
 
         <ImageView
             android:layout_width="50dp"
@@ -119,7 +215,8 @@
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="@+id/imgCastle"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/imgCastle">
+        app:layout_constraintTop_toTopOf="@+id/imgCastle"
+        app:layout_constraintVertical_bias="0.85">
 
         <ImageView
             android:layout_width="50dp"
