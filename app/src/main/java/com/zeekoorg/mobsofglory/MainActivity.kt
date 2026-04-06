@@ -29,7 +29,6 @@ class MainActivity : AppCompatActivity() {
     private var profileDialog: Dialog? = null
     private lateinit var sharedPrefs: SharedPreferences
 
-    // أداة اختيار الصور
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             tempSelectedImageUri = result.data?.data
@@ -37,16 +36,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // أداة طلب الصلاحية
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-        if (isGranted) {
-            openGallery()
-        } else {
-            Toast.makeText(this, "يجب السماح بالوصول للمعرض!", Toast.LENGTH_SHORT).show()
-        }
+        if (isGranted) openGallery() else Toast.makeText(this, "يجب السماح بالوصول للمعرض!", Toast.LENGTH_SHORT).show()
     }
 
-    // فئة تعريف الجوائز
     data class Prize(val text: String, val iconResId: Int, val amount: Int, val type: String)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,13 +48,25 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         sharedPrefs = getSharedPreferences("MobControlPrefs", Context.MODE_PRIVATE)
+        
         loadSavedData()
+        updateResourcesUI() 
         setupBackgroundVideo()
 
-        // الأزرار
         binding.avatarFrameContainer.setOnClickListener { showProfileDialog() }
         binding.btnBattle.setOnClickListener { startActivity(Intent(this, GameActivity::class.java)) }
         binding.btnLuckyWheel.setOnClickListener { showLuckyWheelDialog() }
+    }
+
+    private fun updateResourcesUI() {
+        val currentGold = sharedPrefs.getInt("gold", 0)
+        val currentStones = sharedPrefs.getInt("stone", 0)
+        
+        val tvGold = findViewById<TextView>(R.id.tvGoldAmount)
+        val tvStones = findViewById<TextView>(R.id.tvStonesAmount)
+        
+        tvGold?.text = String.format("%,d", currentGold)
+        tvStones?.text = String.format("%,d", currentStones)
     }
 
     private fun loadSavedData() {
@@ -118,9 +123,6 @@ class MainActivity : AppCompatActivity() {
         profileDialog?.show()
     }
 
-    // ==========================================
-    // منطق عجلة الحظ ونافذة الاحتفال
-    // ==========================================
     private fun showLuckyWheelDialog() {
         val wheelDialog = Dialog(this)
         wheelDialog.setContentView(R.layout.dialog_lucky_wheel)
@@ -132,14 +134,14 @@ class MainActivity : AppCompatActivity() {
 
         var isSpinning = false
 
-        // قائمة الجوائز الـ 6 (موزعة على 360 درجة)
+        // ترتيب الجوائز لتتطابق تماماً مع صورتك المقسمة كالساعة
         val prizesList = listOf(
-            Prize("1000 ذهبة", R.drawable.ic_gold_coin, 1000, "gold"),
-            Prize("50 حجر بناء", R.drawable.ic_stone_block, 50, "stone"),
-            Prize("2000 ذهبة", R.drawable.ic_gold_coin, 2000, "gold"),
-            Prize("100 حجر بناء", R.drawable.ic_stone_block, 100, "stone"),
-            Prize("5000 ذهبة", R.drawable.ic_gold_coin, 5000, "gold"),
-            Prize("صندوق غنائم", R.drawable.ic_shop_scroll, 1, "chest")
+            Prize("1000 ذهبة", R.drawable.ic_gold_coin, 1000, "gold"),       // Index 0 (الساعة 12)
+            Prize("50 حجر بناء", R.drawable.ic_stone_block, 50, "stone"),    // Index 1 (الساعة 2)
+            Prize("2000 ذهبة", R.drawable.ic_gold_coin, 2000, "gold"),       // Index 2 (الساعة 4)
+            Prize("100 حجر بناء", R.drawable.ic_stone_block, 100, "stone"),  // Index 3 (الساعة 6)
+            Prize("5000 ذهبة", R.drawable.ic_gold_coin, 5000, "gold"),       // Index 4 (الساعة 8)
+            Prize("صندوق غنائم", R.drawable.ic_shop_scroll, 1, "chest")      // Index 5 (الساعة 10)
         )
 
         btnSpin.setOnClickListener {
@@ -148,12 +150,18 @@ class MainActivity : AppCompatActivity() {
             btnSpin.isEnabled = false
             btnClose.isEnabled = false
 
-            // 5 دورات كاملة + زاوية عشوائية للتوقف
-            val randomDegree = (360 * 5) + (0..359).random()
+            // اختيار الجائزة مسبقاً (دقة القناص)
+            val winningIndex = (0..5).random() 
+            
+            // حساب الزاوية المطلوبة لكي تقف الجائزة الرابحة تحت المؤشر تماماً
+            val targetAngle = 360f - (winningIndex * 60f)
+            
+            // 5 دورات كاملة + الزاوية المحددة
+            val totalRotation = (360f * 5) + targetAngle
 
-            val animator = android.animation.ObjectAnimator.ofFloat(imgWheelBoard, "rotation", 0f, randomDegree.toFloat())
+            val animator = android.animation.ObjectAnimator.ofFloat(imgWheelBoard, "rotation", 0f, totalRotation)
             animator.duration = 4000
-            animator.interpolator = android.view.animation.DecelerateInterpolator() // تباطؤ واقعي
+            animator.interpolator = android.view.animation.DecelerateInterpolator()
 
             animator.addListener(object : android.animation.Animator.AnimatorListener {
                 override fun onAnimationStart(a: android.animation.Animator) {}
@@ -165,12 +173,7 @@ class MainActivity : AppCompatActivity() {
                     btnSpin.isEnabled = true
                     btnClose.isEnabled = true
 
-                    // حساب مكان الوقوف لمعرفة الجائزة (كل قسم 60 درجة)
-                    // نستخدم 360 ناقص الزاوية لأن العجلة تدور مع عقارب الساعة
-                    val finalAngle = 360 - (randomDegree % 360)
-                    val prizeIndex = (finalAngle / 60).coerceIn(0, 5)
-                    val wonPrize = prizesList[prizeIndex]
-
+                    val wonPrize = prizesList[winningIndex]
                     wheelDialog.dismiss()
                     showCelebrationDialog(wonPrize)
                 }
@@ -195,9 +198,11 @@ class MainActivity : AppCompatActivity() {
         tvText.text = prize.text
 
         btnCollect.setOnClickListener {
-            // حفظ الموارد المكتسبة في قاعدة البيانات
             val currentAmount = sharedPrefs.getInt(prize.type, 0)
             sharedPrefs.edit().putInt(prize.type, currentAmount + prize.amount).apply()
+            
+            // تحديث الرصيد في الشاشة الرئيسية فوراً
+            updateResourcesUI()
             
             celebrationDialog.dismiss()
             Toast.makeText(this, "تم إضافة المجد لخزنتك!", Toast.LENGTH_SHORT).show()
