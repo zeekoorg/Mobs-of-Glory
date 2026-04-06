@@ -6,10 +6,14 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.view.MotionEvent
-import android.view.SurfaceHolder
 import android.view.SurfaceView
+import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.random.Random
 
 class GameEngine(context: Context) : SurfaceView(context), Runnable {
+
+    // الفئة الاحترافية للجندي (تتضمن سرعة X و Y لتطبيق الفيزياء)
+    data class Mob(var x: Float, var y: Float, var dx: Float, var dy: Float, val bitmap: Bitmap)
 
     private var playing = false
     private var gameThread: Thread? = null
@@ -19,16 +23,26 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     private var screenX = 0f
     private var screenY = 0f
 
-    // تعريف الخلفية والمنجنيق
     private var bgBitmap: Bitmap? = null
     private var catapultBitmap: Bitmap
+    private var soldierBitmap: Bitmap
+    
     private var catapultX = 0f
     private var catapultY = 0f
 
+    private val mobs = CopyOnWriteArrayList<Mob>()
+    
+    // نظام الإطلاق الاحترافي
+    private var isShooting = false
+    private var lastFireTime: Long = 0
+    private val fireRate: Long = 80 // إطلاق سريع جداً (جندي كل 80 مللي ثانية لتكوين حشد ضخم)
+
     init {
-        // تحميل صورة المنجنيق
         catapultBitmap = BitmapFactory.decodeResource(context.resources, R.drawable.ic_catapult)
-        catapultBitmap = Bitmap.createScaledBitmap(catapultBitmap, 200, 200, false)
+        catapultBitmap = Bitmap.createScaledBitmap(catapultBitmap, 180, 180, false)
+
+        soldierBitmap = BitmapFactory.decodeResource(context.resources, R.drawable.ic_soldier)
+        soldierBitmap = Bitmap.createScaledBitmap(soldierBitmap, 50, 50, false) // حجم أصغر قليلاً لتكوين حشود كبيرة
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -36,16 +50,11 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         screenX = w.toFloat()
         screenY = h.toFloat()
 
-        // تحميل صورة ساحة المعركة وتمديدها لتملأ الشاشة بدقة
         bgBitmap = BitmapFactory.decodeResource(context.resources, R.drawable.bg_battle_field)
-        // التحقق لتجنب الأخطاء إذا لم ترفع الصورة بعد
-        bgBitmap?.let {
-            bgBitmap = Bitmap.createScaledBitmap(it, w, h, false)
-        }
+        bgBitmap?.let { bgBitmap = Bitmap.createScaledBitmap(it, w, h, false) }
 
-        // وضع المنجنيق في منتصف الشاشة من الأسفل
         catapultX = (screenX / 2) - (catapultBitmap.width / 2)
-        catapultY = screenY - catapultBitmap.height - 100f
+        catapultY = screenY - catapultBitmap.height - 150f
     }
 
     override fun run() {
@@ -57,21 +66,53 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     }
 
     private fun update() {
-        // (قريباً) هنا سنقوم بتحديث إحداثيات الجنود ليتحركوا للأعلى
+        // 1. نظام الإطلاق المستمر (الرشاش)
+        if (isShooting) {
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastFireTime > fireRate) {
+                spawnMob()
+                lastFireTime = currentTime
+            }
+        }
+
+        // 2. فيزياء الحشود (الحركة والارتداد)
+        val iterator = mobs.iterator()
+        while (iterator.hasNext()) {
+            val mob = iterator.next()
+            
+            // تحديث الموقع بناءً على السرعة الموجهة
+            mob.x += mob.dx
+            mob.y += mob.dy
+
+            // الارتداد من الجدران (Wall Bounce) - حركة احترافية
+            if (mob.x <= 0) {
+                mob.x = 0f
+                mob.dx = -mob.dx // عكس الاتجاه يميناً
+            } else if (mob.x >= screenX - mob.bitmap.width) {
+                mob.x = screenX - mob.bitmap.width.toFloat()
+                mob.dx = -mob.dx // عكس الاتجاه يساراً
+            }
+
+            // حذف الجندي إذا تجاوز أعلى الشاشة
+            if (mob.y < -100) {
+                mobs.remove(mob)
+            }
+        }
     }
 
     private fun draw() {
         if (holder.surface.isValid) {
             canvas = holder.lockCanvas()
 
-            // 1. رسم ساحة المعركة (الخلفية)
-            if (bgBitmap != null) {
-                canvas.drawBitmap(bgBitmap!!, 0f, 0f, paint)
-            } else {
-                canvas.drawColor(android.graphics.Color.parseColor("#4A3B2C")) // لون احتياطي
+            // رسم الخلفية
+            bgBitmap?.let { canvas.drawBitmap(it, 0f, 0f, paint) }
+
+            // رسم الجنود (الحشد)
+            for (mob in mobs) {
+                canvas.drawBitmap(mob.bitmap, mob.x, mob.y, paint)
             }
 
-            // 2. رسم المنجنيق
+            // رسم المنجنيق فوق الجنود
             canvas.drawBitmap(catapultBitmap, catapultX, catapultY, paint)
 
             holder.unlockCanvasAndPost(canvas)
@@ -80,7 +121,7 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
 
     private fun control() {
         try {
-            Thread.sleep(17) // للحفاظ على 60 إطار في الثانية
+            Thread.sleep(16) // ~60 FPS
         } catch (e: InterruptedException) {
             e.printStackTrace()
         }
@@ -88,27 +129,47 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
-            MotionEvent.ACTION_MOVE, MotionEvent.ACTION_DOWN -> {
-                // السحر هنا: لا تتحرك إلا إذا كان اللمس في الجزء السفلي (أكبر من 60% من الشاشة)
-                if (event.y > screenY * 0.6f) {
-                    catapultX = event.x - (catapultBitmap.width / 2)
-                    
-                    // منع المنجنيق من الخروج من حدود الشاشة
-                    if (catapultX < 0) catapultX = 0f
-                    if (catapultX > screenX - catapultBitmap.width) catapultX = screenX - catapultBitmap.width.toFloat()
+            MotionEvent.ACTION_DOWN -> {
+                if (event.y > screenY * 0.5f) {
+                    isShooting = true
+                    updateCatapultPosition(event.x)
                 }
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (isShooting) {
+                    updateCatapultPosition(event.x)
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                isShooting = false // إيقاف الإطلاق عند رفع الإصبع
             }
         }
         return true
     }
 
+    private fun updateCatapultPosition(touchX: Float) {
+        catapultX = touchX - (catapultBitmap.width / 2)
+        if (catapultX < 0) catapultX = 0f
+        if (catapultX > screenX - catapultBitmap.width) catapultX = screenX - catapultBitmap.width.toFloat()
+    }
+
+    private fun spawnMob() {
+        val spawnX = catapultX + (catapultBitmap.width / 2) - (soldierBitmap.width / 2)
+        val spawnY = catapultY 
+        
+        // الانحراف العشوائي (Spread Physics) لعمل حشد حقيقي
+        // السرعة الأفقية (dx) عشوائية بين -5 و 5
+        val randomDx = Random.nextInt(-5, 6).toFloat()
+        
+        // السرعة العمودية (dy) ثابتة للأعلى
+        val speedDy = -18f 
+
+        mobs.add(Mob(spawnX, spawnY, randomDx, speedDy, soldierBitmap))
+    }
+
     fun pause() {
         playing = false
-        try {
-            gameThread?.join()
-        } catch (e: InterruptedException) {
-            e.printStackTrace()
-        }
+        try { gameThread?.join() } catch (e: InterruptedException) {}
     }
 
     fun resume() {
