@@ -35,14 +35,16 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     // نظام الإطلاق الاحترافي
     private var isShooting = false
     private var lastFireTime: Long = 0
-    private val fireRate: Long = 80 // إطلاق سريع جداً (جندي كل 80 مللي ثانية لتكوين حشد ضخم)
+    
+    // تم التعديل: تقليل سرعة الإطلاق (رقم أكبر = إطلاق أبطأ وأقل كثافة)
+    private val fireRate: Long = 200 
 
     init {
         catapultBitmap = BitmapFactory.decodeResource(context.resources, R.drawable.ic_catapult)
         catapultBitmap = Bitmap.createScaledBitmap(catapultBitmap, 180, 180, false)
 
         soldierBitmap = BitmapFactory.decodeResource(context.resources, R.drawable.ic_soldier)
-        soldierBitmap = Bitmap.createScaledBitmap(soldierBitmap, 50, 50, false) // حجم أصغر قليلاً لتكوين حشود كبيرة
+        soldierBitmap = Bitmap.createScaledBitmap(soldierBitmap, 50, 50, false)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -66,7 +68,7 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     }
 
     private fun update() {
-        // 1. نظام الإطلاق المستمر (الرشاش)
+        // 1. نظام الإطلاق المستمر
         if (isShooting) {
             val currentTime = System.currentTimeMillis()
             if (currentTime - lastFireTime > fireRate) {
@@ -80,17 +82,17 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         while (iterator.hasNext()) {
             val mob = iterator.next()
             
-            // تحديث الموقع بناءً على السرعة الموجهة
+            // تحديث الموقع
             mob.x += mob.dx
             mob.y += mob.dy
 
-            // الارتداد من الجدران (Wall Bounce) - حركة احترافية
+            // الارتداد من الجدران (Wall Bounce)
             if (mob.x <= 0) {
                 mob.x = 0f
-                mob.dx = -mob.dx // عكس الاتجاه يميناً
+                mob.dx = -mob.dx 
             } else if (mob.x >= screenX - mob.bitmap.width) {
                 mob.x = screenX - mob.bitmap.width.toFloat()
-                mob.dx = -mob.dx // عكس الاتجاه يساراً
+                mob.dx = -mob.dx 
             }
 
             // حذف الجندي إذا تجاوز أعلى الشاشة
@@ -106,6 +108,10 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
 
             // رسم الخلفية
             bgBitmap?.let { canvas.drawBitmap(it, 0f, 0f, paint) }
+            // إذا لم توجد صورة خلفية، نرسم لوناً ترابياً احتياطياً
+            if (bgBitmap == null) {
+                canvas.drawColor(android.graphics.Color.parseColor("#4A3B2C")) 
+            }
 
             // رسم الجنود (الحشد)
             for (mob in mobs) {
@@ -130,6 +136,7 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
+                // التحكم فقط في النصف السفلي من الشاشة
                 if (event.y > screenY * 0.5f) {
                     isShooting = true
                     updateCatapultPosition(event.x)
@@ -141,7 +148,7 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
                 }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                isShooting = false // إيقاف الإطلاق عند رفع الإصبع
+                isShooting = false // إيقاف الإطلاق
             }
         }
         return true
@@ -157,12 +164,11 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         val spawnX = catapultX + (catapultBitmap.width / 2) - (soldierBitmap.width / 2)
         val spawnY = catapultY 
         
-        // الانحراف العشوائي (Spread Physics) لعمل حشد حقيقي
-        // السرعة الأفقية (dx) عشوائية بين -5 و 5
+        // الانحراف العشوائي لعمل شكل السرب
         val randomDx = Random.nextInt(-5, 6).toFloat()
         
-        // السرعة العمودية (dy) ثابتة للأعلى
-        val speedDy = -18f 
+        // تم التعديل: تقليل سرعة الركض (كانت -18، أصبحت -10)
+        val speedDy = -10f 
 
         mobs.add(Mob(spawnX, spawnY, randomDx, speedDy, soldierBitmap))
     }
