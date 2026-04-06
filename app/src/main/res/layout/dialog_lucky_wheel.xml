@@ -4,7 +4,7 @@
     android:layout_width="320dp"
     android:layout_height="wrap_content"
     android:layout_gravity="center"
-    android:background="@drawable/bg_dialog_scroll"
+    android:background="@drawable/bg_wheel_dialog"
     android:padding="24dp">
 
     <TextView
