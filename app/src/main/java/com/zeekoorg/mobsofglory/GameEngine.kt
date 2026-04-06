@@ -14,71 +14,98 @@ import kotlin.random.Random
 
 class GameEngine(context: Context) : SurfaceView(context), Runnable {
 
-    // فئة الجندي مع خصائص المركز لتطبيق الاصطدام الدائري الدقيق
-    data class Mob(var x: Float, var y: Float, var dx: Float, var dy: Float, val bitmap: Bitmap) {
+    // فئة الجندي 
+    data class Mob(var x: Float, var y: Float, var dx: Float, var dy: Float, val bitmap: Bitmap, var hasMultiplied: Boolean = false) {
         val centerX: Float get() = x + (bitmap.width / 2f)
         val centerY: Float get() = y + (bitmap.height / 2f)
-        val radius: Float get() = bitmap.width / 2.5f // تم تقليص نصف القطر لتجاهل الحواف الشفافة للصورة
+        val radius: Float get() = bitmap.width / 2.5f 
     }
+
+    // فئة البوابة (المضاعف)
+    data class Gate(var x: Float, var y: Float, val bitmap: Bitmap, val multiplier: Int)
 
     private var playing = false
     private var gameThread: Thread? = null
     private lateinit var canvas: Canvas
     private val paint: Paint = Paint()
     
-    // فرشاة مخصصة لرسم خط مسار المنجنيق (مثل الصورة)
+    // خط مسار المنجنيق
     private val trackPaint = Paint().apply {
         color = Color.WHITE
         strokeWidth = 12f
         strokeCap = Paint.Cap.ROUND
-        alpha = 150 // شفافية خفيفة
+        alpha = 150 
     }
+
+    // خط نص البوابة
+    private val textPaint = Paint().apply {
+        color = Color.WHITE
+        textSize = 65f
+        typeface = android.graphics.Typeface.DEFAULT_BOLD
+        textAlign = Paint.Align.CENTER
+        setShadowLayer(5f, 0f, 0f, Color.BLACK)
+    }
+
+    // فرشاة أشرطة الصحة
+    private val healthBgPaint = Paint().apply { color = Color.DKGRAY }
+    private val playerHealthPaint = Paint().apply { color = Color.parseColor("#4CAF50") } // أخضر
+    private val enemyHealthPaint = Paint().apply { color = Color.parseColor("#F44336") } // أحمر
 
     private var screenX = 0f
     private var screenY = 0f
 
-    // حدود المسار المنظم (The Track Container)
+    // حدود المسار المنظم (The Track)
     private var trackWidth = 0f
     private var trackLeft = 0f
     private var trackRight = 0f
 
-    // أصول اللعبة
     private var bgBitmap: Bitmap? = null
     private var catapultBitmap: Bitmap
     private var soldierBitmap: Bitmap
     private var enemyCastleBitmap: Bitmap
     private var enemySoldierBitmap: Bitmap
+    private var gateBitmap: Bitmap 
     
-    // إحداثيات
     private var catapultX = 0f
     private var catapultY = 0f
     private var enemyCastleX = 0f
     private var enemyCastleY = 0f
 
+    private var mainGate: Gate? = null
+
     private val playerMobs = CopyOnWriteArrayList<Mob>()
     private val enemyMobs = CopyOnWriteArrayList<Mob>()
     
-    // إعدادات الإطلاق المنظم
     private var isShooting = false
     private var lastFireTime: Long = 0
-    private val fireRate: Long = 120 // إطلاق سريع لتكوين حشد كثيف
+    private val fireRate: Long = 120 
     private var lastEnemyFireTime: Long = 0
     private val enemyFireRate: Long = 180
 
+    // نظام نقاط الصحة (Health System)
+    private val maxHealth = 1000f
+    private var playerHealth = maxHealth
+    private var enemyHealth = maxHealth
+
     init {
-        // حجم المنجنيق
+        // تكبير المنجنيق
         catapultBitmap = BitmapFactory.decodeResource(context.resources, R.drawable.ic_catapult)
-        catapultBitmap = Bitmap.createScaledBitmap(catapultBitmap, 160, 160, false)
+        catapultBitmap = Bitmap.createScaledBitmap(catapultBitmap, 180, 180, false)
 
-        // أحجام الجنود مصغرة لتتناسب مع التنظيم
+        // تكبير الجنود الخاصين بك
         soldierBitmap = BitmapFactory.decodeResource(context.resources, R.drawable.ic_soldier)
-        soldierBitmap = Bitmap.createScaledBitmap(soldierBitmap, 45, 45, false)
+        soldierBitmap = Bitmap.createScaledBitmap(soldierBitmap, 60, 60, false)
 
-        enemyCastleBitmap = BitmapFactory.decodeResource(context.resources, R.drawable.ic_kingdom_castle)
-        enemyCastleBitmap = Bitmap.createScaledBitmap(enemyCastleBitmap, 300, 300, false)
+        // تحميل وتكبير قلعة العدو (تم تغيير الاسم للصورة الجديدة)
+        enemyCastleBitmap = BitmapFactory.decodeResource(context.resources, R.drawable.ic_enemy_castle)
+        enemyCastleBitmap = Bitmap.createScaledBitmap(enemyCastleBitmap, 380, 380, false)
 
-        enemySoldierBitmap = BitmapFactory.decodeResource(context.resources, R.drawable.ic_soldier) 
-        enemySoldierBitmap = Bitmap.createScaledBitmap(enemySoldierBitmap, 45, 45, false)
+        // تحميل وتكبير جندي العدو (تم تغيير الاسم للصورة الجديدة)
+        enemySoldierBitmap = BitmapFactory.decodeResource(context.resources, R.drawable.ic_enemy_soldier) 
+        enemySoldierBitmap = Bitmap.createScaledBitmap(enemySoldierBitmap, 60, 60, false)
+
+        gateBitmap = BitmapFactory.decodeResource(context.resources, R.drawable.ic_shop_scroll)
+        gateBitmap = Bitmap.createScaledBitmap(gateBitmap, 250, 80, false)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -86,8 +113,6 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         screenX = w.toFloat()
         screenY = h.toFloat()
 
-        // تعريف مسار اللعب (حاوية العرض المرئية والفيزيائية)
-        // عرض المسار سيكون 70% من عرض الشاشة الإجمالي
         trackWidth = screenX * 0.7f
         trackLeft = (screenX - trackWidth) / 2f
         trackRight = trackLeft + trackWidth
@@ -98,8 +123,13 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         catapultX = (screenX / 2f) - (catapultBitmap.width / 2f)
         catapultY = screenY - catapultBitmap.height - 180f
 
+        // سحب قلعة العدو للأسفل قليلاً (كانت 100 أصبحت 150)
         enemyCastleX = (screenX / 2f) - (enemyCastleBitmap.width / 2f)
-        enemyCastleY = 100f
+        enemyCastleY = 150f
+
+        val gateX = (screenX / 2f) - (gateBitmap.width / 2f)
+        val gateY = screenY * 0.5f
+        mainGate = Gate(gateX, gateY, gateBitmap, 3) 
     }
 
     override fun run() {
@@ -123,30 +153,55 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
             lastEnemyFireTime = currentTime
         }
 
-        // تحريك جنود اللاعب ضمن المسار المخصص فقط
+        // تحريك جنود اللاعب
         for (mob in playerMobs) {
             mob.x += mob.dx
             mob.y += mob.dy
             bounceOffTrackWalls(mob)
-            if (mob.y < enemyCastleY + 100f) {
+
+            // المرور عبر البوابة
+            mainGate?.let { gate ->
+                if (!mob.hasMultiplied && 
+                    mob.y < gate.y + gate.bitmap.height && 
+                    mob.y + mob.bitmap.height > gate.y && 
+                    mob.x + mob.bitmap.width > gate.x && 
+                    mob.x < gate.x + gate.bitmap.width) {
+                    
+                    mob.hasMultiplied = true 
+                    
+                    for (i in 0 until gate.multiplier - 1) {
+                        val newDx = Random.nextInt(-6, 7).toFloat() 
+                        val newMob = Mob(mob.x, mob.y - 10f, newDx, mob.dy, soldierBitmap, true)
+                        playerMobs.add(newMob)
+                    }
+                }
+            }
+
+            // الاصطدام بقلعة العدو وإحداث ضرر
+            if (mob.y < enemyCastleY + (enemyCastleBitmap.height / 2f)) {
                 playerMobs.remove(mob)
+                enemyHealth -= 5f // كل جندي ينقص 5 نقاط من قلعة العدو
+                if (enemyHealth < 0) enemyHealth = 0f
             }
         }
 
-        // تحريك جنود العدو ضمن المسار المخصص فقط
+        // تحريك جنود العدو
         for (enemy in enemyMobs) {
             enemy.x += enemy.dx
             enemy.y += enemy.dy
             bounceOffTrackWalls(enemy)
+            
+            // اختراق خط الدفاع الخاص بك وإحداث ضرر
             if (enemy.y > catapultY) {
                 enemyMobs.remove(enemy)
+                playerHealth -= 10f // جنود العدو أقوى قليلاً في الهجوم على قاعدتك
+                if (playerHealth < 0) playerHealth = 0f
             }
         }
 
         checkCircularCollisions()
     }
 
-    // ارتداد الجنود من حواف "المسار" وليس حواف الشاشة لتنظيم الحشد
     private fun bounceOffTrackWalls(mob: Mob) {
         if (mob.x <= trackLeft) {
             mob.x = trackLeft
@@ -157,7 +212,6 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         }
     }
 
-    // نظام الاصطدام الدائري الواقعي (نقطة التلامس الجسدي الدقيقة)
     private fun checkCircularCollisions() {
         val playerIter = playerMobs.iterator()
         while (playerIter.hasNext()) {
@@ -168,12 +222,10 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
             while (enemyIter.hasNext()) {
                 val eMob = enemyIter.next()
                 
-                // حساب المسافة بين مركزي الجنديين باستخدام نظرية فيثاغورس
                 val dx = pMob.centerX - eMob.centerX
                 val dy = pMob.centerY - eMob.centerY
                 val distance = sqrt((dx * dx) + (dy * dy).toDouble()).toFloat()
                 
-                // إذا كانت المسافة أصغر من مجموع أنصاف أقطار الجنديين، يحدث الاصطدام
                 val minDistance = pMob.radius + eMob.radius
                 
                 if (distance < minDistance) {
@@ -194,11 +246,25 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
 
             bgBitmap?.let { canvas.drawBitmap(it, 0f, 0f, paint) } ?: canvas.drawColor(Color.parseColor("#4A3B2C"))
 
-            // رسم خط مسار المنجنيق خلفه مباشرة لإعطاء عمق بصري وتنظيم مساحة اللعب
             val lineY = catapultY + (catapultBitmap.height / 2f)
             canvas.drawLine(trackLeft, lineY, trackRight, lineY, trackPaint)
 
             canvas.drawBitmap(enemyCastleBitmap, enemyCastleX, enemyCastleY, paint)
+
+            // رسم شريط صحة قلعة العدو (أعلى القلعة)
+            val enemyHbWidth = 250f
+            val enemyHbHeight = 25f
+            val enemyHbX = enemyCastleX + (enemyCastleBitmap.width / 2f) - (enemyHbWidth / 2f)
+            val enemyHbY = enemyCastleY - 40f
+            canvas.drawRect(enemyHbX, enemyHbY, enemyHbX + enemyHbWidth, enemyHbY + enemyHbHeight, healthBgPaint)
+            canvas.drawRect(enemyHbX, enemyHbY, enemyHbX + (enemyHbWidth * (enemyHealth / maxHealth)), enemyHbY + enemyHbHeight, enemyHealthPaint)
+
+            // رسم البوابة
+            mainGate?.let { gate ->
+                canvas.drawBitmap(gate.bitmap, gate.x, gate.y, paint)
+                val textY = gate.y + (gate.bitmap.height / 1.5f)
+                canvas.drawText("x${gate.multiplier}", gate.x + (gate.bitmap.width / 2f), textY, textPaint)
+            }
 
             for (enemy in enemyMobs) {
                 canvas.drawBitmap(enemy.bitmap, enemy.x, enemy.y, paint)
@@ -209,6 +275,14 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
             }
 
             canvas.drawBitmap(catapultBitmap, catapultX, catapultY, paint)
+
+            // رسم شريط صحتك (أسفل الشاشة في المنتصف)
+            val playerHbWidth = trackWidth
+            val playerHbHeight = 30f
+            val playerHbX = trackLeft
+            val playerHbY = screenY - 50f
+            canvas.drawRect(playerHbX, playerHbY, playerHbX + playerHbWidth, playerHbY + playerHbHeight, healthBgPaint)
+            canvas.drawRect(playerHbX, playerHbY, playerHbX + (playerHbWidth * (playerHealth / maxHealth)), playerHbY + playerHbHeight, playerHealthPaint)
 
             holder.unlockCanvasAndPost(canvas)
         }
@@ -234,7 +308,6 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         return true
     }
 
-    // تقييد حركة المنجنيق ضمن المسار المحدد (Container)
     private fun updateCatapultPosition(touchX: Float) {
         catapultX = touchX - (catapultBitmap.width / 2f)
         
@@ -248,8 +321,6 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     private fun spawnPlayerMob() {
         val spawnX = catapultX + (catapultBitmap.width / 2f) - (soldierBitmap.width / 2f)
         val spawnY = catapultY 
-        
-        // تشتت أفقي خفيف جداً للحفاظ على التنظيم العسكري
         val randomDx = Random.nextInt(-3, 4).toFloat() 
         val speedDy = -12f 
         playerMobs.add(Mob(spawnX, spawnY, randomDx, speedDy, soldierBitmap))
@@ -258,8 +329,6 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     private fun spawnEnemyMob() {
         val spawnX = enemyCastleX + (enemyCastleBitmap.width / 2f) - (enemySoldierBitmap.width / 2f)
         val spawnY = enemyCastleY + enemyCastleBitmap.height - 40f
-        
-        // جنود العدو يمتلكون تشتتاً مشابهاً وينتشرون على نفس عرض المسار
         val randomDx = Random.nextInt(-3, 4).toFloat()
         val speedDy = 8f 
         enemyMobs.add(Mob(spawnX, spawnY, randomDx, speedDy, enemySoldierBitmap))
