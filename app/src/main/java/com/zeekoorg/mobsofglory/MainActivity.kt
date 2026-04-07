@@ -8,14 +8,23 @@ import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
+import android.view.View
+import android.view.ViewGroup
+import android.view.WindowInsets
+import android.view.WindowInsetsController
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -28,6 +37,11 @@ class MainActivity : AppCompatActivity() {
     private var tempSelectedImageUri: Uri? = null
     private var profileDialog: Dialog? = null
     private lateinit var sharedPrefs: SharedPreferences
+
+    // متغيرات الأبواب الملكية
+    private lateinit var leftDoor: ImageView
+    private lateinit var rightDoor: ImageView
+    private var screenWidth = 0
 
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
@@ -44,6 +58,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // تمديد الشاشة للحواف (Edge-to-Edge)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -52,10 +73,65 @@ class MainActivity : AppCompatActivity() {
         loadSavedData()
         updateResourcesUI() 
         setupBackgroundVideo()
+        
+        // تجهيز الأبواب الملكية المخفية
+        setupRoyalDoors()
 
         binding.avatarFrameContainer.setOnClickListener { showProfileDialog() }
-        binding.btnBattle.setOnClickListener { startActivity(Intent(this, GameActivity::class.java)) }
+        
+        // تغيير الانتقال ليعمل مع الأبواب
+        binding.btnBattle.setOnClickListener { startGameWithTransition() }
+        
         binding.btnLuckyWheel.setOnClickListener { showLuckyWheelDialog() }
+    }
+
+    private fun setupRoyalDoors() {
+        screenWidth = resources.displayMetrics.widthPixels
+        val doorWidth = screenWidth / 2
+        val doorHeight = ViewGroup.LayoutParams.MATCH_PARENT
+
+        val rootView = findViewById<ViewGroup>(android.R.id.content)
+        
+        leftDoor = ImageView(this).apply {
+            val resId = resources.getIdentifier("bg_door_left", "drawable", packageName)
+            if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.parseColor("#2C3E50"))
+            scaleType = ImageView.ScaleType.FIT_XY
+            layoutParams = FrameLayout.LayoutParams(doorWidth, doorHeight)
+            translationX = -doorWidth.toFloat() 
+            elevation = 100f 
+        }
+        
+        rightDoor = ImageView(this).apply {
+            val resId = resources.getIdentifier("bg_door_right", "drawable", packageName)
+            if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.parseColor("#2C3E50"))
+            scaleType = ImageView.ScaleType.FIT_XY
+            val params = FrameLayout.LayoutParams(doorWidth, doorHeight)
+            params.leftMargin = doorWidth
+            layoutParams = params
+            translationX = doorWidth.toFloat() 
+            elevation = 100f
+        }
+
+        rootView.addView(leftDoor)
+        rootView.addView(rightDoor)
+    }
+
+    private fun startGameWithTransition() {
+        // إغلاق الأبواب ببطء
+        leftDoor.animate().translationX(0f).setDuration(600).start()
+        rightDoor.animate().translationX(0f).setDuration(600).withEndAction {
+            
+            // البقاء مغلقاً لمدة ثانية (1000 مللي ثانية) قبل فتح شاشة اللعب
+            Handler(Looper.getMainLooper()).postDelayed({
+                val intent = Intent(this, GameActivity::class.java)
+                startActivity(intent)
+                
+                // منع حركة الانزلاق الافتراضية لأندرويد
+                @Suppress("DEPRECATION")
+                overridePendingTransition(0, 0)
+            }, 1000)
+            
+        }.start()
     }
 
     private fun updateResourcesUI() {
@@ -134,14 +210,13 @@ class MainActivity : AppCompatActivity() {
 
         var isSpinning = false
 
-        // ترتيب الجوائز لتتطابق تماماً مع صورتك المقسمة كالساعة
         val prizesList = listOf(
-            Prize("1000 ذهبة", R.drawable.ic_gold_coin, 1000, "gold"),       // Index 0 (الساعة 12)
-            Prize("50 حجر بناء", R.drawable.ic_stone_block, 50, "stone"),    // Index 1 (الساعة 2)
-            Prize("2000 ذهبة", R.drawable.ic_gold_coin, 2000, "gold"),       // Index 2 (الساعة 4)
-            Prize("100 حجر بناء", R.drawable.ic_stone_block, 100, "stone"),  // Index 3 (الساعة 6)
-            Prize("5000 ذهبة", R.drawable.ic_gold_coin, 5000, "gold"),       // Index 4 (الساعة 8)
-            Prize("صندوق غنائم", R.drawable.ic_shop_scroll, 1, "chest")      // Index 5 (الساعة 10)
+            Prize("1000 ذهبة", R.drawable.ic_gold_coin, 1000, "gold"),       
+            Prize("50 حجر بناء", R.drawable.ic_stone_block, 50, "stone"),    
+            Prize("2000 ذهبة", R.drawable.ic_gold_coin, 2000, "gold"),       
+            Prize("100 حجر بناء", R.drawable.ic_stone_block, 100, "stone"),  
+            Prize("5000 ذهبة", R.drawable.ic_gold_coin, 5000, "gold"),       
+            Prize("صندوق غنائم", R.drawable.ic_shop_scroll, 1, "chest")      
         )
 
         btnSpin.setOnClickListener {
@@ -150,13 +225,8 @@ class MainActivity : AppCompatActivity() {
             btnSpin.isEnabled = false
             btnClose.isEnabled = false
 
-            // اختيار الجائزة مسبقاً (دقة القناص)
             val winningIndex = (0..5).random() 
-            
-            // حساب الزاوية المطلوبة لكي تقف الجائزة الرابحة تحت المؤشر تماماً
             val targetAngle = 360f - (winningIndex * 60f)
-            
-            // 5 دورات كاملة + الزاوية المحددة
             val totalRotation = (360f * 5) + targetAngle
 
             val animator = android.animation.ObjectAnimator.ofFloat(imgWheelBoard, "rotation", 0f, totalRotation)
@@ -201,7 +271,6 @@ class MainActivity : AppCompatActivity() {
             val currentAmount = sharedPrefs.getInt(prize.type, 0)
             sharedPrefs.edit().putInt(prize.type, currentAmount + prize.amount).apply()
             
-            // تحديث الرصيد في الشاشة الرئيسية فوراً
             updateResourcesUI()
             
             celebrationDialog.dismiss()
@@ -225,9 +294,44 @@ class MainActivity : AppCompatActivity() {
         pickImageLauncher.launch(intent)
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) hideSystemUI()
+    }
+
+    private fun hideSystemUI() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.insetsController?.let {
+                it.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+                it.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_FULLSCREEN)
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         player?.play() 
+        
+        // تحديث الموارد لتظهر الغنائم التي فزت بها في المعركة
+        updateResourcesUI()
+        
+        // فتح الأبواب الملكية ببطء عند العودة للشاشة الرئيسية
+        if (::leftDoor.isInitialized && ::rightDoor.isInitialized) {
+            val doorWidth = screenWidth / 2f
+            leftDoor.translationX = 0f
+            rightDoor.translationX = 0f
+            
+            leftDoor.animate().translationX(-doorWidth).setDuration(600).start()
+            rightDoor.animate().translationX(doorWidth).setDuration(600).start()
+        }
     }
 
     override fun onPause() {
