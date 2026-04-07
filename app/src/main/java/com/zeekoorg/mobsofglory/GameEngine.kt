@@ -20,7 +20,6 @@ import kotlin.random.Random
 
 class GameEngine(context: Context) : SurfaceView(context), Runnable {
 
-    // حالات اللعبة (للتحكم في الفوز والخسارة)
     enum class GameState { PLAYING, WON, LOST }
     private var currentGameState = GameState.PLAYING
 
@@ -31,24 +30,26 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     }
 
     data class Gate(var x: Float, var y: Float, var dx: Float, val bitmap: Bitmap, val multiplier: Int)
-
     data class Particle(var x: Float, var y: Float, var dx: Float, var dy: Float, var life: Int, var color: Int)
+    
+    // فئة المفرقعات الاحتفالية للفوز
+    data class Firework(var x: Float, var y: Float, var dx: Float, var dy: Float, var life: Int, var color: Int)
 
     private var playing = false
     private var gameThread: Thread? = null
     private val paint: Paint = Paint()
     
-    // فُرش الرسم الأساسية
     private val trackPaint = Paint().apply { color = Color.WHITE; strokeWidth = 10f; strokeCap = Paint.Cap.ROUND; alpha = 100 }
     private val textPaint = Paint().apply { color = Color.WHITE; textSize = 70f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER; setShadowLayer(5f, 0f, 0f, Color.BLACK) }
     private val hudTextPaint = Paint().apply { color = Color.WHITE; textSize = 45f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER; setShadowLayer(4f, 0f, 0f, Color.BLACK) }
     private val btnPaint = Paint().apply { color = Color.parseColor("#B71C1C") }
 
-    // فُرش النوافذ (الفوز/الخسارة)
-    private val overlayPaint = Paint().apply { color = Color.parseColor("#B3000000") } // أسود شفاف 70%
-    private val windowPaint = Paint().apply { color = Color.parseColor("#DD2C3E50") } // أزرق داكن شفاف للنافذة
+    private val overlayPaint = Paint().apply { color = Color.parseColor("#B3000000") } 
+    private val windowPaint = Paint().apply { color = Color.parseColor("#DD2C3E50") } 
     private val winTitlePaint = Paint().apply { color = Color.parseColor("#FFD700"); textSize = 90f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER; setShadowLayer(8f, 0f, 0f, Color.BLACK) }
-    private val rewardTextPaint = Paint().apply { color = Color.WHITE; textSize = 60f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER; setShadowLayer(4f, 0f, 0f, Color.BLACK) }
+    
+    // تعديل محاذاة نص الجوائز ليكون بجانب الأيقونة
+    private val rewardTextPaint = Paint().apply { color = Color.WHITE; textSize = 65f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.LEFT; setShadowLayer(4f, 0f, 0f, Color.BLACK) }
 
     private val healthBgPaint = Paint().apply { color = Color.parseColor("#444444") } 
     private val playerHealthPaint = Paint().apply { color = Color.parseColor("#4CAF50") } 
@@ -69,6 +70,11 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     private var bgPowerPlayerBitmap: Bitmap? = null
     private var bgPowerEnemyBitmap: Bitmap? = null
     
+    // صور نوافذ الفوز والغنائم
+    private var bgWheelDialogBitmap: Bitmap? = null
+    private var icStoneBlockBitmap: Bitmap? = null
+    private var icGoldCoinBitmap: Bitmap? = null
+    
     private var catapultX = 0f; private var catapultY = 0f
     private var enemyCastleX = 0f; private var enemyCastleY = 0f
     private var mainGate: Gate? = null
@@ -76,6 +82,7 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     private val playerMobs = CopyOnWriteArrayList<Mob>()
     private val enemyMobs = CopyOnWriteArrayList<Mob>()
     private val particles = CopyOnWriteArrayList<Particle>()
+    private val fireworks = CopyOnWriteArrayList<Firework>() // قائمة المفرقعات
     
     private var isShooting = false
     private var lastFireTime: Long = 0; private val fireRate: Long = 280 
@@ -91,7 +98,6 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     private var homeBtnRect = RectF()
     private var retryBtnRect = RectF()
 
-    // متغيرات الفوز والخسارة
     private var winTime: Long = 0
     private var earnedCoins = 0
     private var earnedGems = 0
@@ -108,8 +114,12 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         return bitmap
     }
 
+    private fun loadOptionalBitmap(ctx: Context, name: String, w: Int, h: Int): Bitmap? {
+        val resId = ctx.resources.getIdentifier(name, "drawable", ctx.packageName)
+        return if (resId != 0) getSafeBitmap(ctx, resId, w, h) else null
+    }
+
     init {
-        // تهيئة الذاكرة لحفظ الغنائم
         prefs = context.getSharedPreferences("MobsOfGloryData", Context.MODE_PRIVATE)
 
         val catWidth = 200; val catRatio = 600f / 512f; val catHeight = (catWidth * catRatio).toInt()
@@ -119,10 +129,13 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         gateBitmap = getSafeBitmap(context, R.drawable.ic_gate_blue, 300, 100)
         enemyCastleBitmap = getSafeBitmap(context, R.drawable.ic_enemy_castle)
 
-        val playerBgId = context.resources.getIdentifier("bg_power_player", "drawable", context.packageName)
-        if (playerBgId != 0) bgPowerPlayerBitmap = getSafeBitmap(context, playerBgId, 220, 90)
-        val enemyBgId = context.resources.getIdentifier("bg_power_enemy", "drawable", context.packageName)
-        if (enemyBgId != 0) bgPowerEnemyBitmap = getSafeBitmap(context, enemyBgId, 220, 90)
+        bgPowerPlayerBitmap = loadOptionalBitmap(context, "bg_power_player", 220, 90)
+        bgPowerEnemyBitmap = loadOptionalBitmap(context, "bg_power_enemy", 220, 90)
+        
+        // تحميل صور نافذة الفوز
+        bgWheelDialogBitmap = loadOptionalBitmap(context, "bg_wheel_dialog", 800, 600)
+        icStoneBlockBitmap = loadOptionalBitmap(context, "ic_stone_block", 90, 90)
+        icGoldCoinBitmap = loadOptionalBitmap(context, "ic_gold_coin", 90, 90)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -142,9 +155,6 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         val bgId = context.resources.getIdentifier("bg_battle_field", "drawable", context.packageName)
         if (bgId != 0) bgBitmap = getSafeBitmap(context, bgId, w, h)
 
-        bgPowerPlayerBitmap?.let { bgPowerPlayerBitmap = Bitmap.createScaledBitmap(it, 220, 90, false) }
-        bgPowerEnemyBitmap?.let { bgPowerEnemyBitmap = Bitmap.createScaledBitmap(it, 220, 90, false) }
-
         catapultX = (screenX / 2f) - (catapultBitmap.width / 2f); catapultY = screenY - catapultBitmap.height - 100f 
         enemyCastleX = (screenX / 2f) - (enemyCastleBitmap.width / 2f); enemyCastleY = 250f
 
@@ -152,8 +162,7 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         mainGate = Gate(gateX, gateY, 6f, gateBitmap, 3) 
 
         homeBtnRect = RectF(40f, 160f, 240f, 240f)
-        // تحديد مكان زر المحاولة
-        retryBtnRect = RectF((screenX / 2f) - 200f, (screenY / 2f) + 100f, (screenX / 2f) + 200f, (screenY / 2f) + 220f)
+        retryBtnRect = RectF((screenX / 2f) - 220f, (screenY / 2f) + 120f, (screenX / 2f) + 220f, (screenY / 2f) + 240f)
     }
 
     override fun run() {
@@ -167,7 +176,19 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     }
 
     private fun update() {
-        // إذا لم نكن في وضع اللعب، نوقف تحريك الجنود
+        // تحديث المفرقعات الاحتفالية إذا كنا في وضع الفوز
+        if (currentGameState == GameState.WON) {
+            val fIter = fireworks.iterator()
+            while (fIter.hasNext()) {
+                val f = fIter.next()
+                f.x += f.dx
+                f.y += f.dy
+                f.dy += 0.4f // تأثير الجاذبية تسحب المفرقعات للأسفل
+                f.life -= 2
+                if (f.life <= 0) fireworks.remove(f)
+            }
+        }
+
         if (currentGameState != GameState.PLAYING) return
 
         val currentTime = System.currentTimeMillis()
@@ -241,24 +262,30 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         checkCircularCollisions()
     }
 
-    // --- نظام الفوز والخسارة المدمج ---
     private fun triggerWin() {
         if (currentGameState == GameState.WON) return
         currentGameState = GameState.WON
         winTime = System.currentTimeMillis()
         enemyHealth = 0f
 
-        // توليد الغنائم
         earnedCoins = Random.nextInt(150, 300)
         earnedGems = Random.nextInt(2, 6)
 
-        // حفظ الغنائم في الرصيد
         val currentCoins = prefs.getInt("coins", 0)
         val currentGems = prefs.getInt("gems", 0)
         prefs.edit().apply {
             putInt("coins", currentCoins + earnedCoins)
             putInt("gems", currentGems + earnedGems)
             apply()
+        }
+
+        // إطلاق المفرقعات الاحتفالية من زاويتي الشاشة السفلية
+        val fireworkColors = arrayOf(Color.RED, Color.YELLOW, Color.GREEN, Color.CYAN, Color.MAGENTA, Color.parseColor("#FFD700"), Color.WHITE)
+        for (i in 0..120) {
+            // انفجار من اليسار
+            fireworks.add(Firework(screenX * 0.2f, screenY, Random.nextDouble(5.0, 20.0).toFloat(), Random.nextDouble(-40.0, -15.0).toFloat(), 255, fireworkColors.random()))
+            // انفجار من اليمين
+            fireworks.add(Firework(screenX * 0.8f, screenY, Random.nextDouble(-20.0, -5.0).toFloat(), Random.nextDouble(-40.0, -15.0).toFloat(), 255, fireworkColors.random()))
         }
     }
 
@@ -274,10 +301,10 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         playerMobs.clear()
         enemyMobs.clear()
         particles.clear()
+        fireworks.clear()
         catapultX = (screenX / 2f) - (catapultBitmap.width / 2f)
         currentGameState = GameState.PLAYING
     }
-    // ------------------------------------
 
     private fun createExplosion(x: Float, y: Float) {
         val colors = arrayOf(Color.rgb(255, 165, 0), Color.rgb(255, 69, 0), Color.rgb(255, 215, 0))
@@ -338,7 +365,10 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
                     for (enemy in enemyMobs) localCanvas.drawBitmap(enemy.bitmap, enemy.x, enemy.y, paint)
                     for (mob in playerMobs) localCanvas.drawBitmap(mob.bitmap, mob.x, mob.y, paint)
 
-                    for (p in particles) { paint.color = p.color; paint.alpha = p.life; localCanvas.drawCircle(p.x, p.y, 8f, paint) }
+                    for (p in particles) { paint.color = p.color; paint.alpha = p.life.coerceIn(0, 255); localCanvas.drawCircle(p.x, p.y, 8f, paint) }
+                    
+                    // رسم المفرقعات
+                    for (f in fireworks) { paint.color = f.color; paint.alpha = f.life.coerceIn(0, 255); localCanvas.drawCircle(f.x, f.y, 10f, paint) }
                     paint.alpha = 255 
 
                     localCanvas.drawBitmap(catapultBitmap, catapultX, catapultY, paint)
@@ -366,28 +396,44 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
                     localCanvas.drawText("الرئيسية", homeBtnRect.centerX(), homeBtnRect.centerY() + 12f, hudTextPaint)
                     hudTextPaint.textSize = 45f 
 
-                    // --- رسم نوافذ الفوز والخسارة فوق اللعبة ---
+                    // --- رسم نوافذ الفوز والخسارة ---
                     if (currentGameState == GameState.WON) {
                         localCanvas.drawRect(0f, 0f, screenX, screenY, overlayPaint)
                         
-                        // تأثير الطفو (Hover Animation) باستخدام دالة جيب الزاوية
                         val timeElapsed = System.currentTimeMillis() - winTime
                         val hoverOffset = (sin(timeElapsed / 200.0) * 20f).toFloat() 
                         
                         val winBoxWidth = 800f
-                        val winBoxHeight = 500f
+                        val winBoxHeight = 600f
                         val winBoxX = (screenX / 2f) - (winBoxWidth / 2f)
                         val winBoxY = (screenY / 2f) - (winBoxHeight / 2f) + hoverOffset
                         
-                        localCanvas.drawRoundRect(RectF(winBoxX, winBoxY, winBoxX + winBoxWidth, winBoxY + winBoxHeight), 40f, 40f, windowPaint)
-                        localCanvas.drawRoundRect(RectF(winBoxX, winBoxY, winBoxX + winBoxWidth, winBoxY + winBoxHeight), 40f, 40f, healthBorderPaint)
+                        // رسم النافذة إما بالصورة المخصصة أو بالألوان
+                        if (bgWheelDialogBitmap != null) {
+                            localCanvas.drawBitmap(bgWheelDialogBitmap!!, null, RectF(winBoxX, winBoxY, winBoxX + winBoxWidth, winBoxY + winBoxHeight), paint)
+                        } else {
+                            localCanvas.drawRoundRect(RectF(winBoxX, winBoxY, winBoxX + winBoxWidth, winBoxY + winBoxHeight), 40f, 40f, windowPaint)
+                            localCanvas.drawRoundRect(RectF(winBoxX, winBoxY, winBoxX + winBoxWidth, winBoxY + winBoxHeight), 40f, 40f, healthBorderPaint)
+                        }
                         
-                        localCanvas.drawText("انتصار مجيد!", screenX / 2f, winBoxY + 130f, winTitlePaint)
-                        localCanvas.drawText("+ $earnedCoins ذهب", screenX / 2f, winBoxY + 280f, rewardTextPaint)
-                        localCanvas.drawText("+ $earnedGems أحجار", screenX / 2f, winBoxY + 380f, rewardTextPaint)
+                        localCanvas.drawText("انتصار مجيد!", screenX / 2f, winBoxY + 150f, winTitlePaint)
+                        
+                        // رسم أيقونة الذهب والرقم
+                        val goldY = winBoxY + 300f
+                        if (icGoldCoinBitmap != null) {
+                            localCanvas.drawBitmap(icGoldCoinBitmap!!, (screenX / 2f) - 150f, goldY - 65f, paint)
+                        }
+                        localCanvas.drawText("+ $earnedCoins", (screenX / 2f) - 30f, goldY, rewardTextPaint)
 
-                        // إغلاق بعد ثانيتين (2000 مللي ثانية)
-                        if (timeElapsed > 2000) {
+                        // رسم أيقونة الأحجار والرقم
+                        val gemY = winBoxY + 450f
+                        if (icStoneBlockBitmap != null) {
+                            localCanvas.drawBitmap(icStoneBlockBitmap!!, (screenX / 2f) - 150f, gemY - 65f, paint)
+                        }
+                        localCanvas.drawText("+ $earnedGems", (screenX / 2f) - 30f, gemY, rewardTextPaint)
+
+                        // تعديل المدة إلى 3 ثواني (3000 مللي ثانية)
+                        if (timeElapsed > 3000) {
                             (context as? Activity)?.finish()
                         }
                     } 
@@ -414,7 +460,6 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                // منع التحكم بالمنجنيق إذا انتهت اللعبة
                 if (currentGameState == GameState.LOST) {
                     if (retryBtnRect.contains(event.x, event.y)) {
                         resetGame()
@@ -422,7 +467,7 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
                     }
                     return true
                 } else if (currentGameState == GameState.WON) {
-                    return true // إيقاف اللمس أثناء عرض شاشة الفوز
+                    return true 
                 }
 
                 if (homeBtnRect.contains(event.x, event.y)) {
