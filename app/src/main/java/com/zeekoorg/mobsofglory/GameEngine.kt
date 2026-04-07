@@ -20,9 +20,7 @@ import kotlin.random.Random
 
 class GameEngine(context: Context) : SurfaceView(context), Runnable {
 
-    // تمت إضافة حالات الأبواب (فتح في البداية، إغلاق في النهاية)
     enum class GameState { OPENING_DOORS, PLAYING, WON, LOST, CLOSING_DOORS }
-    // اللعبة تبدأ دائماً والأبواب مغلقة لتفتح ببطء
     private var currentGameState = GameState.OPENING_DOORS
 
     data class Mob(var x: Float, var y: Float, var dx: Float, var dy: Float, val bitmap: Bitmap, var hasMultiplied: Boolean = false) {
@@ -72,7 +70,6 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     private var icStoneBlockBitmap: Bitmap? = null
     private var icGoldCoinBitmap: Bitmap? = null
     
-    // صور الأبواب
     private var bgDoorLeftBitmap: Bitmap? = null
     private var bgDoorRightBitmap: Bitmap? = null
     
@@ -97,17 +94,18 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     private var enemyPower = 12
 
     private var homeBtnRect = RectF()
+    // أزرار شاشة الخسارة
     private var retryBtnRect = RectF()
+    private var loseHomeBtnRect = RectF()
 
     private var winTime: Long = 0
     private var earnedCoins = 0
     private var earnedGems = 0
     private lateinit var prefs: SharedPreferences
 
-    // متغيرات الأبواب
     private var isFirstFrame = true
     private var doorAnimationStartTime: Long = 0
-    private var doorProgress = 1f // 1 يعني مغلق تماماً، 0 يعني مفتوح
+    private var doorProgress = 1f 
 
     private fun getSafeBitmap(context: Context, drawableId: Int, reqWidth: Int = -1, reqHeight: Int = -1): Bitmap {
         val drawable = ContextCompat.getDrawable(context, drawableId) ?: return Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888)
@@ -175,7 +173,14 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         mainGate = Gate(gateX, gateY, 6f, gateBitmap, 3) 
 
         homeBtnRect = RectF(40f, 160f, 240f, 240f)
-        retryBtnRect = RectF((screenX / 2f) - 220f, (screenY / 2f) + 120f, (screenX / 2f) + 220f, (screenY / 2f) + 240f)
+        
+        // 🛡️ تجهيز أزرار الخسارة (مرتبة عمودياً أسفل النافذة)
+        val loseBoxHeight = 500f
+        val lBoxY = (screenY / 2f) - (loseBoxHeight / 2f)
+        val lBtnW = 440f
+        val lBtnH = 100f
+        retryBtnRect = RectF((screenX / 2f) - (lBtnW / 2f), lBoxY + 240f, (screenX / 2f) + (lBtnW / 2f), lBoxY + 240f + lBtnH)
+        loseHomeBtnRect = RectF((screenX / 2f) - (lBtnW / 2f), lBoxY + 360f, (screenX / 2f) + (lBtnW / 2f), lBoxY + 360f + lBtnH)
     }
 
     override fun run() {
@@ -193,40 +198,51 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     }
 
     private fun update() {
-        // --- 1. تحديث الأبواب عند بدء اللعبة (فتح) ---
         if (currentGameState == GameState.OPENING_DOORS) {
             val elapsed = System.currentTimeMillis() - doorAnimationStartTime
-            doorProgress = 1f - (elapsed / 600f).coerceIn(0f, 1f) // تفتح خلال 0.6 ثانية
-            if (elapsed > 600) currentGameState = GameState.PLAYING
-            return // لا تحرك الجيوش أثناء الفتح
+            doorProgress = 1f - (elapsed / 350f).coerceIn(0f, 1f) 
+            if (elapsed > 350) currentGameState = GameState.PLAYING
+            return 
         }
 
-        // --- 2. تحديث الأبواب عند الخروج (إغلاق ثم إقفال لمدة ثانية) ---
         if (currentGameState == GameState.CLOSING_DOORS) {
             val elapsed = System.currentTimeMillis() - doorAnimationStartTime
-            doorProgress = (elapsed / 600f).coerceIn(0f, 1f) // تغلق خلال 0.6 ثانية
-            
-            // إذا مر 1.6 ثانية (0.6 للإغلاق + 1 ثانية مقفولة)
-            if (elapsed > 1600) {
+            doorProgress = (elapsed / 350f).coerceIn(0f, 1f) 
+            if (elapsed > 400) {
                 val activity = context as? Activity
                 activity?.finish()
-                // سحر أندرويد: منع حركة انتقال الشاشة الافتراضية
                 @Suppress("DEPRECATION")
                 activity?.overridePendingTransition(0, 0)
             }
             return
         }
 
-        // تحديث المفرقعات
-        if (currentGameState == GameState.WON) {
+        // --- 🎆 تحديث المفرقعات (ألعاب نارية واقعية من الأسفل) ---
+        if (currentGameState == GameState.WON || (currentGameState == GameState.CLOSING_DOORS && enemyHealth <= 0)) {
             val fIter = fireworks.iterator()
             while (fIter.hasNext()) {
                 val f = fIter.next()
-                f.x += f.dx; f.y += f.dy; f.dy += 0.4f 
-                f.life -= 2
+                f.x += f.dx; f.y += f.dy
+                f.dx *= 0.96f // احتكاك الهواء
+                f.dy += 0.6f  // الجاذبية لتسقط للأسفل
+                f.life -= 3
                 if (f.life <= 0) fireworks.remove(f)
             }
-            if (System.currentTimeMillis() - winTime > 3000) {
+            
+            // إطلاق دفعات عشوائية من الأسفل
+            if (Random.nextInt(100) < 15) { 
+                val startX = Random.nextFloat() * screenX
+                val fireworkColors = arrayOf(Color.RED, Color.YELLOW, Color.GREEN, Color.CYAN, Color.MAGENTA, Color.parseColor("#FFD700"), Color.WHITE)
+                val burstColor = fireworkColors.random()
+                for (i in 0..30) {
+                    // الزاوية موجهة للأعلى (بين 60 و 120 درجة)
+                    val angle = Random.nextDouble(Math.PI / 3, 2 * Math.PI / 3) 
+                    val speed = Random.nextDouble(25.0, 55.0).toFloat()
+                    fireworks.add(Firework(startX, screenY, (cos(angle) * speed).toFloat(), -(sin(angle) * speed).toFloat(), 255, burstColor))
+                }
+            }
+
+            if (currentGameState == GameState.WON && System.currentTimeMillis() - winTime > 3000) {
                 closeDoorsAndExit()
             }
         }
@@ -315,6 +331,7 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         currentGameState = GameState.WON
         winTime = System.currentTimeMillis()
         enemyHealth = 0f
+        fireworks.clear() // مسح أي قديم للبدء بالنوافير الجديدة
 
         earnedCoins = Random.nextInt(150, 300)
         earnedGems = Random.nextInt(2, 6)
@@ -325,12 +342,6 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
             putInt("coins", currentCoins + earnedCoins)
             putInt("gems", currentGems + earnedGems)
             apply()
-        }
-
-        val fireworkColors = arrayOf(Color.RED, Color.YELLOW, Color.GREEN, Color.CYAN, Color.MAGENTA, Color.parseColor("#FFD700"), Color.WHITE)
-        for (i in 0..150) {
-            fireworks.add(Firework(screenX * 0.2f, screenY, Random.nextDouble(5.0, 25.0).toFloat(), Random.nextDouble(-45.0, -15.0).toFloat(), 255, fireworkColors.random()))
-            fireworks.add(Firework(screenX * 0.8f, screenY, Random.nextDouble(-25.0, -5.0).toFloat(), Random.nextDouble(-45.0, -15.0).toFloat(), 255, fireworkColors.random()))
         }
     }
 
@@ -389,7 +400,6 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
             try {
                 localCanvas = holder.lockCanvas()
                 if (localCanvas != null) {
-                    // رسم اللعبة الأساسية
                     bgBitmap?.let { localCanvas.drawBitmap(it, 0f, 0f, paint) } ?: localCanvas.drawColor(Color.parseColor("#4A3B2C"))
                     val lineY = catapultY + (catapultBitmap.height / 2f)
                     localCanvas.drawLine(trackLeft, lineY, trackRight, lineY, trackPaint)
@@ -431,19 +441,16 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
                     localCanvas.drawText("الرئيسية", homeBtnRect.centerX(), homeBtnRect.centerY() + 12f, hudTextPaint)
                     hudTextPaint.textSize = 45f 
 
-                    // رسم نوافذ الفوز والخسارة
+                    // رسم نوافذ الفوز
                     if (currentGameState == GameState.WON || (currentGameState == GameState.CLOSING_DOORS && enemyHealth <= 0)) {
                         localCanvas.drawRect(0f, 0f, screenX, screenY, overlayPaint)
                         val winBoxWidth = 800f; val winBoxHeight = 600f
                         val winBoxX = (screenX / 2f) - (winBoxWidth / 2f); val winBoxY = (screenY / 2f) - (winBoxHeight / 2f)
-                        
                         if (bgWheelDialogBitmap != null) {
                             localCanvas.drawBitmap(bgWheelDialogBitmap!!, null, RectF(winBoxX, winBoxY, winBoxX + winBoxWidth, winBoxY + winBoxHeight), paint)
                         } else {
                             localCanvas.drawRoundRect(RectF(winBoxX, winBoxY, winBoxX + winBoxWidth, winBoxY + winBoxHeight), 40f, 40f, windowPaint)
-                            localCanvas.drawRoundRect(RectF(winBoxX, winBoxY, winBoxX + winBoxWidth, winBoxY + winBoxHeight), 40f, 40f, healthBorderPaint)
                         }
-                        
                         localCanvas.drawText("انتصار مجيد!", screenX / 2f, winBoxY + 150f, winTitlePaint)
                         val goldY = winBoxY + 300f
                         if (icGoldCoinBitmap != null) localCanvas.drawBitmap(icGoldCoinBitmap!!, (screenX / 2f) - 150f, goldY - 65f, paint)
@@ -451,11 +458,12 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
                         val gemY = winBoxY + 450f
                         if (icStoneBlockBitmap != null) localCanvas.drawBitmap(icStoneBlockBitmap!!, (screenX / 2f) - 150f, gemY - 65f, paint)
                         localCanvas.drawText("+ $earnedGems", (screenX / 2f) - 30f, gemY, rewardTextPaint)
-
-                        // المفرقعات
-                        for (f in fireworks) { paint.color = f.color; paint.alpha = f.life.coerceIn(0, 255); localCanvas.drawCircle(f.x, f.y, 10f, paint) }
+                        
+                        // المفرقعات ترسم هنا
+                        for (f in fireworks) { paint.color = f.color; paint.alpha = f.life.coerceIn(0, 255); localCanvas.drawCircle(f.x, f.y, 8f, paint) }
                         paint.alpha = 255 
                     } 
+                    // رسم نوافذ الخسارة (تمت إضافة الزرين)
                     else if (currentGameState == GameState.LOST || (currentGameState == GameState.CLOSING_DOORS && playerHealth <= 0)) {
                         localCanvas.drawRect(0f, 0f, screenX, screenY, overlayPaint)
                         val winBoxWidth = 800f; val winBoxHeight = 500f
@@ -465,37 +473,27 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
                             localCanvas.drawBitmap(bgWheelDialogBitmap!!, null, RectF(winBoxX, winBoxY, winBoxX + winBoxWidth, winBoxY + winBoxHeight), paint)
                         } else {
                             localCanvas.drawRoundRect(RectF(winBoxX, winBoxY, winBoxX + winBoxWidth, winBoxY + winBoxHeight), 40f, 40f, windowPaint)
-                            localCanvas.drawRoundRect(RectF(winBoxX, winBoxY, winBoxX + winBoxWidth, winBoxY + winBoxHeight), 40f, 40f, healthBorderPaint)
                         }
                         
                         localCanvas.drawText("سقطت القلعة!", screenX / 2f, winBoxY + 150f, loseTitlePaint)
+                        
+                        // رسم زر إعادة المحاولة
                         localCanvas.drawRoundRect(retryBtnRect, 30f, 30f, btnPaint)
                         localCanvas.drawRoundRect(retryBtnRect, 30f, 30f, healthBorderPaint)
-                        hudTextPaint.textSize = 55f
-                        localCanvas.drawText("إعادة المحاولة", retryBtnRect.centerX(), retryBtnRect.centerY() + 20f, hudTextPaint)
                         hudTextPaint.textSize = 45f
+                        localCanvas.drawText("إعادة المحاولة", retryBtnRect.centerX(), retryBtnRect.centerY() + 15f, hudTextPaint)
+                        
+                        // رسم زر الرئيسية
+                        localCanvas.drawRoundRect(loseHomeBtnRect, 30f, 30f, btnPaint)
+                        localCanvas.drawRoundRect(loseHomeBtnRect, 30f, 30f, healthBorderPaint)
+                        localCanvas.drawText("الرئيسية", loseHomeBtnRect.centerX(), loseHomeBtnRect.centerY() + 15f, hudTextPaint)
                     }
 
-                    // --- سحر إخراج الأبواب الملكية (ترسم دائماً في المقدمة) ---
                     if (currentGameState == GameState.OPENING_DOORS || currentGameState == GameState.CLOSING_DOORS) {
-                        // معادلة حساب موقع الأبواب بناءً على حالة التقدم (0 إلى 1)
                         val leftX = - (screenX / 2f) * (1f - doorProgress)
                         val rightX = (screenX / 2f) + (screenX / 2f) * (1f - doorProgress)
-
-                        if (bgDoorLeftBitmap != null) {
-                            localCanvas.drawBitmap(bgDoorLeftBitmap!!, leftX, 0f, paint)
-                        } else {
-                            // لون رمادي غامق كخلفية احتياطية إذا لم تكن الصور جاهزة
-                            paint.color = Color.parseColor("#2C3E50")
-                            localCanvas.drawRect(leftX, 0f, leftX + screenX / 2f, screenY, paint)
-                        }
-
-                        if (bgDoorRightBitmap != null) {
-                            localCanvas.drawBitmap(bgDoorRightBitmap!!, rightX, 0f, paint)
-                        } else {
-                            paint.color = Color.parseColor("#2C3E50")
-                            localCanvas.drawRect(rightX, 0f, rightX + screenX / 2f, screenY, paint)
-                        }
+                        if (bgDoorLeftBitmap != null) localCanvas.drawBitmap(bgDoorLeftBitmap!!, leftX, 0f, paint)
+                        if (bgDoorRightBitmap != null) localCanvas.drawBitmap(bgDoorRightBitmap!!, rightX, 0f, paint)
                     }
                 }
             } finally {
@@ -512,29 +510,24 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 if (currentGameState == GameState.OPENING_DOORS || currentGameState == GameState.CLOSING_DOORS) return true
-
+                
+                // التفاعل مع أزرار الخسارة الجديدة
                 if (currentGameState == GameState.LOST) {
-                    if (retryBtnRect.contains(event.x, event.y)) {
-                        resetGame()
+                    if (retryBtnRect.contains(event.x, event.y)) { 
+                        resetGame() 
+                        return true 
+                    }
+                    if (loseHomeBtnRect.contains(event.x, event.y)) {
+                        closeDoorsAndExit()
                         return true
                     }
                     return true
-                } else if (currentGameState == GameState.WON) {
-                    return true 
-                }
-
-                if (homeBtnRect.contains(event.x, event.y)) {
-                    closeDoorsAndExit() 
-                    return true
-                }
-                if (event.y > screenY * 0.5f) {
-                    isShooting = true
-                    updateCatapultPosition(event.x)
-                }
+                } else if (currentGameState == GameState.WON) return true 
+                
+                if (homeBtnRect.contains(event.x, event.y)) { closeDoorsAndExit(); return true }
+                if (event.y > screenY * 0.5f) { isShooting = true; updateCatapultPosition(event.x) }
             }
-            MotionEvent.ACTION_MOVE -> {
-                if (isShooting && currentGameState == GameState.PLAYING) updateCatapultPosition(event.x)
-            }
+            MotionEvent.ACTION_MOVE -> { if (isShooting && currentGameState == GameState.PLAYING) updateCatapultPosition(event.x) }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> isShooting = false
         }
         return true
