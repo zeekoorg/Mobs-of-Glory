@@ -60,7 +60,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // تمديد الشاشة للحواف (Edge-to-Edge)
+        // 1. تمديد الشاشة للحواف (Edge-to-Edge)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
@@ -69,19 +69,19 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // توحيد اسم قاعدة البيانات مع ملف GameEngine
+        // 🛡️ توحيد قاعدة البيانات مع GameEngine لضمان وصول الذهب والأحجار
         sharedPrefs = getSharedPreferences("MobsOfGloryData", Context.MODE_PRIVATE)
         
         loadSavedData()
         updateResourcesUI() 
         setupBackgroundVideo()
         
-        // تجهيز الأبواب الملكية
+        // 🚪 تجهيز الأبواب الملكية فوراً
         setupRoyalDoors()
 
         binding.avatarFrameContainer.setOnClickListener { showProfileDialog() }
         
-        // زر المعركة
+        // الانتقال السريع للمعركة
         binding.btnBattle.setOnClickListener { startGameWithTransition() }
         
         binding.btnLuckyWheel.setOnClickListener { showLuckyWheelDialog() }
@@ -94,24 +94,24 @@ class MainActivity : AppCompatActivity() {
 
         val rootView = findViewById<ViewGroup>(android.R.id.content)
         
-        // الباب الأيسر
+        // الباب الأيسر (منطق GameEngine: الحالة المفتوحة = -عرض الباب)
         leftDoor = ImageView(this).apply {
             val resId = resources.getIdentifier("bg_door_left", "drawable", packageName)
-            if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.DKGRAY)
+            if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.parseColor("#2C3E50"))
             scaleType = ImageView.ScaleType.FIT_XY
             layoutParams = FrameLayout.LayoutParams(doorWidth.toInt(), doorHeight)
-            // يبدأ خارج الشاشة من اليسار
+            // يبدأ مفتوحاً تماماً (مخفي يساراً)
             translationX = -doorWidth 
             elevation = 200f 
         }
         
-        // الباب الأيمن
+        // الباب الأيمن (منطق GameEngine: الحالة المفتوحة = عرض الشاشة كاملاً)
         rightDoor = ImageView(this).apply {
             val resId = resources.getIdentifier("bg_door_right", "drawable", packageName)
-            if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.DKGRAY)
+            if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.parseColor("#2C3E50"))
             scaleType = ImageView.ScaleType.FIT_XY
             layoutParams = FrameLayout.LayoutParams(doorWidth.toInt(), doorHeight)
-            // يبدأ خارج الشاشة من اليمين
+            // يبدأ مفتوحاً تماماً (مخفي يميناً)
             translationX = screenWidth.toFloat() 
             elevation = 200f
         }
@@ -123,25 +123,25 @@ class MainActivity : AppCompatActivity() {
     private fun startGameWithTransition() {
         val doorWidth = screenWidth / 2f
         
-        // إغلاق الأبواب (تلتقي في المنتصف)
-        leftDoor.animate().translationX(0f).setDuration(500).start()
-        rightDoor.animate().translationX(doorWidth).setDuration(500).withEndAction {
+        // ⚡ سرعة إغلاق الأبواب (350 مللي ثانية - أسرع من قبل)
+        leftDoor.animate().translationX(0f).setDuration(350).start()
+        rightDoor.animate().translationX(doorWidth).setDuration(350).withEndAction {
             
-            // البقاء مغلقاً لمدة ثانية ثم الانتقال
+            // البقاء مقفولة لمدة قصيرة جداً (400 مللي ثانية) لزيادة الحماس
             Handler(Looper.getMainLooper()).postDelayed({
                 val intent = Intent(this, GameActivity::class.java)
                 startActivity(intent)
                 
-                // منع تأثير الانتقال الافتراضي
+                // منع حركة الانزلاق الافتراضية
                 @Suppress("DEPRECATION")
                 overridePendingTransition(0, 0)
-            }, 1000)
+            }, 400)
             
         }.start()
     }
 
     private fun updateResourcesUI() {
-        // قراءة العملات والأحجار بنفس مسميات GameEngine
+        // 🛡️ استخدام نفس مفاتيح الحفظ في GameEngine
         val currentGold = sharedPrefs.getInt("coins", 0)
         val currentStones = sharedPrefs.getInt("gems", 0)
         
@@ -322,23 +322,26 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         player?.play() 
+        
+        // 🛡️ تحديث الموارد فوراً عند العودة من المعركة
         updateResourcesUI()
         
         if (::leftDoor.isInitialized && ::rightDoor.isInitialized) {
             val doorWidth = screenWidth / 2f
             
             if (isFirstLaunch) {
-                // عند فتح التطبيق لأول مرة: نضمن أن الأبواب خارج الشاشة تماماً
+                // أول مرة نفتح فيها التطبيق: نضمن أن الأبواب خارج الشاشة 100%
                 leftDoor.translationX = -doorWidth
                 rightDoor.translationX = screenWidth.toFloat()
                 isFirstLaunch = false
             } else {
-                // عند العودة من المعركة: الأبواب تكون مغلقة في المنتصف، ثم تفتح
+                // عند العودة من المعركة: الأبواب تبدأ مغلقة تماماً (0 و نصف العرض)
                 leftDoor.translationX = 0f
                 rightDoor.translationX = doorWidth
                 
-                leftDoor.animate().translationX(-doorWidth).setDuration(500).start()
-                rightDoor.animate().translationX(screenWidth.toFloat()).setDuration(500).start()
+                // ⚡ تفتح بسرعة (350 مللي ثانية)
+                leftDoor.animate().translationX(-doorWidth).setDuration(350).start()
+                rightDoor.animate().translationX(screenWidth.toFloat()).setDuration(350).start()
             }
         }
     }
