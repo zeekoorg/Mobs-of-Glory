@@ -85,7 +85,11 @@ class MainActivity : AppCompatActivity() {
         // الانتقال السلس للمعركة
         binding.btnBattle.setOnClickListener { startGameWithTransition() }
         
+        // ربط العجلة
         binding.btnLuckyWheel.setOnClickListener { showLuckyWheelDialog() }
+
+        // ربط زر الترسانة (فتح نافذة التطوير)
+        binding.btnNavArsenal.setOnClickListener { showArsenalDialog() }
     }
 
     private fun setupRoyalDoors() {
@@ -95,7 +99,7 @@ class MainActivity : AppCompatActivity() {
 
         val rootView = findViewById<ViewGroup>(android.R.id.content) as FrameLayout
         
-        // 🛡️ الباب الأيسر: ملتصق باليسار باستخدام الجاذبية (Gravity.LEFT)
+        // الباب الأيسر
         leftDoor = ImageView(this).apply {
             val resId = resources.getIdentifier("bg_door_left", "drawable", packageName)
             if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.parseColor("#2C3E50"))
@@ -104,13 +108,11 @@ class MainActivity : AppCompatActivity() {
             val params = FrameLayout.LayoutParams(doorWidth, doorHeight)
             params.gravity = Gravity.LEFT or Gravity.TOP
             layoutParams = params
-            
-            // سحب الباب للخلف ليختفي
             translationX = -doorWidth.toFloat() 
             elevation = 200f 
         }
         
-        // 🛡️ الباب الأيمن: ملتصق باليمين باستخدام الجاذبية (Gravity.RIGHT)
+        // الباب الأيمن
         rightDoor = ImageView(this).apply {
             val resId = resources.getIdentifier("bg_door_right", "drawable", packageName)
             if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.parseColor("#2C3E50"))
@@ -119,8 +121,6 @@ class MainActivity : AppCompatActivity() {
             val params = FrameLayout.LayoutParams(doorWidth, doorHeight)
             params.gravity = Gravity.RIGHT or Gravity.TOP
             layoutParams = params
-            
-            // سحب الباب للخلف ليختفي
             translationX = doorWidth.toFloat() 
             elevation = 200f
         }
@@ -130,25 +130,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startGameWithTransition() {
-        // بما أن الأبواب ملتصقة بالحواف، إرجاعها للصفر يعني إغلاقها في المنتصف تماماً!
         leftDoor.animate().translationX(0f).setDuration(400).start()
         rightDoor.animate().translationX(0f).setDuration(400).withEndAction {
-            
-            // البقاء مغلقاً للحظات ثم الانتقال للمعركة
             Handler(Looper.getMainLooper()).postDelayed({
                 val intent = Intent(this, GameActivity::class.java)
                 startActivity(intent)
-                
-                // منع حركة الانزلاق الافتراضية
                 @Suppress("DEPRECATION")
                 overridePendingTransition(0, 0)
             }, 300)
-            
         }.start()
     }
 
     private fun updateResourcesUI() {
-        // نقرأ من نفس المفاتيح التي يستخدمها المحرك عند الفوز
         val currentGold = sharedPrefs.getInt("coins", 0)
         val currentStones = sharedPrefs.getInt("gems", 0)
         
@@ -177,6 +170,66 @@ class MainActivity : AppCompatActivity() {
         player?.repeatMode = Player.REPEAT_MODE_ALL 
         player?.prepare()
         player?.play()
+    }
+
+    // ==========================================
+    // 🛡️ نافذة الترسانة (Arsenal) ونظام التطوير
+    // ==========================================
+    private fun showArsenalDialog() {
+        val arsenalDialog = Dialog(this)
+        arsenalDialog.setContentView(R.layout.dialog_arsenal)
+        arsenalDialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        
+        // ربط البطاقات للتطوير (السعر الأساسي لكل بطاقة)
+        setupUpgradeLogic(arsenalDialog, R.id.cardCannon, "LEVEL_CANNON", 150)
+        setupUpgradeLogic(arsenalDialog, R.id.cardSoldier, "LEVEL_SOLDIER", 200)
+        setupUpgradeLogic(arsenalDialog, R.id.cardChampion, "LEVEL_CHAMPION", 500)
+
+        arsenalDialog.findViewById<Button>(R.id.btnCloseArsenal)?.setOnClickListener {
+            arsenalDialog.dismiss()
+        }
+        arsenalDialog.show()
+    }
+
+    private fun setupUpgradeLogic(dialog: Dialog, cardId: Int, prefKeyLevel: String, basePrice: Int) {
+        val cardBtn = dialog.findViewById<ViewGroup>(cardId) ?: return
+        
+        // البحث عن النصوص داخل البطاقة
+        val tvLevel = cardBtn.getChildAt(0) as? TextView
+        // البحث عن التخطيط الداخلي (الزر الأخضر) ثم النص الذي بداخله السعر
+        val btnUpgradeLayout = cardBtn.getChildAt(2) as? ViewGroup
+        val tvPrice = btnUpgradeLayout?.getChildAt(1) as? TextView
+
+        // جلب المستوى الحالي والسعر الحالي
+        var currentLevel = sharedPrefs.getInt(prefKeyLevel, 1)
+        var currentPrice = basePrice * currentLevel
+
+        tvLevel?.text = "LVL $currentLevel"
+        tvPrice?.text = currentPrice.toString()
+
+        cardBtn.setOnClickListener {
+            val currentGold = sharedPrefs.getInt("coins", 0)
+            if (currentGold >= currentPrice) {
+                // 1. خصم الذهب
+                sharedPrefs.edit().putInt("coins", currentGold - currentPrice).apply()
+                // 2. زيادة المستوى
+                currentLevel++
+                sharedPrefs.edit().putInt(prefKeyLevel, currentLevel).apply()
+                // 3. حساب السعر الجديد
+                currentPrice = basePrice * currentLevel
+                
+                // 4. تحديث النصوص في النافذة
+                tvLevel?.text = "LVL $currentLevel"
+                tvPrice?.text = currentPrice.toString()
+                
+                // 5. تحديث رصيد الذهب في الشاشة الرئيسية
+                updateResourcesUI()
+                
+                Toast.makeText(this, "تمت الترقية إلى مستوى $currentLevel! ⚔️", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "لا تملك ذهباً كافياً! تحتاج $currentPrice 💰", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun showProfileDialog() {
@@ -253,13 +306,16 @@ class MainActivity : AppCompatActivity() {
                 override fun onAnimationRepeat(a: android.animation.Animator) {}
 
                 override fun onAnimationEnd(a: android.animation.Animator) {
-                    isSpinning = false
-                    btnSpin.isEnabled = true
-                    btnClose.isEnabled = true
+                    // تأخير ظهور الجائزة بثانية إلا ربع (750 مللي ثانية) لزيادة التشويق!
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        isSpinning = false
+                        btnSpin.isEnabled = true
+                        btnClose.isEnabled = true
 
-                    val wonPrize = prizesList[winningIndex]
-                    wheelDialog.dismiss()
-                    showCelebrationDialog(wonPrize)
+                        val wonPrize = prizesList[winningIndex]
+                        wheelDialog.dismiss()
+                        showCelebrationDialog(wonPrize)
+                    }, 750)
                 }
             })
             animator.start()
@@ -329,20 +385,16 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         player?.play() 
-        
-        // 🛡️ تحديث الموارد فوراً لتظهر أي غنائم كسبتها
         updateResourcesUI()
         
         if (::leftDoor.isInitialized && ::rightDoor.isInitialized) {
             val doorWidth = screenWidth / 2f
             
             if (isFirstLaunch) {
-                // عند فتح التطبيق من الصفر: الأبواب مختفية تماماً!
                 leftDoor.translationX = -doorWidth
                 rightDoor.translationX = doorWidth
                 isFirstLaunch = false
             } else {
-                // عند العودة من المعركة: الأبواب مغلقة (0f) ثم تفتح لتكشف القائمة
                 leftDoor.translationX = 0f
                 rightDoor.translationX = 0f
                 
