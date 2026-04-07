@@ -42,6 +42,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var leftDoor: ImageView
     private lateinit var rightDoor: ImageView
     private var screenWidth = 0
+    private var isFirstLaunch = true // لمنع ظهور الباب عند فتح التطبيق لأول مرة
 
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
@@ -74,12 +75,12 @@ class MainActivity : AppCompatActivity() {
         updateResourcesUI() 
         setupBackgroundVideo()
         
-        // تجهيز الأبواب الملكية المخفية
+        // تجهيز الأبواب الملكية
         setupRoyalDoors()
 
         binding.avatarFrameContainer.setOnClickListener { showProfileDialog() }
         
-        // تغيير الانتقال ليعمل مع الأبواب
+        // ربط زر المعركة بالانتقال السحري
         binding.btnBattle.setOnClickListener { startGameWithTransition() }
         
         binding.btnLuckyWheel.setOnClickListener { showLuckyWheelDialog() }
@@ -87,28 +88,30 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupRoyalDoors() {
         screenWidth = resources.displayMetrics.widthPixels
-        val doorWidth = screenWidth / 2
+        val doorWidth = screenWidth / 2f
         val doorHeight = ViewGroup.LayoutParams.MATCH_PARENT
 
         val rootView = findViewById<ViewGroup>(android.R.id.content)
         
+        // الباب الأيسر
         leftDoor = ImageView(this).apply {
             val resId = resources.getIdentifier("bg_door_left", "drawable", packageName)
             if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.parseColor("#2C3E50"))
             scaleType = ImageView.ScaleType.FIT_XY
-            layoutParams = FrameLayout.LayoutParams(doorWidth, doorHeight)
-            translationX = -doorWidth.toFloat() 
+            layoutParams = FrameLayout.LayoutParams(doorWidth.toInt(), doorHeight)
+            // إخفاء الباب تماماً خارج الشاشة من اليسار
+            x = -doorWidth 
             elevation = 100f 
         }
         
+        // الباب الأيمن
         rightDoor = ImageView(this).apply {
             val resId = resources.getIdentifier("bg_door_right", "drawable", packageName)
             if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.parseColor("#2C3E50"))
             scaleType = ImageView.ScaleType.FIT_XY
-            val params = FrameLayout.LayoutParams(doorWidth, doorHeight)
-            params.leftMargin = doorWidth
-            layoutParams = params
-            translationX = doorWidth.toFloat() 
+            layoutParams = FrameLayout.LayoutParams(doorWidth.toInt(), doorHeight)
+            // إخفاء الباب تماماً خارج الشاشة من اليمين
+            x = screenWidth.toFloat() 
             elevation = 100f
         }
 
@@ -117,9 +120,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startGameWithTransition() {
-        // إغلاق الأبواب ببطء
-        leftDoor.animate().translationX(0f).setDuration(600).start()
-        rightDoor.animate().translationX(0f).setDuration(600).withEndAction {
+        val doorWidth = screenWidth / 2f
+        
+        // إغلاق الأبواب ببطء باستخدام إحداثيات دقيقة تمنع التقاطع
+        // الباب الأيسر يقف عند الصفر، والأيمن يقف عند منتصف الشاشة
+        leftDoor.animate().x(0f).setDuration(500).start()
+        rightDoor.animate().x(doorWidth).setDuration(500).withEndAction {
             
             // البقاء مغلقاً لمدة ثانية (1000 مللي ثانية) قبل فتح شاشة اللعب
             Handler(Looper.getMainLooper()).postDelayed({
@@ -319,18 +325,24 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         player?.play() 
-        
-        // تحديث الموارد لتظهر الغنائم التي فزت بها في المعركة
         updateResourcesUI()
         
-        // فتح الأبواب الملكية ببطء عند العودة للشاشة الرئيسية
         if (::leftDoor.isInitialized && ::rightDoor.isInitialized) {
             val doorWidth = screenWidth / 2f
-            leftDoor.translationX = 0f
-            rightDoor.translationX = 0f
             
-            leftDoor.animate().translationX(-doorWidth).setDuration(600).start()
-            rightDoor.animate().translationX(doorWidth).setDuration(600).start()
+            if (isFirstLaunch) {
+                // عند فتح التطبيق لأول مرة: اجعل الأبواب مخفية ولا تحركها
+                leftDoor.x = -doorWidth
+                rightDoor.x = screenWidth.toFloat()
+                isFirstLaunch = false
+            } else {
+                // عند العودة من المعركة: اجعل الأبواب مغلقة أولاً، ثم حركها لتفتح
+                leftDoor.x = 0f
+                rightDoor.x = doorWidth
+                
+                leftDoor.animate().x(-doorWidth).setDuration(500).start()
+                rightDoor.animate().x(screenWidth.toFloat()).setDuration(500).start()
+            }
         }
     }
 
