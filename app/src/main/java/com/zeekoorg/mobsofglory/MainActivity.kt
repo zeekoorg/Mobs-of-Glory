@@ -60,6 +60,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // تمديد الشاشة للحواف (Edge-to-Edge)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
@@ -68,17 +69,21 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 🛡️ توحيد قاعدة البيانات مع ملف اللعبة (GameEngine) لكي تظهر الغنائم
+        // توحيد اسم قاعدة البيانات مع ملف GameEngine
         sharedPrefs = getSharedPreferences("MobsOfGloryData", Context.MODE_PRIVATE)
         
         loadSavedData()
         updateResourcesUI() 
         setupBackgroundVideo()
         
+        // تجهيز الأبواب الملكية
         setupRoyalDoors()
 
         binding.avatarFrameContainer.setOnClickListener { showProfileDialog() }
+        
+        // زر المعركة
         binding.btnBattle.setOnClickListener { startGameWithTransition() }
+        
         binding.btnLuckyWheel.setOnClickListener { showLuckyWheelDialog() }
     }
 
@@ -89,26 +94,26 @@ class MainActivity : AppCompatActivity() {
 
         val rootView = findViewById<ViewGroup>(android.R.id.content)
         
-        // 🛡️ الباب الأيسر: نقطة الأساس 0
+        // الباب الأيسر
         leftDoor = ImageView(this).apply {
             val resId = resources.getIdentifier("bg_door_left", "drawable", packageName)
-            if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.parseColor("#2C3E50"))
+            if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.DKGRAY)
             scaleType = ImageView.ScaleType.FIT_XY
             layoutParams = FrameLayout.LayoutParams(doorWidth.toInt(), doorHeight)
-            // سحب الباب لليسار خارج الشاشة تماماً
+            // يبدأ خارج الشاشة من اليسار
             translationX = -doorWidth 
-            elevation = 100f 
+            elevation = 200f 
         }
         
-        // 🛡️ الباب الأيمن: نقطة الأساس 0 (بدون أي هوامش)
+        // الباب الأيمن
         rightDoor = ImageView(this).apply {
             val resId = resources.getIdentifier("bg_door_right", "drawable", packageName)
-            if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.parseColor("#2C3E50"))
+            if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.DKGRAY)
             scaleType = ImageView.ScaleType.FIT_XY
             layoutParams = FrameLayout.LayoutParams(doorWidth.toInt(), doorHeight)
-            // سحب الباب لليمين خارج الشاشة تماماً
+            // يبدأ خارج الشاشة من اليمين
             translationX = screenWidth.toFloat() 
-            elevation = 100f
+            elevation = 200f
         }
 
         rootView.addView(leftDoor)
@@ -118,15 +123,16 @@ class MainActivity : AppCompatActivity() {
     private fun startGameWithTransition() {
         val doorWidth = screenWidth / 2f
         
-        // إغلاق الأبواب ببطء وسلاسة (500 مللي ثانية)
-        // الباب الأيسر يغلق عند الصفر، والباب الأيمن يغلق عند النصف
+        // إغلاق الأبواب (تلتقي في المنتصف)
         leftDoor.animate().translationX(0f).setDuration(500).start()
         rightDoor.animate().translationX(doorWidth).setDuration(500).withEndAction {
             
+            // البقاء مغلقاً لمدة ثانية ثم الانتقال
             Handler(Looper.getMainLooper()).postDelayed({
                 val intent = Intent(this, GameActivity::class.java)
                 startActivity(intent)
                 
+                // منع تأثير الانتقال الافتراضي
                 @Suppress("DEPRECATION")
                 overridePendingTransition(0, 0)
             }, 1000)
@@ -135,7 +141,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateResourcesUI() {
-        // 🛡️ تم تغيير المفاتيح لـ coins و gems لتتطابق مع ما تربحه في المعركة
+        // قراءة العملات والأحجار بنفس مسميات GameEngine
         val currentGold = sharedPrefs.getInt("coins", 0)
         val currentStones = sharedPrefs.getInt("gems", 0)
         
@@ -211,7 +217,6 @@ class MainActivity : AppCompatActivity() {
 
         var isSpinning = false
 
-        // 🛡️ توحيد أسماء الجوائز أيضاً لتضاف للحساب الصحيح (coins و gems)
         val prizesList = listOf(
             Prize("1000 ذهبة", R.drawable.ic_gold_coin, 1000, "coins"),       
             Prize("50 حجر بناء", R.drawable.ic_stone_block, 50, "gems"),    
@@ -272,13 +277,9 @@ class MainActivity : AppCompatActivity() {
         btnCollect.setOnClickListener {
             val currentAmount = sharedPrefs.getInt(prize.type, 0)
             sharedPrefs.edit().putInt(prize.type, currentAmount + prize.amount).apply()
-            
             updateResourcesUI()
-            
             celebrationDialog.dismiss()
-            Toast.makeText(this, "تم إضافة المجد لخزنتك!", Toast.LENGTH_SHORT).show()
         }
-
         celebrationDialog.show()
     }
 
@@ -321,20 +322,18 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         player?.play() 
-        
-        // 🛡️ تحديث الموارد لتظهر الغنائم التي كسبتها في اللعبة فور العودة
         updateResourcesUI()
         
         if (::leftDoor.isInitialized && ::rightDoor.isInitialized) {
             val doorWidth = screenWidth / 2f
             
             if (isFirstLaunch) {
-                // عند فتح التطبيق من الصفر، لا تظهر الأبواب
+                // عند فتح التطبيق لأول مرة: نضمن أن الأبواب خارج الشاشة تماماً
                 leftDoor.translationX = -doorWidth
                 rightDoor.translationX = screenWidth.toFloat()
                 isFirstLaunch = false
             } else {
-                // عند العودة من المعركة: الأبواب مغلقة أولاً، ثم تفتح ببطء
+                // عند العودة من المعركة: الأبواب تكون مغلقة في المنتصف، ثم تفتح
                 leftDoor.translationX = 0f
                 rightDoor.translationX = doorWidth
                 
