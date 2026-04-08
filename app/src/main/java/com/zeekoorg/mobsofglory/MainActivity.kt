@@ -19,14 +19,7 @@ import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
-import android.widget.Button
-import android.widget.EditText
-import android.widget.FrameLayout
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.ProgressBar
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
@@ -43,10 +36,15 @@ class MainActivity : AppCompatActivity() {
     private var profileDialog: Dialog? = null
     private lateinit var sharedPrefs: SharedPreferences
 
+    // متغيرات الأبواب الملكية
     private lateinit var leftDoor: ImageView
     private lateinit var rightDoor: ImageView
     private var screenWidth = 0
     private var isFirstLaunch = true 
+
+    // كائن المهمة
+    data class Quest(val id: String, val title: String, val goal: Int, val reward: Int, val rewardType: String)
+    data class Prize(val text: String, val iconResId: Int, val amount: Int, val type: String)
 
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
@@ -59,11 +57,10 @@ class MainActivity : AppCompatActivity() {
         if (isGranted) openGallery() else Toast.makeText(this, "يجب السماح بالوصول للمعرض!", Toast.LENGTH_SHORT).show()
     }
 
-    data class Prize(val text: String, val iconResId: Int, val amount: Int, val type: String)
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // إعداد الشاشة الكاملة (Edge-to-Edge)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
@@ -74,97 +71,133 @@ class MainActivity : AppCompatActivity() {
 
         sharedPrefs = getSharedPreferences("MobsOfGloryData", Context.MODE_PRIVATE)
         
+        // إعداد الواجهات والبيانات
         loadSavedData()
         updateResourcesUI() 
         setupBackgroundVideo()
         setupRoyalDoors()
-        
         updateKingdomUI()
 
-        // 🏰 حدث النقر على القلعة لإظهار نافذة السلاطين
+        // ربط الأحداث (Click Listeners)
         binding.imgCastle.setOnClickListener { showCastleInfoDialog() }
-
         binding.avatarFrameContainer.setOnClickListener { showProfileDialog() }
         binding.btnBattle.setOnClickListener { startMatchmaking() }
         binding.btnLuckyWheel.setOnClickListener { showLuckyWheelDialog() }
         binding.btnNavArsenal.setOnClickListener { showArsenalDialog() }
+        binding.btnDailyQuests.setOnClickListener { showDailyQuestsDialog() }
     }
 
     // ==========================================
-    // 🏰 نظام نافذة القلعة (انتقام السلاطين) 🏰
+    // 📜 نظام المهام اليومية (Daily Quests)
+    // ==========================================
+    private fun showDailyQuestsDialog() {
+        val dialog = Dialog(this)
+        dialog.setContentView(R.layout.dialog_quests)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val questsContainer = dialog.findViewById<LinearLayout>(R.id.questsContainer)
+        
+        val dailyQuests = listOf(
+            Quest("q1", "خبير المعارك: العب 3 معارك", 3, 500, "coins"),
+            Quest("q2", "بناء المجد: قم بترقية القلعة", 1, 100, "gems"),
+            Quest("q3", "مسلح الجيش: قم بترقية بطاقة", 1, 300, "coins"),
+            Quest("q4", "مدمر القلاع: اهزم العدو مرتين", 2, 200, "gems"),
+            Quest("q5", "محظوظ اليوم: دور العجلة مرة", 1, 150, "coins")
+        )
+
+        for (quest in dailyQuests) {
+            val questView = layoutInflater.inflate(R.layout.item_quest, null)
+            val tvTitle = questView.findViewById<TextView>(R.id.tvQuestTitle)
+            val pbQuest = questView.findViewById<ProgressBar>(R.id.pbQuest)
+            val tvProgressText = questView.findViewById<TextView>(R.id.tvQuestProgressText)
+            val btnCollect = questView.findViewById<Button>(R.id.btnCollectQuestReward)
+
+            val currentProgress = sharedPrefs.getInt("PROGRESS_${quest.id}", 0)
+            val isClaimed = sharedPrefs.getBoolean("CLAIMED_${quest.id}", false)
+
+            tvTitle.text = quest.title
+            pbQuest.max = quest.goal
+            pbQuest.progress = currentProgress
+            tvProgressText.text = "$currentProgress / ${quest.goal}"
+            
+            val rewardIcon = if (quest.rewardType == "coins") "💰" else "🧱"
+            btnCollect.text = "جمع المكافأة (${quest.reward} $rewardIcon)"
+
+            if (isClaimed) {
+                btnCollect.visibility = View.VISIBLE
+                btnCollect.isEnabled = false
+                btnCollect.text = "تم الاستلام ✅"
+                btnCollect.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.GRAY)
+            } else if (currentProgress >= quest.goal) {
+                btnCollect.visibility = View.VISIBLE
+                btnCollect.setOnClickListener {
+                    val currentBalance = sharedPrefs.getInt(quest.rewardType, 0)
+                    sharedPrefs.edit().putInt(quest.rewardType, currentBalance + quest.reward).apply()
+                    sharedPrefs.edit().putBoolean("CLAIMED_${quest.id}", true).apply()
+                    updateResourcesUI()
+                    dialog.dismiss()
+                    Toast.makeText(this, "مبروك! حصلت على ${quest.reward} $rewardIcon", Toast.LENGTH_SHORT).show()
+                }
+            }
+            questsContainer.addView(questView)
+        }
+        dialog.findViewById<Button>(R.id.btnCloseQuests).setOnClickListener { dialog.dismiss() }
+        dialog.show()
+    }
+
+    private fun updateQuestProgress(questId: String, add: Int) {
+        val current = sharedPrefs.getInt("PROGRESS_$questId", 0)
+        sharedPrefs.edit().putInt("PROGRESS_$questId", current + add).apply()
+    }
+
+    // ==========================================
+    // 🏰 نظام القلعة (Revenge of Sultans Style)
     // ==========================================
     private fun showCastleInfoDialog() {
         val dialog = Dialog(this)
         dialog.setContentView(R.layout.dialog_castle)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
-        val tvTitle = dialog.findViewById<TextView>(R.id.tvCastleDialogTitle)
-        val tvPower = dialog.findViewById<TextView>(R.id.tvCastlePower)
-        val tvWall = dialog.findViewById<TextView>(R.id.tvWallPower)
         val pbCastle = dialog.findViewById<ProgressBar>(R.id.pbDialogCastle)
         val tvProgress = dialog.findViewById<TextView>(R.id.tvDialogProgress)
         val btnUpgrade = dialog.findViewById<Button>(R.id.btnUpgradeCastle)
-        val btnClose = dialog.findViewById<Button>(R.id.btnCloseCastle)
 
-        fun updateDialogUI() {
+        fun refreshUI() {
             val level = sharedPrefs.getInt("KINGDOM_LEVEL", 1)
             val progress = sharedPrefs.getInt("KINGDOM_PROGRESS", 0)
-
-            tvTitle?.text = "القلعة الرئيسية (مستوى $level)"
-            tvPower?.text = "${level * 15000} ⚔️"
-            tvWall?.text = "${level * 8000} 🛡️"
-            pbCastle?.progress = progress
-            tvProgress?.text = "$progress / 100"
+            dialog.findViewById<TextView>(R.id.tvCastleDialogTitle).text = "القلعة الملكية (مستوى $level)"
+            dialog.findViewById<TextView>(R.id.tvCastlePower).text = "${level * 15000} ⚔️"
+            dialog.findViewById<TextView>(R.id.tvWallPower).text = "${level * 8000} 🛡️"
+            pbCastle.progress = progress
+            tvProgress.text = "$progress / 100"
         }
 
-        updateDialogUI()
+        refreshUI()
 
-        btnUpgrade?.setOnClickListener {
-            val buildCost = 50
+        btnUpgrade.setOnClickListener {
             val currentStones = sharedPrefs.getInt("gems", 0)
-
-            if (currentStones >= buildCost) {
-                sharedPrefs.edit().putInt("gems", currentStones - buildCost).apply()
-
-                var kingdomLevel = sharedPrefs.getInt("KINGDOM_LEVEL", 1)
-                var kingdomProgress = sharedPrefs.getInt("KINGDOM_PROGRESS", 0)
-
-                kingdomProgress += 25
-
-                if (kingdomProgress >= 100) {
-                    kingdomProgress = 0
-                    kingdomLevel++
-                    sharedPrefs.edit().putInt("KINGDOM_LEVEL", kingdomLevel).apply()
-                    Toast.makeText(this, "عظمة السلاطين! تطورت القلعة للمستوى $kingdomLevel 🏰", Toast.LENGTH_LONG).show()
+            if (currentStones >= 50) {
+                sharedPrefs.edit().putInt("gems", currentStones - 50).apply()
+                var progress = sharedPrefs.getInt("KINGDOM_PROGRESS", 0) + 25
+                if (progress >= 100) {
+                    progress = 0
+                    val newLvl = sharedPrefs.getInt("KINGDOM_LEVEL", 1) + 1
+                    sharedPrefs.edit().putInt("KINGDOM_LEVEL", newLvl).apply()
+                    updateQuestProgress("q2", 1) // مهمة القلعة
                 }
-
-                sharedPrefs.edit().putInt("KINGDOM_PROGRESS", kingdomProgress).apply()
-
-                updateResourcesUI()
-                updateKingdomUI()
-                updateDialogUI()
+                sharedPrefs.edit().putInt("KINGDOM_PROGRESS", progress).apply()
+                updateResourcesUI(); updateKingdomUI(); refreshUI()
             } else {
-                Toast.makeText(this, "لا تملك أحجار بناء كافية! تحتاج $buildCost 🧱", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "نحتاج أحجاراً أكثر! 🧱", Toast.LENGTH_SHORT).show()
             }
         }
-
-        btnClose?.setOnClickListener { dialog.dismiss() }
+        dialog.findViewById<Button>(R.id.btnCloseCastle).setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
 
-    private fun updateKingdomUI() {
-        val kingdomLevel = sharedPrefs.getInt("KINGDOM_LEVEL", 1)
-        val kingdomProgress = sharedPrefs.getInt("KINGDOM_PROGRESS", 0)
-        
-        val tvLevel = findViewById<TextView>(R.id.tvKingdomLevel)
-        val pbKingdom = findViewById<ProgressBar>(R.id.pbKingdom)
-        val tvProgress = findViewById<TextView>(R.id.tvKingdomProgressText)
-
-        tvLevel?.text = "المملكة: مستوى $kingdomLevel"
-        pbKingdom?.progress = kingdomProgress
-        tvProgress?.text = "$kingdomProgress / 100"
-    }
-
+    // ==========================================
+    // ⚔️ البحث عن خصم والانتقال للمعارك
+    // ==========================================
     private fun startMatchmaking() {
         val dialog = Dialog(this)
         dialog.setCancelable(false)
@@ -174,31 +207,20 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             setBackgroundResource(R.drawable.bg_wheel_dialog)
-            val padding = 60
-            setPadding(padding, padding, padding, padding)
+            setPadding(60, 60, 60, 60)
         }
         
         val title = TextView(this).apply {
             text = "جاري البحث عن خصم..."
-            setTextColor(Color.WHITE)
-            textSize = 22f
-            setTypeface(null, Typeface.BOLD)
-            gravity = Gravity.CENTER
-            setShadowLayer(4f, 0f, 0f, Color.BLACK)
+            setTextColor(Color.WHITE); textSize = 22f; setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER; setShadowLayer(4f, 0f, 0f, Color.BLACK)
         }
         
-        val pb = ProgressBar(this).apply {
-            isIndeterminate = true
-            setPadding(0, 40, 0, 40)
-        }
-        
-        layout.addView(title)
-        layout.addView(pb)
-        dialog.setContentView(layout)
-        dialog.show()
+        val pb = ProgressBar(this).apply { isIndeterminate = true; setPadding(0, 40, 0, 40) }
+        layout.addView(title); layout.addView(pb)
+        dialog.setContentView(layout); dialog.show()
 
-        val fakeNames = arrayOf("Shadow", "Ahmed_99", "DarkKnight", "Doom_King", "Ninja_X")
-        val enemyName = fakeNames.random()
+        val enemyName = arrayOf("Shadow", "Ahmed_99", "DarkKnight", "Doom_King", "Ninja_X").random()
 
         Handler(Looper.getMainLooper()).postDelayed({
             title.text = "خصمك هو:\n$enemyName"
@@ -207,324 +229,171 @@ class MainActivity : AppCompatActivity() {
             
             Handler(Looper.getMainLooper()).postDelayed({
                 dialog.dismiss()
+                updateQuestProgress("q1", 1) // مهمة خبير المعارك
                 startGameWithTransition()
             }, 1000)
-            
         }, 1500)
     }
 
     private fun setupRoyalDoors() {
         screenWidth = resources.displayMetrics.widthPixels
-        val doorWidth = screenWidth / 2
-        val doorHeight = FrameLayout.LayoutParams.MATCH_PARENT
-
         val rootView = findViewById<ViewGroup>(android.R.id.content) as FrameLayout
-        
         leftDoor = ImageView(this).apply {
-            val resId = resources.getIdentifier("bg_door_left", "drawable", packageName)
-            if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.parseColor("#2C3E50"))
-            scaleType = ImageView.ScaleType.FIT_XY
-            
-            val params = FrameLayout.LayoutParams(doorWidth, doorHeight)
-            params.gravity = Gravity.LEFT or Gravity.TOP
-            layoutParams = params
-            translationX = -doorWidth.toFloat() 
-            elevation = 200f 
+            setImageResource(R.drawable.bg_door_left); scaleType = ImageView.ScaleType.FIT_XY
+            layoutParams = FrameLayout.LayoutParams(screenWidth/2, -1).apply { gravity = Gravity.LEFT }
+            translationX = -screenWidth/2f; elevation = 200f
         }
-        
         rightDoor = ImageView(this).apply {
-            val resId = resources.getIdentifier("bg_door_right", "drawable", packageName)
-            if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.parseColor("#2C3E50"))
-            scaleType = ImageView.ScaleType.FIT_XY
-            
-            val params = FrameLayout.LayoutParams(doorWidth, doorHeight)
-            params.gravity = Gravity.RIGHT or Gravity.TOP
-            layoutParams = params
-            translationX = doorWidth.toFloat() 
-            elevation = 200f
+            setImageResource(R.drawable.bg_door_right); scaleType = ImageView.ScaleType.FIT_XY
+            layoutParams = FrameLayout.LayoutParams(screenWidth/2, -1).apply { gravity = Gravity.RIGHT }
+            translationX = screenWidth/2f; elevation = 200f
         }
-
-        rootView.addView(leftDoor)
-        rootView.addView(rightDoor)
+        rootView.addView(leftDoor); rootView.addView(rightDoor)
     }
 
     private fun startGameWithTransition() {
         leftDoor.animate().translationX(0f).setDuration(400).start()
         rightDoor.animate().translationX(0f).setDuration(400).withEndAction {
             Handler(Looper.getMainLooper()).postDelayed({
-                val intent = Intent(this, GameActivity::class.java)
-                startActivity(intent)
-                @Suppress("DEPRECATION")
+                startActivity(Intent(this, GameActivity::class.java))
                 overridePendingTransition(0, 0)
             }, 300)
         }.start()
     }
 
-    private fun updateResourcesUI() {
-        val currentGold = sharedPrefs.getInt("coins", 0)
-        val currentStones = sharedPrefs.getInt("gems", 0)
-        
-        val tvGold = findViewById<TextView>(R.id.tvGoldAmount)
-        val tvStones = findViewById<TextView>(R.id.tvStonesAmount)
-        
-        tvGold?.text = String.format("%,d", currentGold)
-        tvStones?.text = String.format("%,d", currentStones)
+    // ==========================================
+    // ⚔️ نظام الترسانة وتطوير الكروت
+    // ==========================================
+    private fun showArsenalDialog() {
+        val d = Dialog(this); d.setContentView(R.layout.dialog_arsenal)
+        d.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        setupUpgradeLogic(d, R.id.cardCannon, "LEVEL_CANNON", 150)
+        setupUpgradeLogic(d, R.id.cardSoldier, "LEVEL_SOLDIER", 200)
+        setupUpgradeLogic(d, R.id.cardChampion, "LEVEL_CHAMPION", 500)
+        d.findViewById<Button>(R.id.btnCloseArsenal).setOnClickListener { d.dismiss() }
+        d.show()
     }
 
-    private fun loadSavedData() {
-        val savedName = sharedPrefs.getString("PLAYER_NAME", "زيكو")
-        val savedImage = sharedPrefs.getString("PLAYER_IMAGE", null)
-        
-        val pLvl = sharedPrefs.getInt("LEVEL_CANNON", 1) 
-        
-        binding.tvPlayerName.text = savedName
-        binding.tvPlayerLevel.text = "⭐ مستوى $pLvl"
-        
-        if (savedImage != null) {
-            tempSelectedImageUri = Uri.parse(savedImage)
-            binding.imgMainAvatar.setImageURI(tempSelectedImageUri)
+    private fun setupUpgradeLogic(d: Dialog, id: Int, key: String, base: Int) {
+        val card = d.findViewById<ViewGroup>(id) ?: return
+        val tvLvl = card.getChildAt(0) as? TextView
+        val tvPrice = (card.getChildAt(2) as? ViewGroup)?.getChildAt(1) as? TextView
+        var lvl = sharedPrefs.getInt(key, 1); var prc = base * lvl
+        tvLvl?.text = "LVL $lvl"; tvPrice?.text = prc.toString()
+        card.setOnClickListener {
+            val gold = sharedPrefs.getInt("coins", 0)
+            if (gold >= prc) {
+                sharedPrefs.edit().putInt("coins", gold - prc).apply()
+                lvl++; sharedPrefs.edit().putInt(key, lvl).apply()
+                prc = base * lvl; tvLvl?.text = "LVL $lvl"; tvPrice?.text = prc.toString()
+                updateResourcesUI(); loadSavedData()
+                updateQuestProgress("q3", 1) // مهمة الترقية
+                Toast.makeText(this, "تمت الترقية! ⚔️", Toast.LENGTH_SHORT).show()
+            } else Toast.makeText(this, "الذهب غير كافٍ! 💰", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    // ==========================================
+    // 🎡 نظام عجلة الحظ
+    // ==========================================
+    private fun showLuckyWheelDialog() {
+        val d = Dialog(this); d.setContentView(R.layout.dialog_lucky_wheel)
+        d.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        val board = d.findViewById<ImageView>(R.id.imgWheelBoard)
+        d.findViewById<Button>(R.id.btnSpin).setOnClickListener {
+            val winIdx = (0..5).random()
+            board.animate().rotation(3600f + (360 - winIdx * 60)).setDuration(4000).withEndAction {
+                val prizes = listOf(Prize("1000 ذهبة", R.drawable.ic_gold_coin, 1000, "coins"), Prize("50 حجر", R.drawable.ic_stone_block, 50, "gems"), Prize("2000 ذهبة", R.drawable.ic_gold_coin, 2000, "coins"), Prize("100 حجر", R.drawable.ic_stone_block, 100, "gems"), Prize("5000 ذهبة", R.drawable.ic_gold_coin, 5000, "coins"), Prize("صندوق", R.drawable.ic_shop_scroll, 1, "chest"))
+                d.dismiss()
+                updateQuestProgress("q5", 1) // مهمة العجلة
+                showCelebrationDialog(prizes[winIdx])
+            }.start()
+        }
+        d.findViewById<Button>(R.id.btnCloseWheel).setOnClickListener { d.dismiss() }
+        d.show()
+    }
+
+    private fun showCelebrationDialog(p: Prize) {
+        val d = Dialog(this); d.setContentView(R.layout.dialog_celebration)
+        d.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        d.findViewById<TextView>(R.id.tvPrizeText).text = p.text
+        d.findViewById<ImageView>(R.id.imgPrizeIcon).setImageResource(p.iconResId)
+        d.findViewById<Button>(R.id.btnCollectPrize).setOnClickListener {
+            val cur = sharedPrefs.getInt(p.type, 0); sharedPrefs.edit().putInt(p.type, cur + p.amount).apply()
+            updateResourcesUI(); d.dismiss()
+        }
+        d.show()
+    }
+
+    // ==========================================
+    // ⚙️ المهام الإضافية (ملف شخصي، فيديو، موارد)
+    // ==========================================
+    private fun loadSavedData() {
+        binding.tvPlayerName.text = sharedPrefs.getString("PLAYER_NAME", "زيكو")
+        val pLvl = sharedPrefs.getInt("LEVEL_CANNON", 1)
+        binding.tvPlayerLevel.text = "⭐ مستوى $pLvl"
+        sharedPrefs.getString("PLAYER_IMAGE", null)?.let { binding.imgMainAvatar.setImageURI(Uri.parse(it)) }
+    }
+
+    private fun updateResourcesUI() {
+        findViewById<TextView>(R.id.tvGoldAmount).text = String.format("%,d", sharedPrefs.getInt("coins", 0))
+        findViewById<TextView>(R.id.tvStonesAmount).text = String.format("%,d", sharedPrefs.getInt("gems", 0))
+    }
+
+    private fun updateKingdomUI() {
+        val level = sharedPrefs.getInt("KINGDOM_LEVEL", 1)
+        val progress = sharedPrefs.getInt("KINGDOM_PROGRESS", 0)
+        findViewById<TextView>(R.id.tvKingdomLevel).text = "المملكة: مستوى $level"
+        findViewById<ProgressBar>(R.id.pbKingdom).progress = progress
+        findViewById<TextView>(R.id.tvKingdomProgressText).text = "$progress / 100"
     }
 
     private fun setupBackgroundVideo() {
         player = ExoPlayer.Builder(this).build()
         binding.mainVideoBackground.player = player
-        val videoUri = Uri.parse("android.resource://$packageName/${R.raw.main_bg}")
-        player?.setMediaItem(MediaItem.fromUri(videoUri))
-        player?.repeatMode = Player.REPEAT_MODE_ALL 
-        player?.prepare()
-        player?.play()
-    }
-
-    private fun showArsenalDialog() {
-        val arsenalDialog = Dialog(this)
-        arsenalDialog.setContentView(R.layout.dialog_arsenal)
-        arsenalDialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        
-        setupUpgradeLogic(arsenalDialog, R.id.cardCannon, "LEVEL_CANNON", 150)
-        setupUpgradeLogic(arsenalDialog, R.id.cardSoldier, "LEVEL_SOLDIER", 200)
-        setupUpgradeLogic(arsenalDialog, R.id.cardChampion, "LEVEL_CHAMPION", 500)
-
-        arsenalDialog.findViewById<Button>(R.id.btnCloseArsenal)?.setOnClickListener {
-            arsenalDialog.dismiss()
-        }
-        arsenalDialog.show()
-    }
-
-    private fun setupUpgradeLogic(dialog: Dialog, cardId: Int, prefKeyLevel: String, basePrice: Int) {
-        val cardBtn = dialog.findViewById<ViewGroup>(cardId) ?: return
-        
-        val tvLevel = cardBtn.getChildAt(0) as? TextView
-        val btnUpgradeLayout = cardBtn.getChildAt(2) as? ViewGroup
-        val tvPrice = btnUpgradeLayout?.getChildAt(1) as? TextView
-
-        var currentLevel = sharedPrefs.getInt(prefKeyLevel, 1)
-        var currentPrice = basePrice * currentLevel
-
-        tvLevel?.text = "LVL $currentLevel"
-        tvPrice?.text = currentPrice.toString()
-
-        cardBtn.setOnClickListener {
-            val currentGold = sharedPrefs.getInt("coins", 0)
-            if (currentGold >= currentPrice) {
-                sharedPrefs.edit().putInt("coins", currentGold - currentPrice).apply()
-                currentLevel++
-                sharedPrefs.edit().putInt(prefKeyLevel, currentLevel).apply()
-                currentPrice = basePrice * currentLevel
-                
-                tvLevel?.text = "LVL $currentLevel"
-                tvPrice?.text = currentPrice.toString()
-                
-                updateResourcesUI()
-                loadSavedData()
-                
-                Toast.makeText(this, "تمت الترقية إلى مستوى $currentLevel! ⚔️", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "لا تملك ذهباً كافياً! تحتاج $currentPrice 💰", Toast.LENGTH_SHORT).show()
-            }
-        }
+        player?.setMediaItem(MediaItem.fromUri(Uri.parse("android.resource://$packageName/${R.raw.main_bg}")))
+        player?.repeatMode = Player.REPEAT_MODE_ALL; player?.prepare(); player?.play()
     }
 
     private fun showProfileDialog() {
-        profileDialog = Dialog(this)
-        profileDialog?.setContentView(R.layout.dialog_profile)
+        profileDialog = Dialog(this); profileDialog?.setContentView(R.layout.dialog_profile)
         profileDialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        val etName = profileDialog?.findViewById<EditText>(R.id.etPlayerName)
-        val imgAvatar = profileDialog?.findViewById<ImageView>(R.id.imgDialogAvatar)
-        val btnChangePic = profileDialog?.findViewById<Button>(R.id.btnChangePicture)
-        val btnSave = profileDialog?.findViewById<Button>(R.id.btnSaveProfile)
-
-        etName?.setText(binding.tvPlayerName.text)
-        tempSelectedImageUri?.let { imgAvatar?.setImageURI(it) }
-
-        btnChangePic?.setOnClickListener { checkPermissionAndOpenGallery() }
-
-        btnSave?.setOnClickListener {
-            val newName = etName?.text.toString().trim()
-            if (newName.isNotEmpty()) {
-                sharedPrefs.edit().apply {
-                    putString("PLAYER_NAME", newName)
-                    tempSelectedImageUri?.let { putString("PLAYER_IMAGE", it.toString()) }
-                    apply()
-                }
-                
-                loadSavedData()
-                profileDialog?.dismiss()
-            } else {
-                Toast.makeText(this, "الاسم مطلوب!", Toast.LENGTH_SHORT).show()
+        val et = profileDialog?.findViewById<EditText>(R.id.etPlayerName)
+        et?.setText(binding.tvPlayerName.text)
+        profileDialog?.findViewById<Button>(R.id.btnChangePicture)?.setOnClickListener { checkPermissionAndOpenGallery() }
+        profileDialog?.findViewById<Button>(R.id.btnSaveProfile)?.setOnClickListener {
+            val n = et?.text.toString().trim()
+            if (n.isNotEmpty()) {
+                sharedPrefs.edit().putString("PLAYER_NAME", n).apply()
+                tempSelectedImageUri?.let { sharedPrefs.edit().putString("PLAYER_IMAGE", it.toString()).apply() }
+                loadSavedData(); profileDialog?.dismiss()
             }
         }
         profileDialog?.show()
     }
 
-    private fun showLuckyWheelDialog() {
-        val wheelDialog = Dialog(this)
-        wheelDialog.setContentView(R.layout.dialog_lucky_wheel)
-        wheelDialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        val imgWheelBoard = wheelDialog.findViewById<ImageView>(R.id.imgWheelBoard)
-        val btnSpin = wheelDialog.findViewById<Button>(R.id.btnSpin)
-        val btnClose = wheelDialog.findViewById<Button>(R.id.btnCloseWheel)
-
-        var isSpinning = false
-
-        val prizesList = listOf(
-            Prize("1000 ذهبة", R.drawable.ic_gold_coin, 1000, "coins"),       
-            Prize("50 حجر بناء", R.drawable.ic_stone_block, 50, "gems"),    
-            Prize("2000 ذهبة", R.drawable.ic_gold_coin, 2000, "coins"),       
-            Prize("100 حجر بناء", R.drawable.ic_stone_block, 100, "gems"),  
-            Prize("5000 ذهبة", R.drawable.ic_gold_coin, 5000, "coins"),       
-            Prize("صندوق غنائم", R.drawable.ic_shop_scroll, 1, "chest")      
-        )
-
-        btnSpin.setOnClickListener {
-            if (isSpinning) return@setOnClickListener
-            isSpinning = true
-            btnSpin.isEnabled = false
-            btnClose.isEnabled = false
-
-            val winningIndex = (0..5).random() 
-            val targetAngle = 360f - (winningIndex * 60f)
-            val totalRotation = (360f * 5) + targetAngle
-
-            val animator = android.animation.ObjectAnimator.ofFloat(imgWheelBoard, "rotation", 0f, totalRotation)
-            animator.duration = 4000
-            animator.interpolator = android.view.animation.DecelerateInterpolator()
-
-            animator.addListener(object : android.animation.Animator.AnimatorListener {
-                override fun onAnimationStart(a: android.animation.Animator) {}
-                override fun onAnimationCancel(a: android.animation.Animator) {}
-                override fun onAnimationRepeat(a: android.animation.Animator) {}
-
-                override fun onAnimationEnd(a: android.animation.Animator) {
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        isSpinning = false
-                        btnSpin.isEnabled = true
-                        btnClose.isEnabled = true
-
-                        val wonPrize = prizesList[winningIndex]
-                        wheelDialog.dismiss()
-                        showCelebrationDialog(wonPrize)
-                    }, 750)
-                }
-            })
-            animator.start()
-        }
-
-        btnClose.setOnClickListener { if (!isSpinning) wheelDialog.dismiss() }
-        wheelDialog.show()
-    }
-
-    private fun showCelebrationDialog(prize: Prize) {
-        val celebrationDialog = Dialog(this)
-        celebrationDialog.setContentView(R.layout.dialog_celebration)
-        celebrationDialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        val imgIcon = celebrationDialog.findViewById<ImageView>(R.id.imgPrizeIcon)
-        val tvText = celebrationDialog.findViewById<TextView>(R.id.tvPrizeText)
-        val btnCollect = celebrationDialog.findViewById<Button>(R.id.btnCollectPrize)
-
-        imgIcon.setImageResource(prize.iconResId)
-        tvText.text = prize.text
-
-        btnCollect.setOnClickListener {
-            val currentAmount = sharedPrefs.getInt(prize.type, 0)
-            sharedPrefs.edit().putInt(prize.type, currentAmount + prize.amount).apply()
-            updateResourcesUI()
-            celebrationDialog.dismiss()
-        }
-        celebrationDialog.show()
-    }
-
     private fun checkPermissionAndOpenGallery() {
-        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            Manifest.permission.READ_MEDIA_IMAGES
-        } else {
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        }
-        requestPermissionLauncher.launch(permission)
+        val perm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_EXTERNAL_STORAGE
+        requestPermissionLauncher.launch(perm)
     }
 
-    private fun openGallery() {
-        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-        pickImageLauncher.launch(intent)
-    }
+    private fun openGallery() { pickImageLauncher.launch(Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)) }
 
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) hideSystemUI()
+    override fun onResume() { 
+        super.onResume() ; player?.play() ; updateResourcesUI() ; loadSavedData() ; updateKingdomUI()
+        if (::leftDoor.isInitialized) { leftDoor.translationX = -screenWidth/2f ; rightDoor.translationX = screenWidth/2f }
     }
-
+    override fun onPause() { super.onPause() ; player?.pause() }
+    override fun onDestroy() { super.onDestroy() ; player?.release() }
+    override fun onWindowFocusChanged(h: Boolean) { super.onWindowFocusChanged(h) ; if(h) hideSystemUI() }
+    
     private fun hideSystemUI() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.let {
-                it.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
-                it.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            }
+            window.insetsController?.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+            window.insetsController?.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         } else {
             @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                    or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                    or View.SYSTEM_UI_FLAG_FULLSCREEN)
+            window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN)
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        player?.play() 
-        updateResourcesUI()
-        loadSavedData()
-        updateKingdomUI()
-        
-        if (::leftDoor.isInitialized && ::rightDoor.isInitialized) {
-            val doorWidth = screenWidth / 2f
-            
-            if (isFirstLaunch) {
-                leftDoor.translationX = -doorWidth
-                rightDoor.translationX = doorWidth
-                isFirstLaunch = false
-            } else {
-                leftDoor.translationX = 0f
-                rightDoor.translationX = 0f
-                
-                leftDoor.animate().translationX(-doorWidth).setDuration(400).start()
-                rightDoor.animate().translationX(doorWidth).setDuration(400).start()
-            }
-        }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        player?.pause() 
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        player?.release()
-        player = null
     }
 }
