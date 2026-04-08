@@ -78,20 +78,93 @@ class MainActivity : AppCompatActivity() {
         updateResourcesUI() 
         setupBackgroundVideo()
         setupRoyalDoors()
+        
         updateKingdomUI()
 
+        // 🏰 حدث النقر على القلعة لإظهار نافذة السلاطين
+        binding.imgCastle.setOnClickListener { showCastleInfoDialog() }
+
         binding.avatarFrameContainer.setOnClickListener { showProfileDialog() }
-        
-        // ربط المعركة بنظام البحث عن خصم
         binding.btnBattle.setOnClickListener { startMatchmaking() }
-        
         binding.btnLuckyWheel.setOnClickListener { showLuckyWheelDialog() }
         binding.btnNavArsenal.setOnClickListener { showArsenalDialog() }
     }
 
     // ==========================================
-    // ⚔️ نظام البحث عن خصم (Matchmaking) ⚔️
+    // 🏰 نظام نافذة القلعة (انتقام السلاطين) 🏰
     // ==========================================
+    private fun showCastleInfoDialog() {
+        val dialog = Dialog(this)
+        dialog.setContentView(R.layout.dialog_castle)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val tvTitle = dialog.findViewById<TextView>(R.id.tvCastleDialogTitle)
+        val tvPower = dialog.findViewById<TextView>(R.id.tvCastlePower)
+        val tvWall = dialog.findViewById<TextView>(R.id.tvWallPower)
+        val pbCastle = dialog.findViewById<ProgressBar>(R.id.pbDialogCastle)
+        val tvProgress = dialog.findViewById<TextView>(R.id.tvDialogProgress)
+        val btnUpgrade = dialog.findViewById<Button>(R.id.btnUpgradeCastle)
+        val btnClose = dialog.findViewById<Button>(R.id.btnCloseCastle)
+
+        fun updateDialogUI() {
+            val level = sharedPrefs.getInt("KINGDOM_LEVEL", 1)
+            val progress = sharedPrefs.getInt("KINGDOM_PROGRESS", 0)
+
+            tvTitle?.text = "القلعة الرئيسية (مستوى $level)"
+            tvPower?.text = "${level * 15000} ⚔️"
+            tvWall?.text = "${level * 8000} 🛡️"
+            pbCastle?.progress = progress
+            tvProgress?.text = "$progress / 100"
+        }
+
+        updateDialogUI()
+
+        btnUpgrade?.setOnClickListener {
+            val buildCost = 50
+            val currentStones = sharedPrefs.getInt("gems", 0)
+
+            if (currentStones >= buildCost) {
+                sharedPrefs.edit().putInt("gems", currentStones - buildCost).apply()
+
+                var kingdomLevel = sharedPrefs.getInt("KINGDOM_LEVEL", 1)
+                var kingdomProgress = sharedPrefs.getInt("KINGDOM_PROGRESS", 0)
+
+                kingdomProgress += 25
+
+                if (kingdomProgress >= 100) {
+                    kingdomProgress = 0
+                    kingdomLevel++
+                    sharedPrefs.edit().putInt("KINGDOM_LEVEL", kingdomLevel).apply()
+                    Toast.makeText(this, "عظمة السلاطين! تطورت القلعة للمستوى $kingdomLevel 🏰", Toast.LENGTH_LONG).show()
+                }
+
+                sharedPrefs.edit().putInt("KINGDOM_PROGRESS", kingdomProgress).apply()
+
+                updateResourcesUI()
+                updateKingdomUI()
+                updateDialogUI()
+            } else {
+                Toast.makeText(this, "لا تملك أحجار بناء كافية! تحتاج $buildCost 🧱", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnClose?.setOnClickListener { dialog.dismiss() }
+        dialog.show()
+    }
+
+    private fun updateKingdomUI() {
+        val kingdomLevel = sharedPrefs.getInt("KINGDOM_LEVEL", 1)
+        val kingdomProgress = sharedPrefs.getInt("KINGDOM_PROGRESS", 0)
+        
+        val tvLevel = findViewById<TextView>(R.id.tvKingdomLevel)
+        val pbKingdom = findViewById<ProgressBar>(R.id.pbKingdom)
+        val tvProgress = findViewById<TextView>(R.id.tvKingdomProgressText)
+
+        tvLevel?.text = "المملكة: مستوى $kingdomLevel"
+        pbKingdom?.progress = kingdomProgress
+        tvProgress?.text = "$kingdomProgress / 100"
+    }
+
     private fun startMatchmaking() {
         val dialog = Dialog(this)
         dialog.setCancelable(false)
@@ -100,7 +173,7 @@ class MainActivity : AppCompatActivity() {
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setBackgroundResource(R.drawable.bg_wheel_dialog) // استخدام نفس خلفية النوافذ
+            setBackgroundResource(R.drawable.bg_wheel_dialog)
             val padding = 60
             setPadding(padding, padding, padding, padding)
         }
@@ -127,64 +200,17 @@ class MainActivity : AppCompatActivity() {
         val fakeNames = arrayOf("Shadow", "Ahmed_99", "DarkKnight", "Doom_King", "Ninja_X")
         val enemyName = fakeNames.random()
 
-        // محاكاة البحث لمدة ثانية ونصف
         Handler(Looper.getMainLooper()).postDelayed({
             title.text = "خصمك هو:\n$enemyName"
             title.setTextColor(Color.parseColor("#FFD700"))
             pb.visibility = View.GONE
             
-            // الانتظار ثانية واحدة بعد إيجاد الخصم ثم الانتقال
             Handler(Looper.getMainLooper()).postDelayed({
                 dialog.dismiss()
                 startGameWithTransition()
             }, 1000)
             
         }, 1500)
-    }
-
-    // ==========================================
-    // 🏰 نظام بناء المملكة (Base Building) 🏰
-    // ==========================================
-    private fun updateKingdomUI() {
-        val kingdomLevel = sharedPrefs.getInt("KINGDOM_LEVEL", 1)
-        var kingdomProgress = sharedPrefs.getInt("KINGDOM_PROGRESS", 0)
-        val buildCost = 50 
-        
-        val tvLevel = findViewById<TextView>(R.id.tvKingdomLevel)
-        val pbKingdom = findViewById<ProgressBar>(R.id.pbKingdom)
-        val tvProgress = findViewById<TextView>(R.id.tvKingdomProgressText)
-        val tvCost = findViewById<TextView>(R.id.tvBuildCost)
-        val btnBuild = findViewById<ViewGroup>(R.id.btnBuildKingdom)
-
-        tvLevel?.text = "المملكة: مستوى $kingdomLevel"
-        pbKingdom?.progress = kingdomProgress
-        tvProgress?.text = "$kingdomProgress / 100"
-        tvCost?.text = buildCost.toString()
-
-        btnBuild?.setOnClickListener {
-            val currentStones = sharedPrefs.getInt("gems", 0)
-            if (currentStones >= buildCost) {
-                // خصم الأحجار
-                sharedPrefs.edit().putInt("gems", currentStones - buildCost).apply()
-                
-                // زيادة التقدم (25% في كل مرة)
-                kingdomProgress += 25
-                
-                if (kingdomProgress >= 100) {
-                    kingdomProgress = 0
-                    val newLevel = kingdomLevel + 1
-                    sharedPrefs.edit().putInt("KINGDOM_LEVEL", newLevel).apply()
-                    Toast.makeText(this, "تمت ترقية المملكة للمستوى $newLevel! 🏰", Toast.LENGTH_LONG).show()
-                }
-                
-                sharedPrefs.edit().putInt("KINGDOM_PROGRESS", kingdomProgress).apply()
-                
-                updateResourcesUI()
-                updateKingdomUI() // تحديث الشاشة
-            } else {
-                Toast.makeText(this, "لا تملك أحجار بناء كافية! تحتاج $buildCost 🧱", Toast.LENGTH_SHORT).show()
-            }
-        }
     }
 
     private fun setupRoyalDoors() {
