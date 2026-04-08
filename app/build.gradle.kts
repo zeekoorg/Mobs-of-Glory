@@ -1,6 +1,10 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    // تفعيل بلوقن خدمات جوجل
+    id("com.google.gms.google-services")
+    // تفعيل بلوقن خدمات هواوي
+    id("com.huawei.agconnect")
 }
 
 android {
@@ -38,7 +42,7 @@ android {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
-    implementation("androidx.appcompat:appcompat:1.7.0") // نسخة حديثة متوافقة مع SDK 35
+    implementation("androidx.appcompat:appcompat:1.7.1") // أحدث نسخة مستقرة
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
 
@@ -47,4 +51,19 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:$media3Version")
     implementation("androidx.media3:media3-ui:$media3Version")
     implementation("androidx.media3:media3-common:$media3Version")
+
+    // ==========================================
+    // 💰 مكتبات الإعلانات وخدمات جوجل / هواوي لعام 2026
+    // ==========================================
+    
+    // Yandex Mobile Ads (أحدث إصدار مستقر 7.18.5)
+    implementation("com.yandex.android:mobileads:7.18.5")
+
+    // خدمات جوجل (ضرورية لياندكس لجمع معرف الإعلان وضمان الأرباح)
+    implementation("com.google.android.gms:play-services-base:18.7.0") 
+    implementation("com.google.android.gms:play-services-ads-identifier:18.1.0")
+    
+    // خدمات هواوي (ضرورية لياندكس لتعمل على أجهزة هواوي بدون جوجل)
+    implementation("com.huawei.hms:base:6.13.0.303")
+    implementation("com.huawei.hms:ads-identifier:3.4.62.300")
 }
