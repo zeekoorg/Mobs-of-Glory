@@ -77,7 +77,6 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     private var bgDoorLeftBitmap: Bitmap? = null
     private var bgDoorRightBitmap: Bitmap? = null
     
-    // 👤 بيانات اللاعب والخصم
     private var playerName = "زيكو"
     private var playerLevelStr = "مستوى 1"
     private var enemyName = "الخصم"
@@ -134,7 +133,6 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         return if (resId != 0) getSafeBitmap(ctx, resId, w, h) else null
     }
 
-    // ✂️ دالة لتحويل الصور المربعة إلى دائرية
     private fun getCircularBitmap(bitmap: Bitmap): Bitmap {
         val output = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(output)
@@ -149,21 +147,17 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     init {
         prefs = context.getSharedPreferences("MobsOfGloryData", Context.MODE_PRIVATE)
 
-        // 🛡️ قراءة بيانات اللاعب
         playerName = prefs.getString("PLAYER_NAME", "زيكو") ?: "زيكو"
         val pLvl = prefs.getInt("LEVEL_CANNON", 1) 
         playerLevelStr = "مستوى $pLvl"
         
-        // 👻 توليد بيانات العدو الوهمي
         val fakeNames = arrayOf("Shadow", "Ahmed_99", "DarkKnight", "Doom_King", "Ninja_X")
         enemyName = fakeNames.random()
-        enemyLevelStr = "مستوى ${pLvl + Random.nextInt(0, 3)}" // خصم مقارب لمستواك
+        enemyLevelStr = "مستوى ${pLvl + Random.nextInt(0, 3)}" 
 
-        // تحميل الصور الافتراضية
-        playerAvatarBitmap = loadOptionalBitmap(context, "ic_player_avatar", 110, 110)
-        enemyAvatarBitmap = loadOptionalBitmap(context, "ic_player_avatar", 110, 110)?.let { getCircularBitmap(it) }
+        playerAvatarBitmap = loadOptionalBitmap(context, "ic_player_avatar", 100, 100)
+        enemyAvatarBitmap = loadOptionalBitmap(context, "ic_player_avatar", 100, 100)?.let { getCircularBitmap(it) }
 
-        // محاولة تحميل صورة اللاعب الحقيقية من المعرض إذا وجدت
         val savedImage = prefs.getString("PLAYER_IMAGE", null)
         if (savedImage != null) {
             try {
@@ -174,7 +168,7 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
                     @Suppress("DEPRECATION")
                     android.provider.MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
                 }
-                playerAvatarBitmap = getCircularBitmap(Bitmap.createScaledBitmap(bitmap, 110, 110, true))
+                playerAvatarBitmap = getCircularBitmap(Bitmap.createScaledBitmap(bitmap, 100, 100, true))
             } catch (e: Exception) { e.printStackTrace() }
         } else {
             playerAvatarBitmap = playerAvatarBitmap?.let { getCircularBitmap(it) }
@@ -187,8 +181,8 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         gateBitmap = getSafeBitmap(context, R.drawable.ic_gate_blue, 300, 100)
         enemyCastleBitmap = getSafeBitmap(context, R.drawable.ic_enemy_castle)
 
-        bgPowerPlayerBitmap = loadOptionalBitmap(context, "bg_power_player", 220, 90)
-        bgPowerEnemyBitmap = loadOptionalBitmap(context, "bg_power_enemy", 220, 90)
+        bgPowerPlayerBitmap = loadOptionalBitmap(context, "bg_power_player")
+        bgPowerEnemyBitmap = loadOptionalBitmap(context, "bg_power_enemy")
         
         bgWheelDialogBitmap = loadOptionalBitmap(context, "bg_wheel_dialog", 800, 600)
         icStoneBlockBitmap = loadOptionalBitmap(context, "ic_stone_block", 90, 90)
@@ -226,7 +220,8 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         val gateX = (screenX / 2f) - (gateBitmap.width / 2f); val gateY = screenY * 0.5f
         mainGate = Gate(gateX, gateY, 6f, gateBitmap, 3) 
 
-        homeBtnRect = RectF(40f, 160f, 240f, 240f)
+        // تحريك زر الرئيسية ليكون أسفل حاوية معلومات اللاعب
+        homeBtnRect = RectF(20f, 220f, 220f, 300f)
         
         val loseBoxHeight = 500f
         val lBoxY = (screenY / 2f) - (loseBoxHeight / 2f)
@@ -253,18 +248,17 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     private fun update() {
         if (currentGameState == GameState.OPENING_DOORS) {
             val elapsed = System.currentTimeMillis() - doorAnimationStartTime
-            doorProgress = 1f - (elapsed / 350f).coerceIn(0f, 1f) 
-            if (elapsed > 350) currentGameState = GameState.PLAYING
+            doorProgress = 1f - (elapsed / 400f).coerceIn(0f, 1f) 
+            if (elapsed > 400) currentGameState = GameState.PLAYING
             return 
         }
 
-        // 🚪 تعديل الإغلاق: يغلق في 350 مللي ثانية، ويبقى مغلقاً لثانية كاملة!
         if (currentGameState == GameState.CLOSING_DOORS) {
             val elapsed = System.currentTimeMillis() - doorAnimationStartTime
-            doorProgress = (elapsed / 350f).coerceIn(0f, 1f) 
+            doorProgress = (elapsed / 400f).coerceIn(0f, 1f) 
             
-            // 350 مللي ثانية (إغلاق) + 1000 مللي ثانية (انتظار) = 1350
-            if (elapsed > 1350) {
+            // 400ms اغلاق + 300ms انتظار (نفس زمن الشاشة الرئيسية 700ms)
+            if (elapsed > 700) {
                 val activity = context as? Activity
                 activity?.finish()
                 @Suppress("DEPRECATION")
@@ -477,46 +471,63 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
                     localCanvas.drawRoundRect(RectF(pHbX, pHbY, pHbX + (pHbWidth * (playerHealth / maxHealth)), pHbY + pHbHeight), pCorner, pCorner, playerHealthPaint)
                     localCanvas.drawRoundRect(RectF(pHbX, pHbY, pHbX + pHbWidth, pHbY + pHbHeight), pCorner, pCorner, healthBorderPaint)
                     
-                    // 👤 رسم معلومات اللاعب (يسار)
-                    val pAvX = 30f; val pAvY = 50f
-                    playerAvatarBitmap?.let { localCanvas.drawBitmap(it, pAvX, pAvY, paint) }
-                    infoTextPaint.textAlign = Paint.Align.LEFT
-                    infoTextPaint.color = Color.WHITE; infoTextPaint.textSize = 40f
-                    localCanvas.drawText(playerName, pAvX + 130f, pAvY + 45f, infoTextPaint)
-                    infoTextPaint.color = Color.parseColor("#FFD700"); infoTextPaint.textSize = 30f
-                    localCanvas.drawText(playerLevelStr, pAvX + 130f, pAvY + 95f, infoTextPaint)
-
-                    // 👻 رسم معلومات الخصم الوهمي (يمين)
-                    val eAvX = screenX - 140f; val eAvY = 50f
-                    enemyAvatarBitmap?.let { localCanvas.drawBitmap(it, eAvX, eAvY, paint) }
-                    infoTextPaint.textAlign = Paint.Align.RIGHT
-                    infoTextPaint.color = Color.WHITE; infoTextPaint.textSize = 40f
-                    localCanvas.drawText(enemyName, eAvX - 20f, eAvY + 45f, infoTextPaint)
-                    infoTextPaint.color = Color.parseColor("#FFD700"); infoTextPaint.textSize = 30f
-                    localCanvas.drawText(enemyLevelStr, eAvX - 20f, eAvY + 95f, infoTextPaint)
-
-                    // ⚡ رسم عدادات القوة أسفل بيانات اللاعبين (تم إنزالها إلى 180f)
-                    val hudY = 180f
+                    // ==========================================
+                    // 👤 رسم حاوية اللاعب بالكامل (يسار)
+                    // ==========================================
+                    val pBgRect = RectF(20f, 30f, 400f, 190f)
                     if (bgPowerPlayerBitmap != null) {
-                        localCanvas.drawBitmap(bgPowerPlayerBitmap!!, 20f, hudY, paint)
-                        localCanvas.drawText("$playerPower", 20f + (bgPowerPlayerBitmap!!.width / 2f), hudY + 65f, hudTextPaint)
-                    } else { localCanvas.drawText("قوتي: $playerPower", 100f, hudY + 50f, hudTextPaint) }
+                        localCanvas.drawBitmap(bgPowerPlayerBitmap!!, null, pBgRect, paint)
+                    } else {
+                        localCanvas.drawRoundRect(pBgRect, 20f, 20f, windowPaint)
+                    }
+                    playerAvatarBitmap?.let { localCanvas.drawBitmap(it, 35f, 55f, paint) }
+                    infoTextPaint.textAlign = Paint.Align.LEFT
+                    infoTextPaint.color = Color.WHITE; infoTextPaint.textSize = 35f
+                    localCanvas.drawText(playerName, 150f, 85f, infoTextPaint)
+                    infoTextPaint.color = Color.parseColor("#FFD700"); infoTextPaint.textSize = 28f
+                    localCanvas.drawText(playerLevelStr, 150f, 130f, infoTextPaint)
+                    hudTextPaint.textAlign = Paint.Align.LEFT
+                    hudTextPaint.textSize = 35f
+                    localCanvas.drawText("قوتي: $playerPower", 150f, 175f, hudTextPaint)
 
+                    // ==========================================
+                    // 👻 رسم حاوية العدو الوهمي بالكامل (يمين)
+                    // ==========================================
+                    val eBgRect = RectF(screenX - 400f, 30f, screenX - 20f, 190f)
                     if (bgPowerEnemyBitmap != null) {
-                        val enemyHudX = screenX - bgPowerEnemyBitmap!!.width - 20f
-                        localCanvas.drawBitmap(bgPowerEnemyBitmap!!, enemyHudX, hudY, paint)
-                        localCanvas.drawText("$enemyPower", enemyHudX + (bgPowerEnemyBitmap!!.width / 2f), hudY + 65f, hudTextPaint)
-                    } else { localCanvas.drawText("قوة العدو: $enemyPower", screenX - 100f, hudY + 50f, hudTextPaint) }
+                        localCanvas.drawBitmap(bgPowerEnemyBitmap!!, null, eBgRect, paint)
+                    } else {
+                        localCanvas.drawRoundRect(eBgRect, 20f, 20f, windowPaint)
+                    }
+                    enemyAvatarBitmap?.let { localCanvas.drawBitmap(it, screenX - 135f, 55f, paint) }
+                    infoTextPaint.textAlign = Paint.Align.RIGHT
+                    infoTextPaint.color = Color.WHITE; infoTextPaint.textSize = 35f
+                    localCanvas.drawText(enemyName, screenX - 150f, 85f, infoTextPaint)
+                    infoTextPaint.color = Color.parseColor("#FFD700"); infoTextPaint.textSize = 28f
+                    localCanvas.drawText(enemyLevelStr, screenX - 150f, 130f, infoTextPaint)
+                    hudTextPaint.textAlign = Paint.Align.RIGHT
+                    hudTextPaint.textSize = 35f
+                    localCanvas.drawText("قوة العدو: $enemyPower", screenX - 150f, 175f, hudTextPaint)
 
+                    // إعادة محاذاة النص للمنتصف للزر الرئيسي
+                    hudTextPaint.textAlign = Paint.Align.CENTER
+
+                    // رسم زر الرئيسية تحت معلومات اللاعب
                     localCanvas.drawRoundRect(homeBtnRect, 20f, 20f, btnPaint)
                     hudTextPaint.textSize = 38f
                     localCanvas.drawText("الرئيسية", homeBtnRect.centerX(), homeBtnRect.centerY() + 12f, hudTextPaint)
                     hudTextPaint.textSize = 45f 
 
+                    // رسم نافذة الاحتفال بالفوز تطفو
                     if (currentGameState == GameState.WON || (currentGameState == GameState.CLOSING_DOORS && enemyHealth <= 0)) {
                         localCanvas.drawRect(0f, 0f, screenX, screenY, overlayPaint)
+                        
+                        val floatOffset = (sin(System.currentTimeMillis() / 400.0) * 15f).toFloat()
+                        
                         val winBoxWidth = 800f; val winBoxHeight = 600f
-                        val winBoxX = (screenX / 2f) - (winBoxWidth / 2f); val winBoxY = (screenY / 2f) - (winBoxHeight / 2f)
+                        val winBoxX = (screenX / 2f) - (winBoxWidth / 2f)
+                        val winBoxY = ((screenY / 2f) - (winBoxHeight / 2f)) + floatOffset
+                        
                         if (bgWheelDialogBitmap != null) {
                             localCanvas.drawBitmap(bgWheelDialogBitmap!!, null, RectF(winBoxX, winBoxY, winBoxX + winBoxWidth, winBoxY + winBoxHeight), paint)
                         } else {
