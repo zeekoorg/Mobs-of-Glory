@@ -43,7 +43,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var leftDoor: ImageView
     private lateinit var rightDoor: ImageView
     private var screenWidth = 0
-    private var isFirstLaunch = true // للتحكم في ظهور الأبواب
+    private var isFirstLaunch = true 
 
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
@@ -61,7 +61,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 1. تمديد الشاشة للحواف (Edge-to-Edge) لتغطية أشرطة النظام
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
@@ -70,25 +69,18 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 🛡️ توحيد قاعدة البيانات مع GameEngine لضمان وصول الموارد
         sharedPrefs = getSharedPreferences("MobsOfGloryData", Context.MODE_PRIVATE)
         
+        // 🛡️ تحميل البيانات عند بدء التشغيل
         loadSavedData()
         updateResourcesUI() 
         setupBackgroundVideo()
         
-        // 🚪 إنشاء وتجهيز الأبواب الملكية
         setupRoyalDoors()
 
         binding.avatarFrameContainer.setOnClickListener { showProfileDialog() }
-        
-        // الانتقال السلس للمعركة
         binding.btnBattle.setOnClickListener { startGameWithTransition() }
-        
-        // ربط العجلة
         binding.btnLuckyWheel.setOnClickListener { showLuckyWheelDialog() }
-
-        // ربط زر الترسانة (فتح نافذة التطوير)
         binding.btnNavArsenal.setOnClickListener { showArsenalDialog() }
     }
 
@@ -99,7 +91,6 @@ class MainActivity : AppCompatActivity() {
 
         val rootView = findViewById<ViewGroup>(android.R.id.content) as FrameLayout
         
-        // الباب الأيسر
         leftDoor = ImageView(this).apply {
             val resId = resources.getIdentifier("bg_door_left", "drawable", packageName)
             if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.parseColor("#2C3E50"))
@@ -112,7 +103,6 @@ class MainActivity : AppCompatActivity() {
             elevation = 200f 
         }
         
-        // الباب الأيمن
         rightDoor = ImageView(this).apply {
             val resId = resources.getIdentifier("bg_door_right", "drawable", packageName)
             if (resId != 0) setImageResource(resId) else setBackgroundColor(android.graphics.Color.parseColor("#2C3E50"))
@@ -152,10 +142,17 @@ class MainActivity : AppCompatActivity() {
         tvStones?.text = String.format("%,d", currentStones)
     }
 
+    // 🌟 دالة ربط البيانات (الاسم، المستوى، والصورة)
     private fun loadSavedData() {
         val savedName = sharedPrefs.getString("PLAYER_NAME", "زيكو")
         val savedImage = sharedPrefs.getString("PLAYER_IMAGE", null)
+        
+        // قراءة مستوى المدفع ليكون هو مستوى اللاعب العام (نفس ما يقرأه GameEngine)
+        val pLvl = sharedPrefs.getInt("LEVEL_CANNON", 1) 
+        
         binding.tvPlayerName.text = savedName
+        binding.tvPlayerLevel.text = "⭐ مستوى $pLvl"
+        
         if (savedImage != null) {
             tempSelectedImageUri = Uri.parse(savedImage)
             binding.imgMainAvatar.setImageURI(tempSelectedImageUri)
@@ -172,15 +169,11 @@ class MainActivity : AppCompatActivity() {
         player?.play()
     }
 
-    // ==========================================
-    // 🛡️ نافذة الترسانة (Arsenal) ونظام التطوير
-    // ==========================================
     private fun showArsenalDialog() {
         val arsenalDialog = Dialog(this)
         arsenalDialog.setContentView(R.layout.dialog_arsenal)
         arsenalDialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         
-        // ربط البطاقات للتطوير (السعر الأساسي لكل بطاقة)
         setupUpgradeLogic(arsenalDialog, R.id.cardCannon, "LEVEL_CANNON", 150)
         setupUpgradeLogic(arsenalDialog, R.id.cardSoldier, "LEVEL_SOLDIER", 200)
         setupUpgradeLogic(arsenalDialog, R.id.cardChampion, "LEVEL_CHAMPION", 500)
@@ -194,13 +187,10 @@ class MainActivity : AppCompatActivity() {
     private fun setupUpgradeLogic(dialog: Dialog, cardId: Int, prefKeyLevel: String, basePrice: Int) {
         val cardBtn = dialog.findViewById<ViewGroup>(cardId) ?: return
         
-        // البحث عن النصوص داخل البطاقة
         val tvLevel = cardBtn.getChildAt(0) as? TextView
-        // البحث عن التخطيط الداخلي (الزر الأخضر) ثم النص الذي بداخله السعر
         val btnUpgradeLayout = cardBtn.getChildAt(2) as? ViewGroup
         val tvPrice = btnUpgradeLayout?.getChildAt(1) as? TextView
 
-        // جلب المستوى الحالي والسعر الحالي
         var currentLevel = sharedPrefs.getInt(prefKeyLevel, 1)
         var currentPrice = basePrice * currentLevel
 
@@ -210,20 +200,17 @@ class MainActivity : AppCompatActivity() {
         cardBtn.setOnClickListener {
             val currentGold = sharedPrefs.getInt("coins", 0)
             if (currentGold >= currentPrice) {
-                // 1. خصم الذهب
                 sharedPrefs.edit().putInt("coins", currentGold - currentPrice).apply()
-                // 2. زيادة المستوى
                 currentLevel++
                 sharedPrefs.edit().putInt(prefKeyLevel, currentLevel).apply()
-                // 3. حساب السعر الجديد
                 currentPrice = basePrice * currentLevel
                 
-                // 4. تحديث النصوص في النافذة
                 tvLevel?.text = "LVL $currentLevel"
                 tvPrice?.text = currentPrice.toString()
                 
-                // 5. تحديث رصيد الذهب في الشاشة الرئيسية
+                // 🌟 تحديث البيانات فوراً في الشاشة الرئيسية (الذهب ومستوى اللاعب)
                 updateResourcesUI()
+                loadSavedData()
                 
                 Toast.makeText(this, "تمت الترقية إلى مستوى $currentLevel! ⚔️", Toast.LENGTH_SHORT).show()
             } else {
@@ -250,14 +237,14 @@ class MainActivity : AppCompatActivity() {
         btnSave?.setOnClickListener {
             val newName = etName?.text.toString().trim()
             if (newName.isNotEmpty()) {
-                binding.tvPlayerName.text = newName
-                tempSelectedImageUri?.let { binding.imgMainAvatar.setImageURI(it) }
-
                 sharedPrefs.edit().apply {
                     putString("PLAYER_NAME", newName)
                     tempSelectedImageUri?.let { putString("PLAYER_IMAGE", it.toString()) }
                     apply()
                 }
+                
+                // 🌟 تحديث البيانات فوراً
+                loadSavedData()
                 profileDialog?.dismiss()
             } else {
                 Toast.makeText(this, "الاسم مطلوب!", Toast.LENGTH_SHORT).show()
@@ -306,7 +293,6 @@ class MainActivity : AppCompatActivity() {
                 override fun onAnimationRepeat(a: android.animation.Animator) {}
 
                 override fun onAnimationEnd(a: android.animation.Animator) {
-                    // تأخير ظهور الجائزة بثانية إلا ربع (750 مللي ثانية) لزيادة التشويق!
                     Handler(Looper.getMainLooper()).postDelayed({
                         isSpinning = false
                         btnSpin.isEnabled = true
@@ -386,6 +372,8 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         player?.play() 
         updateResourcesUI()
+        // 🌟 تحديث المستوى والبيانات في حال العودة من المعركة
+        loadSavedData()
         
         if (::leftDoor.isInitialized && ::rightDoor.isInitialized) {
             val doorWidth = screenWidth / 2f
