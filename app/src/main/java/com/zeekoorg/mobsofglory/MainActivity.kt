@@ -5,6 +5,8 @@ import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.graphics.Color
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -21,6 +23,8 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -39,7 +43,6 @@ class MainActivity : AppCompatActivity() {
     private var profileDialog: Dialog? = null
     private lateinit var sharedPrefs: SharedPreferences
 
-    // متغيرات الأبواب الملكية
     private lateinit var leftDoor: ImageView
     private lateinit var rightDoor: ImageView
     private var screenWidth = 0
@@ -71,17 +74,117 @@ class MainActivity : AppCompatActivity() {
 
         sharedPrefs = getSharedPreferences("MobsOfGloryData", Context.MODE_PRIVATE)
         
-        // 🛡️ تحميل البيانات عند بدء التشغيل
         loadSavedData()
         updateResourcesUI() 
         setupBackgroundVideo()
-        
         setupRoyalDoors()
+        updateKingdomUI()
 
         binding.avatarFrameContainer.setOnClickListener { showProfileDialog() }
-        binding.btnBattle.setOnClickListener { startGameWithTransition() }
+        
+        // ربط المعركة بنظام البحث عن خصم
+        binding.btnBattle.setOnClickListener { startMatchmaking() }
+        
         binding.btnLuckyWheel.setOnClickListener { showLuckyWheelDialog() }
         binding.btnNavArsenal.setOnClickListener { showArsenalDialog() }
+    }
+
+    // ==========================================
+    // ⚔️ نظام البحث عن خصم (Matchmaking) ⚔️
+    // ==========================================
+    private fun startMatchmaking() {
+        val dialog = Dialog(this)
+        dialog.setCancelable(false)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setBackgroundResource(R.drawable.bg_wheel_dialog) // استخدام نفس خلفية النوافذ
+            val padding = 60
+            setPadding(padding, padding, padding, padding)
+        }
+        
+        val title = TextView(this).apply {
+            text = "جاري البحث عن خصم..."
+            setTextColor(Color.WHITE)
+            textSize = 22f
+            setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setShadowLayer(4f, 0f, 0f, Color.BLACK)
+        }
+        
+        val pb = ProgressBar(this).apply {
+            isIndeterminate = true
+            setPadding(0, 40, 0, 40)
+        }
+        
+        layout.addView(title)
+        layout.addView(pb)
+        dialog.setContentView(layout)
+        dialog.show()
+
+        val fakeNames = arrayOf("Shadow", "Ahmed_99", "DarkKnight", "Doom_King", "Ninja_X")
+        val enemyName = fakeNames.random()
+
+        // محاكاة البحث لمدة ثانية ونصف
+        Handler(Looper.getMainLooper()).postDelayed({
+            title.text = "خصمك هو:\n$enemyName"
+            title.setTextColor(Color.parseColor("#FFD700"))
+            pb.visibility = View.GONE
+            
+            // الانتظار ثانية واحدة بعد إيجاد الخصم ثم الانتقال
+            Handler(Looper.getMainLooper()).postDelayed({
+                dialog.dismiss()
+                startGameWithTransition()
+            }, 1000)
+            
+        }, 1500)
+    }
+
+    // ==========================================
+    // 🏰 نظام بناء المملكة (Base Building) 🏰
+    // ==========================================
+    private fun updateKingdomUI() {
+        val kingdomLevel = sharedPrefs.getInt("KINGDOM_LEVEL", 1)
+        var kingdomProgress = sharedPrefs.getInt("KINGDOM_PROGRESS", 0)
+        val buildCost = 50 
+        
+        val tvLevel = findViewById<TextView>(R.id.tvKingdomLevel)
+        val pbKingdom = findViewById<ProgressBar>(R.id.pbKingdom)
+        val tvProgress = findViewById<TextView>(R.id.tvKingdomProgressText)
+        val tvCost = findViewById<TextView>(R.id.tvBuildCost)
+        val btnBuild = findViewById<ViewGroup>(R.id.btnBuildKingdom)
+
+        tvLevel?.text = "المملكة: مستوى $kingdomLevel"
+        pbKingdom?.progress = kingdomProgress
+        tvProgress?.text = "$kingdomProgress / 100"
+        tvCost?.text = buildCost.toString()
+
+        btnBuild?.setOnClickListener {
+            val currentStones = sharedPrefs.getInt("gems", 0)
+            if (currentStones >= buildCost) {
+                // خصم الأحجار
+                sharedPrefs.edit().putInt("gems", currentStones - buildCost).apply()
+                
+                // زيادة التقدم (25% في كل مرة)
+                kingdomProgress += 25
+                
+                if (kingdomProgress >= 100) {
+                    kingdomProgress = 0
+                    val newLevel = kingdomLevel + 1
+                    sharedPrefs.edit().putInt("KINGDOM_LEVEL", newLevel).apply()
+                    Toast.makeText(this, "تمت ترقية المملكة للمستوى $newLevel! 🏰", Toast.LENGTH_LONG).show()
+                }
+                
+                sharedPrefs.edit().putInt("KINGDOM_PROGRESS", kingdomProgress).apply()
+                
+                updateResourcesUI()
+                updateKingdomUI() // تحديث الشاشة
+            } else {
+                Toast.makeText(this, "لا تملك أحجار بناء كافية! تحتاج $buildCost 🧱", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun setupRoyalDoors() {
@@ -142,12 +245,10 @@ class MainActivity : AppCompatActivity() {
         tvStones?.text = String.format("%,d", currentStones)
     }
 
-    // 🌟 دالة ربط البيانات (الاسم، المستوى، والصورة)
     private fun loadSavedData() {
         val savedName = sharedPrefs.getString("PLAYER_NAME", "زيكو")
         val savedImage = sharedPrefs.getString("PLAYER_IMAGE", null)
         
-        // قراءة مستوى المدفع ليكون هو مستوى اللاعب العام (نفس ما يقرأه GameEngine)
         val pLvl = sharedPrefs.getInt("LEVEL_CANNON", 1) 
         
         binding.tvPlayerName.text = savedName
@@ -208,7 +309,6 @@ class MainActivity : AppCompatActivity() {
                 tvLevel?.text = "LVL $currentLevel"
                 tvPrice?.text = currentPrice.toString()
                 
-                // 🌟 تحديث البيانات فوراً في الشاشة الرئيسية (الذهب ومستوى اللاعب)
                 updateResourcesUI()
                 loadSavedData()
                 
@@ -243,7 +343,6 @@ class MainActivity : AppCompatActivity() {
                     apply()
                 }
                 
-                // 🌟 تحديث البيانات فوراً
                 loadSavedData()
                 profileDialog?.dismiss()
             } else {
@@ -372,8 +471,8 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         player?.play() 
         updateResourcesUI()
-        // 🌟 تحديث المستوى والبيانات في حال العودة من المعركة
         loadSavedData()
+        updateKingdomUI()
         
         if (::leftDoor.isInitialized && ::rightDoor.isInitialized) {
             val doorWidth = screenWidth / 2f
