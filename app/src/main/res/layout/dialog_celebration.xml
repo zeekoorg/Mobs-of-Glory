@@ -1,26 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="300dp"
-    android:layout_height="wrap_content"
+    android:layout_width="320dp"
+    android:layout_height="340dp"
     android:layout_gravity="center"
-    android:background="@drawable/bg_dialog_scroll"
+    android:background="@drawable/bg_wheel_dialog"
     android:gravity="center"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:padding="20dp">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="🎉 مبروك يا قائد! 🎉"
         android:textColor="#FFD700"
-        android:textSize="24sp"
-        android:textStyle="bold" />
+        android:textSize="26sp"
+        android:textStyle="bold"
+        android:shadowColor="#000000"
+        android:shadowDx="2"
+        android:shadowDy="2"
+        android:shadowRadius="4" />
 
     <ImageView
         android:id="@+id/imgPrizeIcon"
         android:layout_width="100dp"
         android:layout_height="100dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="20dp"
         android:src="@drawable/ic_gold_coin" />
 
     <TextView
@@ -30,18 +34,23 @@
         android:layout_marginTop="16dp"
         android:text="1000 عملة ذهبية"
         android:textColor="#FFFFFF"
-        android:textSize="20sp"
-        android:textStyle="bold" />
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:shadowColor="#000000"
+        android:shadowDx="2"
+        android:shadowDy="2"
+        android:shadowRadius="4" />
 
     <Button
         android:id="@+id/btnCollectPrize"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_width="200dp"
+        android:layout_height="52dp"
         android:layout_marginTop="24dp"
-        android:backgroundTint="#FFD700"
+        android:backgroundTint="#4CAF50"
         android:text="جمع المجد"
-        android:textColor="#000000"
+        android:textColor="#FFFFFF"
         android:textSize="18sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        android:elevation="4dp" />
 
 </LinearLayout>
