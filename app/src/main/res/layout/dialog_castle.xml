@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="350dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_wheel_dialog"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/tvCastleDialogTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="القلعة الرئيسية"
+        android:textColor="#FFD700"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp"
+        android:shadowColor="#000000"
+        android:shadowDx="2"
+        android:shadowDy="2"
+        android:shadowRadius="4" />
+
+    <ImageView
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:src="@drawable/castle_sprite"
+        android:layout_marginBottom="16dp"/>
+
+    <LinearLayout 
+        android:layout_width="match_parent" 
+        android:layout_height="wrap_content" 
+        android:orientation="horizontal" 
+        android:gravity="center" 
+        android:layout_marginBottom="8dp">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قوة القلعة: " android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
+        <TextView android:id="@+id/tvCastlePower" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="15000" android:textColor="#4CAF50" android:textStyle="bold" android:textSize="16sp"/>
+    </LinearLayout>
+
+    <LinearLayout 
+        android:layout_width="match_parent" 
+        android:layout_height="wrap_content" 
+        android:orientation="horizontal" 
+        android:gravity="center" 
+        android:layout_marginBottom="16dp">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="متانة السور: " android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
+        <TextView android:id="@+id/tvWallPower" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="8000" android:textColor="#2196F3" android:textStyle="bold" android:textSize="16sp"/>
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/pbDialogCastle"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="14dp"
+        android:progress="0"
+        android:max="100"
+        android:progressTint="#FF9800"
+        android:progressBackgroundTint="#555555" />
+        
+    <TextView
+        android:id="@+id/tvDialogProgress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0 / 100"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="20dp"/>
+
+    <Button
+        android:id="@+id/btnUpgradeCastle"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:backgroundTint="#4CAF50"
+        android:text="ترقية (50 حجر)"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:layout_marginBottom="12dp"
+        android:elevation="4dp"/>
+
+    <Button
+        android:id="@+id/btnCloseCastle"
+        android:layout_width="140dp"
+        android:layout_height="45dp"
+        android:backgroundTint="#D32F2F"
+        android:text="إغلاق"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold" />
+
+</LinearLayout>
