@@ -420,15 +420,38 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 📜 نظام المهام اليومية (Daily Quests)
+    // 📜 نظام المهام اليومية (تم حل مشكلة التمطيط هنا)
     // ==========================================
     private fun showDailyQuestsDialog() {
-        val dialog = Dialog(this); dialog.setContentView(R.layout.dialog_quests); dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        val dialog = Dialog(this)
+        dialog.setContentView(R.layout.dialog_quests)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        
         val questsContainer = dialog.findViewById<LinearLayout>(R.id.questsContainer)
-        val dailyQuests = listOf(Quest("q1", "خبير المعارك: العب 3 معارك", 3, 500, "coins"), Quest("q2", "بناء المجد: قم بترقية القلعة", 1, 100, "gems"), Quest("q3", "مسلح الجيش: قم بترقية بطاقة", 1, 300, "coins"), Quest("q4", "مدمر القلاع: اهزم العدو مرتين", 2, 200, "gems"), Quest("q5", "محظوظ اليوم: دور العجلة مرة", 1, 150, "coins"))
+        
+        // مسح أي مهام قديمة لضمان عدم التكرار
+        questsContainer.removeAllViews()
+
+        val dailyQuests = listOf(
+            Quest("q1", "خبير المعارك: العب 3 معارك", 3, 500, "coins"),
+            Quest("q2", "بناء المجد: قم بترقية القلعة", 1, 100, "gems"),
+            Quest("q3", "مسلح الجيش: قم بترقية بطاقة", 1, 300, "coins"),
+            Quest("q4", "مدمر القلاع: اهزم العدو مرتين", 2, 200, "gems"),
+            Quest("q5", "محظوظ اليوم: دور العجلة مرة", 1, 150, "coins")
+        )
 
         for (quest in dailyQuests) {
-            val qV = layoutInflater.inflate(R.layout.item_quest, null)
+            // 💡 الحل: نربط العنصر بالحاوية الأب (false) لكي يقرأ إعدادات الـ XML بدقة
+            val qV = layoutInflater.inflate(R.layout.item_quest, questsContainer, false)
+            
+            // 💡 إجبار الارتفاع على الانكماش (wrap_content) لمنع الصحراء البيضاء
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, 0, 0, 15) // إضافة مسافة بسيطة بين المهام
+            }
+
             val curProg = sharedPrefs.getInt("PROGRESS_${quest.id}", 0)
             val isClaimed = sharedPrefs.getBoolean("CLAIMED_${quest.id}", false)
 
@@ -441,18 +464,25 @@ class MainActivity : AppCompatActivity() {
             btn.text = "جمع المكافأة (${quest.reward} $rIco)"
 
             if (isClaimed) {
-                btn.visibility = View.VISIBLE; btn.isEnabled = false; btn.text = "تم الاستلام ✅"
+                btn.visibility = View.VISIBLE
+                btn.isEnabled = false
+                btn.text = "تم الاستلام ✅"
                 btn.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.GRAY)
             } else if (curProg >= quest.goal) {
                 btn.visibility = View.VISIBLE
                 btn.setOnClickListener {
-                    sharedPrefs.edit().putInt(quest.rewardType, sharedPrefs.getInt(quest.rewardType, 0) + quest.reward).putBoolean("CLAIMED_${quest.id}", true).apply()
-                    updateResourcesUI(); dialog.dismiss()
+                    sharedPrefs.edit().putInt(quest.rewardType, sharedPrefs.getInt(quest.rewardType, 0) + quest.reward)
+                        .putBoolean("CLAIMED_${quest.id}", true).apply()
+                    updateResourcesUI()
+                    dialog.dismiss()
                     Toast.makeText(this, "مبروك! حصلت على ${quest.reward} $rIco", Toast.LENGTH_SHORT).show()
                 }
             }
-            questsContainer.addView(qV)
+            
+            // 💡 إضافة المهمة للحاوية مع تطبيق القيود الصارمة للارتفاع
+            questsContainer.addView(qV, lp)
         }
+        
         dialog.findViewById<Button>(R.id.btnCloseQuests).setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
