@@ -1,82 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="280dp"
-    android:layout_height="70dp" 
-    android:layout_marginBottom="8dp"
-    android:layout_marginHorizontal="6dp"
+    android:layout_height="70dp"
     android:background="@drawable/bg_quest_item"
-    android:padding="8dp">
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="8dp">
 
-    <TextView
-        android:id="@+id/tvQuestTitle"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="صياد النصر"
-        android:textColor="#FFFFFF"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:layout_alignParentStart="true"
-        android:layout_centerVertical="true"
-        android:layout_marginStart="4dp"
-        android:shadowColor="#000000"
-        android:shadowRadius="2" />
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginEnd="10dp">
 
-    <TextView
-        android:id="@+id/tvQuestProgressText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="0/3"
-        android:textColor="#FFD700"
-        android:textSize="13sp"
-        android:textStyle="bold"
-        android:layout_centerVertical="true"
-        android:layout_toStartOf="@+id/btnCollectQuestReward"
-        android:layout_marginEnd="8dp" />
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/tvQuestTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_toStartOf="@+id/tvQuestProgressText"
+                android:layout_marginEnd="8dp"
+                android:text="عنوان المهمة"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:shadowColor="#000000"
+                android:shadowRadius="2" />
+
+            <TextView
+                android:id="@+id/tvQuestProgressText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:text="0/3"
+                android:textColor="#FFD700"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </RelativeLayout>
+
+        <ProgressBar
+            android:id="@+id/pbQuest"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:layout_marginTop="8dp"
+            android:progressTint="#4CAF50"
+            android:progressBackgroundTint="#33FFFFFF" />
+    </LinearLayout>
 
     <Button
         android:id="@+id/btnCollectQuestReward"
-        android:layout_width="wrap_content"
-        android:layout_height="30dp"
-        android:layout_alignParentEnd="true"
-        android:layout_centerVertical="true"
+        android:layout_width="75dp"
+        android:layout_height="40dp"
         android:backgroundTint="#4CAF50"
         android:insetTop="0dp"
         android:insetBottom="0dp"
-        android:minHeight="0dp"
-        android:paddingLeft="12dp"
-        android:paddingRight="12dp"
+        android:padding="0dp"
         android:text="استلام"
         android:textColor="#FFFFFF"
         android:textSize="12sp"
         android:textStyle="bold"
-        android:visibility="gone"
-        android:background="@drawable/bg_green_rounded_button" />
-
-    <TextView
-        android:id="@+id/tvQuestCompleted"
-        android:layout_width="wrap_content"
-        android:layout_height="30dp"
-        android:layout_alignParentEnd="true"
-        android:layout_centerVertical="true"
-        android:background="#44000000"
-        android:gravity="center"
-        android:paddingLeft="12dp"
-        android:paddingRight="12dp"
-        android:text="✅ تم الاستلام"
-        android:textColor="#DDDDDD"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:visibility="gone" />
-
-    <ProgressBar
-        android:id="@+id/pbQuest"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="4dp"
-        android:layout_alignParentBottom="true"
-        android:layout_marginTop="4dp"
-        android:layout_marginHorizontal="4dp"
-        android:progressTint="#4CAF50"
-        android:progressBackgroundTint="#33FFFFFF" />
-
-</RelativeLayout>
+        android:visibility="invisible"
+        app:cornerRadius="8dp" /> </LinearLayout>
