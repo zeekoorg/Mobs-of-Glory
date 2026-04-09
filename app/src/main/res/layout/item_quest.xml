@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="90dp" 
+    android:layout_width="280dp"
+    android:layout_height="70dp" 
     android:layout_marginBottom="8dp"
     android:layout_marginHorizontal="6dp"
-    android:background="@drawable/bg_loadout_card"
+    android:background="@drawable/bg_quest_item"
     android:padding="8dp">
 
     <TextView
@@ -15,8 +15,8 @@
         android:textColor="#FFFFFF"
         android:textSize="14sp"
         android:textStyle="bold"
-        android:layout_alignParentTop="true"
         android:layout_alignParentStart="true"
+        android:layout_centerVertical="true"
         android:layout_marginStart="4dp"
         android:shadowColor="#000000"
         android:shadowRadius="2" />
@@ -29,48 +29,54 @@
         android:textColor="#FFD700"
         android:textSize="13sp"
         android:textStyle="bold"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentEnd="true"
-        android:layout_marginEnd="4dp" />
-
-    <ProgressBar
-        android:id="@+id/pbQuest"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="8dp"
-        android:layout_below="@id/tvQuestTitle"
-        android:layout_marginTop="8dp"
-        android:layout_marginHorizontal="4dp"
-        android:progressTint="#4CAF50"
-        android:progressBackgroundTint="#33FFFFFF" />
+        android:layout_centerVertical="true"
+        android:layout_toStartOf="@+id/btnCollectQuestReward"
+        android:layout_marginEnd="8dp" />
 
     <Button
         android:id="@+id/btnCollectQuestReward"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="30dp"
-        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
         android:backgroundTint="#4CAF50"
         android:insetTop="0dp"
         android:insetBottom="0dp"
         android:minHeight="0dp"
-        android:padding="0dp"
-        android:text="جمع المكافأة"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:text="استلام"
         android:textColor="#FFFFFF"
         android:textSize="12sp"
         android:textStyle="bold"
-        android:visibility="gone" />
+        android:visibility="gone"
+        android:background="@drawable/bg_green_rounded_button" />
 
     <TextView
         android:id="@+id/tvQuestCompleted"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="30dp"
-        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
         android:background="#44000000"
         android:gravity="center"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
         android:text="✅ تم الاستلام"
         android:textColor="#DDDDDD"
         android:textSize="12sp"
         android:textStyle="bold"
         android:visibility="gone" />
+
+    <ProgressBar
+        android:id="@+id/pbQuest"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginTop="4dp"
+        android:layout_marginHorizontal="4dp"
+        android:progressTint="#4CAF50"
+        android:progressBackgroundTint="#33FFFFFF" />
 
 </RelativeLayout>
