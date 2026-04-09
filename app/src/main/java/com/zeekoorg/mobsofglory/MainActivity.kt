@@ -27,6 +27,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.zeekoorg.mobsofglory.databinding.ActivityMainBinding
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -265,7 +266,7 @@ class MainActivity : AppCompatActivity() {
             tvPrice.text = "تجهيز"
             priceLayout.setBackgroundColor(Color.parseColor("#2196F3"))
         } else {
-            tvPrice.text = "${price / 1000}K"
+            tvPrice.text = String.format(Locale.ENGLISH, "%dK", price / 1000)
         }
 
         btn.setOnClickListener {
@@ -307,7 +308,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 🎡 عجلة الحظ (تحديث: مرة كل 24 ساعة مجاناً)
+    // 🎡 عجلة الحظ
     // ==========================================
     private fun showLuckyWheelDialog() {
         val d = Dialog(this); d.setContentView(R.layout.dialog_lucky_wheel)
@@ -347,7 +348,6 @@ class MainActivity : AppCompatActivity() {
                 YandexAdsManager.showRewardedAd(this, onRewarded = {
                     // سيتم استدعاء executeSpin بعد الإغلاق
                 }, onAdClosed = {
-                    // فتح العجلة مجدداً وتدويرها
                     val newDialog = Dialog(this@MainActivity)
                     newDialog.setContentView(R.layout.dialog_lucky_wheel)
                     newDialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
@@ -369,7 +369,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 🏰 نظام القلعة (أسعار متصاعدة)
+    // 🏰 نظام القلعة 
     // ==========================================
     private fun showCastleInfoDialog() {
         val dialog = Dialog(this)
@@ -383,15 +383,15 @@ class MainActivity : AppCompatActivity() {
         fun refreshUI() {
             val level = sharedPrefs.getInt("KINGDOM_LEVEL", 1)
             val progress = sharedPrefs.getInt("KINGDOM_PROGRESS", 0)
-            val buildCost = level * 50 // 💡 التكلفة تزيد مع المستوى!
+            val buildCost = level * 50 
             
             dialog.findViewById<TextView>(R.id.tvCastleDialogTitle).text = "القلعة الملكية (مستوى $level)"
-            dialog.findViewById<TextView>(R.id.tvCastlePower).text = "${level * 15000} ⚔️"
-            dialog.findViewById<TextView>(R.id.tvWallPower).text = "${level * 8000} 🛡️"
+            dialog.findViewById<TextView>(R.id.tvCastlePower).text = String.format(Locale.ENGLISH, "%d ⚔️", level * 15000)
+            dialog.findViewById<TextView>(R.id.tvWallPower).text = String.format(Locale.ENGLISH, "%d 🛡️", level * 8000)
             btnUpgrade.text = "ترقية ($buildCost حجر)"
             
             pbCastle.progress = progress
-            tvProgress.text = "$progress / 100"
+            tvProgress.text = String.format(Locale.ENGLISH, "%d / 100", progress)
         }
 
         refreshUI()
@@ -420,36 +420,40 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 📜 نظام المهام اليومية (تم حل مشكلة التمطيط هنا)
+    // 📜 نظام المهام اليومية (تم ضبط المقاسات لـ 60% من الشاشة)
     // ==========================================
     private fun showDailyQuestsDialog() {
         val dialog = Dialog(this)
         dialog.setContentView(R.layout.dialog_quests)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         
-        val questsContainer = dialog.findViewById<LinearLayout>(R.id.questsContainer)
+        // 💡 جعل النافذة تأخذ 60% من الشاشة طولاً وعرضاً بدقة
+        val metrics = resources.displayMetrics
+        val dialogWidth = (metrics.widthPixels * 0.60).toInt()
+        val dialogHeight = (metrics.heightPixels * 0.60).toInt()
+        dialog.window?.setLayout(dialogWidth, dialogHeight)
         
-        // مسح أي مهام قديمة لضمان عدم التكرار
+        val questsContainer = dialog.findViewById<LinearLayout>(R.id.questsContainer)
         questsContainer.removeAllViews()
 
         val dailyQuests = listOf(
-            Quest("q1", "خبير المعارك: العب 3 معارك", 3, 500, "coins"),
-            Quest("q2", "بناء المجد: قم بترقية القلعة", 1, 100, "gems"),
-            Quest("q3", "مسلح الجيش: قم بترقية بطاقة", 1, 300, "coins"),
-            Quest("q4", "مدمر القلاع: اهزم العدو مرتين", 2, 200, "gems"),
-            Quest("q5", "محظوظ اليوم: دور العجلة مرة", 1, 150, "coins")
+            Quest("q1", "العب 3 معارك", 3, 500, "coins"),
+            Quest("q2", "قم بترقية القلعة", 1, 100, "gems"),
+            Quest("q3", "قم بترقية بطاقة", 1, 300, "coins"),
+            Quest("q4", "اهزم العدو مرتين", 2, 200, "gems"),
+            Quest("q5", "دور العجلة مرة", 1, 150, "coins")
         )
 
         for (quest in dailyQuests) {
-            // 💡 الحل: نربط العنصر بالحاوية الأب (false) لكي يقرأ إعدادات الـ XML بدقة
             val qV = layoutInflater.inflate(R.layout.item_quest, questsContainer, false)
             
-            // 💡 إجبار الارتفاع على الانكماش (wrap_content) لمنع الصحراء البيضاء
+            // إضافة مسافة خفيفة بين المهام وتوسيطها
             val lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                setMargins(0, 0, 0, 15) // إضافة مسافة بسيطة بين المهام
+                setMargins(0, 0, 0, 16)
+                gravity = Gravity.CENTER_HORIZONTAL
             }
 
             val curProg = sharedPrefs.getInt("PROGRESS_${quest.id}", 0)
@@ -457,29 +461,30 @@ class MainActivity : AppCompatActivity() {
 
             qV.findViewById<TextView>(R.id.tvQuestTitle).text = quest.title
             qV.findViewById<ProgressBar>(R.id.pbQuest).apply { max = quest.goal; progress = curProg }
-            qV.findViewById<TextView>(R.id.tvQuestProgressText).text = "$curProg / ${quest.goal}"
+            qV.findViewById<TextView>(R.id.tvQuestProgressText).text = String.format(Locale.ENGLISH, "%d / %d", curProg, quest.goal)
             
             val btn = qV.findViewById<Button>(R.id.btnCollectQuestReward)
             val rIco = if (quest.rewardType == "coins") "💰" else "🧱"
-            btn.text = "جمع المكافأة (${quest.reward} $rIco)"
-
+            
             if (isClaimed) {
                 btn.visibility = View.VISIBLE
                 btn.isEnabled = false
-                btn.text = "تم الاستلام ✅"
+                btn.text = "مكتملة"
                 btn.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.GRAY)
             } else if (curProg >= quest.goal) {
                 btn.visibility = View.VISIBLE
+                btn.text = "استلام ${quest.reward}"
                 btn.setOnClickListener {
                     sharedPrefs.edit().putInt(quest.rewardType, sharedPrefs.getInt(quest.rewardType, 0) + quest.reward)
                         .putBoolean("CLAIMED_${quest.id}", true).apply()
                     updateResourcesUI()
                     dialog.dismiss()
-                    Toast.makeText(this, "مبروك! حصلت على ${quest.reward} $rIco", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "حصلت على ${quest.reward} $rIco", Toast.LENGTH_SHORT).show()
                 }
+            } else {
+                btn.visibility = View.INVISIBLE // إخفاء الزر إذا لم تكتمل للحفاظ على التنسيق
             }
             
-            // 💡 إضافة المهمة للحاوية مع تطبيق القيود الصارمة للارتفاع
             questsContainer.addView(qV, lp)
         }
         
@@ -492,7 +497,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // ⚔️ باقي الأنظمة والدوال المساعدة
+    // ⚔️ باقي الأنظمة
     // ==========================================
     private fun startMatchmaking() {
         val d = Dialog(this); d.setCancelable(false); d.window?.setBackgroundDrawableResource(android.R.color.transparent)
@@ -558,20 +563,21 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadSavedData() {
         binding.tvPlayerName.text = sharedPrefs.getString("PLAYER_NAME", "زيكو")
-        binding.tvPlayerLevel.text = "⭐ مستوى ${sharedPrefs.getInt("LEVEL_CANNON", 1)}"
+        binding.tvPlayerLevel.text = String.format(Locale.ENGLISH, "⭐ مستوى %d", sharedPrefs.getInt("LEVEL_CANNON", 1))
         sharedPrefs.getString("PLAYER_IMAGE", null)?.let { binding.imgMainAvatar.setImageURI(Uri.parse(it)) }
     }
 
     private fun updateResourcesUI() {
-        findViewById<TextView>(R.id.tvGoldAmount).text = String.format("%,d", sharedPrefs.getInt("coins", 0))
-        findViewById<TextView>(R.id.tvStonesAmount).text = String.format("%,d", sharedPrefs.getInt("gems", 0))
+        // 💡 إجبار الأرقام لتكون بالإنجليزية
+        findViewById<TextView>(R.id.tvGoldAmount).text = String.format(Locale.ENGLISH, "%,d", sharedPrefs.getInt("coins", 0))
+        findViewById<TextView>(R.id.tvStonesAmount).text = String.format(Locale.ENGLISH, "%,d", sharedPrefs.getInt("gems", 0))
     }
 
     private fun updateKingdomUI() {
         val l = sharedPrefs.getInt("KINGDOM_LEVEL", 1); val p = sharedPrefs.getInt("KINGDOM_PROGRESS", 0)
-        findViewById<TextView>(R.id.tvKingdomLevel).text = "المملكة: مستوى $l"
+        findViewById<TextView>(R.id.tvKingdomLevel).text = String.format(Locale.ENGLISH, "المملكة: مستوى %d", l)
         findViewById<ProgressBar>(R.id.pbKingdom).progress = p
-        findViewById<TextView>(R.id.tvKingdomProgressText).text = "$p / 100"
+        findViewById<TextView>(R.id.tvKingdomProgressText).text = String.format(Locale.ENGLISH, "%d / 100", p)
     }
 
     private fun setupBackgroundVideo() {
