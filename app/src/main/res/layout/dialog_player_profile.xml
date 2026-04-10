@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="320dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_quests_dialog"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <ImageView
+        android:id="@+id/btnCloseProfile"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_gravity="end"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        android:tint="#FFFFFF" />
+
+    <ImageView
+        android:id="@+id/imgProfileAvatar"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:src="@drawable/ic_player_avatar" />
+
+    <TextView
+        android:id="@+id/tvProfileName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="زيكو"
+        android:textColor="#FFFFFF"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:background="#40000000"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="إجمالي القوة"
+            android:textColor="#FFD700"
+            android:textSize="14sp" />
+        <TextView
+            android:id="@+id/tvTotalPower"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1,500,000"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#555555" android:layout_marginVertical="8dp" />
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+            <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="قوة الجيش:" android:textColor="#AAAAAA"/>
+            <TextView android:id="@+id/tvArmyPower" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="500K" android:textColor="#FFFFFF" android:textStyle="bold"/>
+        </LinearLayout>
+        
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:orientation="horizontal">
+            <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="قوة العتاد:" android:textColor="#AAAAAA"/>
+            <TextView android:id="@+id/tvEquipPower" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="400K" android:textColor="#FFFFFF" android:textStyle="bold"/>
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:orientation="horizontal">
+            <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="قوة الأبطال:" android:textColor="#AAAAAA"/>
+            <TextView android:id="@+id/tvHeroPower" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="600K" android:textColor="#FFFFFF" android:textStyle="bold"/>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
