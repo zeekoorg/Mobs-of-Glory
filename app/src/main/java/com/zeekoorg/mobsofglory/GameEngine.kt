@@ -17,9 +17,7 @@ import android.view.MotionEvent
 import android.view.SurfaceView
 import androidx.core.content.ContextCompat
 import java.util.concurrent.CopyOnWriteArrayList
-import kotlin.math.atan2
 import kotlin.math.cos
-import kotlin.math.hypot
 import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
@@ -48,7 +46,7 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     private val obstaclePaint = Paint().apply { color = Color.parseColor("#424242") }
     private val obstacleBorderPaint = Paint().apply { color = Color.parseColor("#FFD700"); style = Paint.Style.STROKE; strokeWidth = 4f }
 
-    // 💡 تكبير النصوص لتصبح بارزة وواضحة جداً
+    // 💡 تم إبعاد النصوص بشكل كبير عن الصور (textAlign يضمن عدم التداخل)
     private val hudNamePaintLeft = Paint().apply { color = Color.WHITE; textSize = 38f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.LEFT; setShadowLayer(3f, 0f, 0f, Color.BLACK) }
     private val hudNamePaintRight = Paint().apply { color = Color.WHITE; textSize = 38f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.RIGHT; setShadowLayer(3f, 0f, 0f, Color.BLACK) }
     private val hudPowerPaintLeft = Paint().apply { color = Color.parseColor("#FFD700"); textSize = 30f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.LEFT; setShadowLayer(3f, 0f, 0f, Color.BLACK) }
@@ -186,6 +184,9 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         currentAssetSet = Random.nextInt(1, 8)
 
         playerName = prefs.getString("PLAYER_NAME", "زيكو") ?: "زيكو"
+        // 💡 مزامنة اسم العدو مع القائمة الرئيسية
+        enemyName = prefs.getString("CURRENT_ENEMY_NAME", "الخصم") ?: "الخصم"
+
         val lvlCannon = prefs.getInt("LEVEL_CANNON", 1)
         val lvlSoldier = prefs.getInt("LEVEL_SOLDIER", 1)
         val lvlChampion = prefs.getInt("LEVEL_CHAMPION", 1)
@@ -212,9 +213,6 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         playerHealth = maxPlayerHealth
 
         enemyFireRate = (350L - (diffScaling * 3L)).coerceAtLeast(80L)
-
-        val fakeNames = arrayOf("Shadow", "Ahmed_99", "DarkKnight", "Doom_King", "Ninja_X", "Beast", "Titan")
-        enemyName = fakeNames.random()
 
         var loadedCustomAvatar = false
         val savedImage = prefs.getString("PLAYER_IMAGE_PATH", null)
@@ -261,7 +259,7 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         screenX = w.toFloat(); screenY = h.toFloat()
         trackWidth = screenX * 0.7f; trackLeft = (screenX - trackWidth) / 2f; trackRight = trackLeft + trackWidth
 
-        val targetCastleWidth = (screenX * 0.5f).toInt()
+        val targetCastleWidth = (screenX * 0.6f).toInt() // جعل القلعة أعرض قليلاً
         if (targetCastleWidth > 0 && enemyCastleBitmap.width > 0) {
             val castleRatio = enemyCastleBitmap.height.toFloat() / enemyCastleBitmap.width.toFloat()
             val targetCastleHeight = (targetCastleWidth * castleRatio).toInt()
@@ -289,7 +287,6 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         val gateSpeed = 4f + (diffScaling * 0.2f).coerceAtMost(15f)
         val gateX = (screenX / 2f) - (gateBitmap.width / 2f)
         
-        // 💡 بوابات متغيرة حسب المستوى (1 أو 2 أو 3 بوابات)
         mainGate = null; staticGate1 = null; staticGate2 = null
         val gateLayoutType = diffScaling % 3
         if (gateLayoutType == 0 || diffScaling == 1) {
@@ -303,23 +300,22 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
             staticGate2 = Gate(trackRight - gateBitmap.width - 10f, screenY * 0.6f, 0f, gateBitmap, baseMultiplier) 
         }
 
-        // 💡 تنويع العوائق بناءً على المستوى (عمدان، جدران متحركة، حواجز صغيرة)
         obstacles.clear()
         if (diffScaling >= 2) {
             val obstacleType = diffScaling % 4
             when (obstacleType) {
-                0 -> { // عمدان عمودية ثابتة
+                0 -> { 
                     obstacles.add(Obstacle((screenX / 2f) - 150f, screenY * 0.35f, 50f, 180f, 0f))
                     obstacles.add(Obstacle((screenX / 2f) + 100f, screenY * 0.35f, 50f, 180f, 0f))
                 }
-                1 -> { // جدار عريض متحرك
+                1 -> { 
                     obstacles.add(Obstacle(trackLeft, screenY * 0.38f, 250f, 60f, 6f + diffScaling * 0.1f))
                 }
-                2 -> { // حواجز صغيرة متحركة عكس بعض
+                2 -> { 
                     obstacles.add(Obstacle(trackLeft, screenY * 0.3f, 130f, 60f, 7f))
                     obstacles.add(Obstacle(trackRight - 130f, screenY * 0.42f, 130f, 60f, -7f))
                 }
-                3 -> { // حاجز بالنص ثابت وحاجز متحرك
+                3 -> { 
                     obstacles.add(Obstacle((screenX / 2f) - 90f, screenY * 0.35f, 180f, 60f, 0f))
                     if (diffScaling > 5) obstacles.add(Obstacle(trackLeft, screenY * 0.25f, 150f, 50f, 8f))
                 }
@@ -418,22 +414,16 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
 
         val playerGates = listOfNotNull(mainGate, staticGate1, staticGate2)
 
-        val castleDoorTargetX = enemyCastleX + (enemyCastleBitmap.width / 2f)
-        val castleDoorTargetY = enemyCastleY + enemyCastleBitmap.height - 20f
-        
+        // 💡 فيزياء Mob Control الأصيلة: الحركة في خطوط مستقيمة والارتداد التلقائي فقط
         val playerIter = playerMobs.iterator()
         while (playerIter.hasNext()) {
             val mob = playerIter.next()
             
-            // 💡 توجيه الجنود: يبدأون بتعديل المسار من منتصف ساحة المعركة بدلاً من قرب القلعة
-            if (mob.y < screenY * 0.55f) {
-                val angle = atan2((castleDoorTargetY - mob.y).toDouble(), (castleDoorTargetX - mob.x).toDouble())
-                val speed = hypot(mob.dx.toDouble(), mob.dy.toDouble()).toFloat().coerceAtLeast(14f)
-                mob.dx = (cos(angle) * speed).toFloat()
-                mob.dy = (sin(angle) * speed).toFloat()
-            }
-
-            mob.x += mob.dx; mob.y += mob.dy
+            // انطلاق مباشر للأمام
+            mob.x += mob.dx
+            mob.y += mob.dy
+            
+            // ارتداد من الجدران
             bounceOffTrackWalls(mob)
 
             var hitObstacle = false
@@ -454,12 +444,14 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
                     for (i in 0 until gate.multiplier - 1) {
                         val spreadX = Random.nextInt(-40, 40).toFloat()
                         val spreadY = Random.nextInt(-20, 0).toFloat()
-                        playerMobs.add(Mob(mob.x + spreadX, mob.y + spreadY, mob.dx + (spreadX / 10f), mob.dy, mob.bitmap, true, mob.hp))
+                        // التكاثر مع انتشار أفقي بسيط
+                        playerMobs.add(Mob(mob.x + spreadX, mob.y + spreadY, mob.dx + (spreadX / 10f).coerceIn(-5f, 5f), mob.dy, mob.bitmap, true, mob.hp))
                     }
                 }
             }
 
-            if (mob.y < enemyCastleY + enemyCastleBitmap.height - 10f && mob.x > enemyCastleX && mob.x < enemyCastleX + enemyCastleBitmap.width) {
+            // الاصطدام بالقلعة (أي جندي يتجاوز خط القلعة يعتبر ضربة)
+            if (mob.y < enemyCastleY + enemyCastleBitmap.height - 20f) {
                 playerMobs.remove(mob)
                 enemyHealth -= (playerDamage * mob.hp) 
                 createExplosion(mob.centerX, mob.centerY)
@@ -467,20 +459,14 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
             }
         }
 
-        val catapultTargetX = catapultX + (catapultBitmap.width / 2f)
-        val catapultTargetY = catapultY + 20f
+        // 💡 فيزياء جنود العدو (ينزلون بشكل مستقيم كأسوار)
         val enemyIter = enemyMobs.iterator()
         while(enemyIter.hasNext()){
             val enemy = enemyIter.next()
             
-            if (enemy.y > screenY * 0.2f) {
-                val angle = atan2((catapultTargetY - enemy.y).toDouble(), (catapultTargetX - enemy.x).toDouble())
-                val speed = hypot(enemy.dx.toDouble(), enemy.dy.toDouble()).toFloat().coerceAtLeast(10f)
-                enemy.dx = (cos(angle) * speed).toFloat()
-                enemy.dy = (sin(angle) * speed).toFloat()
-            }
-
-            enemy.x += enemy.dx; enemy.y += enemy.dy
+            enemy.x += enemy.dx
+            enemy.y += enemy.dy
+            
             bounceOffTrackWalls(enemy)
 
             var hitObstacle = false
@@ -495,6 +481,7 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
             }
             if (hitObstacle) continue
 
+            // الاصطدام بخط اللاعب
             if (enemy.y > catapultY + 50f) {
                 enemyMobs.remove(enemy)
                 playerHealth -= enemyDamage
@@ -675,9 +662,9 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
 
                     localCanvas.restore() 
 
-                    // 💡 التصميم المحدث للواجهة: نصوص كبيرة ومرتبة بلا تداخل
+                    // 💡 واجهة مرتبة ونصوص بعيدة عن الصور تماماً
                     val hudTop = 40f
-                    val hudHeight = 130f // زيادة الارتفاع لاستيعاب النصوص الكبيرة
+                    val hudHeight = 130f 
                     val gap = 20f 
                     val halfWidth = (screenX - (gap * 3)) / 2f 
 
@@ -685,7 +672,7 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
                     val eLeft = gap
                     localCanvas.drawRoundRect(RectF(eLeft, hudTop, eLeft + halfWidth, hudTop + hudHeight), 30f, 30f, hudContainerPaint)
                     enemyAvatarBitmap?.let { localCanvas.drawBitmap(it, eLeft - 5f, hudTop + 5f, paint) }
-                    val eTextX = eLeft + 135f // إبعاد النص عن الصورة تماماً
+                    val eTextX = eLeft + 160f // إبعاد جذري للنص
                     localCanvas.drawText(enemyName, eTextX, hudTop + 55f, hudNamePaintLeft)
                     localCanvas.drawText("⚔️ $enemyPower", eTextX, hudTop + 105f, hudPowerPaintLeft)
                     
@@ -698,7 +685,7 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
                     val pLeft = screenX - halfWidth - gap
                     localCanvas.drawRoundRect(RectF(pLeft, hudTop, pLeft + halfWidth, hudTop + hudHeight), 30f, 30f, hudContainerPaint)
                     playerAvatarBitmap?.let { localCanvas.drawBitmap(it, pLeft + halfWidth - 115f, hudTop + 5f, paint) }
-                    val pTextX = pLeft + halfWidth - 135f // إبعاد النص عن الصورة لليسار قليلاً
+                    val pTextX = pLeft + halfWidth - 145f // إبعاد جذري للنص من اليمين
                     localCanvas.drawText(playerName, pTextX, hudTop + 55f, hudNamePaintRight)
                     localCanvas.drawText("$playerPower ⚔️", pTextX, hudTop + 105f, hudPowerPaintRight)
                     
@@ -804,6 +791,7 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         val startX = catapultX + (catapultBitmap.width / 2f)
         val startY = catapultY - 20f
         
+        // 💡 إعدادات الانطلاق المستقيمة الأصلية
         val speed = 16f
         val dx = Random.nextInt(-3, 4).toFloat() 
         val dy = -speed
@@ -820,8 +808,10 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     private fun spawnEnemyMob() {
         val startX = enemyCastleX + (enemyCastleBitmap.width / 2f)
         val startY = enemyCastleY + enemyCastleBitmap.height
-        val dx = Random.nextInt(-6, 7).toFloat()
-        val dy = Random.nextInt(7, 12).toFloat()
+        
+        // 💡 أعداء ينطلقون للأمام كحائط صد
+        val dx = Random.nextInt(-4, 5).toFloat()
+        val dy = 10f + (currentLevel * 0.1f)
 
         enemyMobs.add(Mob(startX - (enemySoldierBitmap.width / 2f), startY, dx, dy, enemySoldierBitmap, false, 1))
     }
