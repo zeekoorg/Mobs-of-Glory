@@ -5,6 +5,8 @@ import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Typeface
 import android.net.Uri
@@ -27,6 +29,8 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.zeekoorg.mobsofglory.databinding.ActivityMainBinding
+import java.io.File
+import java.io.FileOutputStream
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
@@ -40,7 +44,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var leftDoor: ImageView
     private lateinit var rightDoor: ImageView
     private var screenWidth = 0
-    private var isFirstLaunch = true 
 
     data class Quest(val id: String, val title: String, val goal: Int, val reward: Int, val rewardType: String)
     data class Prize(val text: String, val iconResId: Int, val amount: Int, val type: String)
@@ -69,16 +72,14 @@ class MainActivity : AppCompatActivity() {
 
         sharedPrefs = getSharedPreferences("MobsOfGloryData", Context.MODE_PRIVATE)
         
-        // 🚀 تهيئة إعلانات ياندكس
         YandexAdsManager.initYandexAds(this)
 
+        setupRoyalDoors()
         loadSavedData()
         updateResourcesUI() 
         setupBackgroundVideo()
-        setupRoyalDoors()
         updateKingdomUI()
 
-        // ربط الأحداث
         binding.imgCastle.setOnClickListener { showCastleInfoDialog() }
         binding.avatarFrameContainer.setOnClickListener { showProfileDialog() }
         binding.btnBattle.setOnClickListener { startMatchmaking() }
@@ -87,350 +88,169 @@ class MainActivity : AppCompatActivity() {
         binding.btnDailyQuests.setOnClickListener { showDailyQuestsDialog() }
         binding.btnNavStore.setOnClickListener { showStoreDialog() }
 
-        // ربط أحداث النقر على الذهب والأحجار العلوية
         setupTopBarClickListeners()
     }
 
     // ==========================================
-    // 📺 نظام النوافذ السريعة للموارد والإعلانات
+    // 🚪 نظام الأبواب (يفتح عند العودة)
     // ==========================================
-    private fun setupTopBarClickListeners() {
-        val goldContainer = binding.tvGoldAmount.parent as View
-        val stonesContainer = binding.tvStonesAmount.parent as View
-
-        goldContainer.setOnClickListener {
-            showQuickAdDialog(
-                "هل تريد الحصول على 20,000 ذهبة مقابل مشاهدة إعلان؟",
-                onWatchAd = {
-                    YandexAdsManager.showRewardedAd(this, onRewarded = {
-                        val currentGold = sharedPrefs.getInt("coins", 0)
-                        sharedPrefs.edit().putInt("coins", currentGold + 20000).apply()
-                    }, onAdClosed = {
-                        updateResourcesUI()
-                        showCelebrationDialog(Prize("20,000 ذهبة", R.drawable.ic_gold_coin, 0, "coins"))
-                    })
-                }
-            )
+    private fun setupRoyalDoors() {
+        screenWidth = resources.displayMetrics.widthPixels
+        val root = findViewById<ViewGroup>(android.R.id.content) as FrameLayout
+        
+        leftDoor = ImageView(this).apply { 
+            setImageResource(R.drawable.bg_door_left); scaleType = ImageView.ScaleType.FIT_XY
+            layoutParams = FrameLayout.LayoutParams(screenWidth/2, -1).apply { gravity = Gravity.LEFT }
+            elevation = 200f 
         }
-
-        stonesContainer.setOnClickListener {
-            showStonesQuickDialog()
+        rightDoor = ImageView(this).apply { 
+            setImageResource(R.drawable.bg_door_right); scaleType = ImageView.ScaleType.FIT_XY
+            layoutParams = FrameLayout.LayoutParams(screenWidth/2, -1).apply { gravity = Gravity.RIGHT }
+            elevation = 200f 
         }
+        root.addView(leftDoor); root.addView(rightDoor)
     }
 
-    private fun showQuickAdDialog(message: String, onWatchAd: () -> Unit) {
-        val dialog = Dialog(this)
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setBackgroundResource(R.drawable.bg_wheel_dialog)
-            setPadding(50, 50, 50, 50)
-            gravity = Gravity.CENTER
-        }
+    override fun onResume() { 
+        super.onResume()
+        player?.play()
+        updateResourcesUI()
+        loadSavedData()
+        updateKingdomUI()
         
-        val tvMsg = TextView(this).apply {
-            text = message
-            setTextColor(Color.WHITE)
-            textSize = 18f
-            textAlignment = View.TEXT_ALIGNMENT_CENTER
-            layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 40 }
-        }
-
-        val btnAd = Button(this).apply {
-            text = "مشاهدة إعلان 🎥"
-            setBackgroundColor(Color.parseColor("#4CAF50"))
-            setTextColor(Color.WHITE)
-            setOnClickListener {
-                dialog.dismiss()
-                onWatchAd()
-            }
-        }
-
-        val btnClose = Button(this).apply {
-            text = "إلغاء"
-            setBackgroundColor(Color.parseColor("#D32F2F"))
-            setTextColor(Color.WHITE)
-            layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = 20 }
-            setOnClickListener { dialog.dismiss() }
-        }
-
-        layout.addView(tvMsg); layout.addView(btnAd); layout.addView(btnClose)
-        dialog.setContentView(layout)
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        dialog.show()
-    }
-
-    private fun showStonesQuickDialog() {
-        val dialog = Dialog(this)
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setBackgroundResource(R.drawable.bg_wheel_dialog)
-            setPadding(50, 50, 50, 50)
-            gravity = Gravity.CENTER
-        }
-        
-        val tvMsg = TextView(this).apply {
-            text = "هل تريد الحصول على 500 حجر مقابل إعلان أو الذهاب للمتجر؟"
-            setTextColor(Color.WHITE)
-            textSize = 18f
-            textAlignment = View.TEXT_ALIGNMENT_CENTER
-            layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 40 }
-        }
-
-        val btnAd = Button(this).apply {
-            text = "مشاهدة إعلان (500 حجر)"
-            setBackgroundColor(Color.parseColor("#4CAF50"))
-            setTextColor(Color.WHITE)
-            setOnClickListener {
-                dialog.dismiss()
-                YandexAdsManager.showRewardedAd(this@MainActivity, onRewarded = {
-                    val currentStones = sharedPrefs.getInt("gems", 0)
-                    sharedPrefs.edit().putInt("gems", currentStones + 500).apply()
-                }, onAdClosed = {
-                    updateResourcesUI()
-                    showCelebrationDialog(Prize("500 حجر بناء", R.drawable.ic_stone_block, 0, "gems"))
-                })
-            }
-        }
-
-        val btnStore = Button(this).apply {
-            text = "الذهاب للمتجر 🛒"
-            setBackgroundColor(Color.parseColor("#2196F3"))
-            setTextColor(Color.WHITE)
-            layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = 20 }
-            setOnClickListener {
-                dialog.dismiss()
-                showStoreDialog()
-            }
-        }
-
-        val btnClose = Button(this).apply {
-            text = "إلغاء"
-            setBackgroundColor(Color.parseColor("#D32F2F"))
-            setTextColor(Color.WHITE)
-            layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = 20 }
-            setOnClickListener { dialog.dismiss() }
-        }
-
-        layout.addView(tvMsg); layout.addView(btnAd); layout.addView(btnStore); layout.addView(btnClose)
-        dialog.setContentView(layout)
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        dialog.show()
+        // 💡 جعل الأبواب مغلقة ثم فتحها كحركة ترحيبية عند العودة من المعركة
+        if (::leftDoor.isInitialized) { 
+            leftDoor.translationX = 0f
+            rightDoor.translationX = 0f
+            leftDoor.animate().translationX(-screenWidth/2f).setDuration(500).start()
+            rightDoor.animate().translationX(screenWidth/2f).setDuration(500).start()
+        } 
     }
 
     // ==========================================
-    // 🛒 المتجر (Store)
+    // ⚔️ اختيار الخصم (نظام الروليت السريع)
     // ==========================================
-    private fun showStoreDialog() {
-        val d = Dialog(this)
-        d.setContentView(R.layout.dialog_store)
-        d.window?.setBackgroundDrawableResource(android.R.color.transparent)
+    private fun startMatchmaking() {
+        val d = Dialog(this); d.setCancelable(false); d.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        val l = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setBackgroundResource(R.drawable.bg_wheel_dialog); setPadding(60,60,60,60) }
+        val t = TextView(this).apply { setTextColor(Color.WHITE); textSize = 26f; setTypeface(null, Typeface.BOLD); gravity = Gravity.CENTER; setShadowLayer(4f,0f,0f,Color.BLACK) }
+        val p = ProgressBar(this).apply { isIndeterminate = true; setPadding(0,40,0,40) }
+        l.addView(t); l.addView(p); d.setContentView(l); d.show()
 
-        // إعلان الذهب
-        d.findViewById<View>(R.id.btnWatchAdForGold).setOnClickListener {
-            d.dismiss()
-            YandexAdsManager.showRewardedAd(this, onRewarded = {
-                val currentGold = sharedPrefs.getInt("coins", 0)
-                sharedPrefs.edit().putInt("coins", currentGold + 20000).apply()
-            }, onAdClosed = {
-                updateResourcesUI()
-                showCelebrationDialog(Prize("20,000 ذهبة", R.drawable.ic_gold_coin, 0, "coins"))
-            })
-        }
-
-        // شخصيات
-        setupCharacterBuyLogic(d, R.id.btnBuyChar1, "CHAR_1", 80000)
-        setupCharacterBuyLogic(d, R.id.btnBuyChar2, "CHAR_2", 100000)
-        setupCharacterBuyLogic(d, R.id.btnBuyChar3, "CHAR_3", 150000)
-
-        // أحجار
-        setupStoneBuyLogic(d, R.id.btnBuy100Stones, 100, 15000)
-        setupStoneBuyLogic(d, R.id.btnBuy500Stones, 500, 25000)
-        setupStoneBuyLogic(d, R.id.btnBuy1000Stones, 1000, 40000)
-
-        d.findViewById<Button>(R.id.btnCloseStore).setOnClickListener { d.dismiss() }
-        d.show()
-    }
-
-    private fun setupCharacterBuyLogic(d: Dialog, btnId: Int, charKey: String, price: Int) {
-        val btn = d.findViewById<ViewGroup>(btnId) ?: return
-        val priceLayout = btn.getChildAt(1) as ViewGroup
-        val tvPrice = priceLayout.getChildAt(1) as TextView
+        val fakeNames = arrayOf("Shadow", "Ahmed_99", "DarkKnight", "Doom_King", "Ninja_X", "Titan", "Beast", "Ghost", "Viper")
+        var ticks = 0
+        val handler = Handler(Looper.getMainLooper())
         
-        val isOwned = sharedPrefs.getBoolean("${charKey}_OWNED", false)
-        val isEquipped = sharedPrefs.getString("EQUIPPED_CHAR", "DEFAULT") == charKey
-
-        if (isEquipped) {
-            tvPrice.text = "مُجهز"
-            priceLayout.setBackgroundColor(Color.parseColor("#4CAF50"))
-        } else if (isOwned) {
-            tvPrice.text = "تجهيز"
-            priceLayout.setBackgroundColor(Color.parseColor("#2196F3"))
-        } else {
-            tvPrice.text = String.format(Locale.ENGLISH, "%dK", price / 1000)
-        }
-
-        btn.setOnClickListener {
-            if (isOwned) {
-                sharedPrefs.edit().putString("EQUIPPED_CHAR", charKey).apply()
-                Toast.makeText(this, "تم تجهيز الشخصية! ⚔️", Toast.LENGTH_SHORT).show()
-                d.dismiss()
-                showStoreDialog() // إنعاش الواجهة
-            } else {
-                val gold = sharedPrefs.getInt("coins", 0)
-                if (gold >= price) {
-                    sharedPrefs.edit().putInt("coins", gold - price).apply()
-                    sharedPrefs.edit().putBoolean("${charKey}_OWNED", true).apply()
-                    updateResourcesUI()
-                    Toast.makeText(this, "تم شراء الشخصية بنجاح! 🎉", Toast.LENGTH_SHORT).show()
-                    d.dismiss()
-                    showStoreDialog()
+        // 💡 تدوير الأسماء بسرعة لخلق حماس
+        val runnable = object : Runnable {
+            override fun run() {
+                t.text = "جاري البحث...\n${fakeNames.random()}"
+                ticks++
+                if (ticks < 15) {
+                    handler.postDelayed(this, 100) // تقليب كل 100 جزء من الثانية
                 } else {
-                    Toast.makeText(this, "لا تملك ذهباً كافياً! 💰", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
-
-    private fun setupStoneBuyLogic(d: Dialog, btnId: Int, amount: Int, price: Int) {
-        val btn = d.findViewById<View>(btnId) ?: return
-        btn.setOnClickListener {
-            val gold = sharedPrefs.getInt("coins", 0)
-            if (gold >= price) {
-                sharedPrefs.edit().putInt("coins", gold - price).apply()
-                val gems = sharedPrefs.getInt("gems", 0)
-                sharedPrefs.edit().putInt("gems", gems + amount).apply()
-                updateResourcesUI()
-                Toast.makeText(this, "تم شراء $amount حجر بناء! 🧱", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "لا تملك ذهباً كافياً! 💰", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    // ==========================================
-    // 🎡 عجلة الحظ
-    // ==========================================
-    private fun showLuckyWheelDialog() {
-        val d = Dialog(this); d.setContentView(R.layout.dialog_lucky_wheel)
-        d.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        
-        val board = d.findViewById<ImageView>(R.id.imgWheelBoard)
-        val btnSpin = d.findViewById<Button>(R.id.btnSpin)
-
-        val lastSpinTime = sharedPrefs.getLong("LAST_FREE_SPIN_TIME", 0)
-        val isFree = System.currentTimeMillis() - lastSpinTime >= 86400000L // 24 ساعة
-
-        if (isFree) {
-            btnSpin.text = "تدوير (مجاني)"
-            btnSpin.setBackgroundColor(Color.parseColor("#4CAF50"))
-        } else {
-            btnSpin.text = "تدوير (مشاهدة إعلان 🎥)"
-            btnSpin.setBackgroundColor(Color.parseColor("#FF9800"))
-        }
-
-        fun executeSpin() {
-            btnSpin.isEnabled = false
-            val winIdx = (0..5).random()
-            board.animate().rotation(3600f + (360 - winIdx * 60)).setDuration(4000).withEndAction {
-                val prizes = listOf(Prize("1000 ذهبة", R.drawable.ic_gold_coin, 1000, "coins"), Prize("50 حجر", R.drawable.ic_stone_block, 50, "gems"), Prize("2000 ذهبة", R.drawable.ic_gold_coin, 2000, "coins"), Prize("100 حجر", R.drawable.ic_stone_block, 100, "gems"), Prize("5000 ذهبة", R.drawable.ic_gold_coin, 5000, "coins"), Prize("صندوق", R.drawable.ic_shop_scroll, 1, "chest"))
-                d.dismiss()
-                updateQuestProgress("q5", 1) 
-                showCelebrationDialog(prizes[winIdx])
-            }.start()
-        }
-
-        btnSpin.setOnClickListener {
-            if (isFree) {
-                sharedPrefs.edit().putLong("LAST_FREE_SPIN_TIME", System.currentTimeMillis()).apply()
-                executeSpin()
-            } else {
-                d.dismiss()
-                YandexAdsManager.showRewardedAd(this, onRewarded = {
-                    // سيتم استدعاء executeSpin بعد الإغلاق
-                }, onAdClosed = {
-                    val newDialog = Dialog(this@MainActivity)
-                    newDialog.setContentView(R.layout.dialog_lucky_wheel)
-                    newDialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-                    val newBoard = newDialog.findViewById<ImageView>(R.id.imgWheelBoard)
-                    newDialog.show()
+                    // التوقف عند خصم نهائي
+                    val finalEnemy = fakeNames.random()
+                    t.text = "خصمك هو:\n$finalEnemy"
+                    t.setTextColor(Color.parseColor("#FFD700"))
+                    p.visibility = View.GONE
                     
-                    val winIdx = (0..5).random()
-                    newBoard.animate().rotation(3600f + (360 - winIdx * 60)).setDuration(4000).withEndAction {
-                        val prizes = listOf(Prize("1000 ذهبة", R.drawable.ic_gold_coin, 1000, "coins"), Prize("50 حجر", R.drawable.ic_stone_block, 50, "gems"), Prize("2000 ذهبة", R.drawable.ic_gold_coin, 2000, "coins"), Prize("100 حجر", R.drawable.ic_stone_block, 100, "gems"), Prize("5000 ذهبة", R.drawable.ic_gold_coin, 5000, "coins"), Prize("صندوق", R.drawable.ic_shop_scroll, 1, "chest"))
-                        newDialog.dismiss()
-                        updateQuestProgress("q5", 1) 
-                        showCelebrationDialog(prizes[winIdx])
-                    }.start()
-                })
-            }
-        }
-        d.findViewById<Button>(R.id.btnCloseWheel).setOnClickListener { d.dismiss() }
-        d.show()
-    }
-
-    // ==========================================
-    // 🏰 نظام القلعة 
-    // ==========================================
-    private fun showCastleInfoDialog() {
-        val dialog = Dialog(this)
-        dialog.setContentView(R.layout.dialog_castle)
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        val pbCastle = dialog.findViewById<ProgressBar>(R.id.pbDialogCastle)
-        val tvProgress = dialog.findViewById<TextView>(R.id.tvDialogProgress)
-        val btnUpgrade = dialog.findViewById<Button>(R.id.btnUpgradeCastle)
-
-        fun refreshUI() {
-            val level = sharedPrefs.getInt("KINGDOM_LEVEL", 1)
-            val progress = sharedPrefs.getInt("KINGDOM_PROGRESS", 0)
-            val buildCost = level * 50 
-            
-            dialog.findViewById<TextView>(R.id.tvCastleDialogTitle).text = "القلعة الملكية (مستوى $level)"
-            dialog.findViewById<TextView>(R.id.tvCastlePower).text = String.format(Locale.ENGLISH, "%d ⚔️", level * 15000)
-            dialog.findViewById<TextView>(R.id.tvWallPower).text = String.format(Locale.ENGLISH, "%d 🛡️", level * 8000)
-            btnUpgrade.text = "ترقية ($buildCost حجر)"
-            
-            pbCastle.progress = progress
-            tvProgress.text = String.format(Locale.ENGLISH, "%d / 100", progress)
-        }
-
-        refreshUI()
-
-        btnUpgrade.setOnClickListener {
-            val level = sharedPrefs.getInt("KINGDOM_LEVEL", 1)
-            val buildCost = level * 50 
-            val currentStones = sharedPrefs.getInt("gems", 0)
-            
-            if (currentStones >= buildCost) {
-                sharedPrefs.edit().putInt("gems", currentStones - buildCost).apply()
-                var progress = sharedPrefs.getInt("KINGDOM_PROGRESS", 0) + 25
-                if (progress >= 100) {
-                    progress = 0
-                    sharedPrefs.edit().putInt("KINGDOM_LEVEL", level + 1).apply()
-                    updateQuestProgress("q2", 1) 
+                    handler.postDelayed({
+                        d.dismiss()
+                        startGameWithTransition()
+                    }, 1200)
                 }
-                sharedPrefs.edit().putInt("KINGDOM_PROGRESS", progress).apply()
-                updateResourcesUI(); updateKingdomUI(); refreshUI()
-            } else {
-                Toast.makeText(this, "نحتاج أحجاراً أكثر! 🧱 تحتاج $buildCost", Toast.LENGTH_SHORT).show()
             }
         }
-        dialog.findViewById<Button>(R.id.btnCloseCastle).setOnClickListener { dialog.dismiss() }
-        dialog.show()
+        handler.post(runnable)
+    }
+
+    private fun startGameWithTransition() {
+        // 💡 إغلاق الأبواب ثم الانتقال للمعركة
+        leftDoor.animate().translationX(0f).setDuration(400).start()
+        rightDoor.animate().translationX(0f).setDuration(400).withEndAction {
+            Handler(Looper.getMainLooper()).postDelayed({
+                startActivity(Intent(this, GameActivity::class.java))
+                @Suppress("DEPRECATION")
+                overridePendingTransition(0, 0)
+            }, 200)
+        }.start()
     }
 
     // ==========================================
-    // 📜 نظام المهام اليومية (تم ضبط المقاسات لـ 60% من الشاشة)
+    // 👤 نظام حفظ الصورة الفعلي (لا تحذف إذا حذفت من الهاتف)
+    // ==========================================
+    private fun showProfileDialog() {
+        profileDialog = Dialog(this); profileDialog?.setContentView(R.layout.dialog_profile); profileDialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        val et = profileDialog?.findViewById<EditText>(R.id.etPlayerName); et?.setText(binding.tvPlayerName.text)
+        
+        profileDialog?.findViewById<Button>(R.id.btnChangePicture)?.setOnClickListener { checkPermissionAndOpenGallery() }
+        
+        profileDialog?.findViewById<Button>(R.id.btnSaveProfile)?.setOnClickListener {
+            val newName = et?.text.toString().trim()
+            if (newName.isNotEmpty()) {
+                sharedPrefs.edit().putString("PLAYER_NAME", newName).apply()
+                
+                tempSelectedImageUri?.let { uri ->
+                    val savedPath = saveImageToInternalStorage(uri)
+                    if (savedPath != null) {
+                        sharedPrefs.edit().putString("PLAYER_IMAGE_PATH", savedPath).apply()
+                    }
+                }
+                loadSavedData()
+                profileDialog?.dismiss()
+            }
+        }
+        profileDialog?.show()
+    }
+
+    // 💡 دالة النسخ الفعلي للصورة لملفات التطبيق المخفية
+    private fun saveImageToInternalStorage(uri: Uri): String? {
+        return try {
+            val inputStream = contentResolver.openInputStream(uri)
+            val bitmap = BitmapFactory.decodeStream(inputStream)
+            val file = File(filesDir, "my_avatar.png")
+            val outStream = FileOutputStream(file)
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outStream)
+            outStream.flush()
+            outStream.close()
+            file.absolutePath
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private fun loadSavedData() {
+        binding.tvPlayerName.text = sharedPrefs.getString("PLAYER_NAME", "زيكو")
+        
+        // 💡 قراءة مستوى المعركة الحالي لربط الشاشات
+        val currentLevel = sharedPrefs.getInt("CURRENT_BATTLE_LEVEL", 1)
+        binding.tvPlayerLevel.text = String.format(Locale.ENGLISH, "⭐ مستوى %d", currentLevel)
+        
+        // 💡 تحميل الصورة من المسار الداخلي المنسوخ
+        val savedImagePath = sharedPrefs.getString("PLAYER_IMAGE_PATH", null)
+        if (savedImagePath != null) {
+            val file = File(savedImagePath)
+            if (file.exists()) {
+                val bitmap = BitmapFactory.decodeFile(file.absolutePath)
+                binding.imgMainAvatar.setImageBitmap(bitmap)
+            }
+        }
+    }
+
+    // ==========================================
+    // 📜 المهام (إجبار المقاس 80% للنافذة و 70dp للعنصر)
     // ==========================================
     private fun showDailyQuestsDialog() {
         val dialog = Dialog(this)
         dialog.setContentView(R.layout.dialog_quests)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         
-        // 💡 جعل النافذة تأخذ 60% من الشاشة طولاً وعرضاً بدقة
+        // 💡 إجبار النافذة لتأخذ 80% من الشاشة تماماً
         val metrics = resources.displayMetrics
-        val dialogWidth = (metrics.widthPixels * 0.60).toInt()
-        val dialogHeight = (metrics.heightPixels * 0.60).toInt()
+        val dialogWidth = (metrics.widthPixels * 0.80).toInt()
+        val dialogHeight = (metrics.heightPixels * 0.80).toInt()
         dialog.window?.setLayout(dialogWidth, dialogHeight)
         
         val questsContainer = dialog.findViewById<LinearLayout>(R.id.questsContainer)
@@ -447,13 +267,15 @@ class MainActivity : AppCompatActivity() {
         for (quest in dailyQuests) {
             val qV = layoutInflater.inflate(R.layout.item_quest, questsContainer, false)
             
-            // إضافة مسافة خفيفة بين المهام وتوسيطها
+            // 💡 إجبار ارتفاع المهمة ليكون 70dp بالضبط لمنع التمطط البشع
+            val height70dp = (70 * resources.displayMetrics.density).toInt()
+            val marginBottom = (12 * resources.displayMetrics.density).toInt()
+            
             val lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                height70dp
             ).apply {
-                setMargins(0, 0, 0, 16)
-                gravity = Gravity.CENTER_HORIZONTAL
+                setMargins(0, 0, 0, marginBottom)
             }
 
             val curProg = sharedPrefs.getInt("PROGRESS_${quest.id}", 0)
@@ -464,7 +286,6 @@ class MainActivity : AppCompatActivity() {
             qV.findViewById<TextView>(R.id.tvQuestProgressText).text = String.format(Locale.ENGLISH, "%d / %d", curProg, quest.goal)
             
             val btn = qV.findViewById<Button>(R.id.btnCollectQuestReward)
-            val rIco = if (quest.rewardType == "coins") "💰" else "🧱"
             
             if (isClaimed) {
                 btn.visibility = View.VISIBLE
@@ -473,16 +294,16 @@ class MainActivity : AppCompatActivity() {
                 btn.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.GRAY)
             } else if (curProg >= quest.goal) {
                 btn.visibility = View.VISIBLE
-                btn.text = "استلام ${quest.reward}"
+                btn.text = "استلام"
                 btn.setOnClickListener {
                     sharedPrefs.edit().putInt(quest.rewardType, sharedPrefs.getInt(quest.rewardType, 0) + quest.reward)
                         .putBoolean("CLAIMED_${quest.id}", true).apply()
                     updateResourcesUI()
                     dialog.dismiss()
-                    Toast.makeText(this, "حصلت على ${quest.reward} $rIco", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "مكافأة مستلمة!", Toast.LENGTH_SHORT).show()
                 }
             } else {
-                btn.visibility = View.INVISIBLE // إخفاء الزر إذا لم تكتمل للحفاظ على التنسيق
+                btn.visibility = View.INVISIBLE 
             }
             
             questsContainer.addView(qV, lp)
@@ -497,78 +318,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // ⚔️ باقي الأنظمة
+    // 📺 النوافذ السريعة والموارد والمتجر والعجلة
     // ==========================================
-    private fun startMatchmaking() {
-        val d = Dialog(this); d.setCancelable(false); d.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        val l = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setBackgroundResource(R.drawable.bg_wheel_dialog); setPadding(60,60,60,60) }
-        val t = TextView(this).apply { text = "جاري البحث عن خصم..."; setTextColor(Color.WHITE); textSize = 22f; setTypeface(null, Typeface.BOLD); gravity = Gravity.CENTER; setShadowLayer(4f,0f,0f,Color.BLACK) }
-        val p = ProgressBar(this).apply { isIndeterminate = true; setPadding(0,40,0,40) }
-        l.addView(t); l.addView(p); d.setContentView(l); d.show()
-
-        val enemy = arrayOf("Shadow", "Ahmed_99", "DarkKnight", "Doom_King", "Ninja_X").random()
-        Handler(Looper.getMainLooper()).postDelayed({
-            t.text = "خصمك هو:\n$enemy"; t.setTextColor(Color.parseColor("#FFD700")); p.visibility = View.GONE
-            Handler(Looper.getMainLooper()).postDelayed({
-                d.dismiss(); updateQuestProgress("q1", 1); startGameWithTransition()
-            }, 1000)
-        }, 1500)
-    }
-
-    private fun setupRoyalDoors() {
-        screenWidth = resources.displayMetrics.widthPixels
-        val root = findViewById<ViewGroup>(android.R.id.content) as FrameLayout
-        leftDoor = ImageView(this).apply { setImageResource(R.drawable.bg_door_left); scaleType = ImageView.ScaleType.FIT_XY; layoutParams = FrameLayout.LayoutParams(screenWidth/2, -1).apply { gravity = Gravity.LEFT }; translationX = -screenWidth/2f; elevation = 200f }
-        rightDoor = ImageView(this).apply { setImageResource(R.drawable.bg_door_right); scaleType = ImageView.ScaleType.FIT_XY; layoutParams = FrameLayout.LayoutParams(screenWidth/2, -1).apply { gravity = Gravity.RIGHT }; translationX = screenWidth/2f; elevation = 200f }
-        root.addView(leftDoor); root.addView(rightDoor)
-    }
-
-    private fun startGameWithTransition() {
-        leftDoor.animate().translationX(0f).setDuration(400).start()
-        rightDoor.animate().translationX(0f).setDuration(400).withEndAction {
-            Handler(Looper.getMainLooper()).postDelayed({
-                startActivity(Intent(this, GameActivity::class.java)); overridePendingTransition(0, 0)
-            }, 300)
-        }.start()
-    }
-
-    private fun showArsenalDialog() {
-        val d = Dialog(this); d.setContentView(R.layout.dialog_arsenal); d.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        setupUpgradeLogic(d, R.id.cardCannon, "LEVEL_CANNON", 150); setupUpgradeLogic(d, R.id.cardSoldier, "LEVEL_SOLDIER", 200); setupUpgradeLogic(d, R.id.cardChampion, "LEVEL_CHAMPION", 500)
-        d.findViewById<Button>(R.id.btnCloseArsenal).setOnClickListener { d.dismiss() }
-        d.show()
-    }
-
-    private fun setupUpgradeLogic(d: Dialog, id: Int, key: String, base: Int) {
-        val c = d.findViewById<ViewGroup>(id) ?: return
-        val tL = c.getChildAt(0) as? TextView; val tP = (c.getChildAt(2) as? ViewGroup)?.getChildAt(1) as? TextView
-        var l = sharedPrefs.getInt(key, 1); var p = base * l
-        tL?.text = "LVL $l"; tP?.text = p.toString()
-        c.setOnClickListener {
-            val g = sharedPrefs.getInt("coins", 0)
-            if (g >= p) {
-                sharedPrefs.edit().putInt("coins", g - p).apply(); l++; sharedPrefs.edit().putInt(key, l).apply()
-                p = base * l; tL?.text = "LVL $l"; tP?.text = p.toString(); updateResourcesUI(); loadSavedData(); updateQuestProgress("q3", 1)
-                Toast.makeText(this, "تمت الترقية! ⚔️", Toast.LENGTH_SHORT).show()
-            } else Toast.makeText(this, "الذهب غير كافٍ! 💰", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun showCelebrationDialog(p: Prize) {
-        val d = Dialog(this); d.setContentView(R.layout.dialog_celebration); d.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        d.findViewById<TextView>(R.id.tvPrizeText).text = p.text; d.findViewById<ImageView>(R.id.imgPrizeIcon).setImageResource(p.iconResId)
-        d.findViewById<Button>(R.id.btnCollectPrize).setOnClickListener { d.dismiss() }
-        d.show()
-    }
-
-    private fun loadSavedData() {
-        binding.tvPlayerName.text = sharedPrefs.getString("PLAYER_NAME", "زيكو")
-        binding.tvPlayerLevel.text = String.format(Locale.ENGLISH, "⭐ مستوى %d", sharedPrefs.getInt("LEVEL_CANNON", 1))
-        sharedPrefs.getString("PLAYER_IMAGE", null)?.let { binding.imgMainAvatar.setImageURI(Uri.parse(it)) }
-    }
-
     private fun updateResourcesUI() {
-        // 💡 إجبار الأرقام لتكون بالإنجليزية
         findViewById<TextView>(R.id.tvGoldAmount).text = String.format(Locale.ENGLISH, "%,d", sharedPrefs.getInt("coins", 0))
         findViewById<TextView>(R.id.tvStonesAmount).text = String.format(Locale.ENGLISH, "%,d", sharedPrefs.getInt("gems", 0))
     }
@@ -580,30 +332,132 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.tvKingdomProgressText).text = String.format(Locale.ENGLISH, "%d / 100", p)
     }
 
+    private fun setupTopBarClickListeners() {
+        val goldContainer = binding.tvGoldAmount.parent as View
+        val stonesContainer = binding.tvStonesAmount.parent as View
+        goldContainer.setOnClickListener {
+            showQuickAdDialog("هل تريد الحصول على 20,000 ذهبة مقابل مشاهدة إعلان؟") {
+                YandexAdsManager.showRewardedAd(this, onRewarded = {
+                    sharedPrefs.edit().putInt("coins", sharedPrefs.getInt("coins", 0) + 20000).apply()
+                }, onAdClosed = { updateResourcesUI(); showCelebrationDialog(Prize("20,000 ذهبة", R.drawable.ic_gold_coin, 0, "coins")) })
+            }
+        }
+        stonesContainer.setOnClickListener { showStonesQuickDialog() }
+    }
+
+    private fun showQuickAdDialog(message: String, onWatchAd: () -> Unit) {
+        val dialog = Dialog(this)
+        val layout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundResource(R.drawable.bg_wheel_dialog); setPadding(50, 50, 50, 50); gravity = Gravity.CENTER }
+        val tvMsg = TextView(this).apply { text = message; setTextColor(Color.WHITE); textSize = 18f; textAlignment = View.TEXT_ALIGNMENT_CENTER; layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 40 } }
+        val btnAd = Button(this).apply { text = "مشاهدة إعلان 🎥"; setBackgroundColor(Color.parseColor("#4CAF50")); setTextColor(Color.WHITE); setOnClickListener { dialog.dismiss(); onWatchAd() } }
+        val btnClose = Button(this).apply { text = "إلغاء"; setBackgroundColor(Color.parseColor("#D32F2F")); setTextColor(Color.WHITE); layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = 20 }; setOnClickListener { dialog.dismiss() } }
+        layout.addView(tvMsg); layout.addView(btnAd); layout.addView(btnClose)
+        dialog.setContentView(layout); dialog.window?.setBackgroundDrawableResource(android.R.color.transparent); dialog.show()
+    }
+
+    private fun showStonesQuickDialog() {
+        val dialog = Dialog(this)
+        val layout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundResource(R.drawable.bg_wheel_dialog); setPadding(50, 50, 50, 50); gravity = Gravity.CENTER }
+        val tvMsg = TextView(this).apply { text = "هل تريد الحصول على 500 حجر مقابل إعلان أو الذهاب للمتجر؟"; setTextColor(Color.WHITE); textSize = 18f; textAlignment = View.TEXT_ALIGNMENT_CENTER; layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 40 } }
+        val btnAd = Button(this).apply { text = "مشاهدة إعلان (500 حجر)"; setBackgroundColor(Color.parseColor("#4CAF50")); setTextColor(Color.WHITE); setOnClickListener { dialog.dismiss(); YandexAdsManager.showRewardedAd(this@MainActivity, onRewarded = { sharedPrefs.edit().putInt("gems", sharedPrefs.getInt("gems", 0) + 500).apply() }, onAdClosed = { updateResourcesUI(); showCelebrationDialog(Prize("500 حجر", R.drawable.ic_stone_block, 0, "gems")) }) } }
+        val btnStore = Button(this).apply { text = "الذهاب للمتجر 🛒"; setBackgroundColor(Color.parseColor("#2196F3")); setTextColor(Color.WHITE); layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = 20 }; setOnClickListener { dialog.dismiss(); showStoreDialog() } }
+        val btnClose = Button(this).apply { text = "إلغاء"; setBackgroundColor(Color.parseColor("#D32F2F")); setTextColor(Color.WHITE); layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = 20 }; setOnClickListener { dialog.dismiss() } }
+        layout.addView(tvMsg); layout.addView(btnAd); layout.addView(btnStore); layout.addView(btnClose)
+        dialog.setContentView(layout); dialog.window?.setBackgroundDrawableResource(android.R.color.transparent); dialog.show()
+    }
+
+    private fun showStoreDialog() {
+        val d = Dialog(this); d.setContentView(R.layout.dialog_store); d.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        d.findViewById<View>(R.id.btnWatchAdForGold).setOnClickListener { d.dismiss(); YandexAdsManager.showRewardedAd(this, onRewarded = { sharedPrefs.edit().putInt("coins", sharedPrefs.getInt("coins", 0) + 20000).apply() }, onAdClosed = { updateResourcesUI(); showCelebrationDialog(Prize("20,000 ذهبة", R.drawable.ic_gold_coin, 0, "coins")) }) }
+        setupCharacterBuyLogic(d, R.id.btnBuyChar1, "CHAR_1", 80000); setupCharacterBuyLogic(d, R.id.btnBuyChar2, "CHAR_2", 100000); setupCharacterBuyLogic(d, R.id.btnBuyChar3, "CHAR_3", 150000)
+        setupStoneBuyLogic(d, R.id.btnBuy100Stones, 100, 15000); setupStoneBuyLogic(d, R.id.btnBuy500Stones, 500, 25000); setupStoneBuyLogic(d, R.id.btnBuy1000Stones, 1000, 40000)
+        d.findViewById<Button>(R.id.btnCloseStore).setOnClickListener { d.dismiss() }; d.show()
+    }
+
+    private fun setupCharacterBuyLogic(d: Dialog, btnId: Int, charKey: String, price: Int) {
+        val btn = d.findViewById<ViewGroup>(btnId) ?: return
+        val priceLayout = btn.getChildAt(1) as ViewGroup
+        val tvPrice = priceLayout.getChildAt(1) as TextView
+        val isOwned = sharedPrefs.getBoolean("${charKey}_OWNED", false)
+        val isEquipped = sharedPrefs.getString("EQUIPPED_CHAR", "DEFAULT") == charKey
+        if (isEquipped) { tvPrice.text = "مُجهز"; priceLayout.setBackgroundColor(Color.parseColor("#4CAF50")) } else if (isOwned) { tvPrice.text = "تجهيز"; priceLayout.setBackgroundColor(Color.parseColor("#2196F3")) } else { tvPrice.text = String.format(Locale.ENGLISH, "%dK", price / 1000) }
+        btn.setOnClickListener {
+            if (isOwned) { sharedPrefs.edit().putString("EQUIPPED_CHAR", charKey).apply(); Toast.makeText(this, "تم تجهيز الشخصية! ⚔️", Toast.LENGTH_SHORT).show(); d.dismiss(); showStoreDialog() } 
+            else { val gold = sharedPrefs.getInt("coins", 0); if (gold >= price) { sharedPrefs.edit().putInt("coins", gold - price).apply(); sharedPrefs.edit().putBoolean("${charKey}_OWNED", true).apply(); updateResourcesUI(); Toast.makeText(this, "تم شراء الشخصية بنجاح! 🎉", Toast.LENGTH_SHORT).show(); d.dismiss(); showStoreDialog() } else { Toast.makeText(this, "لا تملك ذهباً كافياً! 💰", Toast.LENGTH_SHORT).show() } }
+        }
+    }
+
+    private fun setupStoneBuyLogic(d: Dialog, btnId: Int, amount: Int, price: Int) {
+        val btn = d.findViewById<View>(btnId) ?: return
+        btn.setOnClickListener { val gold = sharedPrefs.getInt("coins", 0); if (gold >= price) { sharedPrefs.edit().putInt("coins", gold - price).apply(); sharedPrefs.edit().putInt("gems", sharedPrefs.getInt("gems", 0) + amount).apply(); updateResourcesUI(); Toast.makeText(this, "تم شراء $amount حجر! 🧱", Toast.LENGTH_SHORT).show() } else { Toast.makeText(this, "لا تملك ذهباً كافياً! 💰", Toast.LENGTH_SHORT).show() } }
+    }
+
+    private fun showLuckyWheelDialog() {
+        val d = Dialog(this); d.setContentView(R.layout.dialog_lucky_wheel); d.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        val board = d.findViewById<ImageView>(R.id.imgWheelBoard); val btnSpin = d.findViewById<Button>(R.id.btnSpin)
+        val isFree = System.currentTimeMillis() - sharedPrefs.getLong("LAST_FREE_SPIN_TIME", 0) >= 86400000L
+        if (isFree) { btnSpin.text = "تدوير (مجاني)"; btnSpin.setBackgroundColor(Color.parseColor("#4CAF50")) } else { btnSpin.text = "تدوير (إعلان 🎥)"; btnSpin.setBackgroundColor(Color.parseColor("#FF9800")) }
+        fun executeSpin() {
+            btnSpin.isEnabled = false; val winIdx = (0..5).random()
+            board.animate().rotation(3600f + (360 - winIdx * 60)).setDuration(4000).withEndAction {
+                val prizes = listOf(Prize("1000 ذهبة", R.drawable.ic_gold_coin, 1000, "coins"), Prize("50 حجر", R.drawable.ic_stone_block, 50, "gems"), Prize("2000 ذهبة", R.drawable.ic_gold_coin, 2000, "coins"), Prize("100 حجر", R.drawable.ic_stone_block, 100, "gems"), Prize("5000 ذهبة", R.drawable.ic_gold_coin, 5000, "coins"), Prize("صندوق", R.drawable.ic_shop_scroll, 1, "chest"))
+                d.dismiss(); updateQuestProgress("q5", 1); showCelebrationDialog(prizes[winIdx])
+            }.start()
+        }
+        btnSpin.setOnClickListener { if (isFree) { sharedPrefs.edit().putLong("LAST_FREE_SPIN_TIME", System.currentTimeMillis()).apply(); executeSpin() } else { d.dismiss(); YandexAdsManager.showRewardedAd(this, onRewarded = {}, onAdClosed = { val newDialog = Dialog(this@MainActivity); newDialog.setContentView(R.layout.dialog_lucky_wheel); newDialog.window?.setBackgroundDrawableResource(android.R.color.transparent); val newBoard = newDialog.findViewById<ImageView>(R.id.imgWheelBoard); newDialog.show(); val winIdx = (0..5).random(); newBoard.animate().rotation(3600f + (360 - winIdx * 60)).setDuration(4000).withEndAction { val prizes = listOf(Prize("1000 ذهبة", R.drawable.ic_gold_coin, 1000, "coins"), Prize("50 حجر", R.drawable.ic_stone_block, 50, "gems"), Prize("2000 ذهبة", R.drawable.ic_gold_coin, 2000, "coins"), Prize("100 حجر", R.drawable.ic_stone_block, 100, "gems"), Prize("5000 ذهبة", R.drawable.ic_gold_coin, 5000, "coins"), Prize("صندوق", R.drawable.ic_shop_scroll, 1, "chest")); newDialog.dismiss(); updateQuestProgress("q5", 1); showCelebrationDialog(prizes[winIdx]) }.start() }) } }
+        d.findViewById<Button>(R.id.btnCloseWheel).setOnClickListener { d.dismiss() }; d.show()
+    }
+
+    private fun showCastleInfoDialog() {
+        val dialog = Dialog(this); dialog.setContentView(R.layout.dialog_castle); dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        val pbCastle = dialog.findViewById<ProgressBar>(R.id.pbDialogCastle); val tvProgress = dialog.findViewById<TextView>(R.id.tvDialogProgress); val btnUpgrade = dialog.findViewById<Button>(R.id.btnUpgradeCastle)
+        fun refreshUI() {
+            val level = sharedPrefs.getInt("KINGDOM_LEVEL", 1); val progress = sharedPrefs.getInt("KINGDOM_PROGRESS", 0); val buildCost = level * 50 
+            dialog.findViewById<TextView>(R.id.tvCastleDialogTitle).text = "القلعة الملكية (مستوى $level)"
+            dialog.findViewById<TextView>(R.id.tvCastlePower).text = String.format(Locale.ENGLISH, "%d ⚔️", level * 15000)
+            dialog.findViewById<TextView>(R.id.tvWallPower).text = String.format(Locale.ENGLISH, "%d 🛡️", level * 8000)
+            btnUpgrade.text = "ترقية ($buildCost حجر)"
+            pbCastle.progress = progress; tvProgress.text = String.format(Locale.ENGLISH, "%d / 100", progress)
+        }
+        refreshUI()
+        btnUpgrade.setOnClickListener {
+            val level = sharedPrefs.getInt("KINGDOM_LEVEL", 1); val buildCost = level * 50; val currentStones = sharedPrefs.getInt("gems", 0)
+            if (currentStones >= buildCost) { sharedPrefs.edit().putInt("gems", currentStones - buildCost).apply(); var progress = sharedPrefs.getInt("KINGDOM_PROGRESS", 0) + 25; if (progress >= 100) { progress = 0; sharedPrefs.edit().putInt("KINGDOM_LEVEL", level + 1).apply(); updateQuestProgress("q2", 1) }; sharedPrefs.edit().putInt("KINGDOM_PROGRESS", progress).apply(); updateResourcesUI(); updateKingdomUI(); refreshUI() } else { Toast.makeText(this, "تحتاج $buildCost حجر!", Toast.LENGTH_SHORT).show() }
+        }
+        dialog.findViewById<Button>(R.id.btnCloseCastle).setOnClickListener { dialog.dismiss() }; dialog.show()
+    }
+
+    private fun showArsenalDialog() {
+        val d = Dialog(this); d.setContentView(R.layout.dialog_arsenal); d.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        setupUpgradeLogic(d, R.id.cardCannon, "LEVEL_CANNON", 150); setupUpgradeLogic(d, R.id.cardSoldier, "LEVEL_SOLDIER", 200); setupUpgradeLogic(d, R.id.cardChampion, "LEVEL_CHAMPION", 500)
+        d.findViewById<Button>(R.id.btnCloseArsenal).setOnClickListener { d.dismiss() }; d.show()
+    }
+
+    private fun setupUpgradeLogic(d: Dialog, id: Int, key: String, base: Int) {
+        val c = d.findViewById<ViewGroup>(id) ?: return
+        val tL = c.getChildAt(0) as? TextView; val tP = (c.getChildAt(2) as? ViewGroup)?.getChildAt(1) as? TextView
+        var l = sharedPrefs.getInt(key, 1); var p = base * l
+        tL?.text = "LVL $l"; tP?.text = p.toString()
+        c.setOnClickListener {
+            val g = sharedPrefs.getInt("coins", 0); if (g >= p) { sharedPrefs.edit().putInt("coins", g - p).apply(); l++; sharedPrefs.edit().putInt(key, l).apply(); p = base * l; tL?.text = "LVL $l"; tP?.text = p.toString(); updateResourcesUI(); loadSavedData(); updateQuestProgress("q3", 1); Toast.makeText(this, "تمت الترقية! ⚔️", Toast.LENGTH_SHORT).show() } else Toast.makeText(this, "الذهب غير كافٍ! 💰", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showCelebrationDialog(p: Prize) {
+        val d = Dialog(this); d.setContentView(R.layout.dialog_celebration); d.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        d.findViewById<TextView>(R.id.tvPrizeText).text = p.text; d.findViewById<ImageView>(R.id.imgPrizeIcon).setImageResource(p.iconResId)
+        d.findViewById<Button>(R.id.btnCollectPrize).setOnClickListener { d.dismiss() }; d.show()
+    }
+
     private fun setupBackgroundVideo() {
         player = ExoPlayer.Builder(this).build(); binding.mainVideoBackground.player = player
         player?.setMediaItem(MediaItem.fromUri(Uri.parse("android.resource://$packageName/${R.raw.main_bg}")))
         player?.repeatMode = Player.REPEAT_MODE_ALL; player?.prepare(); player?.play()
     }
 
-    private fun showProfileDialog() {
-        profileDialog = Dialog(this); profileDialog?.setContentView(R.layout.dialog_profile); profileDialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        val et = profileDialog?.findViewById<EditText>(R.id.etPlayerName); et?.setText(binding.tvPlayerName.text)
-        profileDialog?.findViewById<Button>(R.id.btnChangePicture)?.setOnClickListener { checkPermissionAndOpenGallery() }
-        profileDialog?.findViewById<Button>(R.id.btnSaveProfile)?.setOnClickListener {
-            if (et?.text.toString().trim().isNotEmpty()) {
-                sharedPrefs.edit().putString("PLAYER_NAME", et?.text.toString().trim()).apply()
-                tempSelectedImageUri?.let { sharedPrefs.edit().putString("PLAYER_IMAGE", it.toString()).apply() }
-                loadSavedData(); profileDialog?.dismiss()
-            }
-        }
-        profileDialog?.show()
-    }
-
     private fun checkPermissionAndOpenGallery() { requestPermissionLauncher.launch(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_EXTERNAL_STORAGE) }
     private fun openGallery() { pickImageLauncher.launch(Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)) }
 
-    override fun onResume() { super.onResume(); player?.play(); updateResourcesUI(); loadSavedData(); updateKingdomUI(); if (::leftDoor.isInitialized) { leftDoor.translationX = -screenWidth/2f; rightDoor.translationX = screenWidth/2f } }
     override fun onPause() { super.onPause(); player?.pause() }
     override fun onDestroy() { super.onDestroy(); player?.release() }
     override fun onWindowFocusChanged(h: Boolean) { super.onWindowFocusChanged(h); if(h) hideSystemUI() }
