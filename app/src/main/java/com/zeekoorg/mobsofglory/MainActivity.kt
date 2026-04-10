@@ -150,7 +150,11 @@ class MainActivity : AppCompatActivity() {
                     handler.postDelayed(this, 100) // تقليب كل 100 جزء من الثانية
                 } else {
                     // التوقف عند خصم نهائي
+                                        // التوقف عند خصم نهائي
                     val finalEnemy = fakeNames.random()
+                    // 💡 هذا هو السطر الجديد لحفظ اسم العدو لكي تقرأه المعركة!
+                    sharedPrefs.edit().putString("CURRENT_ENEMY_NAME", finalEnemy).apply()
+                    
                     t.text = "خصمك هو:\n$finalEnemy"
                     t.setTextColor(Color.parseColor("#FFD700"))
                     p.visibility = View.GONE
