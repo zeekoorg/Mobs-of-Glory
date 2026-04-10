@@ -46,12 +46,13 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
     
     private val trackPaint = Paint().apply { color = Color.WHITE; strokeWidth = 10f; strokeCap = Paint.Cap.ROUND; alpha = 100 }
     private val obstaclePaint = Paint().apply { color = Color.parseColor("#424242") }
-    private val obstacleBorderPaint = Paint().apply { color = Color.parseColor("#B71C1C"); style = Paint.Style.STROKE; strokeWidth = 6f }
+    private val obstacleBorderPaint = Paint().apply { color = Color.parseColor("#FFD700"); style = Paint.Style.STROKE; strokeWidth = 4f }
 
-    private val hudNamePaintLeft = Paint().apply { color = Color.WHITE; textSize = 32f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.LEFT; setShadowLayer(3f, 0f, 0f, Color.BLACK) }
-    private val hudNamePaintRight = Paint().apply { color = Color.WHITE; textSize = 32f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.RIGHT; setShadowLayer(3f, 0f, 0f, Color.BLACK) }
-    private val hudPowerPaintLeft = Paint().apply { color = Color.parseColor("#FFD700"); textSize = 26f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.LEFT; setShadowLayer(3f, 0f, 0f, Color.BLACK) }
-    private val hudPowerPaintRight = Paint().apply { color = Color.parseColor("#FFD700"); textSize = 26f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.RIGHT; setShadowLayer(3f, 0f, 0f, Color.BLACK) }
+    // 💡 تكبير النصوص لتصبح بارزة وواضحة جداً
+    private val hudNamePaintLeft = Paint().apply { color = Color.WHITE; textSize = 38f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.LEFT; setShadowLayer(3f, 0f, 0f, Color.BLACK) }
+    private val hudNamePaintRight = Paint().apply { color = Color.WHITE; textSize = 38f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.RIGHT; setShadowLayer(3f, 0f, 0f, Color.BLACK) }
+    private val hudPowerPaintLeft = Paint().apply { color = Color.parseColor("#FFD700"); textSize = 30f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.LEFT; setShadowLayer(3f, 0f, 0f, Color.BLACK) }
+    private val hudPowerPaintRight = Paint().apply { color = Color.parseColor("#FFD700"); textSize = 30f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.RIGHT; setShadowLayer(3f, 0f, 0f, Color.BLACK) }
     
     private val gateTextPaint = Paint().apply { color = Color.WHITE; textSize = 50f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER; setShadowLayer(4f, 0f, 0f, Color.BLACK) } 
     private val levelTextPaint = Paint().apply { color = Color.parseColor("#FFD700"); textSize = 55f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER; setShadowLayer(5f, 0f, 0f, Color.BLACK) }
@@ -161,7 +162,6 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         return getSafeBitmap(context, resId, w, h)
     }
 
-    // 💡 الدالة المفقودة للصور الاختيارية
     private fun loadOptionalBitmap(ctx: Context, name: String, w: Int = -1, h: Int = -1): Bitmap? {
         val resId = ctx.resources.getIdentifier(name, "drawable", ctx.packageName)
         return if (resId != 0) getSafeBitmap(ctx, resId, w, h) else null
@@ -284,29 +284,49 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         catapultX = (screenX / 2f) - (catapultBitmap.width / 2f); catapultY = screenY - catapultBitmap.height - 100f 
         enemyCastleX = (screenX / 2f) - (enemyCastleBitmap.width / 2f); enemyCastleY = 250f
 
-        val gateX = (screenX / 2f) - (gateBitmap.width / 2f)
-        
         val diffScaling = currentLevel.coerceAtMost(100)
         val baseMultiplier = 2 + (diffScaling / 5) 
         val gateSpeed = 4f + (diffScaling * 0.2f).coerceAtMost(15f)
+        val gateX = (screenX / 2f) - (gateBitmap.width / 2f)
         
-        mainGate = Gate(gateX, screenY * 0.5f, gateSpeed, gateBitmap, baseMultiplier + 1) 
-        staticGate1 = Gate(trackLeft + 30f, screenY * 0.65f, 0f, gateBitmap, baseMultiplier) 
-        staticGate2 = Gate(trackRight - gateBitmap.width - 30f, screenY * 0.65f, 0f, gateBitmap, baseMultiplier) 
+        // 💡 بوابات متغيرة حسب المستوى (1 أو 2 أو 3 بوابات)
+        mainGate = null; staticGate1 = null; staticGate2 = null
+        val gateLayoutType = diffScaling % 3
+        if (gateLayoutType == 0 || diffScaling == 1) {
+            mainGate = Gate(gateX, screenY * 0.5f, gateSpeed, gateBitmap, baseMultiplier + 1) 
+        } else if (gateLayoutType == 1) {
+            staticGate1 = Gate(trackLeft + 20f, screenY * 0.55f, 0f, gateBitmap, baseMultiplier) 
+            staticGate2 = Gate(trackRight - gateBitmap.width - 20f, screenY * 0.55f, 0f, gateBitmap, baseMultiplier) 
+        } else {
+            mainGate = Gate(gateX, screenY * 0.45f, gateSpeed, gateBitmap, baseMultiplier + 2) 
+            staticGate1 = Gate(trackLeft + 10f, screenY * 0.6f, 0f, gateBitmap, baseMultiplier) 
+            staticGate2 = Gate(trackRight - gateBitmap.width - 10f, screenY * 0.6f, 0f, gateBitmap, baseMultiplier) 
+        }
 
+        // 💡 تنويع العوائق بناءً على المستوى (عمدان، جدران متحركة، حواجز صغيرة)
         obstacles.clear()
-        if (diffScaling in 2..10) {
-            obstacles.add(Obstacle((screenX / 2f) - 120f, screenY * 0.4f, 240f, 50f, 0f))
-        } else if (diffScaling > 10) {
-            val obsSpeed = if (diffScaling % 2 == 0) 0f else (3f + diffScaling * 0.1f).coerceAtMost(10f)
-            obstacles.add(Obstacle(trackLeft, screenY * 0.4f, 200f, 50f, obsSpeed))
-            if (diffScaling > 20) {
-                obstacles.add(Obstacle(trackRight - 200f, screenY * 0.3f, 200f, 50f, -obsSpeed))
+        if (diffScaling >= 2) {
+            val obstacleType = diffScaling % 4
+            when (obstacleType) {
+                0 -> { // عمدان عمودية ثابتة
+                    obstacles.add(Obstacle((screenX / 2f) - 150f, screenY * 0.35f, 50f, 180f, 0f))
+                    obstacles.add(Obstacle((screenX / 2f) + 100f, screenY * 0.35f, 50f, 180f, 0f))
+                }
+                1 -> { // جدار عريض متحرك
+                    obstacles.add(Obstacle(trackLeft, screenY * 0.38f, 250f, 60f, 6f + diffScaling * 0.1f))
+                }
+                2 -> { // حواجز صغيرة متحركة عكس بعض
+                    obstacles.add(Obstacle(trackLeft, screenY * 0.3f, 130f, 60f, 7f))
+                    obstacles.add(Obstacle(trackRight - 130f, screenY * 0.42f, 130f, 60f, -7f))
+                }
+                3 -> { // حاجز بالنص ثابت وحاجز متحرك
+                    obstacles.add(Obstacle((screenX / 2f) - 90f, screenY * 0.35f, 180f, 60f, 0f))
+                    if (diffScaling > 5) obstacles.add(Obstacle(trackLeft, screenY * 0.25f, 150f, 50f, 8f))
+                }
             }
         }
 
         homeBtnRect = RectF(20f, 260f, 220f, 340f) 
-        
         val loseBoxHeight = 500f
         val lBoxY = (screenY / 2f) - (loseBoxHeight / 2f)
         val lBtnW = 440f; val lBtnH = 100f
@@ -405,9 +425,10 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         while (playerIter.hasNext()) {
             val mob = playerIter.next()
             
-            if (mob.y < enemyCastleY + 600f) {
+            // 💡 توجيه الجنود: يبدأون بتعديل المسار من منتصف ساحة المعركة بدلاً من قرب القلعة
+            if (mob.y < screenY * 0.55f) {
                 val angle = atan2((castleDoorTargetY - mob.y).toDouble(), (castleDoorTargetX - mob.x).toDouble())
-                val speed = hypot(mob.dx.toDouble(), mob.dy.toDouble()).toFloat().coerceAtLeast(12f)
+                val speed = hypot(mob.dx.toDouble(), mob.dy.toDouble()).toFloat().coerceAtLeast(14f)
                 mob.dx = (cos(angle) * speed).toFloat()
                 mob.dy = (sin(angle) * speed).toFloat()
             }
@@ -452,10 +473,12 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
         while(enemyIter.hasNext()){
             val enemy = enemyIter.next()
             
-            val angle = atan2((catapultTargetY - enemy.y).toDouble(), (catapultTargetX - enemy.x).toDouble())
-            val speed = hypot(enemy.dx.toDouble(), enemy.dy.toDouble()).toFloat().coerceAtLeast(10f)
-            enemy.dx = (cos(angle) * speed).toFloat()
-            enemy.dy = (sin(angle) * speed).toFloat()
+            if (enemy.y > screenY * 0.2f) {
+                val angle = atan2((catapultTargetY - enemy.y).toDouble(), (catapultTargetX - enemy.x).toDouble())
+                val speed = hypot(enemy.dx.toDouble(), enemy.dy.toDouble()).toFloat().coerceAtLeast(10f)
+                enemy.dx = (cos(angle) * speed).toFloat()
+                enemy.dy = (sin(angle) * speed).toFloat()
+            }
 
             enemy.x += enemy.dx; enemy.y += enemy.dy
             bounceOffTrackWalls(enemy)
@@ -630,8 +653,8 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
 
                     for (obs in obstacles) {
                         val rect = RectF(obs.x, obs.y, obs.x + obs.width, obs.y + obs.height)
-                        localCanvas.drawRoundRect(rect, 10f, 10f, obstaclePaint)
-                        localCanvas.drawRoundRect(rect, 10f, 10f, obstacleBorderPaint)
+                        localCanvas.drawRoundRect(rect, 15f, 15f, obstaclePaint)
+                        localCanvas.drawRoundRect(rect, 15f, 15f, obstacleBorderPaint)
                     }
 
                     for (enemy in enemyMobs) localCanvas.drawBitmap(enemy.bitmap, enemy.x, enemy.y, paint)
@@ -652,27 +675,32 @@ class GameEngine(context: Context) : SurfaceView(context), Runnable {
 
                     localCanvas.restore() 
 
+                    // 💡 التصميم المحدث للواجهة: نصوص كبيرة ومرتبة بلا تداخل
                     val hudTop = 40f
-                    val hudHeight = 110f
+                    val hudHeight = 130f // زيادة الارتفاع لاستيعاب النصوص الكبيرة
                     val gap = 20f 
                     val halfWidth = (screenX - (gap * 3)) / 2f 
 
+                    // العدو (يسار)
                     val eLeft = gap
-                    localCanvas.drawRoundRect(RectF(eLeft, hudTop, eLeft + halfWidth, hudTop + hudHeight), 25f, 25f, hudContainerPaint)
-                    enemyAvatarBitmap?.let { localCanvas.drawBitmap(it, eLeft - 10f, hudTop - 10f, paint) }
-                    localCanvas.drawText(enemyName, eLeft + 120f, hudTop + 45f, hudNamePaintLeft)
-                    localCanvas.drawText("⚔️ $enemyPower", eLeft + 120f, hudTop + 90f, hudPowerPaintLeft)
+                    localCanvas.drawRoundRect(RectF(eLeft, hudTop, eLeft + halfWidth, hudTop + hudHeight), 30f, 30f, hudContainerPaint)
+                    enemyAvatarBitmap?.let { localCanvas.drawBitmap(it, eLeft - 5f, hudTop + 5f, paint) }
+                    val eTextX = eLeft + 135f // إبعاد النص عن الصورة تماماً
+                    localCanvas.drawText(enemyName, eTextX, hudTop + 55f, hudNamePaintLeft)
+                    localCanvas.drawText("⚔️ $enemyPower", eTextX, hudTop + 105f, hudPowerPaintLeft)
                     
                     val eHbY = hudTop + hudHeight + 12f
                     localCanvas.drawRoundRect(RectF(eLeft, eHbY, eLeft + halfWidth, eHbY + 16f), 8f, 8f, healthBgPaint)
                     localCanvas.drawRoundRect(RectF(eLeft, eHbY, eLeft + (halfWidth * (enemyHealth / maxEnemyHealth)), eHbY + 16f), 8f, 8f, enemyHealthPaint)
                     localCanvas.drawRoundRect(RectF(eLeft, eHbY, eLeft + halfWidth, eHbY + 16f), 8f, 8f, healthBorderPaint)
 
+                    // اللاعب (يمين)
                     val pLeft = screenX - halfWidth - gap
-                    localCanvas.drawRoundRect(RectF(pLeft, hudTop, pLeft + halfWidth, hudTop + hudHeight), 25f, 25f, hudContainerPaint)
-                    playerAvatarBitmap?.let { localCanvas.drawBitmap(it, pLeft + halfWidth - 110f, hudTop - 10f, paint) }
-                    localCanvas.drawText(playerName, pLeft + halfWidth - 120f, hudTop + 45f, hudNamePaintRight)
-                    localCanvas.drawText("$playerPower ⚔️", pLeft + halfWidth - 120f, hudTop + 90f, hudPowerPaintRight)
+                    localCanvas.drawRoundRect(RectF(pLeft, hudTop, pLeft + halfWidth, hudTop + hudHeight), 30f, 30f, hudContainerPaint)
+                    playerAvatarBitmap?.let { localCanvas.drawBitmap(it, pLeft + halfWidth - 115f, hudTop + 5f, paint) }
+                    val pTextX = pLeft + halfWidth - 135f // إبعاد النص عن الصورة لليسار قليلاً
+                    localCanvas.drawText(playerName, pTextX, hudTop + 55f, hudNamePaintRight)
+                    localCanvas.drawText("$playerPower ⚔️", pTextX, hudTop + 105f, hudPowerPaintRight)
                     
                     val pHbY = hudTop + hudHeight + 12f
                     localCanvas.drawRoundRect(RectF(pLeft, pHbY, pLeft + halfWidth, pHbY + 16f), 8f, 8f, healthBgPaint)
