@@ -16,31 +16,27 @@ import androidx.recyclerview.widget.RecyclerView
 
 class MainActivity : AppCompatActivity() {
 
-    // 1. تعريف المتغيرات الأساسية
     private lateinit var rvBuildings: RecyclerView
     private lateinit var tvTotalGold: TextView
-    private var totalGold: Long = 0
+    private var totalGold: Long = 1760 // أضفنا رصيدك من الصورة!
 
-    // حلقة اللعبة (Game Loop) التي تجعل الأشرطة تتحرك
     private val gameHandler = Handler(Looper.getMainLooper())
     private lateinit var gameRunnable: Runnable
 
-    // 2. بيانات المباني الخاصة بك (تخيلها كجيشك من المباني)
     data class Building(
         val name: String,
         var level: Int,
         val iconResId: Int,
-        var progress: Float = 0f, // النسبة من 0 إلى 100
-        val speed: Float, // سرعة امتلاء الشريط
-        val reward: Long, // كم يعطيك ذهب عند الاكتمال
-        var upgradeCost: Long // تكلفة الترقية
+        var progress: Float = 0f, 
+        val speed: Float, 
+        val reward: Long, 
+        var upgradeCost: Long 
     )
 
-    // إنشاء قائمة مبانيك الملكية
     private val myBuildings = mutableListOf(
-        Building("مزرعة القمح", 1, R.drawable.ic_resource_gold, 0f, 2.5f, 10, 50),
-        Building("منجم الذهب", 1, R.drawable.ic_resource_gold, 0f, 1.0f, 50, 200),
-        Building("ثكنة الفرسان", 1, R.drawable.ic_resource_gold, 0f, 0.5f, 200, 1000)
+        Building("مزرعة القمح", 1, R.drawable.ic_resource_gold, 0f, 2.5f, 50, 100),
+        Building("منجم الذهب", 1, R.drawable.ic_resource_gold, 0f, 1.0f, 200, 400),
+        Building("ثكنة الفرسان", 1, R.drawable.ic_resource_gold, 0f, 0.5f, 1000, 2000)
     )
 
     private lateinit var adapter: BuildingsAdapter
@@ -52,35 +48,29 @@ class MainActivity : AppCompatActivity() {
         tvTotalGold = findViewById(R.id.tvTotalGold)
         rvBuildings = findViewById(R.id.rvBuildings)
 
-        // إعداد قائمة المباني (RecyclerView)
+        updateTopHud()
+
         rvBuildings.layoutManager = LinearLayoutManager(this)
         adapter = BuildingsAdapter(myBuildings)
         rvBuildings.adapter = adapter
 
-        // تشغيل قلب اللعبة النابض! 💓
         startGameLoop()
     }
 
     private fun startGameLoop() {
         gameRunnable = object : Runnable {
             override fun run() {
-                // هذا الكود ينفذ كل 50 جزء من الثانية (لجعل الحركة ناعمة جداً)
                 for (i in myBuildings.indices) {
                     val building = myBuildings[i]
-                    building.progress += building.speed // زيادة الشريط
+                    building.progress += building.speed
                     
-                    // إذا امتلأ الشريط (وصل 100)
                     if (building.progress >= 100f) {
-                        building.progress = 0f // تصفير الشريط
-                        totalGold += building.reward // إضافة الذهب للرصيد!
+                        building.progress = 0f 
+                        totalGold += building.reward 
                         updateTopHud()
                     }
                 }
-                
-                // تحديث الشاشة لتظهر الحركة
                 adapter.notifyDataSetChanged()
-                
-                // تكرار العملية
                 gameHandler.postDelayed(this, 50)
             }
         }
@@ -88,12 +78,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateTopHud() {
-        tvTotalGold.text = "الذهب: $totalGold"
+        tvTotalGold.text = "$totalGold"
     }
 
-    // =========================================
-    // 🗂️ محول البطاقات (الكود الذي يربط البيانات بالتصميم)
-    // =========================================
     inner class BuildingsAdapter(private val buildings: List<Building>) : RecyclerView.Adapter<BuildingsAdapter.ViewHolder>() {
 
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -117,12 +104,11 @@ class MainActivity : AppCompatActivity() {
             holder.pbProgress.progress = building.progress.toInt()
             holder.btnUpgrade.text = "ترقية\n${building.upgradeCost}"
 
-            // ماذا يحدث عند الضغط على زر الترقية؟
             holder.btnUpgrade.setOnClickListener {
                 if (totalGold >= building.upgradeCost) {
-                    totalGold -= building.upgradeCost // خصم السعر
-                    building.level++ // زيادة المستوى
-                    building.upgradeCost = (building.upgradeCost * 1.5).toLong() // زيادة سعر الترقية القادمة
+                    totalGold -= building.upgradeCost 
+                    building.level++ 
+                    building.upgradeCost = (building.upgradeCost * 1.5).toLong() 
                     updateTopHud()
                 }
             }
@@ -131,4 +117,3 @@ class MainActivity : AppCompatActivity() {
         override fun getItemCount(): Int = buildings.size
     }
 }
-
