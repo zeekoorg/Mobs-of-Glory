@@ -1,10 +1,12 @@
 package com.zeekoorg.mobsofglory
 
+import android.content.Context
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
-import android.view.animation.AnimationUtils // 💡 هذا هو السطر الذي كان مفقوداً!
+import android.view.animation.AnimationUtils
 import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.ProgressBar
@@ -19,31 +21,26 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvTotalGold: TextView
     private var totalGold: Long = 1760 
 
-    // أشرطة السحب (لتمهيد تمركز الكاميرا)
     private lateinit var verticalScrollView: ScrollView
     private lateinit var horizontalScrollView: HorizontalScrollView
 
-    // حلقة اللعبة النابضة
     private val gameHandler = Handler(Looper.getMainLooper())
     private lateinit var gameRunnable: Runnable
 
-    // بيانات المباني المحدثة للنظام المنظوري
     data class MapBuilding(
         val name: String,
-        val slotId: Int, // الـ ID في الـ activity_main
+        val slotId: Int, 
         val iconResId: Int,
         var level: Int = 1,
         var currentProgress: Float = 0f,
-        val productionSpeed: Float, // سرعة الجمع
+        val productionSpeed: Float, 
         val goldReward: Long,
         var isReadyToCollect: Boolean = false,
-        // متغيرات لربط الواجهة برمجياً
         var pbView: ProgressBar? = null,
         var collectIconView: ImageView? = null,
         var hudContainer: ConstraintLayout? = null
     )
 
-    // إنشاء قائمة مبانيك الملكية في الخريطة
     private val buildingsOnMap = mutableListOf(
         MapBuilding("القلعة", R.id.plotCastle, R.drawable.ic_iso_castle, productionSpeed = 0f, goldReward = 0),
         MapBuilding("المزرعة", R.id.plotFarm, R.drawable.ic_iso_farm, productionSpeed = 3.0f, goldReward = 50),
@@ -52,20 +49,35 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 🚨 صائد الانهيارات (الصندوق الأسود)
+        val sharedPrefs = getSharedPreferences("MobsData", Context.MODE_PRIVATE)
+        val lastError = sharedPrefs.getString("CRASH_LOG", null)
+        if (lastError != null) {
+            Toast.makeText(this, "سبب الخروج:\n$lastError", Toast.LENGTH_LONG).show()
+            sharedPrefs.edit().remove("CRASH_LOG").apply()
+        }
+        Thread.setDefaultUncaughtExceptionHandler { _, e ->
+            sharedPrefs.edit().putString("CRASH_LOG", "${e.javaClass.simpleName}: ${e.message} \nسطر: ${e.stackTrace[0].lineNumber}").commit()
+            System.exit(1)
+        }
+
         setContentView(R.layout.activity_main)
 
         tvTotalGold = findViewById(R.id.tvTotalGold)
         verticalScrollView = findViewById(R.id.verticalScrollView)
         horizontalScrollView = findViewById(R.id.horizontalScrollView)
 
+        // 💡 تحميل خريطة الأرضية بضغط ذكي لتجنب الانهيار (OOM)
+        val imgCityTerrain = findViewById<ImageView>(R.id.imgCityTerrain)
+        loadCompressedImage(R.drawable.bg_royal_city, imgCityTerrain, 1500, 1200)
+
         updateTotalGoldHud()
 
-        // تهيئة كل مبنى في مكانه برمجياً
         for (i in buildingsOnMap.indices) {
             setupBuildingOnMap(buildingsOnMap[i])
         }
 
-        // تمهيد الكاميرا لتكون في المنتصف عند القلعة
         verticalScrollView.post { 
             verticalScrollView.scrollTo(0, (1200 / 2) - (verticalScrollView.height / 2)) 
         }
@@ -73,55 +85,48 @@ class MainActivity : AppCompatActivity() {
             horizontalScrollView.scrollTo((1500 / 2) - (horizontalScrollView.width / 2), 0) 
         }
 
-        // تشغيل قلب اللعبة النابض! 💓
         startGameLoop()
     }
 
     private fun setupBuildingOnMap(building: MapBuilding) {
-        // البحث عن الحاوية (Slot) في الـ activity_main
-        val plotContainer = findViewById<ConstraintLayout>(building.slotId) ?: return
+        // 💡 إصلاح خطأ ClassCast: استخدمنا View بدلاً من ConstraintLayout
+        val plotContainer = findViewById<View>(building.slotId) ?: return
 
-        // ربط الواجهات داخل الـ plot
         val imgBuilding = plotContainer.findViewById<ImageView>(R.id.imgBuilding)
         val pbCollection = plotContainer.findViewById<ProgressBar>(R.id.pbCollectionTimer)
         val imgCollect = plotContainer.findViewById<ImageView>(R.id.imgCollectIcon)
         val hudContainer = plotContainer.findViewById<ConstraintLayout>(R.id.hudContainer)
 
-        // وضع صورة المبنى الصحيحة
-        imgBuilding.setImageResource(building.iconResId)
+        // 💡 تحميل صورة المبنى مضغوطة وبأمان
+        loadCompressedImage(building.iconResId, imgBuilding, 300, 300)
+        
+        // تعيين أيقونة الجمع
+        imgCollect.setImageResource(R.drawable.ic_resource_gold)
 
-        // حفظ المراجع للواجهات للكود لاحقاً
         building.pbView = pbCollection
         building.collectIconView = imgCollect
         building.hudContainer = hudContainer
 
-        // لا داعي لإظهار الشريط إذا لم يكن للمبنى إنتاج
         if (building.productionSpeed > 0f) {
             hudContainer.visibility = View.VISIBLE
         }
 
-        // النقر على المبنى (للترقية مستقبلاً)
         imgBuilding.setOnClickListener {
             if (!building.isReadyToCollect) {
                 Toast.makeText(this, "${building.name} مستوى ${building.level}", Toast.LENGTH_SHORT).show()
-                // هنا سنفتح نافذة الترقية لاحقاً! 🔜
             } else {
                 collectResource(building)
             }
         }
 
-        // النقر على أيقونة الجمع المباشرة
         imgCollect.setOnClickListener { collectResource(building) }
     }
 
     private fun collectResource(building: MapBuilding) {
         if (!building.isReadyToCollect) return
-        
-        // إضافة الذهب للرصيد
         totalGold += building.goldReward
         updateTotalGoldHud()
         
-        // إعادة تهيئة العداد
         building.currentProgress = 0f
         building.pbView?.progress = 0
         building.isReadyToCollect = false
@@ -137,23 +142,19 @@ class MainActivity : AppCompatActivity() {
                     if (building.productionSpeed > 0f && !building.isReadyToCollect) {
                         
                         building.currentProgress += building.productionSpeed
-                        
-                        // تحديث الشريط العائم برمجياً
                         building.pbView?.progress = building.currentProgress.toInt()
 
-                        // إذا اكتمل الجمع
                         if (building.currentProgress >= 100f) {
                             building.isReadyToCollect = true
                             building.pbView?.visibility = View.INVISIBLE
                             building.collectIconView?.visibility = View.VISIBLE
                             
-                            // أنيميشن نبض خفيف لأيقونة الجمع لإغراء اللاعب
                             val animPulse = AnimationUtils.loadAnimation(this@MainActivity, android.R.anim.fade_in)
                             building.collectIconView?.startAnimation(animPulse)
                         }
                     }
                 }
-                gameHandler.postDelayed(this, 100) // كل 100ms
+                gameHandler.postDelayed(this, 100) 
             }
         }
         gameHandler.post(gameRunnable)
@@ -161,5 +162,34 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateTotalGoldHud() {
         tvTotalGold.text = "الذهب: $totalGold"
+    }
+
+    // 💡 دالة الضغط السحرية التي تحمي هاتفك من الانهيار مهما كان حجم الصورة
+    private fun loadCompressedImage(resId: Int, imageView: ImageView, reqWidth: Int, reqHeight: Int) {
+        try {
+            val options = BitmapFactory.Options()
+            options.inJustDecodeBounds = true
+            BitmapFactory.decodeResource(resources, resId, options)
+            
+            options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight)
+            options.inJustDecodeBounds = false
+            
+            imageView.setImageBitmap(BitmapFactory.decodeResource(resources, resId, options))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+        val (height: Int, width: Int) = options.outHeight to options.outWidth
+        var inSampleSize = 1
+        if (height > reqHeight || width > reqWidth) {
+            val halfHeight: Int = height / 2
+            val halfWidth: Int = width / 2
+            while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+                inSampleSize *= 2
+            }
+        }
+        return inSampleSize
     }
 }
