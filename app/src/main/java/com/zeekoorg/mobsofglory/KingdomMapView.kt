@@ -31,6 +31,19 @@ class KingdomMapView @JvmOverloads constructor(
     private val castles = mutableListOf<Castle>()
     private val bitmapCache = mutableMapOf<Int, Bitmap>()
 
+    // 💡 الحل السحري: تصميم المربع الاحتياطي مرة واحدة فقط في الذاكرة لتجنب الانهيار (OOM)
+    private val fallbackBitmap: Bitmap by lazy {
+        val bmp = Bitmap.createBitmap(200, 200, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val paint = Paint().apply { color = Color.parseColor("#555555") }
+        canvas.drawRect(0f, 0f, 200f, 200f, paint)
+        paint.color = Color.WHITE
+        paint.textSize = 35f
+        paint.textAlign = Paint.Align.CENTER
+        canvas.drawText("مفقود", 100f, 110f, paint)
+        bmp
+    }
+
     private val textPaint = Paint().apply { color = Color.WHITE; textSize = 35f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER; setShadowLayer(4f, 0f, 0f, Color.BLACK) }
     private val levelBgPaint = Paint().apply { color = Color.parseColor("#A6000000") }
 
@@ -107,6 +120,7 @@ class KingdomMapView @JvmOverloads constructor(
             val randomPower = randomLevel * fixedRandom.nextInt(1000, 5000)
             val name = if (fixedRandom.nextBoolean()) arabicNames.random(fixedRandom) else englishNames.random(fixedRandom)
             
+            // 💡 هنا يتم سحب الصور من 1 إلى 20، أو سيعطيك المربع الاحتياطي إذا لم يجدها
             val resId = context.resources.getIdentifier("ic_map_castle_$i", "drawable", context.packageName)
             castles.add(Castle(i, "$name ($i)", CastleType.ENEMY, randomX, randomY, randomLevel, randomPower, resId))
         }
@@ -191,9 +205,9 @@ class KingdomMapView @JvmOverloads constructor(
         return true
     }
 
-    // 💡 الحماية القصوى: تحويل آمن للصور لتجنب الانهيار إذا كانت الصورة مفقودة
+    // 💡 استدعاء آمن بنسبة 100% للصور، إذا كانت مفقودة سيعود للـ fallbackBitmap المحفوظ مسبقاً
     private fun getCastleBitmap(resId: Int): Bitmap {
-        if (resId == 0) return createFallbackBitmap()
+        if (resId == 0) return fallbackBitmap
         return bitmapCache.getOrPut(resId) {
             try {
                 val drawable = ContextCompat.getDrawable(context, resId)
@@ -204,24 +218,12 @@ class KingdomMapView @JvmOverloads constructor(
                     drawable.draw(canvas)
                     bmp
                 } else {
-                    createFallbackBitmap()
+                    fallbackBitmap
                 }
             } catch (e: Exception) {
-                createFallbackBitmap()
+                fallbackBitmap
             }
         }
-    }
-
-    private fun createFallbackBitmap(): Bitmap {
-        val bmp = Bitmap.createBitmap(200, 200, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bmp)
-        val paint = Paint().apply { color = Color.DKGRAY }
-        canvas.drawRect(0f, 0f, 200f, 200f, paint)
-        paint.color = Color.WHITE
-        paint.textSize = 40f
-        paint.textAlign = Paint.Align.CENTER
-        canvas.drawText("مفقود", 100f, 110f, paint)
-        return bmp
     }
 
     override fun onDraw(canvas: Canvas) {
