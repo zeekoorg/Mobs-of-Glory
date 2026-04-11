@@ -1,186 +1,164 @@
 package com.zeekoorg.mobsofglory
 
-import android.content.Context
-import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
-import android.view.animation.Animation
-import android.view.animation.AnimationUtils
-import android.widget.Button
+import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.ProgressBar
+import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.constraintlayout.widget.ConstraintSet
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.snackbar.Snackbar
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var rvBuildings: RecyclerView
     private lateinit var tvTotalGold: TextView
     private var totalGold: Long = 1760 
 
+    // أشرطة السحب (لتمهيد تمركز الكاميرا)
+    private lateinit var verticalScrollView: ScrollView
+    private lateinit var horizontalScrollView: HorizontalScrollView
+
+    // حلقة اللعبة النابضة
     private val gameHandler = Handler(Looper.getMainLooper())
     private lateinit var gameRunnable: Runnable
 
-    data class Building(
+    // 💡 بيانات المباني المحدثة للنظام المنظوري
+    data class MapBuilding(
         val name: String,
-        var level: Int,
+        val slotId: Int, // الـ ID في الـ activity_main
         val iconResId: Int,
-        var progress: Float = 0f, 
-        val speed: Float, 
-        val reward: Long, 
-        var upgradeCost: Long 
+        var level: Int = 1,
+        var currentProgress: Float = 0f,
+        val productionSpeed: Float, // سرعة الجمع
+        val goldReward: Long,
+        var isReadyToCollect: Boolean = false,
+        // متغيرات لربط الواجهة برمجياً
+        var pbView: ProgressBar? = null,
+        var collectIconView: ImageView? = null,
+        var hudContainer: ConstraintLayout? = null
     )
 
-    private val myBuildings = mutableListOf(
-        Building("مزرعة القمح", 1, R.drawable.ic_resource_gold, 0f, 2.5f, 50, 100),
-        Building("منجم الذهب", 1, R.drawable.ic_resource_gold, 0f, 1.0f, 200, 400),
-        Building("ثكنة الفرسان", 1, R.drawable.ic_resource_gold, 0f, 0.5f, 1000, 2000)
+    // إنشاء قائمة مبانيك الملكية في الخريطة
+    private val buildingsOnMap = mutableListOf(
+        MapBuilding("القلعة", R.id.plotCastle, R.drawable.ic_iso_castle, productionSpeed = 0f, goldReward = 0),
+        MapBuilding("المزرعة", R.id.plotFarm, R.drawable.ic_iso_farm, productionSpeed = 3.0f, goldReward = 50),
+        MapBuilding("الثكنة", R.id.plotBarracks, R.drawable.ic_iso_barracks, productionSpeed = 1.0f, goldReward = 200)
     )
-
-    private lateinit var adapter: BuildingsAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         tvTotalGold = findViewById(R.id.tvTotalGold)
-        rvBuildings = findViewById(R.id.rvBuildings)
+        verticalScrollView = findViewById(R.id.verticalScrollView)
+        horizontalScrollView = findViewById(R.id.horizontalScrollView)
 
-        updateTopHud()
+        updateTotalGoldHud()
 
-        rvBuildings.layoutManager = LinearLayoutManager(this)
-        adapter = BuildingsAdapter(buildings = myBuildings, context = this)
-        rvBuildings.adapter = adapter
+        // تهيئة كل مبنى في مكانه برمجياً
+        for (i in buildingsOnMap.indices) {
+            setupBuildingOnMap(buildingsOnMap[i])
+        }
 
+        // تمهيد الكاميرا لتكون في المنتصف عند القلعة
+        verticalScrollView.post { 
+            verticalScrollView.scrollTo(0, (1200 / 2) - (verticalScrollView.height / 2)) 
+        }
+        horizontalScrollView.post { 
+            horizontalScrollView.scrollTo((1500 / 2) - (horizontalScrollView.width / 2), 0) 
+        }
+
+        // تشغيل قلب اللعبة النابض! 💓
         startGameLoop()
+    }
+
+    private fun setupBuildingOnMap(building: MapBuilding) {
+        // البحث عن الحاوية (Slot) في الـ activity_main
+        val plotContainer = findViewById<ConstraintLayout>(building.slotId) ?: return
+
+        // ربط الواجهات داخل الـ plot (لأننا استخدمنا include)
+        val imgBuilding = plotContainer.findViewById<ImageView>(R.id.imgBuilding)
+        val pbCollection = plotContainer.findViewById<ProgressBar>(R.id.pbCollectionTimer)
+        val imgCollect = plotContainer.findViewById<ImageView>(R.id.imgCollectIcon)
+        val hudContainer = plotContainer.findViewById<ConstraintLayout>(R.id.hudContainer)
+
+        // وضع صورة المبنى الصحيحة
+        imgBuilding.setImageResource(building.iconResId)
+
+        // حفظ المراجع للواجهات للكود لاحقاً
+        building.pbView = pbCollection
+        building.collectIconView = imgCollect
+        building.hudContainer = hudContainer
+
+        // لا داعي لإظهار الشريط إذا لم يكن للمبنى إنتاج
+        if (building.productionSpeed > 0f) {
+            hudContainer.visibility = View.VISIBLE
+        }
+
+        // النقر على المبنى (للترقية مستقبلاً)
+        imgBuilding.setOnClickListener {
+            if (!building.isReadyToCollect) {
+                Toast.makeText(this, "${building.name} مستوى ${building.level}", Toast.LENGTH_SHORT).show()
+                // هنا سنفتح نافذة الترقية لاحقاً! 🔜
+            } else {
+                collectResource(building)
+            }
+        }
+
+        // النقر على أيقونة الجمع المباشرة
+        imgCollect.setOnClickListener { collectResource(building) }
+    }
+
+    private fun collectResource(building: MapBuilding) {
+        if (!building.isReadyToCollect) return
+        
+        // إضافة الذهب للرصيد
+        totalGold += building.goldReward
+        updateTotalGoldHud()
+        
+        // إعادة تهيئة العداد
+        building.currentProgress = 0f
+        building.pbView?.progress = 0
+        building.isReadyToCollect = false
+        building.collectIconView?.visibility = View.GONE
+        building.pbView?.visibility = View.VISIBLE
     }
 
     private fun startGameLoop() {
         gameRunnable = object : Runnable {
             override fun run() {
-                for (i in myBuildings.indices) {
-                    val building = myBuildings[i]
-                    building.progress += building.speed 
-                    
-                    if (building.progress >= 100f) {
-                        building.progress = 0f 
-                        totalGold += building.reward 
-                        updateTopHud()
+                for (i in buildingsOnMap.indices) {
+                    val building = buildingsOnMap[i]
+                    if (building.productionSpeed > 0f && !building.isReadyToCollect) {
                         
-                        animateGoldCounterRipple()
+                        building.currentProgress += building.productionSpeed
+                        
+                        // تحديث الشريط العائم برمجياً
+                        building.pbView?.progress = building.currentProgress.toInt()
+
+                        // إذا اكتمل الجمع
+                        if (building.currentProgress >= 100f) {
+                            building.isReadyToCollect = true
+                            building.pbView?.visibility = View.INVISIBLE
+                            building.collectIconView?.visibility = View.VISIBLE
+                            
+                            // أنيميشن نبض خفيف لأيقونة الجمع لإغراء اللاعب
+                            val animPulse = AnimationUtils.loadAnimation(this@MainActivity, android.R.anim.fade_in)
+                            building.collectIconView?.startAnimation(animPulse)
+                        }
                     }
                 }
-                
-                adapter.notifyDataSetChanged()
-                gameHandler.postDelayed(this, 50)
+                gameHandler.postDelayed(this, 100) // كل 100ms
             }
         }
         gameHandler.post(gameRunnable)
     }
 
-    private fun updateTopHud() {
-        tvTotalGold.text = "$totalGold"
-    }
-
-    private fun animateGoldCounterRipple() {
-        val animPulse = AnimationUtils.loadAnimation(this, android.R.anim.fade_in)
-        animPulse.duration = 200
-        tvTotalGold.startAnimation(animPulse)
-    }
-
-    inner class BuildingsAdapter(
-        private val buildings: List<Building>, 
-        private val context: Context
-    ) : RecyclerView.Adapter<BuildingsAdapter.ViewHolder>() {
-
-        inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val imgIcon: ImageView = view.findViewById(R.id.imgBuildingIcon)
-            val tvName: TextView = view.findViewById(R.id.tvBuildingName)
-            val tvLevel: TextView = view.findViewById(R.id.tvBuildingLevel)
-            val pbProgress: ProgressBar = view.findViewById(R.id.pbResourceCollection)
-            val btnUpgrade: Button = view.findViewById(R.id.btnUpgrade)
-            
-            // 💡 التعديل هنا: جلب الحاوية مباشرة بدون الاعتماد على ID لتجنب أي خطأ في ملف XML
-            val cardParentLayout: ConstraintLayout = (view as ViewGroup).getChildAt(0) as ConstraintLayout
-        }
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_building_card, parent, false)
-            return ViewHolder(view)
-        }
-
-        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            val building = buildings[position]
-
-            holder.tvName.text = building.name
-            holder.tvLevel.text = "مستوى ${building.level}"
-            holder.pbProgress.progress = building.progress.toInt()
-            holder.btnUpgrade.text = "ترقية\n${building.upgradeCost}"
-
-            if (building.progress == 0f) {
-                animateFloatingGold(holder.cardParentLayout)
-            }
-
-            holder.btnUpgrade.setOnClickListener {
-                if (totalGold >= building.upgradeCost) {
-                    totalGold -= building.upgradeCost 
-                    building.level++ 
-                    building.upgradeCost = (building.upgradeCost * 1.5).toLong() 
-                    updateTopHud()
-                } else {
-                    // 💡 التعديل هنا: إصلاح خطأ الـ Snackbar واللون لتجنب مشاكل colors.xml
-                    Snackbar.make(holder.itemView, "لا تملك الذهب الكافي، أيها الملك!", Snackbar.LENGTH_SHORT)
-                        .setBackgroundTint(Color.parseColor("#8B0000")) // أحمر ملكي مباشر
-                        .setTextColor(Color.WHITE)
-                        .show()
-                }
-            }
-        }
-
-        override fun getItemCount(): Int = buildings.size
-
-        private fun animateFloatingGold(container: ConstraintLayout) {
-            val floatingGold = ImageView(context)
-            floatingGold.setImageResource(R.drawable.ic_resource_gold)
-            floatingGold.alpha = 0.8f 
-            floatingGold.id = View.generateViewId()
-
-            val layoutParams = ConstraintLayout.LayoutParams(60, 60) 
-            floatingGold.layoutParams = layoutParams
-
-            container.addView(floatingGold)
-
-            val constraintSet = ConstraintSet()
-            constraintSet.clone(container)
-            constraintSet.connect(floatingGold.id, ConstraintSet.TOP, container.id, ConstraintSet.TOP)
-            constraintSet.connect(floatingGold.id, ConstraintSet.BOTTOM, container.id, ConstraintSet.BOTTOM)
-            constraintSet.connect(floatingGold.id, ConstraintSet.START, container.id, ConstraintSet.START)
-            constraintSet.connect(floatingGold.id, ConstraintSet.END, container.id, ConstraintSet.END)
-            constraintSet.setHorizontalBias(floatingGold.id, 0.2f) 
-            constraintSet.applyTo(container)
-
-            // 💡 التعديل هنا: إصلاح الاستدعاء الخاطئ لمكتبة الأنيميشن
-            val animFloat = AnimationUtils.loadAnimation(context, R.anim.float_up_and_fade)
-            animFloat.setAnimationListener(object : Animation.AnimationListener {
-                override fun onAnimationStart(animation: Animation?) {}
-                override fun onAnimationEnd(animation: Animation?) {
-                    gameHandler.post {
-                        container.removeView(floatingGold)
-                    }
-                }
-                override fun onAnimationRepeat(animation: Animation?) {}
-            })
-            floatingGold.startAnimation(animFloat)
-        }
+    private fun updateTotalGoldHud() {
+        tvTotalGold.text = "الذهب: $totalGold"
     }
 }
