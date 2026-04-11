@@ -7,7 +7,6 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
-import androidx.core.content.ContextCompat
 import kotlin.random.Random
 
 class KingdomMapView @JvmOverloads constructor(
@@ -31,7 +30,6 @@ class KingdomMapView @JvmOverloads constructor(
     private val castles = mutableListOf<Castle>()
     private val bitmapCache = mutableMapOf<Int, Bitmap>()
 
-    // 💡 الحل السحري: تصميم المربع الاحتياطي مرة واحدة فقط في الذاكرة لتجنب الانهيار (OOM)
     private val fallbackBitmap: Bitmap by lazy {
         val bmp = Bitmap.createBitmap(200, 200, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
@@ -100,16 +98,13 @@ class KingdomMapView @JvmOverloads constructor(
         val worldHeight = 5000f
 
         val playerResId = context.resources.getIdentifier("ic_map_castle_player", "drawable", context.packageName)
-        val playerCastle = Castle(0, playerName, CastleType.PLAYER, 2500f, 2500f, playerLevel, playerLevel * 15000, playerResId)
-        castles.add(playerCastle)
+        castles.add(Castle(0, playerName, CastleType.PLAYER, 2500f, 2500f, playerLevel, playerLevel * 15000, playerResId))
 
         val bossResId = context.resources.getIdentifier("ic_map_castle_boss", "drawable", context.packageName)
-        val bossCastle = Castle(1, "وحوش المجد", CastleType.BOSS_MOBS_OF_GLORY, 2750f, 2350f, playerLevel + 5, 999999, bossResId)
-        castles.add(bossCastle)
+        castles.add(Castle(1, "وحوش المجد", CastleType.BOSS_MOBS_OF_GLORY, 2750f, 2350f, playerLevel + 5, 999999, bossResId))
 
         val fixedRandom = Random(12345) 
-        val arabicNames = listOf("السفاح", "أسد", "صقر", "الجلاد", "فارس", "المدمر", "عاصفة", "زلزال", "كابوس", "رعد")
-        val englishNames = listOf("Shadow", "DarkKnight", "Killer", "Titan", "Ghost", "Viper", "Doom", "Ninja", "Reaper", "Blade")
+        val arabicNames = listOf("السفاح", "أسد", "صقر", "الجلاد", "فارس", "المدمر", "عاصفة", "زلزال")
         
         for (i in 2..101) {
             val randomX = fixedRandom.nextFloat() * (worldWidth - 300f) + 150f
@@ -118,9 +113,9 @@ class KingdomMapView @JvmOverloads constructor(
 
             val randomLevel = fixedRandom.nextInt(1, 100)
             val randomPower = randomLevel * fixedRandom.nextInt(1000, 5000)
-            val name = if (fixedRandom.nextBoolean()) arabicNames.random(fixedRandom) else englishNames.random(fixedRandom)
+            val name = arabicNames.random(fixedRandom)
             
-            // 💡 هنا يتم سحب الصور من 1 إلى 20، أو سيعطيك المربع الاحتياطي إذا لم يجدها
+            // سحب الصورة، وإذا لم يجدها سيرجع صفر
             val resId = context.resources.getIdentifier("ic_map_castle_$i", "drawable", context.packageName)
             castles.add(Castle(i, "$name ($i)", CastleType.ENEMY, randomX, randomY, randomLevel, randomPower, resId))
         }
@@ -132,24 +127,16 @@ class KingdomMapView @JvmOverloads constructor(
         val transX = floatValues[Matrix.MTRANS_X]
         val transY = floatValues[Matrix.MTRANS_Y]
         val currentScale = floatValues[Matrix.MSCALE_X]
-        val centerX = (-transX + (width / 2f)) / currentScale
-        val centerY = (-transY + (height / 2f)) / currentScale
-        return PointF(centerX, centerY)
+        return PointF((-transX + (width / 2f)) / currentScale, (-transY + (height / 2f)) / currentScale)
     }
 
-    fun getCurrentScale(): Float {
-        matrix.getValues(floatValues)
-        return floatValues[Matrix.MSCALE_X]
-    }
+    fun getCurrentScale(): Float = floatValues.apply { matrix.getValues(this) }[Matrix.MSCALE_X]
 
     fun centerOnPoint(x: Float, y: Float) {
-        val targetScale = 1.0f 
-        scaleFactor = targetScale
-        val transX = (width / 2f) - (x * targetScale)
-        val transY = (height / 2f) - (y * targetScale)
+        scaleFactor = 1.0f 
         matrix.reset()
-        matrix.postScale(targetScale, targetScale)
-        matrix.postTranslate(transX, transY)
+        matrix.postScale(scaleFactor, scaleFactor)
+        matrix.postTranslate((width / 2f) - (x * scaleFactor), (height / 2f) - (y * scaleFactor))
         constrainPan()
         invalidate()
     }
@@ -164,10 +151,7 @@ class KingdomMapView @JvmOverloads constructor(
         for (i in castles.indices.reversed()) {
             val castle = castles[i]
             val bmp = getCastleBitmap(castle.resId)
-            val width = bmp.width.toFloat()
-            val height = bmp.height.toFloat()
-            
-            if (tapX >= castle.x && tapX <= castle.x + width && tapY >= castle.y && tapY <= castle.y + height) {
+            if (tapX >= castle.x && tapX <= castle.x + bmp.width && tapY >= castle.y && tapY <= castle.y + bmp.height) {
                 onCastleClickListener?.invoke(castle)
                 break
             }
@@ -184,14 +168,8 @@ class KingdomMapView @JvmOverloads constructor(
         val mapWidth = mapBitmap!!.width * currentScale
         val mapHeight = mapBitmap!!.height * currentScale
 
-        var newTransX = transX
-        var newTransY = transY
-
-        if (mapWidth < width) newTransX = (width - mapWidth) / 2f
-        else newTransX = transX.coerceIn(width - mapWidth, 0f)
-
-        if (mapHeight < height) newTransY = (height - mapHeight) / 2f
-        else newTransY = transY.coerceIn(height - mapHeight, 0f)
+        val newTransX = if (mapWidth < width) (width - mapWidth) / 2f else transX.coerceIn(width - mapWidth, 0f)
+        val newTransY = if (mapHeight < height) (height - mapHeight) / 2f else transY.coerceIn(height - mapHeight, 0f)
 
         matrix.getValues(floatValues)
         floatValues[Matrix.MTRANS_X] = newTransX
@@ -205,25 +183,34 @@ class KingdomMapView @JvmOverloads constructor(
         return true
     }
 
-    // 💡 استدعاء آمن بنسبة 100% للصور، إذا كانت مفقودة سيعود للـ fallbackBitmap المحفوظ مسبقاً
+    // 💡 حماية صارمة ضد الصور العملاقة (OOM) عبر ضغطها أثناء التحميل
     private fun getCastleBitmap(resId: Int): Bitmap {
         if (resId == 0) return fallbackBitmap
         return bitmapCache.getOrPut(resId) {
             try {
-                val drawable = ContextCompat.getDrawable(context, resId)
-                if (drawable != null) {
-                    val bmp = Bitmap.createBitmap(200, 200, Bitmap.Config.ARGB_8888)
-                    val canvas = Canvas(bmp)
-                    drawable.setBounds(0, 0, canvas.width, canvas.height)
-                    drawable.draw(canvas)
-                    bmp
-                } else {
-                    fallbackBitmap
-                }
+                val options = BitmapFactory.Options()
+                options.inJustDecodeBounds = true
+                BitmapFactory.decodeResource(context.resources, resId, options)
+                options.inSampleSize = calculateInSampleSize(options, 200, 200)
+                options.inJustDecodeBounds = false
+                
+                val original = BitmapFactory.decodeResource(context.resources, resId, options)
+                if (original != null) Bitmap.createScaledBitmap(original, 200, 200, true) else fallbackBitmap
             } catch (e: Exception) {
                 fallbackBitmap
             }
         }
+    }
+
+    private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+        val (height: Int, width: Int) = options.outHeight to options.outWidth
+        var inSampleSize = 1
+        if (height > reqHeight || width > reqWidth) {
+            val halfHeight: Int = height / 2
+            val halfWidth: Int = width / 2
+            while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) inSampleSize *= 2
+        }
+        return inSampleSize
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -231,9 +218,7 @@ class KingdomMapView @JvmOverloads constructor(
         canvas.save()
         canvas.concat(matrix)
 
-        mapBitmap?.let {
-            canvas.drawBitmap(it, null, RectF(0f, 0f, 5000f, 5000f), null)
-        } ?: canvas.drawColor(Color.parseColor("#4A3B2C"))
+        mapBitmap?.let { canvas.drawBitmap(it, null, RectF(0f, 0f, 5000f, 5000f), null) } ?: canvas.drawColor(Color.parseColor("#4A3B2C"))
 
         for (castle in castles) {
             val bmp = getCastleBitmap(castle.resId)
