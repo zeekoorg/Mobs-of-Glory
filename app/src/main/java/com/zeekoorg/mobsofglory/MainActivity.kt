@@ -2,7 +2,6 @@ package com.zeekoorg.mobsofglory
 
 import android.content.Context
 import android.graphics.Color
-import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -17,6 +16,8 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -26,7 +27,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var rvBuildings: RecyclerView
     private lateinit var tvTotalGold: TextView
-    private lateinit var topHudContainer: ConstraintLayout
     private var totalGold: Long = 1760 
 
     private val gameHandler = Handler(Looper.getMainLooper())
@@ -56,15 +56,13 @@ class MainActivity : AppCompatActivity() {
 
         tvTotalGold = findViewById(R.id.tvTotalGold)
         rvBuildings = findViewById(R.id.rvBuildings)
-        topHudContainer = findViewById(R.id.topHudContainer) // سنحتاج هذا لتأثير الجسيمات
 
         updateTopHud()
 
         rvBuildings.layoutManager = LinearLayoutManager(this)
-        adapter = BuildingsAdapter(buildings = myBuildings, context = this, topHudView = topHudContainer)
+        adapter = BuildingsAdapter(buildings = myBuildings, context = this)
         rvBuildings.adapter = adapter
 
-        // تشغيل قلب اللعبة النابض! 💓
         startGameLoop()
     }
 
@@ -80,15 +78,14 @@ class MainActivity : AppCompatActivity() {
                         totalGold += building.reward 
                         updateTopHud()
                         
-                        // تأثير النبض على العداد الذهبي عند اكتمال الجمع
+                        // تأثير النبض على العداد الذهبي في الأعلى
                         animateGoldCounterRipple()
                     }
                 }
                 
-                // تحديث الشاشة لتظهر الحركة (سلسة جداً 60 FPS)
+                // تحديث الشاشة لتظهر الحركة بسلاسة جداً
                 adapter.notifyDataSetChanged()
                 
-                // تكرار العملية
                 gameHandler.postDelayed(this, 50)
             }
         }
@@ -107,8 +104,7 @@ class MainActivity : AppCompatActivity() {
 
     inner class BuildingsAdapter(
         private val buildings: List<Building>, 
-        private val context: Context,
-        private val topHudView: ConstraintLayout // لقص الذهب الطائر
+        private val context: Context
     ) : RecyclerView.Adapter<BuildingsAdapter.ViewHolder>() {
 
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -117,7 +113,8 @@ class MainActivity : AppCompatActivity() {
             val tvLevel: TextView = view.findViewById(R.id.tvBuildingLevel)
             val pbProgress: ProgressBar = view.findViewById(R.id.pbResourceCollection)
             val btnUpgrade: Button = view.findViewById(R.id.btnUpgrade)
-            val parentConstraint: ConstraintLayout = view.findViewById(R.id.parentConstraint) // الحاوية الرئيسية للبطاقة
+            // 💡 أضفنا معرف للحاوية الرئيسية للبطاقة
+            val cardParentLayout: ConstraintLayout = view.findViewById(R.id.cardParentLayout) 
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -130,27 +127,22 @@ class MainActivity : AppCompatActivity() {
 
             holder.tvName.text = building.name
             holder.tvLevel.text = "مستوى ${building.level}"
-            
-            // تحديث شريط التقدم بسلاسة
             holder.pbProgress.progress = building.progress.toInt()
-            
             holder.btnUpgrade.text = "ترقية\n${building.upgradeCost}"
 
-            // ماذا يحدث عند اكتمال الشريط في هذا الإطار؟
+            // ماذا يحدث عند اكتمال الشريط؟
             if (building.progress == 0f) {
-                // تأثير الذهب الطائر من البطاقة للأعلى!
-                animateFloatingGold(holder.pbProgress)
+                // 💡 تأثير الذهب الطائر: نرسل الحاوية الرئيسية للبطاقة
+                animateFloatingGold(holder.cardParentLayout)
             }
 
-            // زر الترقية الملكي
             holder.btnUpgrade.setOnClickListener {
                 if (totalGold >= building.upgradeCost) {
-                    totalGold -= building.upgradeCost // خصم السعر
-                    building.level++ // زيادة المستوى
-                    building.upgradeCost = (building.upgradeCost * 1.5).toLong() // زيادة سعر الترقية القادمة
+                    totalGold -= building.upgradeCost 
+                    building.level++ 
+                    building.upgradeCost = (building.upgradeCost * 1.5).toLong() 
                     updateTopHud()
                 } else {
-                    // رسالة ملكية بأنك لا تملك الذهب الكافي!
                     Snackbar.make(holder.itemView, "لا تملك الذهب الكافي، أيها الملك!", Snackbar.make.LENGTH_SHORT)
                         .setBackgroundTint(ContextCompat.getColor(context, R.color.royal_red))
                         .setTextColor(Color.WHITE)
@@ -161,28 +153,43 @@ class MainActivity : AppCompatActivity() {
 
         override fun getItemCount(): Int = buildings.size
 
-        private fun animateFloatingGold(pbView: View) {
+        // 💡 دالة الذهب الطائر (المصلحة 100% وبدون انهيار)
+        private fun animateFloatingGold(container: ConstraintLayout) {
             // تأثير الذهب الطائر: إنشاء أيقونة ذهبية مؤقتة
             val floatingGold = ImageView(context)
             floatingGold.setImageResource(R.drawable.ic_resource_gold)
-            floatingGold.alpha = 0.8f // شفافة قليلاً
-            
-            val layoutParams = FrameLayout.LayoutParams(60, 60) // مقاس الأيقونة الطائرة
-            layoutParams.gravity = Gravity.CENTER
+            floatingGold.alpha = 0.8f 
+            floatingGold.id = View.generateViewId() // معرف فريد
+
+            // تحديد مقاس الأيقونة الطائرة
+            val layoutParams = ConstraintLayout.LayoutParams(60, 60) 
             floatingGold.layoutParams = layoutParams
 
-            // إضافة الذهب الطائر إلى الـ PBView للحركة
-            (pbView as ConstraintLayout).addView(floatingGold) // أو PB نفسه
+            // إضافة الذهب الطائر إلى الحاوية الرئيسية للبطاقة
+            container.addView(floatingGold)
 
-            // تشغيل الأنيميشن
+            // تحديد مكان الأيقونة لتظهر فوق شريط التقدم (Roughly)
+            val constraintSet = ConstraintSet()
+            constraintSet.clone(container)
+            constraintSet.connect(floatingGold.id, ConstraintSet.TOP, container.id, ConstraintSet.TOP)
+            constraintSet.connect(floatingGold.id, ConstraintSet.BOTTOM, container.id, ConstraintSet.BOTTOM)
+            constraintSet.connect(floatingGold.id, ConstraintSet.START, container.id, ConstraintSet.START)
+            constraintSet.connect(floatingGold.id, ConstraintSet.END, container.id, ConstraintSet.END)
+            // تحريكها قليلاً لليسار لتكون فوق منطقة الصورة/الجمع
+            constraintSet.setHorizontalBias(floatingGold.id, 0.2f) 
+            constraintSet.applyTo(container)
+
+            // تشغيل الأنيميشن (المعرفة في res/anim/float_up_and_fade.xml)
             val animFloat = AnimationUtils.loadAnimation(context, R.anim.float_up_and_fade)
             animFloat.setAnimationListener(object : AnimationUtils.AnimationListener {
-                override fun onAnimationStart(animation: AnimationUtils.AnimationListener) {}
-                override fun onAnimationEnd(animation: AnimationUtils.AnimationListener) {
+                override fun onAnimationStart(animation: android.view.animation.Animation?) {}
+                override fun onAnimationEnd(animation: android.view.animation.Animation?) {
                     // مسح الأيقونة من الشاشة بعد اكتمال الحركة
-                    pbView.removeView(floatingGold)
+                    gameHandler.post {
+                        container.removeView(floatingGold)
+                    }
                 }
-                override fun onAnimationRepeat(animation: AnimationUtils.AnimationListener) {}
+                override fun onAnimationRepeat(animation: android.view.animation.Animation?) {}
             })
             floatingGold.startAnimation(animFloat)
         }
