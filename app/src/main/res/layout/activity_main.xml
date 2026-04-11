@@ -29,8 +29,7 @@
                     android:id="@+id/imgCityTerrain"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:scaleType="fitXY"
-                    android:src="@drawable/bg_royal_city" />
+                    android:scaleType="fitXY" />
 
                 <FrameLayout
                     android:id="@+id/plotCastle"
@@ -112,10 +111,10 @@
         android:orientation="horizontal"
         android:weightSum="4"
         app:layout_constraintBottom_toBottomOf="parent">
-        <Button layout_width="0dp" layout_height="match_parent" layout_weight="1" backgroundTint="#00000000" text="الأبطال" textColor="#FFF" />
-        <Button layout_width="0dp" layout_height="match_parent" layout_weight="1" backgroundTint="#00000000" text="المدينة" textColor="#FFD700" />
-        <Button layout_width="0dp" layout_height="match_parent" layout_weight="1" backgroundTint="#00000000" text="المهام" textColor="#FFF" />
-        <Button layout_width="0dp" layout_height="match_parent" layout_weight="1" backgroundTint="#00000000" text="التحالف" textColor="#FFF" />
+        <Button android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:backgroundTint="#00000000" android:text="الأبطال" android:textColor="#FFF" />
+        <Button android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:backgroundTint="#00000000" android:text="المدينة" android:textColor="#FFD700" />
+        <Button android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:backgroundTint="#00000000" android:text="المهام" android:textColor="#FFF" />
+        <Button android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:backgroundTint="#00000000" android:text="التحالف" android:textColor="#FFF" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
