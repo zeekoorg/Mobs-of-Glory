@@ -38,6 +38,21 @@ class MainActivity : AppCompatActivity() {
     private val playerCastleY = 2500f
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        sharedPrefs = getSharedPreferences("MobsOfGloryData", Context.MODE_PRIVATE)
+        
+        // 💡 نظام كشف الانهيار (الصندوق الأسود): يقرأ الخطأ إذا حدث في المرة السابقة
+        val lastError = sharedPrefs.getString("CRASH_LOG", null)
+        if (lastError != null) {
+            sharedPrefs.edit().remove("CRASH_LOG").apply()
+            Toast.makeText(this, "سبب الخروج السابق:\n$lastError", Toast.LENGTH_LONG).show()
+        }
+
+        // 💡 صائد الانهيارات الجديد: يسجل سبب الانهيار قبل إغلاق التطبيق
+        Thread.setDefaultUncaughtExceptionHandler { _, e ->
+            sharedPrefs.edit().putString("CRASH_LOG", "${e.message} \nالسطر: ${e.stackTrace[0].lineNumber}").commit()
+            System.exit(1)
+        }
+
         super.onCreate(savedInstanceState)
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -45,10 +60,14 @@ class MainActivity : AppCompatActivity() {
         }
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        sharedPrefs = getSharedPreferences("MobsOfGloryData", Context.MODE_PRIVATE)
+        try {
+            binding = ActivityMainBinding.inflate(layoutInflater)
+            setContentView(binding.root)
+        } catch (e: Exception) {
+            // إذا انهار هنا، فالسبب 100% أن هناك صور مفقودة في ملف activity_main.xml
+            Toast.makeText(this, "خطأ في الواجهة (صور مفقودة)! ${e.message}", Toast.LENGTH_LONG).show()
+            return
+        }
 
         setupRoyalDoors()
         setupKingdomMap()
@@ -59,46 +78,49 @@ class MainActivity : AppCompatActivity() {
         binding.playerProfileContainer.setOnClickListener { showPlayerProfileDialog() }
     }
 
+    // 💡 دالة آمنة لجلب البيانات القديمة حتى لو كانت محفوظة كنصوص (String)
+    private fun getSafeInt(key: String, defValue: Int): Int {
+        return try {
+            sharedPrefs.getInt(key, defValue)
+        } catch (e: Exception) {
+            try {
+                sharedPrefs.getString(key, defValue.toString())?.toInt() ?: defValue
+            } catch (e2: Exception) { defValue }
+        }
+    }
+
     private fun setupHUD() {
         val playerName = sharedPrefs.getString("PLAYER_NAME", "زيكو") ?: "زيكو"
         binding.tvPlayerName.text = playerName
         
         val savedImage = sharedPrefs.getString("PLAYER_IMAGE_PATH", null)
         if (savedImage != null) {
-            val file = File(savedImage)
-            if (file.exists()) {
-                binding.imgMainAvatar.setImageBitmap(BitmapFactory.decodeFile(file.absolutePath))
-            }
+            try {
+                val file = File(savedImage)
+                if (file.exists()) binding.imgMainAvatar.setImageBitmap(BitmapFactory.decodeFile(file.absolutePath))
+            } catch (e: Exception) { /* حماية المسار */ }
         }
 
-        val power = sharedPrefs.getInt("LEVEL_CANNON", 1) * 5000 + sharedPrefs.getInt("LEVEL_SOLDIER", 1) * 3000 + sharedPrefs.getInt("KINGDOM_LEVEL", 1) * 15000
+        val power = getSafeInt("LEVEL_CANNON", 1) * 5000 + getSafeInt("LEVEL_SOLDIER", 1) * 3000 + getSafeInt("KINGDOM_LEVEL", 1) * 15000
         binding.tvPlayerPower.text = "القوة: " + formatResourceAmount(power)
 
-        setupResourceItem(binding.resGold.root, R.drawable.ic_gold_rok, sharedPrefs.getInt("coins", 0), "coins")
-        setupResourceItem(binding.resFood.root, R.drawable.ic_food_rok, sharedPrefs.getInt("food", 5000), "food")
-        setupResourceItem(binding.resWood.root, R.drawable.ic_wood_rok, sharedPrefs.getInt("wood", 5000), "wood")
-        setupResourceItem(binding.resStone.root, R.drawable.ic_stone_rok, sharedPrefs.getInt("stone", 1000), "stone")
-        setupResourceItem(binding.resGems.root, R.drawable.ic_gems_rok, sharedPrefs.getInt("gems", 0), "gems")
+        setupResourceItem(binding.resGold.root, R.drawable.ic_gold_rok, getSafeInt("coins", 0), "coins")
+        setupResourceItem(binding.resFood.root, R.drawable.ic_food_rok, getSafeInt("food", 5000), "food")
+        setupResourceItem(binding.resWood.root, R.drawable.ic_wood_rok, getSafeInt("wood", 5000), "wood")
+        setupResourceItem(binding.resStone.root, R.drawable.ic_stone_rok, getSafeInt("stone", 1000), "stone")
+        setupResourceItem(binding.resGems.root, R.drawable.ic_gems_rok, getSafeInt("gems", 0), "gems")
     }
 
     private fun setupResourceItem(view: View, iconRes: Int, amount: Int, prefKey: String) {
-        val imgIcon = view.findViewById<ImageView>(R.id.imgResIcon)
-        val tvAmount = view.findViewById<TextView>(R.id.tvResAmount)
-        val btnAdd = view.findViewById<ImageView>(R.id.btnResAdd)
-        
-        if (imgIcon != null) imgIcon.setImageResource(iconRes)
-        if (tvAmount != null) tvAmount.text = formatResourceAmount(amount)
-        if (btnAdd != null) {
-            btnAdd.setOnClickListener {
-                Toast.makeText(this, "جاري تحميل الإعلان...", Toast.LENGTH_SHORT).show()
-                YandexAdsManager.showRewardedAd(this, onRewarded = {
-                    val current = sharedPrefs.getInt(prefKey, 0)
-                    val reward = if(prefKey == "gems") 100 else 10000
-                    sharedPrefs.edit().putInt(prefKey, current + reward).apply()
-                }, onAdClosed = {
-                    setupHUD()
-                })
-            }
+        view.findViewById<ImageView>(R.id.imgResIcon)?.setImageResource(iconRes)
+        view.findViewById<TextView>(R.id.tvResAmount)?.text = formatResourceAmount(amount)
+        view.findViewById<ImageView>(R.id.btnResAdd)?.setOnClickListener {
+            Toast.makeText(this, "جاري تحميل الإعلان...", Toast.LENGTH_SHORT).show()
+            YandexAdsManager.showRewardedAd(this, onRewarded = {
+                val current = getSafeInt(prefKey, 0)
+                val reward = if(prefKey == "gems") 100 else 10000
+                sharedPrefs.edit().putInt(prefKey, current + reward).apply()
+            }, onAdClosed = { setupHUD() })
         }
     }
 
@@ -114,24 +136,18 @@ class MainActivity : AppCompatActivity() {
         val mapView = binding.kingdomMapView
         val mapResId = resources.getIdentifier("bg_world_map", "drawable", packageName)
         
-        // 💡 الحماية القصوى: تحميل آمن ومضغوط للخريطة العملاقة
         if (mapResId != 0) {
             val options = BitmapFactory.Options()
             options.inJustDecodeBounds = true
             BitmapFactory.decodeResource(resources, mapResId, options)
-            
             options.inSampleSize = calculateInSampleSize(options, 2048, 2048)
             options.inJustDecodeBounds = false
-            
             try {
-                val mapBmp = BitmapFactory.decodeResource(resources, mapResId, options)
-                mapView.setMapBackground(mapBmp)
-            } catch (e: Exception) {
-                mapView.setMapBackground(null)
-            }
+                mapView.setMapBackground(BitmapFactory.decodeResource(resources, mapResId, options))
+            } catch (e: Exception) { mapView.setMapBackground(null) }
         }
 
-        val playerLevel = sharedPrefs.getInt("KINGDOM_LEVEL", 1)
+        val playerLevel = getSafeInt("KINGDOM_LEVEL", 1)
         val playerName = sharedPrefs.getString("PLAYER_NAME", "زيكو") ?: "زيكو"
         mapView.initializeFixedWorld(playerLevel, playerName)
 
@@ -146,16 +162,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 دالة رياضية لضغط الصور العملاقة ومنع انهيار الرامات
     private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
         val (height: Int, width: Int) = options.outHeight to options.outWidth
         var inSampleSize = 1
         if (height > reqHeight || width > reqWidth) {
             val halfHeight: Int = height / 2
             val halfWidth: Int = width / 2
-            while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
-                inSampleSize *= 2
-            }
+            while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) inSampleSize *= 2
         }
         return inSampleSize
     }
@@ -184,23 +197,13 @@ class MainActivity : AppCompatActivity() {
         dialog.setContentView(R.layout.dialog_player_profile)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         
-        val savedImage = sharedPrefs.getString("PLAYER_IMAGE_PATH", null)
-        if (savedImage != null && File(savedImage).exists()) {
-            dialog.findViewById<ImageView>(R.id.imgProfileAvatar).setImageBitmap(BitmapFactory.decodeFile(savedImage))
-        }
-        
         dialog.findViewById<TextView>(R.id.tvProfileName).text = sharedPrefs.getString("PLAYER_NAME", "زيكو")
         
-        val armyPwr = sharedPrefs.getInt("LEVEL_SOLDIER", 1) * 3000
-        val equipPwr = sharedPrefs.getInt("LEVEL_CANNON", 1) * 5000
-        val heroPwr = sharedPrefs.getInt("LEVEL_CHAMPION", 1) * 8000
-        val totalPwr = armyPwr + equipPwr + heroPwr
-
-        dialog.findViewById<TextView>(R.id.tvTotalPower).text = formatResourceAmount(totalPwr)
-        dialog.findViewById<TextView>(R.id.tvArmyPower).text = formatResourceAmount(armyPwr)
-        dialog.findViewById<TextView>(R.id.tvEquipPower).text = formatResourceAmount(equipPwr)
-        dialog.findViewById<TextView>(R.id.tvHeroPower).text = formatResourceAmount(heroPwr)
-
+        val armyPwr = getSafeInt("LEVEL_SOLDIER", 1) * 3000
+        val equipPwr = getSafeInt("LEVEL_CANNON", 1) * 5000
+        val heroPwr = getSafeInt("LEVEL_CHAMPION", 1) * 8000
+        
+        dialog.findViewById<TextView>(R.id.tvTotalPower).text = formatResourceAmount(armyPwr + equipPwr + heroPwr)
         dialog.findViewById<ImageView>(R.id.btnCloseProfile).setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
@@ -216,9 +219,7 @@ class MainActivity : AppCompatActivity() {
             val dy = center.y - playerCastleY
             
             val distance = hypot(dx.toDouble(), dy.toDouble()).toFloat()
-
-            val threshold = (resources.displayMetrics.widthPixels / 2f) / scale
-            if (distance > threshold) {
+            if (distance > (resources.displayMetrics.widthPixels / 2f) / scale) {
                 btnLocator.visibility = View.VISIBLE
                 val angle = kotlin.math.atan2(dy.toDouble(), dx.toDouble())
                 btnLocator.rotation = Math.toDegrees(angle).toFloat() - 90f
