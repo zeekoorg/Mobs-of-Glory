@@ -5,18 +5,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layoutDirection="ltr"
-    tools:context=".MainActivity">
-
-    <com.zeekoorg.mobsofglory.KingdomMapView
-        android:id="@+id/kingdomMapView"
+    android:background="#1A1A1A"> <ImageView
+        android:id="@+id/imgCityBackground"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <androidx.constraintlayout.widget.ConstraintLayout
+        android:scaleType="centerCrop"
+        android:src="@drawable/bg_world_map"
+        android:alpha="0.4" /> <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/topHudContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -29,8 +24,6 @@
             android:layout_height="64dp"
             android:layout_marginStart="12dp"
             android:background="@drawable/bg_sultans_player_pill"
-            android:clickable="true"
-            android:focusable="true"
             android:paddingEnd="16dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
@@ -98,7 +91,6 @@
                 android:textStyle="bold"
                 app:layout_constraintStart_toEndOf="@+id/avatarFrameContainer"
                 app:layout_constraintTop_toBottomOf="@+id/tvPlayerName" />
-
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <LinearLayout
@@ -117,7 +109,6 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="4dp"
                 android:orientation="horizontal">
-
                 <include layout="@layout/item_resource_pill" android:id="@+id/resGold" />
                 <include layout="@layout/item_resource_pill" android:id="@+id/resGems" />
             </LinearLayout>
@@ -126,7 +117,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
-
                 <include layout="@layout/item_resource_pill" android:id="@+id/resFood" />
                 <include layout="@layout/item_resource_pill" android:id="@+id/resWood" />
                 <include layout="@layout/item_resource_pill" android:id="@+id/resStone" />
@@ -134,18 +124,25 @@
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <ImageButton
-        android:id="@+id/btnHomeLocator"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="32dp"
-        android:background="@android:color/transparent"
-        android:scaleType="fitCenter"
-        android:src="@drawable/ic_home_locator_rok"
-        android:visibility="gone"
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
+        android:clipToPadding="false"
+        android:paddingBottom="20dp"
         app:layout_constraintBottom_toTopOf="@+id/bottomNavBar"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/topHudContainer">
+
+        <LinearLayout
+            android:id="@+id/buildingsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp">
+
+            </LinearLayout>
+    </ScrollView>
 
     <LinearLayout
         android:id="@+id/bottomNavBar"
@@ -165,8 +162,6 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
             android:gravity="center"
             android:orientation="vertical">
 
@@ -194,8 +189,6 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
             android:gravity="center"
             android:orientation="vertical">
 
@@ -211,27 +204,25 @@
                 android:shadowDx="1"
                 android:shadowDy="1"
                 android:shadowRadius="2"
-                android:text="المتجر"
-                android:textColor="#FFFFFF"
+                android:text="المدينة"
+                android:textColor="#FFD700"
                 android:textSize="12sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/btnNavDailyRewards"
+            android:id="@+id/btnNavCombat"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
             android:gravity="center"
             android:orientation="vertical">
 
             <ImageView
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:src="@drawable/ic_nav_daily_rewards" />
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_swords_crossed" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -240,7 +231,7 @@
                 android:shadowDx="1"
                 android:shadowDy="1"
                 android:shadowRadius="2"
-                android:text="الجوائز اليومية"
+                android:text="المعارك"
                 android:textColor="#FFFFFF"
                 android:textSize="11sp"
                 android:textStyle="bold" />
@@ -252,8 +243,6 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
             android:gravity="center"
             android:orientation="vertical">
 
@@ -269,7 +258,7 @@
                 android:shadowDx="1"
                 android:shadowDy="1"
                 android:shadowRadius="2"
-                android:text="عناصر"
+                android:text="الحقيبة"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -281,8 +270,6 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
             android:gravity="center"
             android:orientation="vertical">
 
@@ -298,7 +285,7 @@
                 android:shadowDx="1"
                 android:shadowDy="1"
                 android:shadowRadius="2"
-                android:text="المتصدرين"
+                android:text="التحالف"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp"
                 android:textStyle="bold" />
