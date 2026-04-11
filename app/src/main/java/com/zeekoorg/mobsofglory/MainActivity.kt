@@ -5,11 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.BitmapFactory
-import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -85,17 +82,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupResourceItem(view: View, iconRes: Int, amount: Int, prefKey: String) {
-        view.findViewById<ImageView>(R.id.imgResIcon).setImageResource(iconRes)
-        view.findViewById<TextView>(R.id.tvResAmount).text = formatResourceAmount(amount)
-        view.findViewById<ImageView>(R.id.btnResAdd).setOnClickListener {
-            Toast.makeText(this, "جاري تحميل الإعلان...", Toast.LENGTH_SHORT).show()
-            YandexAdsManager.showRewardedAd(this, onRewarded = {
-                val current = sharedPrefs.getInt(prefKey, 0)
-                val reward = if(prefKey == "gems") 100 else 10000
-                sharedPrefs.edit().putInt(prefKey, current + reward).apply()
-            }, onAdClosed = {
-                setupHUD()
-            })
+        val imgIcon = view.findViewById<ImageView>(R.id.imgResIcon)
+        val tvAmount = view.findViewById<TextView>(R.id.tvResAmount)
+        val btnAdd = view.findViewById<ImageView>(R.id.btnResAdd)
+        
+        if (imgIcon != null) imgIcon.setImageResource(iconRes)
+        if (tvAmount != null) tvAmount.text = formatResourceAmount(amount)
+        if (btnAdd != null) {
+            btnAdd.setOnClickListener {
+                Toast.makeText(this, "جاري تحميل الإعلان...", Toast.LENGTH_SHORT).show()
+                YandexAdsManager.showRewardedAd(this, onRewarded = {
+                    val current = sharedPrefs.getInt(prefKey, 0)
+                    val reward = if(prefKey == "gems") 100 else 10000
+                    sharedPrefs.edit().putInt(prefKey, current + reward).apply()
+                }, onAdClosed = {
+                    setupHUD()
+                })
+            }
         }
     }
 
@@ -110,8 +113,22 @@ class MainActivity : AppCompatActivity() {
     private fun setupKingdomMap() {
         val mapView = binding.kingdomMapView
         val mapResId = resources.getIdentifier("bg_world_map", "drawable", packageName)
+        
+        // 💡 الحماية القصوى: تحميل آمن ومضغوط للخريطة العملاقة
         if (mapResId != 0) {
-            mapView.setMapBackground(BitmapFactory.decodeResource(resources, mapResId))
+            val options = BitmapFactory.Options()
+            options.inJustDecodeBounds = true
+            BitmapFactory.decodeResource(resources, mapResId, options)
+            
+            options.inSampleSize = calculateInSampleSize(options, 2048, 2048)
+            options.inJustDecodeBounds = false
+            
+            try {
+                val mapBmp = BitmapFactory.decodeResource(resources, mapResId, options)
+                mapView.setMapBackground(mapBmp)
+            } catch (e: Exception) {
+                mapView.setMapBackground(null)
+            }
         }
 
         val playerLevel = sharedPrefs.getInt("KINGDOM_LEVEL", 1)
@@ -127,6 +144,20 @@ class MainActivity : AppCompatActivity() {
                 showAttackDialog(castle)
             }
         }
+    }
+
+    // 💡 دالة رياضية لضغط الصور العملاقة ومنع انهيار الرامات
+    private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+        val (height: Int, width: Int) = options.outHeight to options.outWidth
+        var inSampleSize = 1
+        if (height > reqHeight || width > reqWidth) {
+            val halfHeight: Int = height / 2
+            val halfWidth: Int = width / 2
+            while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+                inSampleSize *= 2
+            }
+        }
+        return inSampleSize
     }
 
     private fun showAttackDialog(castle: KingdomMapView.Castle) {
@@ -184,14 +215,11 @@ class MainActivity : AppCompatActivity() {
             val dx = center.x - playerCastleX
             val dy = center.y - playerCastleY
             
-            // 💡 تصحيح دالة الرياضيات (إصلاح الانهيار)
             val distance = hypot(dx.toDouble(), dy.toDouble()).toFloat()
 
             val threshold = (resources.displayMetrics.widthPixels / 2f) / scale
             if (distance > threshold) {
                 btnLocator.visibility = View.VISIBLE
-                
-                // 💡 تصحيح دالة الزوايا (إصلاح الانهيار)
                 val angle = kotlin.math.atan2(dy.toDouble(), dx.toDouble())
                 btnLocator.rotation = Math.toDegrees(angle).toFloat() - 90f
             } else {
@@ -211,7 +239,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupRoyalDoors() {
         screenWidth = resources.displayMetrics.widthPixels
-        val root = findViewById<ViewGroup>(android.R.id.content) as FrameLayout
+        val root = findViewById<ViewGroup>(android.R.id.content)
         
         leftDoor = ImageView(this).apply { 
             setImageResource(R.drawable.bg_door_left); scaleType = ImageView.ScaleType.FIT_XY
@@ -223,7 +251,7 @@ class MainActivity : AppCompatActivity() {
             layoutParams = FrameLayout.LayoutParams(screenWidth/2, -1).apply { gravity = Gravity.RIGHT }
             elevation = 200f; translationX = screenWidth/2f
         }
-        root.addView(leftDoor); root.addView(rightDoor)
+        root?.addView(leftDoor); root?.addView(rightDoor)
     }
 
     override fun onResume() { 
