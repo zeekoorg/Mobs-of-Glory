@@ -7,6 +7,7 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
+import androidx.core.content.ContextCompat
 import kotlin.random.Random
 
 class KingdomMapView @JvmOverloads constructor(
@@ -30,18 +31,6 @@ class KingdomMapView @JvmOverloads constructor(
     private val castles = mutableListOf<Castle>()
     private val bitmapCache = mutableMapOf<Int, Bitmap>()
 
-    private val fallbackBitmap: Bitmap by lazy {
-        val bmp = Bitmap.createBitmap(200, 200, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bmp)
-        val paint = Paint().apply { color = Color.parseColor("#555555") }
-        canvas.drawRect(0f, 0f, 200f, 200f, paint)
-        paint.color = Color.WHITE
-        paint.textSize = 35f
-        paint.textAlign = Paint.Align.CENTER
-        canvas.drawText("مفقود", 100f, 110f, paint)
-        bmp
-    }
-
     private val textPaint = Paint().apply { color = Color.WHITE; textSize = 35f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER; setShadowLayer(4f, 0f, 0f, Color.BLACK) }
     private val levelBgPaint = Paint().apply { color = Color.parseColor("#A6000000") }
 
@@ -50,17 +39,25 @@ class KingdomMapView @JvmOverloads constructor(
     private val floatValues = FloatArray(9)
     
     private var scaleFactor = 1.0f
-    private val minScale = 0.3f 
-    private val maxScale = 2.5f
+    
+    // 💡 تحديد التكبير والتصغير محدود (القيود): رفع الحد الأدنى للتصغير (minScale)
+    // لجعل القلاع واضحة دائماً كنقاط هامة وليست نقاط صغيرة جداً.
+    private val minScale = 0.8f // تم رفعه من 0.3f لتجنب النقاط الصغيرة
+    private val maxScale = 2.0f // تم رفعه قليلاً من 1.5f لتكبير أكثر وضوحاً
 
     private var focusX = 0f
     private var focusY = 0f
+
+    // مستطيل كشف الكاميرا (View Frustum Culling)
+    private val viewRect = RectF()
+    private val castleRect = RectF()
 
     var onCastleClickListener: ((Castle) -> Unit)? = null
 
     private val scaleDetector = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScale(detector: ScaleGestureDetector): Boolean {
             scaleFactor *= detector.scaleFactor
+            // تطبيق القيود الجديدة للتكبير والتصغير
             scaleFactor = scaleFactor.coerceIn(minScale, maxScale)
             focusX = detector.focusX
             focusY = detector.focusY
@@ -87,7 +84,7 @@ class KingdomMapView @JvmOverloads constructor(
         }
     })
 
-    fun setMapBackground(bitmap: Bitmap?) {
+    fun setMapBackground(bitmap: Bitmap) {
         this.mapBitmap = bitmap
         invalidate()
     }
@@ -97,14 +94,17 @@ class KingdomMapView @JvmOverloads constructor(
         val worldWidth = 5000f
         val worldHeight = 5000f
 
-        val playerResId = context.resources.getIdentifier("ic_map_castle_player", "drawable", context.packageName)
-        castles.add(Castle(0, playerName, CastleType.PLAYER, 2500f, 2500f, playerLevel, playerLevel * 15000, playerResId))
+        val playerResId = context.resources.getIdentifier("ic_map_castle_player", "drawable", context.packageName).takeIf { it != 0 } ?: R.drawable.ic_shop_scroll
+        val playerCastle = Castle(0, playerName, CastleType.PLAYER, 2500f, 2500f, playerLevel, playerLevel * 15000, playerResId)
+        castles.add(playerCastle)
 
-        val bossResId = context.resources.getIdentifier("ic_map_castle_boss", "drawable", context.packageName)
-        castles.add(Castle(1, "وحوش المجد", CastleType.BOSS_MOBS_OF_GLORY, 2750f, 2350f, playerLevel + 5, 999999, bossResId))
+        val bossResId = context.resources.getIdentifier("ic_map_castle_boss", "drawable", context.packageName).takeIf { it != 0 } ?: R.drawable.ic_shop_scroll
+        val bossCastle = Castle(1, "وحوش المجد", CastleType.BOSS_MOBS_OF_GLORY, 2750f, 2350f, playerLevel + 5, 999999, bossResId)
+        castles.add(bossCastle)
 
         val fixedRandom = Random(12345) 
-        val arabicNames = listOf("السفاح", "أسد", "صقر", "الجلاد", "فارس", "المدمر", "عاصفة", "زلزال")
+        val arabicNames = listOf("السفاح", "أسد", "صقر", "الجلاد", "فارس", "المدمر", "عاصفة", "زلزال", "كابوس", "رعد")
+        val englishNames = listOf("Shadow", "DarkKnight", "Killer", "Titan", "Ghost", "Viper", "Doom", "Ninja", "Reaper", "Blade")
         
         for (i in 2..101) {
             val randomX = fixedRandom.nextFloat() * (worldWidth - 300f) + 150f
@@ -113,10 +113,10 @@ class KingdomMapView @JvmOverloads constructor(
 
             val randomLevel = fixedRandom.nextInt(1, 100)
             val randomPower = randomLevel * fixedRandom.nextInt(1000, 5000)
-            val name = arabicNames.random(fixedRandom)
+            val name = if (fixedRandom.nextBoolean()) arabicNames.random(fixedRandom) else englishNames.random(fixedRandom)
             
-            // سحب الصورة، وإذا لم يجدها سيرجع صفر
-            val resId = context.resources.getIdentifier("ic_map_castle_$i", "drawable", context.packageName)
+            // سحب الصورة، وإذا لم يجدها سيرجع المربع الرمادي (Missing)
+            val resId = context.resources.getIdentifier("ic_map_castle_1", "drawable", context.packageName).takeIf { it != 0 } ?: R.drawable.ic_shop_scroll
             castles.add(Castle(i, "$name ($i)", CastleType.ENEMY, randomX, randomY, randomLevel, randomPower, resId))
         }
         invalidate()
@@ -133,10 +133,11 @@ class KingdomMapView @JvmOverloads constructor(
     fun getCurrentScale(): Float = floatValues.apply { matrix.getValues(this) }[Matrix.MSCALE_X]
 
     fun centerOnPoint(x: Float, y: Float) {
-        scaleFactor = 1.0f 
+        val targetScale = 1.0f 
+        scaleFactor = targetScale
         matrix.reset()
-        matrix.postScale(scaleFactor, scaleFactor)
-        matrix.postTranslate((width / 2f) - (x * scaleFactor), (height / 2f) - (y * scaleFactor))
+        matrix.postScale(targetScale, targetScale)
+        matrix.postTranslate((width / 2f) - (x * targetScale), (height / 2f) - (y * targetScale))
         constrainPan()
         invalidate()
     }
@@ -183,11 +184,10 @@ class KingdomMapView @JvmOverloads constructor(
         return true
     }
 
-    // 💡 حماية صارمة ضد الصور العملاقة (OOM) عبر ضغطها أثناء التحميل
     private fun getCastleBitmap(resId: Int): Bitmap {
-        if (resId == 0) return fallbackBitmap
         return bitmapCache.getOrPut(resId) {
             try {
+                // ضغط الصورة العملاقة (OOM) عبر ضغطها أثناء التحميل
                 val options = BitmapFactory.Options()
                 options.inJustDecodeBounds = true
                 BitmapFactory.decodeResource(context.resources, resId, options)
@@ -213,6 +213,19 @@ class KingdomMapView @JvmOverloads constructor(
         return inSampleSize
     }
 
+    // المربع الرمادي الاحتياطي (Missing Castle) في حالة عدم وجود صورة
+    private val fallbackBitmap: Bitmap by lazy {
+        val bmp = Bitmap.createBitmap(200, 200, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val paint = Paint().apply { color = Color.parseColor("#555555") }
+        canvas.drawRect(0f, 0f, 200f, 200f, paint)
+        paint.color = Color.WHITE
+        paint.textSize = 35f
+        paint.textAlign = Paint.Align.CENTER
+        canvas.drawText("مفقود", 100f, 110f, paint)
+        bmp
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         canvas.save()
@@ -220,8 +233,23 @@ class KingdomMapView @JvmOverloads constructor(
 
         mapBitmap?.let { canvas.drawBitmap(it, null, RectF(0f, 0f, 5000f, 5000f), null) } ?: canvas.drawColor(Color.parseColor("#4A3B2C"))
 
+        // نظام كشف الكاميرا (View Frustum Culling): حساب ما تراه الكاميرا حالياً
+        matrix.invert(inverseMatrix)
+        viewRect.set(0f, 0f, width.toFloat(), height.toFloat())
+        inverseMatrix.mapRect(viewRect) // الآن viewRect يحتوي على الإحداثيات الموجودة داخل الشاشة فقط
+
         for (castle in castles) {
             val bmp = getCastleBitmap(castle.resId)
+            
+            // تحديد مساحة القلعة
+            castleRect.set(castle.x, castle.y, castle.x + bmp.width, castle.y + bmp.height)
+            
+            // 💡 نظام كشف الكاميرا (View Frustum Culling): تجاوز رسم القلعة إذا كانت خارج الشاشة
+            if (!RectF.intersects(viewRect, castleRect)) {
+                continue 
+            }
+
+            // رسم القلعة (لأنها داخل الشاشة)
             canvas.drawBitmap(bmp, castle.x, castle.y, null)
             
             val textY = castle.y - 15f 
