@@ -9,16 +9,15 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.widget.Button
-import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
@@ -78,14 +77,11 @@ class MainActivity : AppCompatActivity() {
                         totalGold += building.reward 
                         updateTopHud()
                         
-                        // تأثير النبض على العداد الذهبي في الأعلى
                         animateGoldCounterRipple()
                     }
                 }
                 
-                // تحديث الشاشة لتظهر الحركة بسلاسة جداً
                 adapter.notifyDataSetChanged()
-                
                 gameHandler.postDelayed(this, 50)
             }
         }
@@ -113,8 +109,9 @@ class MainActivity : AppCompatActivity() {
             val tvLevel: TextView = view.findViewById(R.id.tvBuildingLevel)
             val pbProgress: ProgressBar = view.findViewById(R.id.pbResourceCollection)
             val btnUpgrade: Button = view.findViewById(R.id.btnUpgrade)
-            // 💡 أضفنا معرف للحاوية الرئيسية للبطاقة
-            val cardParentLayout: ConstraintLayout = view.findViewById(R.id.cardParentLayout) 
+            
+            // 💡 التعديل هنا: جلب الحاوية مباشرة بدون الاعتماد على ID لتجنب أي خطأ في ملف XML
+            val cardParentLayout: ConstraintLayout = (view as ViewGroup).getChildAt(0) as ConstraintLayout
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -130,9 +127,7 @@ class MainActivity : AppCompatActivity() {
             holder.pbProgress.progress = building.progress.toInt()
             holder.btnUpgrade.text = "ترقية\n${building.upgradeCost}"
 
-            // ماذا يحدث عند اكتمال الشريط؟
             if (building.progress == 0f) {
-                // 💡 تأثير الذهب الطائر: نرسل الحاوية الرئيسية للبطاقة
                 animateFloatingGold(holder.cardParentLayout)
             }
 
@@ -143,8 +138,9 @@ class MainActivity : AppCompatActivity() {
                     building.upgradeCost = (building.upgradeCost * 1.5).toLong() 
                     updateTopHud()
                 } else {
-                    Snackbar.make(holder.itemView, "لا تملك الذهب الكافي، أيها الملك!", Snackbar.make.LENGTH_SHORT)
-                        .setBackgroundTint(ContextCompat.getColor(context, R.color.royal_red))
+                    // 💡 التعديل هنا: إصلاح خطأ الـ Snackbar واللون لتجنب مشاكل colors.xml
+                    Snackbar.make(holder.itemView, "لا تملك الذهب الكافي، أيها الملك!", Snackbar.LENGTH_SHORT)
+                        .setBackgroundTint(Color.parseColor("#8B0000")) // أحمر ملكي مباشر
                         .setTextColor(Color.WHITE)
                         .show()
                 }
@@ -153,43 +149,36 @@ class MainActivity : AppCompatActivity() {
 
         override fun getItemCount(): Int = buildings.size
 
-        // 💡 دالة الذهب الطائر (المصلحة 100% وبدون انهيار)
         private fun animateFloatingGold(container: ConstraintLayout) {
-            // تأثير الذهب الطائر: إنشاء أيقونة ذهبية مؤقتة
             val floatingGold = ImageView(context)
             floatingGold.setImageResource(R.drawable.ic_resource_gold)
             floatingGold.alpha = 0.8f 
-            floatingGold.id = View.generateViewId() // معرف فريد
+            floatingGold.id = View.generateViewId()
 
-            // تحديد مقاس الأيقونة الطائرة
             val layoutParams = ConstraintLayout.LayoutParams(60, 60) 
             floatingGold.layoutParams = layoutParams
 
-            // إضافة الذهب الطائر إلى الحاوية الرئيسية للبطاقة
             container.addView(floatingGold)
 
-            // تحديد مكان الأيقونة لتظهر فوق شريط التقدم (Roughly)
             val constraintSet = ConstraintSet()
             constraintSet.clone(container)
             constraintSet.connect(floatingGold.id, ConstraintSet.TOP, container.id, ConstraintSet.TOP)
             constraintSet.connect(floatingGold.id, ConstraintSet.BOTTOM, container.id, ConstraintSet.BOTTOM)
             constraintSet.connect(floatingGold.id, ConstraintSet.START, container.id, ConstraintSet.START)
             constraintSet.connect(floatingGold.id, ConstraintSet.END, container.id, ConstraintSet.END)
-            // تحريكها قليلاً لليسار لتكون فوق منطقة الصورة/الجمع
             constraintSet.setHorizontalBias(floatingGold.id, 0.2f) 
             constraintSet.applyTo(container)
 
-            // تشغيل الأنيميشن (المعرفة في res/anim/float_up_and_fade.xml)
+            // 💡 التعديل هنا: إصلاح الاستدعاء الخاطئ لمكتبة الأنيميشن
             val animFloat = AnimationUtils.loadAnimation(context, R.anim.float_up_and_fade)
-            animFloat.setAnimationListener(object : AnimationUtils.AnimationListener {
-                override fun onAnimationStart(animation: android.view.animation.Animation?) {}
-                override fun onAnimationEnd(animation: android.view.animation.Animation?) {
-                    // مسح الأيقونة من الشاشة بعد اكتمال الحركة
+            animFloat.setAnimationListener(object : Animation.AnimationListener {
+                override fun onAnimationStart(animation: Animation?) {}
+                override fun onAnimationEnd(animation: Animation?) {
                     gameHandler.post {
                         container.removeView(floatingGold)
                     }
                 }
-                override fun onAnimationRepeat(animation: android.view.animation.Animation?) {}
+                override fun onAnimationRepeat(animation: Animation?) {}
             })
             floatingGold.startAnimation(animFloat)
         }
