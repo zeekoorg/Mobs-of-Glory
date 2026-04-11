@@ -26,18 +26,17 @@ import androidx.core.view.WindowCompat
 import com.zeekoorg.mobsofglory.databinding.ActivityMainBinding
 import java.io.File
 import java.util.Locale
+import kotlin.math.hypot
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var sharedPrefs: SharedPreferences
     
-    // الأبواب الملكية
     private lateinit var leftDoor: ImageView
     private lateinit var rightDoor: ImageView
     private var screenWidth = 0
 
-    // إحداثيات قلعة اللاعب الثابتة على الخريطة
     private val playerCastleX = 2500f
     private val playerCastleY = 2500f
 
@@ -60,12 +59,10 @@ class MainActivity : AppCompatActivity() {
         setupHomeLocator()
         setupBottomNavigation()
 
-        // برمجة بروفايل اللاعب
         binding.playerProfileContainer.setOnClickListener { showPlayerProfileDialog() }
     }
 
     private fun setupHUD() {
-        // تحميل اسم اللاعب والصورة
         val playerName = sharedPrefs.getString("PLAYER_NAME", "زيكو") ?: "زيكو"
         binding.tvPlayerName.text = playerName
         
@@ -77,11 +74,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // حساب القوة الوهمية (أو الحقيقية)
         val power = sharedPrefs.getInt("LEVEL_CANNON", 1) * 5000 + sharedPrefs.getInt("LEVEL_SOLDIER", 1) * 3000 + sharedPrefs.getInt("KINGDOM_LEVEL", 1) * 15000
         binding.tvPlayerPower.text = "القوة: " + formatResourceAmount(power)
 
-        // إعداد الموارد الخمسة
         setupResourceItem(binding.resGold.root, R.drawable.ic_gold_rok, sharedPrefs.getInt("coins", 0), "coins")
         setupResourceItem(binding.resFood.root, R.drawable.ic_food_rok, sharedPrefs.getInt("food", 5000), "food")
         setupResourceItem(binding.resWood.root, R.drawable.ic_wood_rok, sharedPrefs.getInt("wood", 5000), "wood")
@@ -93,14 +88,13 @@ class MainActivity : AppCompatActivity() {
         view.findViewById<ImageView>(R.id.imgResIcon).setImageResource(iconRes)
         view.findViewById<TextView>(R.id.tvResAmount).text = formatResourceAmount(amount)
         view.findViewById<ImageView>(R.id.btnResAdd).setOnClickListener {
-            // استدعاء إعلان بمكافأة لزيادة المورد
             Toast.makeText(this, "جاري تحميل الإعلان...", Toast.LENGTH_SHORT).show()
             YandexAdsManager.showRewardedAd(this, onRewarded = {
                 val current = sharedPrefs.getInt(prefKey, 0)
                 val reward = if(prefKey == "gems") 100 else 10000
                 sharedPrefs.edit().putInt(prefKey, current + reward).apply()
             }, onAdClosed = {
-                setupHUD() // تحديث الواجهة بعد الإغلاق
+                setupHUD()
             })
         }
     }
@@ -128,7 +122,6 @@ class MainActivity : AppCompatActivity() {
 
         mapView.onCastleClickListener = { castle ->
             if (castle.type == KingdomMapView.CastleType.PLAYER) {
-                // شاشة بناء القلعة (مستقبلاً)
                 Toast.makeText(this, "الدخول للمدينة...", Toast.LENGTH_SHORT).show()
             } else {
                 showAttackDialog(castle)
@@ -148,7 +141,6 @@ class MainActivity : AppCompatActivity() {
         dialog.findViewById<Button>(R.id.btnCancelAttack).setOnClickListener { dialog.dismiss() }
         dialog.findViewById<Button>(R.id.btnConfirmAttack).setOnClickListener {
             dialog.dismiss()
-            // 💡 حفظ اسم العدو ومستواه للقتال
             sharedPrefs.edit().putString("CURRENT_ENEMY_NAME", castle.name).apply()
             sharedPrefs.edit().putInt("CURRENT_BATTLE_LEVEL", castle.level).apply()
             startBattleTransition()
@@ -161,7 +153,6 @@ class MainActivity : AppCompatActivity() {
         dialog.setContentView(R.layout.dialog_player_profile)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         
-        // جلب الصور والبيانات
         val savedImage = sharedPrefs.getString("PLAYER_IMAGE_PATH", null)
         if (savedImage != null && File(savedImage).exists()) {
             dialog.findViewById<ImageView>(R.id.imgProfileAvatar).setImageBitmap(BitmapFactory.decodeFile(savedImage))
@@ -192,13 +183,17 @@ class MainActivity : AppCompatActivity() {
             val scale = mapView.getCurrentScale()
             val dx = center.x - playerCastleX
             val dy = center.y - playerCastleY
-            val distance = kotlin.math.sqrt(dx*dx + dy*dy)
+            
+            // 💡 تصحيح دالة الرياضيات (إصلاح الانهيار)
+            val distance = hypot(dx.toDouble(), dy.toDouble()).toFloat()
 
             val threshold = (resources.displayMetrics.widthPixels / 2f) / scale
             if (distance > threshold) {
                 btnLocator.visibility = View.VISIBLE
+                
+                // 💡 تصحيح دالة الزوايا (إصلاح الانهيار)
                 val angle = kotlin.math.atan2(dy.toDouble(), dx.toDouble())
-                btnLocator.rotation = kotlin.math.toDegrees(angle).toFloat() - 90f
+                btnLocator.rotation = Math.toDegrees(angle).toFloat() - 90f
             } else {
                 btnLocator.visibility = View.GONE
             }
