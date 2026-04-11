@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import android.view.animation.AnimationUtils // 💡 هذا هو السطر الذي كان مفقوداً!
 import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.ProgressBar
@@ -26,7 +27,7 @@ class MainActivity : AppCompatActivity() {
     private val gameHandler = Handler(Looper.getMainLooper())
     private lateinit var gameRunnable: Runnable
 
-    // 💡 بيانات المباني المحدثة للنظام المنظوري
+    // بيانات المباني المحدثة للنظام المنظوري
     data class MapBuilding(
         val name: String,
         val slotId: Int, // الـ ID في الـ activity_main
@@ -80,7 +81,7 @@ class MainActivity : AppCompatActivity() {
         // البحث عن الحاوية (Slot) في الـ activity_main
         val plotContainer = findViewById<ConstraintLayout>(building.slotId) ?: return
 
-        // ربط الواجهات داخل الـ plot (لأننا استخدمنا include)
+        // ربط الواجهات داخل الـ plot
         val imgBuilding = plotContainer.findViewById<ImageView>(R.id.imgBuilding)
         val pbCollection = plotContainer.findViewById<ProgressBar>(R.id.pbCollectionTimer)
         val imgCollect = plotContainer.findViewById<ImageView>(R.id.imgCollectIcon)
