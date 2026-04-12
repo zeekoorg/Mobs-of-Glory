@@ -1,48 +1,49 @@
 package com.zeekoorg.mobsofglory
 
+import android.content.Context
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.LayoutInflater
 import android.view.View
 import android.view.animation.AnimationUtils
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var tvTotalGold: TextView
     private var totalGold: Long = 1760 
 
+    // حلقة اللعبة النابضة (للإنتاج)
     private val gameHandler = Handler(Looper.getMainLooper())
     private lateinit var gameRunnable: Runnable
 
-    data class MapBuilding(
+    // بيانات المبنى في الخريطة الهجينة
+    data class MapPlot(
         val name: String,
-        val slotId: Int, 
-        val iconResId: Int,
-        var level: Int = 1,
+        val slotId: Int, // الـ ID للأرض الحجرية
+        val baseImageResId: Int, // صورة القلعة الشفافة
+        var productionSpeed: Float, // سرعة الجمع
+        val goldReward: Long, // المكافأة
         var currentProgress: Float = 0f,
-        val productionSpeed: Float, 
-        val goldReward: Long,
         var isReadyToCollect: Boolean = false,
+        // متغيرات للربط برمجياً
         var pbView: ProgressBar? = null,
         var collectIconView: ImageView? = null,
         var hudContainer: ConstraintLayout? = null
     )
 
-    // 💡 خريطة توزيع المباني على الأراضي التي برمجناها
-    private val buildingsOnMap = mutableListOf(
-        MapBuilding("القلعة", R.id.plotMainCastle, R.drawable.ic_build_castle, productionSpeed = 0f, goldReward = 0),
-        MapBuilding("المزرعة 1", R.id.plotSmall1, R.drawable.ic_build_farm, productionSpeed = 2.0f, goldReward = 50),
-        MapBuilding("المزرعة 2", R.id.plotSmall2, R.drawable.ic_build_farm, productionSpeed = 2.0f, goldReward = 50),
-        MapBuilding("المستشفى", R.id.plotSmall3, R.drawable.ic_build_hospital, productionSpeed = 0f, goldReward = 0), // المستشفى لا ينتج ذهباً
-        MapBuilding("الثكنة 1", R.id.plotSmall4, R.drawable.ic_build_barracks, productionSpeed = 1.0f, goldReward = 150),
-        MapBuilding("الثكنة 2", R.id.plotSmall5, R.drawable.ic_build_barracks, productionSpeed = 1.0f, goldReward = 150)
-        // الأرض السادسة (plotSmall6) ستبقى فارغة الآن لتكون أرضاً متاحة للبناء لاحقاً!
+    // القلعة الرئيسية والمزرعة في أراضيها
+    private val myPlots = mutableListOf(
+        MapPlot("القلعة", R.id.plotMainCastle, R.drawable.ic_build_castle, productionSpeed = 0f, goldReward = 0), // القلعة لا تنتج الآن
+        MapPlot("المزرعة الملكية", R.id.plotSmall1, R.drawable.ic_resource_gold, productionSpeed = 3.0f, goldReward = 150) // مثال
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,73 +53,87 @@ class MainActivity : AppCompatActivity() {
         tvTotalGold = findViewById(R.id.tvTotalGold)
         updateTotalGoldHud()
 
-        // زرع المباني في أراضيها
-        for (i in buildingsOnMap.indices) {
-            setupBuildingOnMap(buildingsOnMap[i])
+        // زرع القلعة والمباني في أراضيها
+        for (i in myPlots.indices) {
+            setupPlot(myPlots[i])
         }
 
         startGameLoop()
     }
 
-    private fun setupBuildingOnMap(building: MapBuilding) {
-        val plotContainer = findViewById<View>(building.slotId) ?: return
+    private fun setupPlot(plot: MapPlot) {
+        // البحث عن الأساس الحجري
+        val plotLayout = findViewById<FrameLayout>(plot.slotId) ?: return
 
-        val imgBuilding = plotContainer.findViewById<ImageView>(R.id.imgBuilding)
-        val pbCollection = plotContainer.findViewById<ProgressBar>(R.id.pbCollectionTimer)
-        val imgCollect = plotContainer.findViewById<ImageView>(R.id.imgCollectIcon)
-        val hudContainer = plotContainer.findViewById<ConstraintLayout>(R.id.hudContainer)
+        // 💡 إدراج القالب الشفاف برمجياً لملء الأساس
+        val inflater = LayoutInflater.from(this)
+        val castleItemView = inflater.inflate(R.layout.item_map_castle, plotLayout, false)
+        plotLayout.addView(castleItemView)
 
-        // وضع الصورة الشفافة داخل الأرض
-        imgBuilding.setImageResource(building.iconResId)
+        // ربط الواجهات العائمة داخل القالب
+        val imgCastle: ImageView = castleItemView.findViewById(R.id.imgCastle)
+        val pbCollection: ProgressBar = castleItemView.findViewById(R.id.pbCollection)
+        val imgCollect: ImageView = castleItemView.findViewById(R.id.imgCollect)
+        val hudContainer: ConstraintLayout = castleItemView.findViewById(R.id.includeHud)
 
-        building.pbView = pbCollection
-        building.collectIconView = imgCollect
-        building.hudContainer = hudContainer
+        // وضع صورة القلعة الشفافة
+        imgCastle.setImageResource(plot.baseImageResId)
 
-        if (building.productionSpeed > 0f) {
+        // حفظ المراجع للكود لاحقاً
+        plot.pbView = pbCollection
+        plot.collectIconView = imgCollect
+        plot.hudContainer = hudContainer
+
+        // لا داعي لإظهار الشريط إذا لم يكن للمبنى إنتاج
+        if (plot.productionSpeed > 0f) {
             hudContainer.visibility = View.VISIBLE
         }
 
-        imgBuilding.setOnClickListener {
-            if (!building.isReadyToCollect) {
-                Toast.makeText(this, "${building.name} مستوى ${building.level}", Toast.LENGTH_SHORT).show()
-            } else {
-                collectResource(building)
-            }
-        }
-
-        imgCollect.setOnClickListener { collectResource(building) }
+        // النقر على القلعة للجمع
+        imgCastle.setOnClickListener { collectResource(plot) }
+        // النقر على أيقونة الجمع المباشرة
+        imgCollect.setOnClickListener { collectResource(plot) }
     }
 
-    private fun collectResource(building: MapBuilding) {
-        if (!building.isReadyToCollect) return
-        totalGold += building.goldReward
+    private fun collectResource(plot: MapPlot) {
+        if (!plot.isReadyToCollect) return
+        
+        totalGold += plot.goldReward
         updateTotalGoldHud()
         
-        building.currentProgress = 0f
-        building.pbView?.progress = 0
-        building.isReadyToCollect = false
-        building.collectIconView?.visibility = View.GONE
-        building.pbView?.visibility = View.VISIBLE
+        // تأثير نبض خفيف للعداد الذهبي
+        val animPulse = AnimationUtils.loadAnimation(this, android.R.anim.fade_in)
+        tvTotalGold.startAnimation(animPulse)
+
+        // إعادة تهيئة العداد
+        plot.currentProgress = 0f
+        plot.pbView?.progress = 0
+        plot.isReadyToCollect = false
+        plot.collectIconView?.visibility = View.GONE
+        plot.pbView?.visibility = View.VISIBLE
     }
 
     private fun startGameLoop() {
         gameRunnable = object : Runnable {
             override fun run() {
-                for (i in buildingsOnMap.indices) {
-                    val building = buildingsOnMap[i]
-                    if (building.productionSpeed > 0f && !building.isReadyToCollect) {
+                for (i in myPlots.indices) {
+                    val plot = myPlots[i]
+                    if (plot.productionSpeed > 0f && !plot.isReadyToCollect) {
                         
-                        building.currentProgress += building.productionSpeed
-                        building.pbView?.progress = building.currentProgress.toInt()
+                        plot.currentProgress += plot.productionSpeed
+                        
+                        // تحديث الشريط العائم برمجياً
+                        plot.pbView?.progress = plot.currentProgress.toInt()
 
-                        if (building.currentProgress >= 100f) {
-                            building.isReadyToCollect = true
-                            building.pbView?.visibility = View.INVISIBLE
-                            building.collectIconView?.visibility = View.VISIBLE
+                        // إذا اكتمل الجمع
+                        if (plot.currentProgress >= 100f) {
+                            plot.isReadyToCollect = true
+                            plot.pbView?.visibility = View.INVISIBLE
+                            plot.collectIconView?.visibility = View.VISIBLE
                             
+                            // أنيميشن نبض خفيف لأيقونة الجمع
                             val animPulse = AnimationUtils.loadAnimation(this@MainActivity, android.R.anim.fade_in)
-                            building.collectIconView?.startAnimation(animPulse)
+                            plot.collectIconView?.startAnimation(animPulse)
                         }
                     }
                 }
