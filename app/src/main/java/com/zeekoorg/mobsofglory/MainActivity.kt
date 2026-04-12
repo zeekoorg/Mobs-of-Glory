@@ -37,9 +37,11 @@ class MainActivity : AppCompatActivity() {
         var hudContainer: ConstraintLayout? = null
     )
 
+    // الأراضي التي سنركب عليها المباني
     private val myPlots = mutableListOf(
         MapPlot("القلعة", R.id.plotMainCastle, R.drawable.ic_build_castle, productionSpeed = 0f, goldReward = 0),
-        MapPlot("المزرعة الملكية", R.id.plotSmall1, R.drawable.ic_resource_gold, productionSpeed = 3.0f, goldReward = 150)
+        MapPlot("المزرعة 1", R.id.plotSmall1, R.drawable.ic_build_farm, productionSpeed = 2.0f, goldReward = 50),
+        MapPlot("الثكنة", R.id.plotSmall2, R.drawable.ic_build_barracks, productionSpeed = 1.5f, goldReward = 100)
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,7 +63,7 @@ class MainActivity : AppCompatActivity() {
 
         tvTotalGold = findViewById(R.id.tvTotalGold)
         
-        // 💡 تحميل خريطة الأرضية بضغط ذكي لتجنب الانهيار (OOM)
+        // 💡 تحميل الخلفية مضغوطة برمجياً
         val imgCityBackground = findViewById<ImageView>(R.id.imgCityBackground)
         loadCompressedImage(R.drawable.bg_mobs_city_isometric, imgCityBackground, 1080, 1920)
 
@@ -78,16 +80,16 @@ class MainActivity : AppCompatActivity() {
         val plotLayout = findViewById<FrameLayout>(plot.slotId) ?: return
 
         val inflater = LayoutInflater.from(this)
-        val castleItemView = inflater.inflate(R.layout.item_map_castle, plotLayout, false)
-        plotLayout.addView(castleItemView)
+        val buildingItemView = inflater.inflate(R.layout.item_map_castle, plotLayout, false)
+        plotLayout.addView(buildingItemView)
 
-        val imgCastle: ImageView = castleItemView.findViewById(R.id.imgCastle)
-        val pbCollection: ProgressBar = castleItemView.findViewById(R.id.pbCollection)
-        val imgCollect: ImageView = castleItemView.findViewById(R.id.imgCollect)
-        val hudContainer: ConstraintLayout = castleItemView.findViewById(R.id.includeHud)
+        val imgBuilding: ImageView = buildingItemView.findViewById(R.id.imgCastle)
+        val pbCollection: ProgressBar = buildingItemView.findViewById(R.id.pbCollection)
+        val imgCollect: ImageView = buildingItemView.findViewById(R.id.imgCollect)
+        val hudContainer: ConstraintLayout = buildingItemView.findViewById(R.id.includeHud)
 
-        // 💡 تحميل صورة المبنى مضغوطة وبأمان
-        loadCompressedImage(plot.baseImageResId, imgCastle, 400, 400)
+        // 💡 تحميل صورة المبنى مضغوطة
+        loadCompressedImage(plot.baseImageResId, imgBuilding, 400, 400)
 
         plot.pbView = pbCollection
         plot.collectIconView = imgCollect
@@ -97,7 +99,7 @@ class MainActivity : AppCompatActivity() {
             hudContainer.visibility = View.VISIBLE
         }
 
-        imgCastle.setOnClickListener { collectResource(plot) }
+        imgBuilding.setOnClickListener { collectResource(plot) }
         imgCollect.setOnClickListener { collectResource(plot) }
     }
 
@@ -147,7 +149,6 @@ class MainActivity : AppCompatActivity() {
         tvTotalGold.text = "الذهب: $totalGold"
     }
 
-    // 💡 دالة الضغط السحرية التي تحمي هاتفك من الانهيار
     private fun loadCompressedImage(resId: Int, imageView: ImageView, reqWidth: Int, reqHeight: Int) {
         try {
             val options = BitmapFactory.Options()
