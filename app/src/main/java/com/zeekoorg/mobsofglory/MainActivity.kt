@@ -1,16 +1,12 @@
 package com.zeekoorg.mobsofglory
 
-import android.content.Context
-import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.view.animation.AnimationUtils
-import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.ProgressBar
-import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -20,9 +16,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var tvTotalGold: TextView
     private var totalGold: Long = 1760 
-
-    private lateinit var verticalScrollView: ScrollView
-    private lateinit var horizontalScrollView: HorizontalScrollView
 
     private val gameHandler = Handler(Looper.getMainLooper())
     private lateinit var gameRunnable: Runnable
@@ -41,55 +34,33 @@ class MainActivity : AppCompatActivity() {
         var hudContainer: ConstraintLayout? = null
     )
 
+    // 💡 خريطة توزيع المباني على الأراضي التي برمجناها
     private val buildingsOnMap = mutableListOf(
-        MapBuilding("القلعة", R.id.plotCastle, R.drawable.ic_iso_castle, productionSpeed = 0f, goldReward = 0),
-        MapBuilding("المزرعة", R.id.plotFarm, R.drawable.ic_iso_farm, productionSpeed = 3.0f, goldReward = 50),
-        MapBuilding("الثكنة", R.id.plotBarracks, R.drawable.ic_iso_barracks, productionSpeed = 1.0f, goldReward = 200)
+        MapBuilding("القلعة", R.id.plotMainCastle, R.drawable.ic_build_castle, productionSpeed = 0f, goldReward = 0),
+        MapBuilding("المزرعة 1", R.id.plotSmall1, R.drawable.ic_build_farm, productionSpeed = 2.0f, goldReward = 50),
+        MapBuilding("المزرعة 2", R.id.plotSmall2, R.drawable.ic_build_farm, productionSpeed = 2.0f, goldReward = 50),
+        MapBuilding("المستشفى", R.id.plotSmall3, R.drawable.ic_build_hospital, productionSpeed = 0f, goldReward = 0), // المستشفى لا ينتج ذهباً
+        MapBuilding("الثكنة 1", R.id.plotSmall4, R.drawable.ic_build_barracks, productionSpeed = 1.0f, goldReward = 150),
+        MapBuilding("الثكنة 2", R.id.plotSmall5, R.drawable.ic_build_barracks, productionSpeed = 1.0f, goldReward = 150)
+        // الأرض السادسة (plotSmall6) ستبقى فارغة الآن لتكون أرضاً متاحة للبناء لاحقاً!
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // 🚨 صائد الانهيارات (الصندوق الأسود)
-        val sharedPrefs = getSharedPreferences("MobsData", Context.MODE_PRIVATE)
-        val lastError = sharedPrefs.getString("CRASH_LOG", null)
-        if (lastError != null) {
-            Toast.makeText(this, "سبب الخروج:\n$lastError", Toast.LENGTH_LONG).show()
-            sharedPrefs.edit().remove("CRASH_LOG").apply()
-        }
-        Thread.setDefaultUncaughtExceptionHandler { _, e ->
-            sharedPrefs.edit().putString("CRASH_LOG", "${e.javaClass.simpleName}: ${e.message} \nسطر: ${e.stackTrace[0].lineNumber}").commit()
-            System.exit(1)
-        }
-
         setContentView(R.layout.activity_main)
 
         tvTotalGold = findViewById(R.id.tvTotalGold)
-        verticalScrollView = findViewById(R.id.verticalScrollView)
-        horizontalScrollView = findViewById(R.id.horizontalScrollView)
-
-        // 💡 تحميل خريطة الأرضية بضغط ذكي لتجنب الانهيار (OOM)
-        val imgCityTerrain = findViewById<ImageView>(R.id.imgCityTerrain)
-        loadCompressedImage(R.drawable.bg_royal_city, imgCityTerrain, 1500, 1200)
-
         updateTotalGoldHud()
 
+        // زرع المباني في أراضيها
         for (i in buildingsOnMap.indices) {
             setupBuildingOnMap(buildingsOnMap[i])
-        }
-
-        verticalScrollView.post { 
-            verticalScrollView.scrollTo(0, (1200 / 2) - (verticalScrollView.height / 2)) 
-        }
-        horizontalScrollView.post { 
-            horizontalScrollView.scrollTo((1500 / 2) - (horizontalScrollView.width / 2), 0) 
         }
 
         startGameLoop()
     }
 
     private fun setupBuildingOnMap(building: MapBuilding) {
-        // 💡 إصلاح خطأ ClassCast: استخدمنا View بدلاً من ConstraintLayout
         val plotContainer = findViewById<View>(building.slotId) ?: return
 
         val imgBuilding = plotContainer.findViewById<ImageView>(R.id.imgBuilding)
@@ -97,11 +68,8 @@ class MainActivity : AppCompatActivity() {
         val imgCollect = plotContainer.findViewById<ImageView>(R.id.imgCollectIcon)
         val hudContainer = plotContainer.findViewById<ConstraintLayout>(R.id.hudContainer)
 
-        // 💡 تحميل صورة المبنى مضغوطة وبأمان
-        loadCompressedImage(building.iconResId, imgBuilding, 300, 300)
-        
-        // تعيين أيقونة الجمع
-        imgCollect.setImageResource(R.drawable.ic_resource_gold)
+        // وضع الصورة الشفافة داخل الأرض
+        imgBuilding.setImageResource(building.iconResId)
 
         building.pbView = pbCollection
         building.collectIconView = imgCollect
@@ -162,34 +130,5 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateTotalGoldHud() {
         tvTotalGold.text = "الذهب: $totalGold"
-    }
-
-    // 💡 دالة الضغط السحرية التي تحمي هاتفك من الانهيار مهما كان حجم الصورة
-    private fun loadCompressedImage(resId: Int, imageView: ImageView, reqWidth: Int, reqHeight: Int) {
-        try {
-            val options = BitmapFactory.Options()
-            options.inJustDecodeBounds = true
-            BitmapFactory.decodeResource(resources, resId, options)
-            
-            options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight)
-            options.inJustDecodeBounds = false
-            
-            imageView.setImageBitmap(BitmapFactory.decodeResource(resources, resId, options))
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
-        val (height: Int, width: Int) = options.outHeight to options.outWidth
-        var inSampleSize = 1
-        if (height > reqHeight || width > reqWidth) {
-            val halfHeight: Int = height / 2
-            val halfWidth: Int = width / 2
-            while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
-                inSampleSize *= 2
-            }
-        }
-        return inSampleSize
     }
 }
