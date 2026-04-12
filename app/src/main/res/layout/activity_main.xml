@@ -11,7 +11,6 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scaleType="centerCrop"
-        android:src="@drawable/bg_mobs_city_isometric" 
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -34,13 +33,79 @@
         android:id="@+id/plotSmall1"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginStart="300dp"
-        android:layout_marginTop="300dp"
+        app:layout_constraintHeight_percent="0.18"
+        app:layout_constraintWidth_percent="0.20"
+        app:layout_constraintHorizontal_bias="0.16"
+        app:layout_constraintVertical_bias="0.66"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-        </FrameLayout>
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <FrameLayout
+        android:id="@+id/plotSmall2"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintHeight_percent="0.18"
+        app:layout_constraintWidth_percent="0.22"
+        app:layout_constraintHorizontal_bias="0.50"
+        app:layout_constraintVertical_bias="0.66"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <FrameLayout
+        android:id="@+id/plotSmall3"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintHeight_percent="0.18"
+        app:layout_constraintWidth_percent="0.20"
+        app:layout_constraintHorizontal_bias="0.81"
+        app:layout_constraintVertical_bias="0.66"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <FrameLayout
+        android:id="@+id/plotSmall4"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintHeight_percent="0.18"
+        app:layout_constraintWidth_percent="0.20"
+        app:layout_constraintHorizontal_bias="0.27"
+        app:layout_constraintVertical_bias="0.89"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <FrameLayout
+        android:id="@+id/plotSmall5"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintHeight_percent="0.18"
+        app:layout_constraintWidth_percent="0.22"
+        app:layout_constraintHorizontal_bias="0.53"
+        app:layout_constraintVertical_bias="0.89"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <FrameLayout
+        android:id="@+id/plotSmall6"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintHeight_percent="0.18"
+        app:layout_constraintWidth_percent="0.20"
+        app:layout_constraintHorizontal_bias="0.77"
+        app:layout_constraintVertical_bias="0.89"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/topHudContainer"
@@ -85,10 +150,10 @@
         android:orientation="horizontal"
         android:weightSum="4"
         app:layout_constraintBottom_toBottomOf="parent">
-        <Button layout_width="0dp" layout_height="match_parent" layout_weight="1" backgroundTint="#00000000" text="الأبطال" textColor="@color/white" />
-        <Button layout_width="0dp" layout_height="match_parent" layout_weight="1" backgroundTint="#00000000" text="المدينة" textColor="@color/royal_gold_light" />
-        <Button layout_width="0dp" layout_height="match_parent" layout_weight="1" backgroundTint="#00000000" text="المهام" textColor="@color/white" />
-        <Button layout_width="0dp" layout_height="match_parent" layout_weight="1" backgroundTint="#00000000" text="التحالف" textColor="@color/white" />
+        <Button android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:backgroundTint="#00000000" android:text="الأبطال" android:textColor="@color/white" />
+        <Button android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:backgroundTint="#00000000" android:text="المدينة" android:textColor="@color/royal_gold_light" />
+        <Button android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:backgroundTint="#00000000" android:text="المهام" android:textColor="@color/white" />
+        <Button android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:backgroundTint="#00000000" android:text="التحالف" android:textColor="@color/white" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
