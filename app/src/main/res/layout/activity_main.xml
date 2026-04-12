@@ -29,7 +29,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
-        </FrameLayout>
+        <include layout="@layout/item_map_building" />
+    </FrameLayout>
 
     <FrameLayout
         android:id="@+id/plotSmall1"
@@ -42,7 +43,9 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
+        <include layout="@layout/item_map_building" />
+    </FrameLayout>
 
     <FrameLayout
         android:id="@+id/plotSmall2"
@@ -55,7 +58,9 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
+        <include layout="@layout/item_map_building" />
+    </FrameLayout>
 
     <FrameLayout
         android:id="@+id/plotSmall3"
@@ -68,7 +73,9 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
+        <include layout="@layout/item_map_building" />
+    </FrameLayout>
 
     <FrameLayout
         android:id="@+id/plotSmall4"
@@ -81,7 +88,9 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
+        <include layout="@layout/item_map_building" />
+    </FrameLayout>
 
     <FrameLayout
         android:id="@+id/plotSmall5"
@@ -94,7 +103,9 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
+        <include layout="@layout/item_map_building" />
+    </FrameLayout>
 
     <FrameLayout
         android:id="@+id/plotSmall6"
@@ -107,7 +118,9 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
+        <include layout="@layout/item_map_building" />
+    </FrameLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/topHudContainer"
