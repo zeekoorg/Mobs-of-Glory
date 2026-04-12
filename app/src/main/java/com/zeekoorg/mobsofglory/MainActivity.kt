@@ -1,7 +1,5 @@
 package com.zeekoorg.mobsofglory
 
-import android.content.Context
-import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -12,7 +10,6 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 
@@ -20,125 +17,143 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var tvTotalGold: TextView
     private var totalGold: Long = 1760 
-    private val gameHandler = Handler(Looper.getMainLooper())
 
+    // حلقة اللعبة لجمع الموارد تلقائياً
+    private val gameHandler = Handler(Looper.getMainLooper())
+    private lateinit var gameRunnable: Runnable
+
+    // بيانات المبنى
     data class MapPlot(
-        val name: String, val slotId: Int, val resId: Int,
-        var speed: Float, val reward: Long, var progress: Float = 0f,
-        var isReady: Boolean = false, var pb: ProgressBar? = null,
-        var collectIcon: ImageView? = null
+        val name: String,
+        val slotId: Int, // الـ ID للأرض الحجرية
+        val baseImageResId: Int, // صورة المبنى الشفافة (ic_build_...)
+        var productionSpeed: Float, // سرعة الجمع (0 لا ينتج)
+        val goldReward: Long, // المكافأة الذهبية
+        var currentProgress: Float = 0f,
+        var isReadyToCollect: Boolean = false,
+        var pbView: ProgressBar? = null,
+        var collectIconView: ImageView? = null,
+        var hudContainerView: ConstraintLayout? = null
     )
 
+    // 💡 القائمة المحدثة بالتموضع الدقيق وإضافة المستشفى
     private val myPlots = mutableListOf(
-        MapPlot("القلعة", R.id.plotMainCastle, R.drawable.ic_build_castle, 0f, 0),
-        MapPlot("مزرعة 1", R.id.plotSmall1, R.drawable.ic_build_farm, 2.0f, 50),
-        MapPlot("ثكنة", R.id.plotSmall2, R.drawable.ic_build_barracks, 1.5f, 100),
-        MapPlot("مزرعة 2", R.id.plotSmall3, R.drawable.ic_build_farm, 2.0f, 50),
-        MapPlot("ثكنة 2", R.id.plotSmall4, R.drawable.ic_build_barracks, 1.5f, 100),
-        MapPlot("مزرعة 3", R.id.plotSmall5, R.drawable.ic_build_farm, 2.0f, 50),
-        MapPlot("ثكنة 3", R.id.plotSmall6, R.drawable.ic_build_barracks, 1.5f, 100)
+        MapPlot("القلعة", R.id.plotMainCastle, R.drawable.ic_build_castle, productionSpeed = 0f, goldReward = 0),
+        
+        // الصف الأول (أعلى)
+        MapPlot("المزرعة 1", R.id.plotSmall1, R.drawable.ic_build_farm, productionSpeed = 2.0f, goldReward = 50),
+        MapPlot("الثكنة", R.id.plotSmall2, R.drawable.ic_build_barracks, productionSpeed = 1.0f, goldReward = 80),
+        MapPlot("المستشفى", R.id.plotSmall3, R.drawable.ic_build_hospital, productionSpeed = 0f, goldReward = 0), // 💡 تمت الإضافة هنا
+        
+        // الصف الثاني (أسفل)
+        MapPlot("المزرعة 2", R.id.plotSmall4, R.drawable.ic_build_farm, productionSpeed = 2.0f, goldReward = 50),
+        MapPlot("المزرعة 3", R.id.plotSmall5, R.drawable.ic_build_farm, productionSpeed = 2.0f, goldReward = 50),
+        MapPlot("المزرعة 4", R.id.plotSmall6, R.drawable.ic_build_farm, productionSpeed = 2.0f, goldReward = 50)
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // الصندوق الأسود لالتقاط الانهيارات
-        val sharedPrefs = getSharedPreferences("MobsData", Context.MODE_PRIVATE)
-        val lastError = sharedPrefs.getString("CRASH_LOG", null)
-        if (lastError != null) {
-            Toast.makeText(this, "سبب الانهيار: $lastError", Toast.LENGTH_LONG).show()
-            sharedPrefs.edit().remove("CRASH_LOG").apply()
-        }
-        Thread.setDefaultUncaughtExceptionHandler { _, e ->
-            sharedPrefs.edit().putString("CRASH_LOG", "${e.message}").commit()
-            System.exit(1)
-        }
-
         setContentView(R.layout.activity_main)
 
         tvTotalGold = findViewById(R.id.tvTotalGold)
-        val imgBg = findViewById<ImageView>(R.id.imgCityBackground)
-        loadImg(R.drawable.bg_mobs_city_isometric, imgBg, 1080, 1920)
+        updateTotalGoldHud()
 
-        myPlots.forEach { setupPlot(it) }
+        // زرع المباني في أراضيها
+        for (i in myPlots.indices) {
+            setupPlot(myPlots[i])
+        }
+
         startGameLoop()
     }
 
     private fun setupPlot(plot: MapPlot) {
-        val container = findViewById<FrameLayout>(plot.slotId) ?: return
-        val view = LayoutInflater.from(this).inflate(R.layout.item_map_building, container, false)
-        container.addView(view)
+        // البحث عن الأساس الحجري
+        val plotLayout = findViewById<FrameLayout>(plot.slotId) ?: return
 
-        val img = view.findViewById<ImageView>(R.id.imgBuilding)
-        plot.pb = view.findViewById(R.id.pbCollection)
-        plot.collectIcon = view.findViewById(R.id.imgCollect)
-        val hud = view.findViewById<View>(R.id.includeHud)
+        // إدراج القالب الشفاف لملء الأساس
+        val inflater = LayoutInflater.from(this)
+        val buildingItemView = inflater.inflate(R.layout.item_map_building, plotLayout, false)
+        plotLayout.addView(buildingItemView)
 
-        loadImg(plot.resId, img, 400, 400)
-        
-        if (plot.speed > 0f) {
-            hud.visibility = View.VISIBLE
+        // ربط الواجهات العائمة داخل القالب
+        val imgBuilding: ImageView = buildingItemView.findViewById(R.id.imgBuilding)
+        val pbCollection: ProgressBar = buildingItemView.findViewById(R.id.pbCollectionTimer)
+        val imgCollect: ImageView = buildingItemView.findViewById(R.id.imgCollectIcon)
+        val hudContainer: ConstraintLayout = buildingItemView.findViewById(R.id.hudContainer)
+
+        // وضع صورة المبنى الشفافة
+        imgBuilding.setImageResource(plot.baseImageResId)
+
+        // تصغير حاوية شريط الذهب لتناسب المبنى
+        hudContainer.layoutParams = (hudContainer.layoutParams as ConstraintLayout.LayoutParams).apply {
+            width = ConstraintLayout.LayoutParams.WRAP_CONTENT
+            height = ConstraintLayout.LayoutParams.WRAP_CONTENT
         }
 
-        img.setOnClickListener { collect(plot) }
-        plot.collectIcon?.setOnClickListener { collect(plot) }
+        // حفظ المراجع للكود
+        plot.pbView = pbCollection
+        plot.collectIconView = imgCollect
+        plot.hudContainerView = hudContainer
+
+        // لا داعي لإظهار الشريط إذا لم يكن للمبنى إنتاج
+        if (plot.productionSpeed > 0f) {
+            hudContainer.visibility = View.VISIBLE
+        }
+
+        // النقر على المبنى للجمع
+        imgBuilding.setOnClickListener { collectResource(plot) }
+        plot.collectIconView?.setOnClickListener { collectResource(plot) }
     }
 
-    private fun collect(plot: MapPlot) {
-        if (!plot.isReady) return
-        totalGold += plot.reward
-        tvTotalGold.text = "الذهب: $totalGold"
+    private fun collectResource(plot: MapPlot) {
+        if (!plot.isReadyToCollect) return
         
+        totalGold += plot.goldReward
+        updateTotalGoldHud()
+        
+        // تأثير نبض خفيف للعداد الذهبي
         val animPulse = AnimationUtils.loadAnimation(this, android.R.anim.fade_in)
         tvTotalGold.startAnimation(animPulse)
 
-        plot.progress = 0f
-        plot.pb?.progress = 0
-        plot.isReady = false
-        plot.collectIcon?.visibility = View.GONE
-        plot.pb?.visibility = View.VISIBLE
+        // إعادة تهيئة العداد
+        plot.currentProgress = 0f
+        plot.pbView?.progress = 0
+        plot.isReadyToCollect = false
+        plot.collectIconView?.visibility = View.GONE
+        plot.pbView?.visibility = View.VISIBLE
     }
 
     private fun startGameLoop() {
-        gameHandler.post(object : Runnable {
+        gameRunnable = object : Runnable {
             override fun run() {
-                myPlots.forEach { p ->
-                    if (p.speed > 0f && !p.isReady) {
-                        p.progress += p.speed
-                        p.pb?.progress = p.progress.toInt()
-                        if (p.progress >= 100f) {
-                            p.isReady = true
-                            p.pb?.visibility = View.INVISIBLE
-                            p.collectIcon?.visibility = View.VISIBLE
-                            val anim = AnimationUtils.loadAnimation(this@MainActivity, android.R.anim.fade_in)
-                            p.collectIcon?.startAnimation(anim)
+                for (i in myPlots.indices) {
+                    val plot = myPlots[i]
+                    if (plot.productionSpeed > 0f && !plot.isReadyToCollect) {
+                        
+                        plot.currentProgress += plot.productionSpeed
+                        
+                        // تحديث الشريط العائم برمجياً
+                        plot.pbView?.progress = plot.currentProgress.toInt()
+
+                        // إذا اكتمل الجمع
+                        if (plot.currentProgress >= 100f) {
+                            plot.isReadyToCollect = true
+                            plot.pbView?.visibility = View.INVISIBLE
+                            plot.collectIconView?.visibility = View.VISIBLE
+                            
+                            // أنيميشن نبض خفيف لأيقونة الجمع
+                            val animPulse = AnimationUtils.loadAnimation(this@MainActivity, android.R.anim.fade_in)
+                            plot.collectIconView?.startAnimation(animPulse)
                         }
                     }
                 }
-                gameHandler.postDelayed(this, 100)
+                gameHandler.postDelayed(this, 100) 
             }
-        })
-    }
-
-    private fun loadImg(id: Int, view: ImageView, w: Int, h: Int) {
-        try {
-            val opts = BitmapFactory.Options().apply {
-                inJustDecodeBounds = true
-                BitmapFactory.decodeResource(resources, id, this)
-                inSampleSize = calculateInSampleSize(this, w, h)
-                inJustDecodeBounds = false
-            }
-            view.setImageBitmap(BitmapFactory.decodeResource(resources, id, opts))
-        } catch (e: Exception) { e.printStackTrace() }
-    }
-
-    private fun calculateInSampleSize(o: BitmapFactory.Options, rw: Int, rh: Int): Int {
-        var s = 1
-        if (o.outHeight > rh || o.outWidth > rw) {
-            val hh = o.outHeight / 2
-            val hw = o.outWidth / 2
-            while (hh / s >= rh && hw / s >= rw) s *= 2
         }
-        return s
+        gameHandler.post(gameRunnable)
+    }
+
+    private fun updateTotalGoldHud() {
+        tvTotalGold.text = "الذهب: $totalGold"
     }
 }
