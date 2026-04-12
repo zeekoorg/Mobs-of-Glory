@@ -20,160 +20,125 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var tvTotalGold: TextView
     private var totalGold: Long = 1760 
-
     private val gameHandler = Handler(Looper.getMainLooper())
-    private lateinit var gameRunnable: Runnable
 
     data class MapPlot(
-        val name: String,
-        val slotId: Int, 
-        val baseImageResId: Int, 
-        var productionSpeed: Float, 
-        val goldReward: Long, 
-        var currentProgress: Float = 0f,
-        var isReadyToCollect: Boolean = false,
-        var pbView: ProgressBar? = null,
-        var collectIconView: ImageView? = null,
-        var hudContainer: ConstraintLayout? = null
+        val name: String, val slotId: Int, val resId: Int,
+        var speed: Float, val reward: Long, var progress: Float = 0f,
+        var isReady: Boolean = false, var pb: ProgressBar? = null,
+        var collectIcon: ImageView? = null
     )
 
-    // الأراضي التي سنركب عليها المباني
     private val myPlots = mutableListOf(
-        MapPlot("القلعة", R.id.plotMainCastle, R.drawable.ic_build_castle, productionSpeed = 0f, goldReward = 0),
-        MapPlot("المزرعة 1", R.id.plotSmall1, R.drawable.ic_build_farm, productionSpeed = 2.0f, goldReward = 50),
-        MapPlot("الثكنة", R.id.plotSmall2, R.drawable.ic_build_barracks, productionSpeed = 1.5f, goldReward = 100)
+        MapPlot("القلعة", R.id.plotMainCastle, R.drawable.ic_build_castle, 0f, 0),
+        MapPlot("مزرعة 1", R.id.plotSmall1, R.drawable.ic_build_farm, 2.0f, 50),
+        MapPlot("ثكنة", R.id.plotSmall2, R.drawable.ic_build_barracks, 1.5f, 100),
+        MapPlot("مزرعة 2", R.id.plotSmall3, R.drawable.ic_build_farm, 2.0f, 50),
+        MapPlot("ثكنة 2", R.id.plotSmall4, R.drawable.ic_build_barracks, 1.5f, 100),
+        MapPlot("مزرعة 3", R.id.plotSmall5, R.drawable.ic_build_farm, 2.0f, 50),
+        MapPlot("ثكنة 3", R.id.plotSmall6, R.drawable.ic_build_barracks, 1.5f, 100)
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 🚨 صائد الانهيارات (الصندوق الأسود)
+        // الصندوق الأسود لالتقاط الانهيارات
         val sharedPrefs = getSharedPreferences("MobsData", Context.MODE_PRIVATE)
         val lastError = sharedPrefs.getString("CRASH_LOG", null)
         if (lastError != null) {
-            Toast.makeText(this, "سبب الانهيار السابق:\n$lastError", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "سبب الانهيار: $lastError", Toast.LENGTH_LONG).show()
             sharedPrefs.edit().remove("CRASH_LOG").apply()
         }
         Thread.setDefaultUncaughtExceptionHandler { _, e ->
-            sharedPrefs.edit().putString("CRASH_LOG", "${e.javaClass.simpleName}: ${e.message} \nسطر: ${e.stackTrace[0].lineNumber}").commit()
+            sharedPrefs.edit().putString("CRASH_LOG", "${e.message}").commit()
             System.exit(1)
         }
 
         setContentView(R.layout.activity_main)
 
         tvTotalGold = findViewById(R.id.tvTotalGold)
-        
-        // 💡 تحميل الخلفية مضغوطة برمجياً
-        val imgCityBackground = findViewById<ImageView>(R.id.imgCityBackground)
-        loadCompressedImage(R.drawable.bg_mobs_city_isometric, imgCityBackground, 1080, 1920)
+        val imgBg = findViewById<ImageView>(R.id.imgCityBackground)
+        loadImg(R.drawable.bg_mobs_city_isometric, imgBg, 1080, 1920)
 
-        updateTotalGoldHud()
-
-        for (i in myPlots.indices) {
-            setupPlot(myPlots[i])
-        }
-
+        myPlots.forEach { setupPlot(it) }
         startGameLoop()
     }
 
     private fun setupPlot(plot: MapPlot) {
-        val plotLayout = findViewById<FrameLayout>(plot.slotId) ?: return
+        val container = findViewById<FrameLayout>(plot.slotId) ?: return
+        val view = LayoutInflater.from(this).inflate(R.layout.item_map_building, container, false)
+        container.addView(view)
 
-        val inflater = LayoutInflater.from(this)
-        val buildingItemView = inflater.inflate(R.layout.item_map_castle, plotLayout, false)
-        plotLayout.addView(buildingItemView)
+        val img = view.findViewById<ImageView>(R.id.imgBuilding)
+        plot.pb = view.findViewById(R.id.pbCollection)
+        plot.collectIcon = view.findViewById(R.id.imgCollect)
+        val hud = view.findViewById<View>(R.id.includeHud)
 
-        val imgBuilding: ImageView = buildingItemView.findViewById(R.id.imgCastle)
-        val pbCollection: ProgressBar = buildingItemView.findViewById(R.id.pbCollection)
-        val imgCollect: ImageView = buildingItemView.findViewById(R.id.imgCollect)
-        val hudContainer: ConstraintLayout = buildingItemView.findViewById(R.id.includeHud)
-
-        // 💡 تحميل صورة المبنى مضغوطة
-        loadCompressedImage(plot.baseImageResId, imgBuilding, 400, 400)
-
-        plot.pbView = pbCollection
-        plot.collectIconView = imgCollect
-        plot.hudContainer = hudContainer
-
-        if (plot.productionSpeed > 0f) {
-            hudContainer.visibility = View.VISIBLE
+        loadImg(plot.resId, img, 400, 400)
+        
+        if (plot.speed > 0f) {
+            hud.visibility = View.VISIBLE
         }
 
-        imgBuilding.setOnClickListener { collectResource(plot) }
-        imgCollect.setOnClickListener { collectResource(plot) }
+        img.setOnClickListener { collect(plot) }
+        plot.collectIcon?.setOnClickListener { collect(plot) }
     }
 
-    private fun collectResource(plot: MapPlot) {
-        if (!plot.isReadyToCollect) return
-        
-        totalGold += plot.goldReward
-        updateTotalGoldHud()
+    private fun collect(plot: MapPlot) {
+        if (!plot.isReady) return
+        totalGold += plot.reward
+        tvTotalGold.text = "الذهب: $totalGold"
         
         val animPulse = AnimationUtils.loadAnimation(this, android.R.anim.fade_in)
         tvTotalGold.startAnimation(animPulse)
 
-        plot.currentProgress = 0f
-        plot.pbView?.progress = 0
-        plot.isReadyToCollect = false
-        plot.collectIconView?.visibility = View.GONE
-        plot.pbView?.visibility = View.VISIBLE
+        plot.progress = 0f
+        plot.pb?.progress = 0
+        plot.isReady = false
+        plot.collectIcon?.visibility = View.GONE
+        plot.pb?.visibility = View.VISIBLE
     }
 
     private fun startGameLoop() {
-        gameRunnable = object : Runnable {
+        gameHandler.post(object : Runnable {
             override fun run() {
-                for (i in myPlots.indices) {
-                    val plot = myPlots[i]
-                    if (plot.productionSpeed > 0f && !plot.isReadyToCollect) {
-                        
-                        plot.currentProgress += plot.productionSpeed
-                        plot.pbView?.progress = plot.currentProgress.toInt()
-
-                        if (plot.currentProgress >= 100f) {
-                            plot.isReadyToCollect = true
-                            plot.pbView?.visibility = View.INVISIBLE
-                            plot.collectIconView?.visibility = View.VISIBLE
-                            
-                            val animPulse = AnimationUtils.loadAnimation(this@MainActivity, android.R.anim.fade_in)
-                            plot.collectIconView?.startAnimation(animPulse)
+                myPlots.forEach { p ->
+                    if (p.speed > 0f && !p.isReady) {
+                        p.progress += p.speed
+                        p.pb?.progress = p.progress.toInt()
+                        if (p.progress >= 100f) {
+                            p.isReady = true
+                            p.pb?.visibility = View.INVISIBLE
+                            p.collectIcon?.visibility = View.VISIBLE
+                            val anim = AnimationUtils.loadAnimation(this@MainActivity, android.R.anim.fade_in)
+                            p.collectIcon?.startAnimation(anim)
                         }
                     }
                 }
-                gameHandler.postDelayed(this, 100) 
+                gameHandler.postDelayed(this, 100)
             }
-        }
-        gameHandler.post(gameRunnable)
+        })
     }
 
-    private fun updateTotalGoldHud() {
-        tvTotalGold.text = "الذهب: $totalGold"
-    }
-
-    private fun loadCompressedImage(resId: Int, imageView: ImageView, reqWidth: Int, reqHeight: Int) {
+    private fun loadImg(id: Int, view: ImageView, w: Int, h: Int) {
         try {
-            val options = BitmapFactory.Options()
-            options.inJustDecodeBounds = true
-            BitmapFactory.decodeResource(resources, resId, options)
-            
-            options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight)
-            options.inJustDecodeBounds = false
-            
-            imageView.setImageBitmap(BitmapFactory.decodeResource(resources, resId, options))
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+            val opts = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+                BitmapFactory.decodeResource(resources, id, this)
+                inSampleSize = calculateInSampleSize(this, w, h)
+                inJustDecodeBounds = false
+            }
+            view.setImageBitmap(BitmapFactory.decodeResource(resources, id, opts))
+        } catch (e: Exception) { e.printStackTrace() }
     }
 
-    private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
-        val (height: Int, width: Int) = options.outHeight to options.outWidth
-        var inSampleSize = 1
-        if (height > reqHeight || width > reqWidth) {
-            val halfHeight: Int = height / 2
-            val halfWidth: Int = width / 2
-            while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
-                inSampleSize *= 2
-            }
+    private fun calculateInSampleSize(o: BitmapFactory.Options, rw: Int, rh: Int): Int {
+        var s = 1
+        if (o.outHeight > rh || o.outWidth > rw) {
+            val hh = o.outHeight / 2
+            val hw = o.outWidth / 2
+            while (hh / s >= rh && hw / s >= rw) s *= 2
         }
-        return inSampleSize
+        return s
     }
 }
