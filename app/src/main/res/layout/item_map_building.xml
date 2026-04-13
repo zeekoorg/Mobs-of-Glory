@@ -14,7 +14,8 @@
         android:scaleType="fitCenter"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/includeHud"
@@ -26,13 +27,13 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.4">
+        app:layout_constraintVertical_bias="0.6">
 
         <ProgressBar
             android:id="@+id/pbCollection"
             style="@android:style/Widget.ProgressBar.Horizontal"
-            android:layout_width="45dp"
-            android:layout_height="6dp"
+            android:layout_width="40dp"
+            android:layout_height="5dp"
             android:progressDrawable="@drawable/custom_progress_gold"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -40,8 +41,8 @@
 
         <ImageView
             android:id="@+id/imgCollect"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:layout_marginBottom="2dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_resource_gold"
