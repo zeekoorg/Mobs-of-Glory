@@ -17,14 +17,12 @@ class MainActivity : AppCompatActivity() {
     private var totalGold: Long = 1760
     private val gameHandler = Handler(Looper.getMainLooper())
 
-    // تمت إضافة اسم المبنى للبيانات ليعرض في نافذة الترقية
     data class MapPlot(
         val name: String, val slotId: Int, val resId: Int, var speed: Float, val reward: Long, 
         var progress: Float = 0f, var isReady: Boolean = false, 
         var pb: ProgressBar? = null, var collectIcon: ImageView? = null
     )
 
-    // القلعة فقط تملك صورة، باقي المباني وضعنا صورتها (0) لتصبح شفافة
     private val myPlots = mutableListOf(
         MapPlot("القلعة", R.id.plotCastle, R.drawable.ic_build_castle, 0f, 0),
         MapPlot("المزرعة الشمالية", R.id.plotFarmR1, 0, 2.0f, 50),
@@ -59,7 +57,7 @@ class MainActivity : AppCompatActivity() {
         plot.collectIcon = view.findViewById(R.id.imgCollect)
         val hud = view.findViewById<View>(R.id.includeHud)
 
-        // إذا كان هناك صورة (القلعة)، قم بتحميلها. وإلا اجعل المنطقة شفافة
+        // تحميل صورة القلعة، وجعل باقي المباني شفافة لتعمل كأزرار استشعار فقط
         if (plot.resId != 0) {
             loadImg(plot.resId, img, 600, 600)
         } else {
@@ -68,14 +66,21 @@ class MainActivity : AppCompatActivity() {
 
         if (plot.speed > 0f) hud.visibility = View.VISIBLE
 
-        // النقر على المبنى يفتح نافذة المعلومات/الترقية
-        img.setOnClickListener { showUpgradeDialog(plot) }
+        // 💡 نظام النقر الذكي الذي طلبته!
+        img.setOnClickListener {
+            if (plot.isReady) {
+                // إذا الخط ممتلئ، النقر على المبنى يقوم بجمع الذهب
+                collect(plot)
+            } else {
+                // إذا لم يمتلئ أو كان قلعة، يفتح نافذة المعلومات/الترقية
+                showUpgradeDialog(plot)
+            }
+        }
         
-        // النقر على أيقونة الذهب يقوم بجمع الذهب
+        // إبقاء النقر على أيقونة الذهب للجمع أيضاً للسهولة
         plot.collectIcon?.setOnClickListener { collect(plot) }
     }
 
-    // نافذة المعلومات والترقية الاحترافية
     private fun showUpgradeDialog(plot: MapPlot) {
         val builder = AlertDialog.Builder(this)
         builder.setTitle(plot.name)
@@ -88,7 +93,7 @@ class MainActivity : AppCompatActivity() {
             builder.setPositiveButton("ترقية") { _, _ ->
                 if (totalGold >= 500) {
                     totalGold -= 500
-                    plot.speed += 0.5f // زيادة سرعة الإنتاج بعد الترقية
+                    plot.speed += 0.5f 
                     updateGoldHud()
                     Toast.makeText(this, "تمت الترقية بنجاح! زادت سرعة الإنتاج.", Toast.LENGTH_SHORT).show()
                 } else {
