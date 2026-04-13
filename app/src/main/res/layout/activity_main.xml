@@ -6,76 +6,146 @@
     android:layoutDirection="ltr"
     android:background="@color/black">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/topHudContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#CC1A110D"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="8dp"
-        android:paddingVertical="10dp"
-        android:weightSum="3"
+        android:layout_marginTop="8dp"
+        android:layout_marginHorizontal="8dp"
         app:layout_constraintTop_toTopOf="parent">
 
-        <LinearLayout
-            android:layout_width="0dp"
+        <ImageView
+            android:id="@+id/imgTopHudBg"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-            <ImageView
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:src="@drawable/ic_nav_hero" 
-                app:tint="@color/royal_gold_light"/>
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:text="15K"
-                android:textColor="@color/white"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+            android:adjustViewBounds="true"
+            android:src="@drawable/bg_top_hud_frame"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
-        <LinearLayout
-            android:layout_width="0dp"
+        <TextView
+            android:id="@+id/tvPlayerName"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:orientation="horizontal"
-            android:background="@drawable/custom_progress_gold"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="4dp">
-            <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:src="@drawable/ic_resource_gold" />
-            <TextView
-                android:id="@+id/tvTotalGold"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:text="0"
-                android:textColor="@color/royal_gold_light"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+            android:text="المُهيب"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            app:layout_constraintWidth_percent="0.2"
+            app:layout_constraintHorizontal_bias="0.28"
+            app:layout_constraintVertical_bias="0.2"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
-        <LinearLayout
-            android:layout_width="0dp"
+        <TextView
+            android:id="@+id/tvPlayerLevel"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="end|center_vertical"
-            android:orientation="horizontal">
-            <ImageView
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@android:drawable/ic_menu_add"
-                app:tint="@color/royal_gold_light" />
-        </LinearLayout>
-    </LinearLayout>
+            android:text="مستوى 75"
+            android:textColor="#F4D03F"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            app:layout_constraintHorizontal_bias="0.18"
+            app:layout_constraintVertical_bias="0.22"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <ProgressBar
+            android:id="@+id/pbPlayerHP"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            android:layout_width="0dp"
+            android:layout_height="6dp"
+            android:progress="80"
+            android:progressTint="#E74C3C"
+            android:progressBackgroundTint="#40000000"
+            app:layout_constraintWidth_percent="0.18"
+            app:layout_constraintHorizontal_bias="0.26"
+            app:layout_constraintVertical_bias="0.45"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <ProgressBar
+            android:id="@+id/pbPlayerMP"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            android:layout_width="0dp"
+            android:layout_height="6dp"
+            android:progress="60"
+            android:progressTint="#3498DB"
+            android:progressBackgroundTint="#40000000"
+            app:layout_constraintWidth_percent="0.18"
+            app:layout_constraintHorizontal_bias="0.26"
+            app:layout_constraintVertical_bias="0.65"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <TextView
+            android:id="@+id/tvTotalGold"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="125,000"
+            android:textColor="#F4D03F"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            app:layout_constraintHorizontal_bias="0.46"
+            app:layout_constraintVertical_bias="0.85"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <TextView
+            android:id="@+id/tvTotalIron"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="85,300"
+            android:textColor="#BDC3C7"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            app:layout_constraintHorizontal_bias="0.63"
+            app:layout_constraintVertical_bias="0.85"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <TextView
+            android:id="@+id/tvTotalWheat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="210,000"
+            android:textColor="#F5CBA7"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            app:layout_constraintHorizontal_bias="0.80"
+            app:layout_constraintVertical_bias="0.85"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <View
+            android:id="@+id/btnSettings"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:layout_constraintWidth_percent="0.12"
+            app:layout_constraintHeight_percent="0.8"
+            app:layout_constraintHorizontal_bias="0.96"
+            app:layout_constraintVertical_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <LinearLayout
         android:id="@+id/bottomNavBar"
