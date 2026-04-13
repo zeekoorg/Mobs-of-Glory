@@ -16,47 +16,70 @@ import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
 
+    // عناصر الواجهة العلوية
     private lateinit var tvTotalGold: TextView
+    private lateinit var tvTotalIron: TextView
+    private lateinit var tvTotalWheat: TextView
     private lateinit var imgCityBackground: ImageView
+    
+    // أرصدة الموارد
     private var totalGold: Long = 0
+    private var totalIron: Long = 0
+    private var totalWheat: Long = 0
+    
     private val gameHandler = Handler(Looper.getMainLooper())
 
+    // أنواع الموارد مع أيقوناتها (تأكد من وجود هذه الصور في drawable)
+    enum class ResourceType(val iconResId: Int) {
+        GOLD(R.drawable.ic_resource_gold),
+        IRON(R.drawable.ic_resource_iron),
+        WHEAT(R.drawable.ic_resource_wheat),
+        NONE(0)
+    }
+
+    // بيانات المباني
     data class MapPlot(
-        val name: String, val slotId: Int, val resId: Int, var speed: Float, val reward: Long, 
+        val name: String, val slotId: Int, val resId: Int, var speed: Float, 
+        val reward: Long, val resourceType: ResourceType,
         var progress: Float = 0f, var isReady: Boolean = false, 
         var pb: ProgressBar? = null, var collectIcon: ImageView? = null
     )
 
-    // جميع المباني (بما فيها القلعة) شفافة لأنها مدمجة في الخلفية عبر الفوتوشوب
+    // توزيع المباني والموارد التي تنتجها
     private val myPlots = mutableListOf(
-        MapPlot("القلعة المركزية", R.id.plotCastle, 0, 0f, 0),
-        MapPlot("المزرعة الشمالية", R.id.plotFarmR1, 0, 2.0f, 50),
-        MapPlot("ثكنة المشاة", R.id.plotBarracksL1, 0, 1.5f, 100),
-        MapPlot("المستشفى الرئيسي", R.id.plotHospitalM1, 0, 1.0f, 150),
-        MapPlot("المزرعة الجنوبية", R.id.plotFarmR2, 0, 2.0f, 50),
-        MapPlot("ثكنة الفرسان", R.id.plotBarracksL2, 0, 1.5f, 100),
-        MapPlot("المستشفى الميداني", R.id.plotHospitalM2, 0, 1.0f, 150)
+        MapPlot("القلعة المركزية", R.id.plotCastle, 0, 0f, 0, ResourceType.NONE),
+        MapPlot("المزرعة الشمالية", R.id.plotFarmR1, 0, 2.0f, 50, ResourceType.WHEAT),
+        MapPlot("ثكنة المشاة", R.id.plotBarracksL1, 0, 1.5f, 100, ResourceType.IRON),
+        MapPlot("المستشفى الرئيسي", R.id.plotHospitalM1, 0, 1.0f, 150, ResourceType.GOLD),
+        MapPlot("المزرعة الجنوبية", R.id.plotFarmR2, 0, 2.0f, 50, ResourceType.WHEAT),
+        MapPlot("ثكنة الفرسان", R.id.plotBarracksL2, 0, 1.5f, 100, ResourceType.IRON),
+        MapPlot("المستشفى الميداني", R.id.plotHospitalM2, 0, 1.0f, 150, ResourceType.GOLD)
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // ربط عناصر الموارد
         tvTotalGold = findViewById(R.id.tvTotalGold)
+        tvTotalIron = findViewById(R.id.tvTotalIron)
+        tvTotalWheat = findViewById(R.id.tvTotalWheat)
         imgCityBackground = findViewById(R.id.imgCityBackground)
 
-        // 1. تحميل بيانات اللعبة المحفوظة
+        // تحميل اللعبة والأرصدة
         loadGameData()
-        updateGoldHud()
+        updateResourcesHud()
 
+        // تهيئة المباني
         myPlots.forEach { setupPlot(it) }
+        
+        // تشغيل محرك الزمن للعبة
         startGameLoop()
     }
 
     override fun onPause() {
         super.onPause()
-        // 2. حفظ اللعبة تلقائياً عند الخروج
-        saveGameData()
+        saveGameData() // حفظ تلقائي عند الخروج
     }
 
     // ==========================================
@@ -65,26 +88,30 @@ class MainActivity : AppCompatActivity() {
     private fun saveGameData() {
         val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit()
         prefs.putLong("TOTAL_GOLD", totalGold)
+        prefs.putLong("TOTAL_IRON", totalIron)
+        prefs.putLong("TOTAL_WHEAT", totalWheat)
         prefs.apply()
     }
 
     private fun loadGameData() {
         val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
-        totalGold = prefs.getLong("TOTAL_GOLD", 500) // 500 ذهب هدية بداية اللعبة
+        totalGold = prefs.getLong("TOTAL_GOLD", 500)
+        totalIron = prefs.getLong("TOTAL_IRON", 1000)
+        totalWheat = prefs.getLong("TOTAL_WHEAT", 1500)
+        
         val savedSkin = prefs.getInt("selected_skin", R.drawable.bg_mobs_city_isometric)
         loadImg(savedSkin, imgCityBackground, 1080, 1920)
     }
 
-    // دالة جاهزة لتغيير شكل المدينة عند الشراء من المتجر
     fun changeCitySkin(newBackgroundResId: Int) {
         loadImg(newBackgroundResId, imgCityBackground, 1080, 1920)
         val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
         prefs.edit().putInt("selected_skin", newBackgroundResId).apply()
-        Toast.makeText(this, "تم تغيير مظهر المدينة!", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "تم تغيير مظهر الإمبراطورية!", Toast.LENGTH_SHORT).show()
     }
 
     // ==========================================
-    // تهيئة المباني والنقر الذكي
+    // تهيئة المباني الشفافة
     // ==========================================
     private fun setupPlot(plot: MapPlot) {
         val container = findViewById<FrameLayout>(plot.slotId) ?: return
@@ -96,16 +123,16 @@ class MainActivity : AppCompatActivity() {
         plot.collectIcon = view.findViewById(R.id.imgCollect)
         val hud = view.findViewById<View>(R.id.includeHud)
 
-        // جعل المباني شفافة (لأنها مدمجة في الخلفية بالفوتوشوب)
-        if (plot.resId != 0) {
-            loadImg(plot.resId, img, 600, 600)
-        } else {
-            img.setImageResource(android.R.color.transparent)
+        // وضع أيقونة المورد المناسب فوق المبنى (قمح، حديد، أو ذهب)
+        if (plot.resourceType != ResourceType.NONE) {
+            plot.collectIcon?.setImageResource(plot.resourceType.iconResId)
         }
+
+        img.setImageResource(android.R.color.transparent)
 
         if (plot.speed > 0f) hud.visibility = View.VISIBLE
 
-        // النقر الذكي: استشعار المبنى الشفاف
+        // النقر الذكي
         img.setOnClickListener {
             if (plot.isReady) {
                 triggerCollectionAnimation(plot)
@@ -118,34 +145,40 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // أنيميشن تطاير الموارد (الذهب) - تأثير AAA
+    // أنيميشن تطاير الموارد الذكي (حسب نوع المورد)
     // ==========================================
     private fun triggerCollectionAnimation(plot: MapPlot) {
         if (!plot.isReady) return
 
-        // إخفاء الأيقونة فوراً لبدء الأنيميشن
         plot.isReady = false
         plot.collectIcon?.visibility = View.GONE
         plot.progress = 0f
         plot.pb?.progress = 0
         plot.pb?.visibility = View.VISIBLE
 
-        // جلب إحداثيات انطلاق الذهب
+        // إحداثيات الانطلاق
         val startLocation = IntArray(2)
         plot.collectIcon?.getLocationInWindow(startLocation)
         val startX = startLocation[0].toFloat()
         val startY = startLocation[1].toFloat()
 
-        // جلب إحداثيات الهدف (العداد في الأعلى)
+        // تحديد الوجهة (أي عداد سيطير إليه المورد؟)
+        val targetView = when (plot.resourceType) {
+            ResourceType.GOLD -> tvTotalGold
+            ResourceType.IRON -> tvTotalIron
+            ResourceType.WHEAT -> tvTotalWheat
+            else -> tvTotalGold
+        }
+
         val targetLocation = IntArray(2)
-        tvTotalGold.getLocationInWindow(targetLocation)
+        targetView.getLocationInWindow(targetLocation)
         val targetX = targetLocation[0].toFloat()
         val targetY = targetLocation[1].toFloat()
 
-        // إنشاء أيقونة طائرة برمجياً
+        // إنشاء المورد الطائر
         val rootLayout = findViewById<ViewGroup>(android.R.id.content)
         val flyingIcon = ImageView(this)
-        flyingIcon.setImageResource(R.drawable.ic_resource_gold)
+        flyingIcon.setImageResource(plot.resourceType.iconResId) // يطير شكل القمح للقمح، وهكذا
         
         val size = (35 * resources.displayMetrics.density).toInt()
         flyingIcon.layoutParams = FrameLayout.LayoutParams(size, size)
@@ -153,30 +186,37 @@ class MainActivity : AppCompatActivity() {
         flyingIcon.y = startY
         rootLayout.addView(flyingIcon)
 
-        // تشغيل الطيران
+        // تشغيل الأنيميشن
         flyingIcon.animate()
             .x(targetX)
             .y(targetY)
-            .setDuration(600) // 0.6 ثانية
+            .setDuration(600) 
             .setInterpolator(AccelerateDecelerateInterpolator())
             .withEndAction {
                 rootLayout.removeView(flyingIcon)
-                totalGold += plot.reward
-                updateGoldHud()
+                
+                // إضافة المورد للرصيد الصحيح
+                when (plot.resourceType) {
+                    ResourceType.GOLD -> totalGold += plot.reward
+                    ResourceType.IRON -> totalIron += plot.reward
+                    ResourceType.WHEAT -> totalWheat += plot.reward
+                    else -> {}
+                }
+                
+                updateResourcesHud()
                 saveGameData()
                 
-                // تأثير النبض للعداد
+                // تأثير نبض للعداد المستهدف
                 val animPulse = AnimationUtils.loadAnimation(this, android.R.anim.fade_in)
-                tvTotalGold.startAnimation(animPulse)
+                targetView.startAnimation(animPulse)
             }
             .start()
     }
 
     // ==========================================
-    // نافذة الترقية الخشبية المخصصة
+    // واجهة الترقية (بالمخطوطة الخشبية)
     // ==========================================
     private fun showUpgradeDialog(plot: MapPlot) {
-        // استخدام ستايل شفاف لكي تظهر المخطوطة الخشبية بشكل جميل
         val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         dialog.setContentView(R.layout.dialog_upgrade_building)
 
@@ -189,20 +229,19 @@ class MainActivity : AppCompatActivity() {
 
         tvTitle.text = "ترقية ${plot.name}"
 
-        // إذا كان المبنى هو القلعة (لا تنتج موارد حالياً)
         if (plot.speed == 0f) {
             tvInfo.text = "القلعة هي قلب الإمبراطورية ومصدر قوتك. قريباً ستتمكن من ترقيتها لفتح سكنات ومستويات جديدة."
             btnUpgrade.visibility = View.GONE
             layoutCost.visibility = View.GONE
         } else {
-            tvInfo.text = "الإنتاج الحالي: ${plot.speed} نقطة\nالمكافأة: ${plot.reward} ذهب"
-            tvCost.text = "500" 
+            tvInfo.text = "الإنتاج الحالي: ${plot.speed} نقطة\nالمكافأة: ${plot.reward}"
+            tvCost.text = "500" // تكلفة الترقية ثابتة حالياً
             
             btnUpgrade.setOnClickListener {
                 if (totalGold >= 500) {
                     totalGold -= 500
                     plot.speed += 0.5f 
-                    updateGoldHud()
+                    updateResourcesHud()
                     saveGameData()
                     Toast.makeText(this, "تمت الترقية بنجاح! زادت سرعة الإنتاج.", Toast.LENGTH_SHORT).show()
                     dialog.dismiss()
@@ -217,7 +256,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // حلقة اللعبة الرئيسية (Game Loop)
+    // محرك اللعبة الرئيسي (Game Loop)
     // ==========================================
     private fun startGameLoop() {
         gameHandler.post(object : Runnable {
@@ -238,12 +277,15 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private fun updateGoldHud() {
-        tvTotalGold.text = "الذهب: $totalGold"
+    // تحديث كل الأرصدة في الواجهة العلوية
+    private fun updateResourcesHud() {
+        tvTotalGold.text = totalGold.toString()
+        tvTotalIron.text = totalIron.toString()
+        tvTotalWheat.text = totalWheat.toString()
     }
 
     // ==========================================
-    // حماية الذاكرة (ضد الشاشة السوداء)
+    // حماية الذاكرة (ضد الشاشة السوداء - OOM)
     // ==========================================
     private fun loadImg(id: Int, view: ImageView, w: Int, h: Int) {
         try {
