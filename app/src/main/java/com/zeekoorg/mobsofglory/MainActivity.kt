@@ -22,7 +22,6 @@ class MainActivity : AppCompatActivity() {
         var pb: ProgressBar? = null, var collectIcon: ImageView? = null
     )
 
-    // الربط مع الإحداثيات المليمتيرية الجديدة
     private val myPlots = mutableListOf(
         MapPlot(R.id.plotCastle, R.drawable.ic_build_castle, 0f, 0),
         MapPlot(R.id.plotFarmR1, R.drawable.ic_build_farm, 2.0f, 50),
@@ -57,7 +56,7 @@ class MainActivity : AppCompatActivity() {
         plot.collectIcon = view.findViewById(R.id.imgCollect)
         val hud = view.findViewById<View>(R.id.includeHud)
 
-        loadImg(plot.resId, img, 500, 500)
+        loadImg(plot.resId, img, 600, 600)
         if (plot.speed > 0f) hud.visibility = View.VISIBLE
 
         img.setOnClickListener { collect(plot) }
