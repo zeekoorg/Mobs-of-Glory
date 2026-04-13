@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layout_constraintDimensionRatio="H,5.4:1"
-        android:layout_marginHorizontal="4dp"
+        android:layout_marginHorizontal="2dp"
         android:layout_marginTop="4dp"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -20,13 +20,15 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:scaleType="fitXY"
-            android:src="@drawable/bg_top_hud_blank" /> <LinearLayout
+            android:src="@drawable/bg_top_hud_blank" />
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="horizontal"
             android:weightSum="10"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="8dp">
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="0dp"
@@ -49,61 +51,35 @@
                     android:layout_height="wrap_content"
                     android:text="المُهيب"
                     android:textColor="#FFFFFF"
-                    android:textSize="12sp"
+                    android:textSize="10sp"
                     android:textStyle="bold"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="6dp"
                     app:layout_constraintStart_toEndOf="@id/imgAvatarFrame"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toTopOf="@id/pbPlayerHP" />
-
-                <TextView
-                    android:id="@+id/tvHPLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="HP"
-                    android:textColor="#FFFFFF"
-                    android:textSize="8sp"
-                    android:layout_marginStart="8dp"
-                    app:layout_constraintStart_toEndOf="@id/imgAvatarFrame"
-                    app:layout_constraintTop_toTopOf="@id/pbPlayerHP"
-                    app:layout_constraintBottom_toBottomOf="@id/pbPlayerHP" />
 
                 <ProgressBar
                     android:id="@+id/pbPlayerHP"
                     style="@android:style/Widget.ProgressBar.Horizontal"
                     android:layout_width="0dp"
-                    android:layout_height="5dp"
-                    android:layout_marginStart="4dp"
-                    android:layout_marginEnd="4dp"
-                    android:progress="80"
+                    android:layout_height="4dp"
+                    android:layout_marginStart="6dp"
+                    android:progress="85"
                     android:progressDrawable="@drawable/custom_hp_bar"
-                    app:layout_constraintStart_toEndOf="@id/tvHPLabel"
+                    app:layout_constraintStart_toEndOf="@id/imgAvatarFrame"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent" />
-
-                <TextView
-                    android:id="@+id/tvMPLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="MP"
-                    android:textColor="#FFFFFF"
-                    android:textSize="8sp"
-                    android:layout_marginStart="8dp"
-                    app:layout_constraintStart_toEndOf="@id/imgAvatarFrame"
-                    app:layout_constraintTop_toTopOf="@id/pbPlayerMP"
-                    app:layout_constraintBottom_toBottomOf="@id/pbPlayerMP" />
 
                 <ProgressBar
                     android:id="@+id/pbPlayerMP"
                     style="@android:style/Widget.ProgressBar.Horizontal"
                     android:layout_width="0dp"
-                    android:layout_height="5dp"
-                    android:layout_marginStart="4dp"
-                    android:layout_marginEnd="4dp"
-                    android:progress="60"
+                    android:layout_height="4dp"
+                    android:layout_marginStart="6dp"
+                    android:progress="70"
                     android:progressDrawable="@drawable/custom_mp_bar"
-                    app:layout_constraintStart_toEndOf="@id/tvMPLabel"
+                    app:layout_constraintStart_toEndOf="@id/imgAvatarFrame"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/pbPlayerHP"
                     app:layout_constraintBottom_toBottomOf="parent" />
@@ -112,10 +88,10 @@
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_weight="5"
+                android:layout_weight="5.5"
                 android:orientation="horizontal"
                 android:weightSum="3"
-                android:layout_marginHorizontal="8dp">
+                android:layout_marginHorizontal="4dp">
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -124,12 +100,9 @@
                     android:background="@drawable/bg_inner_frame"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="2dp">
-                    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center">
-                        <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_resource_gold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ذهب" android:textColor="#F4D03F" android:textSize="10sp" android:layout_marginStart="2dp" android:textStyle="bold"/>
-                    </LinearLayout>
-                    <TextView android:id="@+id/tvTotalGold" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="125000" android:textColor="#F4D03F" android:textSize="12sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                    android:layout_margin="1dp">
+                    <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@drawable/ic_resource_gold" />
+                    <TextView android:id="@+id/tvTotalGold" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="125K" android:textColor="#F4D03F" android:textSize="10sp" android:textStyle="bold"/>
                 </LinearLayout>
 
                 <LinearLayout
@@ -139,11 +112,9 @@
                     android:background="@drawable/bg_inner_frame"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="2dp">
-                    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center">
-                        <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@android:drawable/ic_menu_edit" app:tint="#BDC3C7"/> <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="حديد" android:textColor="#BDC3C7" android:textSize="10sp" android:layout_marginStart="2dp" android:textStyle="bold"/>
-                    </LinearLayout>
-                    <TextView android:id="@+id/tvTotalIron" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="85300" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                    android:layout_margin="1dp">
+                    <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@drawable/ic_resource_iron" />
+                    <TextView android:id="@+id/tvTotalIron" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="85K" android:textColor="#BDC3C7" android:textSize="10sp" android:textStyle="bold"/>
                 </LinearLayout>
 
                 <LinearLayout
@@ -153,59 +124,68 @@
                     android:background="@drawable/bg_inner_frame"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="2dp">
-                    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center">
-                        <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@android:drawable/ic_menu_view" app:tint="#F5CBA7" /> <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قمح" android:textColor="#F5CBA7" android:textSize="10sp" android:layout_marginStart="2dp" android:textStyle="bold"/>
-                    </LinearLayout>
-                    <TextView android:id="@+id/tvTotalWheat" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="210000" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                    android:layout_margin="1dp">
+                    <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@drawable/ic_resource_wheat" />
+                    <TextView android:id="@+id/tvTotalWheat" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="210K" android:textColor="#FFFFFF" android:textSize="10sp" android:textStyle="bold"/>
                 </LinearLayout>
             </LinearLayout>
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_weight="2"
+                android:layout_weight="1.5"
                 android:orientation="vertical"
                 android:gravity="center"
                 android:background="?attr/selectableItemBackgroundBorderless">
-                
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_settings_gear" />
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="الإعدادات"
                     android:textColor="#D7CCC8"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="2dp"/>
-                    
-                <ImageView
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
-                    android:src="@drawable/ic_settings_gear" /> </LinearLayout>
-
+                    android:textSize="8sp" />
+            </LinearLayout>
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <LinearLayout
         android:id="@+id/bottomNavBar"
         android:layout_width="match_parent"
-        android:layout_height="75dp"
+        android:layout_height="70dp"
         android:background="#E60A0A0A"
-        android:baselineAligned="false"
         android:gravity="center"
         android:orientation="horizontal"
         android:weightSum="5"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:background="?attr/selectableItemBackground">
-            <ImageView android:layout_width="30dp" android:layout_height="30dp" android:src="@android:drawable/ic_menu_gallery" app:tint="#B3B3B3" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="الأبطال" android:textColor="#B3B3B3" android:textSize="12sp" />
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+            <ImageView android:layout_width="28dp" android:layout_height="28dp" android:src="@android:drawable/ic_menu_gallery" app:tint="#B3B3B3" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الأبطال" android:textColor="#B3B3B3" android:textSize="11sp" />
         </LinearLayout>
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:background="?attr/selectableItemBackground">
-            <ImageView android:layout_width="40dp" android:layout_height="40dp" android:src="@android:drawable/ic_menu_mapmode" app:tint="@color/royal_gold_light" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="المدينة" android:textColor="@color/royal_gold_light" android:textSize="13sp" android:textStyle="bold" />
+
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+            <ImageView android:layout_width="28dp" android:layout_height="28dp" android:src="@android:drawable/ic_menu_agenda" app:tint="#B3B3B3" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المهام" android:textColor="#B3B3B3" android:textSize="11sp" />
         </LinearLayout>
+
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+            <ImageView android:layout_width="35dp" android:layout_height="35dp" android:src="@android:drawable/ic_menu_mapmode" app:tint="@color/royal_gold_light" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المدينة" android:textColor="@color/royal_gold_light" android:textSize="12sp" android:textStyle="bold" />
         </LinearLayout>
+
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+            <ImageView android:layout_width="28dp" android:layout_height="28dp" android:src="@android:drawable/ic_menu_share" app:tint="#B3B3B3" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="التحالف" android:textColor="#B3B3B3" android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+            <ImageView android:layout_width="28dp" android:layout_height="28dp" android:src="@android:drawable/ic_menu_manage" app:tint="#B3B3B3" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الحقيبة" android:textColor="#B3B3B3" android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/mapContainer"
@@ -225,12 +205,18 @@
             android:scaleType="fitXY" />
 
         <FrameLayout android:id="@+id/plotCastle" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.52" app:layout_constraintHeight_percent="0.30" app:layout_constraintHorizontal_bias="0.55" app:layout_constraintVertical_bias="0.20" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+        
         <FrameLayout android:id="@+id/plotFarmR1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.77" app:layout_constraintVertical_bias="0.52" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+        
         <FrameLayout android:id="@+id/plotBarracksL1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.26" app:layout_constraintVertical_bias="0.52" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+        
         <FrameLayout android:id="@+id/plotHospitalM1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.52" app:layout_constraintVertical_bias="0.63" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+        
         <FrameLayout android:id="@+id/plotFarmR2" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.77" app:layout_constraintVertical_bias="0.77" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+        
         <FrameLayout android:id="@+id/plotBarracksL2" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.26" app:layout_constraintVertical_bias="0.76" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        <FrameLayout android:id="@+id/plotHospitalM2" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.51" app:layout_constraintVertical_bias="0.85" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+        
+        <FrameLayout android:id="@+id/plotHospitalM2" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" android:layout_height_percent="0.16" app:layout_constraintHorizontal_bias="0.51" app:layout_constraintVertical_bias="0.85" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
