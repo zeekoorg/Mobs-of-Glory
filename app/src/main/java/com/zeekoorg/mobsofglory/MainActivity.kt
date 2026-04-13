@@ -1,6 +1,7 @@
 package com.zeekoorg.mobsofglory
 
 import android.app.AlertDialog
+import android.content.Context
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Handler
@@ -14,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity
 class MainActivity : AppCompatActivity() {
 
     private lateinit var tvTotalGold: TextView
+    private lateinit var imgCityBackground: ImageView
     private var totalGold: Long = 1760
     private val gameHandler = Handler(Looper.getMainLooper())
 
@@ -23,8 +25,9 @@ class MainActivity : AppCompatActivity() {
         var pb: ProgressBar? = null, var collectIcon: ImageView? = null
     )
 
+    // القلعة وباقي المباني تم دمجها في الفوتوشوب، لذا نعطيها (0) لتصبح مستشعرات شفافة
     private val myPlots = mutableListOf(
-        MapPlot("القلعة", R.id.plotCastle, R.drawable.ic_build_castle, 0f, 0),
+        MapPlot("القلعة المركزية", R.id.plotCastle, 0, 0f, 0),
         MapPlot("المزرعة الشمالية", R.id.plotFarmR1, 0, 2.0f, 50),
         MapPlot("ثكنة المشاة", R.id.plotBarracksL1, 0, 1.5f, 100),
         MapPlot("المستشفى الرئيسي", R.id.plotHospitalM1, 0, 1.0f, 150),
@@ -38,13 +41,28 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         tvTotalGold = findViewById(R.id.tvTotalGold)
+        imgCityBackground = findViewById(R.id.imgCityBackground)
         updateGoldHud()
 
-        val imgBg = findViewById<ImageView>(R.id.imgCityBackground)
-        loadImg(R.drawable.bg_mobs_city_isometric, imgBg, 1080, 1920)
+        // 💡 تحميل الخلفية الحالية المدمج بها المباني (أو السكن الذي اشتراه اللاعب)
+        loadSavedCitySkin()
 
         myPlots.forEach { setupPlot(it) }
         startGameLoop()
+    }
+
+    // 💡 دالة جاهزة للاستخدام عند شراء القلعة من المتجر
+    fun changeCitySkin(newBackgroundResId: Int) {
+        loadImg(newBackgroundResId, imgCityBackground, 1080, 1920)
+        val sharedPrefs = getSharedPreferences("GameConfig", Context.MODE_PRIVATE)
+        sharedPrefs.edit().putInt("selected_skin", newBackgroundResId).apply()
+        Toast.makeText(this, "تم تجهيز مظهر المدينة الجديد!", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun loadSavedCitySkin() {
+        val sharedPrefs = getSharedPreferences("GameConfig", Context.MODE_PRIVATE)
+        val savedSkin = sharedPrefs.getInt("selected_skin", R.drawable.bg_mobs_city_isometric)
+        loadImg(savedSkin, imgCityBackground, 1080, 1920)
     }
 
     private fun setupPlot(plot: MapPlot) {
@@ -57,27 +75,21 @@ class MainActivity : AppCompatActivity() {
         plot.collectIcon = view.findViewById(R.id.imgCollect)
         val hud = view.findViewById<View>(R.id.includeHud)
 
-        // تحميل صورة القلعة، وجعل باقي المباني شفافة لتعمل كأزرار استشعار فقط
-        if (plot.resId != 0) {
-            loadImg(plot.resId, img, 600, 600)
-        } else {
-            img.setImageResource(android.R.color.transparent)
-        }
+        // جعل منطقة المبنى شفافة لتستقبل النقر فقط دون إخفاء خلفيتك
+        img.setImageResource(android.R.color.transparent)
 
         if (plot.speed > 0f) hud.visibility = View.VISIBLE
 
-        // 💡 نظام النقر الذكي الذي طلبته!
+        // 💡 النقر الذكي: يجمع إذا اكتمل الإنتاج، أو يفتح الترقية إذا كان قيد الإنتاج
         img.setOnClickListener {
             if (plot.isReady) {
-                // إذا الخط ممتلئ، النقر على المبنى يقوم بجمع الذهب
                 collect(plot)
             } else {
-                // إذا لم يمتلئ أو كان قلعة، يفتح نافذة المعلومات/الترقية
                 showUpgradeDialog(plot)
             }
         }
         
-        // إبقاء النقر على أيقونة الذهب للجمع أيضاً للسهولة
+        // إبقاء النقر على أيقونة الذهب للجمع أيضاً
         plot.collectIcon?.setOnClickListener { collect(plot) }
     }
 
@@ -95,7 +107,7 @@ class MainActivity : AppCompatActivity() {
                     totalGold -= 500
                     plot.speed += 0.5f 
                     updateGoldHud()
-                    Toast.makeText(this, "تمت الترقية بنجاح! زادت سرعة الإنتاج.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "تمت الترقية بنجاح!", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(this, "لا يوجد ذهب كافي للترقية!", Toast.LENGTH_SHORT).show()
                 }
