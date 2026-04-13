@@ -22,15 +22,15 @@ class MainActivity : AppCompatActivity() {
         var pb: ProgressBar? = null, var collectIcon: ImageView? = null
     )
 
-    // التوزيع العسكري لـ 7 أراضي (1-2-1-2-1)
+    // الربط مع الإحداثيات المليمتيرية الجديدة
     private val myPlots = mutableListOf(
         MapPlot(R.id.plotCastle, R.drawable.ic_build_castle, 0f, 0),
-        MapPlot(R.id.plotRow1L, R.drawable.ic_build_farm, 2.0f, 50),
-        MapPlot(R.id.plotRow1R, R.drawable.ic_build_barracks, 1.5f, 100),
-        MapPlot(R.id.plotRow2C, R.drawable.ic_build_hospital, 1.0f, 150),
-        MapPlot(R.id.plotRow3L, R.drawable.ic_build_farm, 2.0f, 50),
-        MapPlot(R.id.plotRow3R, R.drawable.ic_build_barracks, 1.5f, 100),
-        MapPlot(R.id.plotRow4C, R.drawable.ic_build_farm, 2.0f, 50)
+        MapPlot(R.id.plotFarmR1, R.drawable.ic_build_farm, 2.0f, 50),
+        MapPlot(R.id.plotBarracksL1, R.drawable.ic_build_barracks, 1.5f, 100),
+        MapPlot(R.id.plotHospitalM1, R.drawable.ic_build_hospital, 1.0f, 150),
+        MapPlot(R.id.plotFarmR2, R.drawable.ic_build_farm, 2.0f, 50),
+        MapPlot(R.id.plotBarracksL2, R.drawable.ic_build_barracks, 1.5f, 100),
+        MapPlot(R.id.plotHospitalM2, R.drawable.ic_build_hospital, 1.0f, 150)
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,6 +38,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         tvTotalGold = findViewById(R.id.tvTotalGold)
+        tvTotalGold.text = "الذهب: $totalGold"
+
         val imgBg = findViewById<ImageView>(R.id.imgCityBackground)
         loadImg(R.drawable.bg_mobs_city_isometric, imgBg, 1080, 1920)
 
@@ -66,6 +68,10 @@ class MainActivity : AppCompatActivity() {
         if (!plot.isReady) return
         totalGold += plot.reward
         tvTotalGold.text = "الذهب: $totalGold"
+        
+        val animPulse = AnimationUtils.loadAnimation(this, android.R.anim.fade_in)
+        tvTotalGold.startAnimation(animPulse)
+
         plot.progress = 0f
         plot.pb?.progress = 0
         plot.isReady = false
@@ -93,13 +99,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadImg(id: Int, view: ImageView, w: Int, h: Int) {
-        val opts = BitmapFactory.Options().apply {
-            inJustDecodeBounds = true
-            BitmapFactory.decodeResource(resources, id, this)
-            inSampleSize = calculateInSampleSize(this, w, h)
-            inJustDecodeBounds = false
-        }
-        view.setImageBitmap(BitmapFactory.decodeResource(resources, id, opts))
+        try {
+            val opts = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+                BitmapFactory.decodeResource(resources, id, this)
+                inSampleSize = calculateInSampleSize(this, w, h)
+                inJustDecodeBounds = false
+            }
+            view.setImageBitmap(BitmapFactory.decodeResource(resources, id, opts))
+        } catch (e: Exception) { e.printStackTrace() }
     }
 
     private fun calculateInSampleSize(o: BitmapFactory.Options, rw: Int, rh: Int): Int {
