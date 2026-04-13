@@ -1,5 +1,6 @@
 package com.zeekoorg.mobsofglory
 
+import android.app.AlertDialog
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Handler
@@ -16,20 +17,22 @@ class MainActivity : AppCompatActivity() {
     private var totalGold: Long = 1760
     private val gameHandler = Handler(Looper.getMainLooper())
 
+    // تمت إضافة اسم المبنى للبيانات ليعرض في نافذة الترقية
     data class MapPlot(
-        val slotId: Int, val resId: Int, var speed: Float, val reward: Long, 
+        val name: String, val slotId: Int, val resId: Int, var speed: Float, val reward: Long, 
         var progress: Float = 0f, var isReady: Boolean = false, 
         var pb: ProgressBar? = null, var collectIcon: ImageView? = null
     )
 
+    // القلعة فقط تملك صورة، باقي المباني وضعنا صورتها (0) لتصبح شفافة
     private val myPlots = mutableListOf(
-        MapPlot(R.id.plotCastle, R.drawable.ic_build_castle, 0f, 0),
-        MapPlot(R.id.plotFarmR1, R.drawable.ic_build_farm, 2.0f, 50),
-        MapPlot(R.id.plotBarracksL1, R.drawable.ic_build_barracks, 1.5f, 100),
-        MapPlot(R.id.plotHospitalM1, R.drawable.ic_build_hospital, 1.0f, 150),
-        MapPlot(R.id.plotFarmR2, R.drawable.ic_build_farm, 2.0f, 50),
-        MapPlot(R.id.plotBarracksL2, R.drawable.ic_build_barracks, 1.5f, 100),
-        MapPlot(R.id.plotHospitalM2, R.drawable.ic_build_hospital, 1.0f, 150)
+        MapPlot("القلعة", R.id.plotCastle, R.drawable.ic_build_castle, 0f, 0),
+        MapPlot("المزرعة الشمالية", R.id.plotFarmR1, 0, 2.0f, 50),
+        MapPlot("ثكنة المشاة", R.id.plotBarracksL1, 0, 1.5f, 100),
+        MapPlot("المستشفى الرئيسي", R.id.plotHospitalM1, 0, 1.0f, 150),
+        MapPlot("المزرعة الجنوبية", R.id.plotFarmR2, 0, 2.0f, 50),
+        MapPlot("ثكنة الفرسان", R.id.plotBarracksL2, 0, 1.5f, 100),
+        MapPlot("المستشفى الميداني", R.id.plotHospitalM2, 0, 1.0f, 150)
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,7 +40,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         tvTotalGold = findViewById(R.id.tvTotalGold)
-        tvTotalGold.text = "الذهب: $totalGold"
+        updateGoldHud()
 
         val imgBg = findViewById<ImageView>(R.id.imgCityBackground)
         loadImg(R.drawable.bg_mobs_city_isometric, imgBg, 1080, 1920)
@@ -56,17 +59,51 @@ class MainActivity : AppCompatActivity() {
         plot.collectIcon = view.findViewById(R.id.imgCollect)
         val hud = view.findViewById<View>(R.id.includeHud)
 
-        loadImg(plot.resId, img, 600, 600)
+        // إذا كان هناك صورة (القلعة)، قم بتحميلها. وإلا اجعل المنطقة شفافة
+        if (plot.resId != 0) {
+            loadImg(plot.resId, img, 600, 600)
+        } else {
+            img.setImageResource(android.R.color.transparent)
+        }
+
         if (plot.speed > 0f) hud.visibility = View.VISIBLE
 
-        img.setOnClickListener { collect(plot) }
+        // النقر على المبنى يفتح نافذة المعلومات/الترقية
+        img.setOnClickListener { showUpgradeDialog(plot) }
+        
+        // النقر على أيقونة الذهب يقوم بجمع الذهب
         plot.collectIcon?.setOnClickListener { collect(plot) }
+    }
+
+    // نافذة المعلومات والترقية الاحترافية
+    private fun showUpgradeDialog(plot: MapPlot) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle(plot.name)
+        
+        if (plot.speed == 0f) {
+            builder.setMessage("هذا المبنى هو المركز الرئيسي للمدينة. تطويره يرفع مستوى مدينتك بالكامل.")
+            builder.setPositiveButton("حسناً", null)
+        } else {
+            builder.setMessage("الإنتاج الحالي: ${plot.speed} نقطة\nالمكافأة: ${plot.reward} ذهب\n\nتكلفة الترقية: 500 ذهب")
+            builder.setPositiveButton("ترقية") { _, _ ->
+                if (totalGold >= 500) {
+                    totalGold -= 500
+                    plot.speed += 0.5f // زيادة سرعة الإنتاج بعد الترقية
+                    updateGoldHud()
+                    Toast.makeText(this, "تمت الترقية بنجاح! زادت سرعة الإنتاج.", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "لا يوجد ذهب كافي للترقية!", Toast.LENGTH_SHORT).show()
+                }
+            }
+            builder.setNegativeButton("إغلاق", null)
+        }
+        builder.show()
     }
 
     private fun collect(plot: MapPlot) {
         if (!plot.isReady) return
         totalGold += plot.reward
-        tvTotalGold.text = "الذهب: $totalGold"
+        updateGoldHud()
         
         val animPulse = AnimationUtils.loadAnimation(this, android.R.anim.fade_in)
         tvTotalGold.startAnimation(animPulse)
@@ -95,6 +132,10 @@ class MainActivity : AppCompatActivity() {
                 gameHandler.postDelayed(this, 100)
             }
         })
+    }
+
+    private fun updateGoldHud() {
+        tvTotalGold.text = "الذهب: $totalGold"
     }
 
     private fun loadImg(id: Int, view: ImageView, w: Int, h: Int) {
