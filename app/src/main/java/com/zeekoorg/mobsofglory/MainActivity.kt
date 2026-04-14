@@ -13,17 +13,26 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AnimationUtils
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import kotlin.math.pow
 
 class MainActivity : AppCompatActivity() {
 
+    // عناصر الواجهة
     private lateinit var tvTotalGold: TextView
     private lateinit var tvTotalIron: TextView
     private lateinit var tvTotalWheat: TextView
+    private lateinit var tvPlayerLevel: TextView
+    private lateinit var pbPlayerMP: ProgressBar // سنستخدم شريط المانا كشريط خبرة EXP مؤقتاً
     private lateinit var imgCityBackground: ImageView
     
+    // أرصدة الموارد
     private var totalGold: Long = 0
     private var totalIron: Long = 0
     private var totalWheat: Long = 0
+    
+    // بيانات اللاعب
+    private var playerLevel: Int = 1
+    private var playerExp: Int = 0
     
     private val gameHandler = Handler(Looper.getMainLooper())
 
@@ -34,22 +43,30 @@ class MainActivity : AppCompatActivity() {
         NONE(0)
     }
 
+    // 💡 تم تحديث نموذج المبنى ليشمل "المستوى" بدلاً من السرعة الثابتة
     data class MapPlot(
-        val name: String, val slotId: Int, val resId: Int, var speed: Float, 
-        val reward: Long, val resourceType: ResourceType,
+        val idCode: String, val name: String, val slotId: Int, val resId: Int, 
+        val resourceType: ResourceType, var level: Int = 1,
         var progress: Float = 0f, var isReady: Boolean = false, 
         var pb: ProgressBar? = null, var collectIcon: ImageView? = null
-    )
+    ) {
+        // معادلات انتقام السلاطين الرياضية
+        fun getProductionSpeed(): Float = if (level == 0) 0f else (level * 1.2f)
+        fun getReward(): Long = (level * 50).toLong()
+        // تكلفة الترقية تزيد بشكل أسي (مثال: مستوى 1 بـ 500، مستوى 2 بـ 750 وهكذا)
+        fun getUpgradeCost(): Long = (500 * 1.5.pow(level.toDouble())).toLong()
+        fun getExpReward(): Int = level * 100
+    }
 
-    // القائمة المحدثة بالمسميات التاريخية الدقيقة
+    // الإمبراطورية (تم إضافة idCode لمعرفة نوع المبنى برمجياً)
     private val myPlots = mutableListOf(
-        MapPlot("القلعة المركزية", R.id.plotCastle, 0, 0f, 0, ResourceType.NONE),
-        MapPlot("مزرعة القمح", R.id.plotFarmR1, 0, 2.0f, 50, ResourceType.WHEAT),
-        MapPlot("منجم الحديد", R.id.plotHospitalM1, 0, 1.5f, 100, ResourceType.IRON),
-        MapPlot("منجم الذهب", R.id.plotFarmR2, 0, 1.2f, 150, ResourceType.GOLD),
-        MapPlot("ثكنة المشاة", R.id.plotBarracksL1, 0, 1.5f, 80, ResourceType.IRON),
-        MapPlot("ثكنة الفرسان", R.id.plotBarracksL2, 0, 1.5f, 80, ResourceType.IRON),
-        MapPlot("دار الشفاء", R.id.plotHospitalM2, 0, 0f, 0, ResourceType.NONE)
+        MapPlot("CASTLE", "القلعة المركزية", R.id.plotCastle, 0, ResourceType.NONE, 1),
+        MapPlot("FARM_1", "مزرعة القمح", R.id.plotFarmR1, 0, ResourceType.WHEAT, 1),
+        MapPlot("MINE_1", "منجم الحديد", R.id.plotHospitalM1, 0, ResourceType.IRON, 1),
+        MapPlot("GOLD_1", "منجم الذهب", R.id.plotFarmR2, 0, ResourceType.GOLD, 1),
+        MapPlot("BARRACKS_1", "ثكنة المشاة", R.id.plotBarracksL1, 0, ResourceType.IRON, 1),
+        MapPlot("BARRACKS_2", "ثكنة الفرسان", R.id.plotBarracksL2, 0, ResourceType.IRON, 1),
+        MapPlot("HOSPITAL", "دار الشفاء", R.id.plotHospitalM2, 0, ResourceType.NONE, 1)
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,10 +76,12 @@ class MainActivity : AppCompatActivity() {
         tvTotalGold = findViewById(R.id.tvTotalGold)
         tvTotalIron = findViewById(R.id.tvTotalIron)
         tvTotalWheat = findViewById(R.id.tvTotalWheat)
+        tvPlayerLevel = findViewById(R.id.tvPlayerLevel)
+        pbPlayerMP = findViewById(R.id.pbPlayerMP) // نستخدمه كشريط EXP
         imgCityBackground = findViewById(R.id.imgCityBackground)
 
         loadGameData()
-        updateResourcesHud()
+        updateHud()
 
         myPlots.forEach { setupPlot(it) }
         startGameLoop()
@@ -78,14 +97,24 @@ class MainActivity : AppCompatActivity() {
         prefs.putLong("TOTAL_GOLD", totalGold)
         prefs.putLong("TOTAL_IRON", totalIron)
         prefs.putLong("TOTAL_WHEAT", totalWheat)
+        prefs.putInt("PLAYER_LEVEL", playerLevel)
+        prefs.putInt("PLAYER_EXP", playerExp)
+        
+        // حفظ مستويات المباني
+        myPlots.forEach { prefs.putInt("LEVEL_${it.idCode}", it.level) }
         prefs.apply()
     }
 
     private fun loadGameData() {
         val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
-        totalGold = prefs.getLong("TOTAL_GOLD", 500)
-        totalIron = prefs.getLong("TOTAL_IRON", 1000)
-        totalWheat = prefs.getLong("TOTAL_WHEAT", 1500)
+        totalGold = prefs.getLong("TOTAL_GOLD", 5000)
+        totalIron = prefs.getLong("TOTAL_IRON", 5000)
+        totalWheat = prefs.getLong("TOTAL_WHEAT", 5000)
+        playerLevel = prefs.getInt("PLAYER_LEVEL", 1)
+        playerExp = prefs.getInt("PLAYER_EXP", 0)
+
+        // تحميل مستويات المباني
+        myPlots.forEach { it.level = prefs.getInt("LEVEL_${it.idCode}", 1) }
         
         val savedSkin = prefs.getInt("selected_skin", R.drawable.bg_mobs_city_isometric)
         loadImg(savedSkin, imgCityBackground, 1080, 1920)
@@ -106,7 +135,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         img.setImageResource(android.R.color.transparent)
-        if (plot.speed > 0f) hud.visibility = View.VISIBLE
+        // عرض شريط التقدم فقط للمباني المنتجة
+        if (plot.resourceType != ResourceType.NONE && plot.idCode != "CASTLE" && plot.idCode != "HOSPITAL") {
+            hud.visibility = View.VISIBLE
+        }
 
         img.setOnClickListener {
             if (plot.isReady) triggerCollectionAnimation(plot) else showUpgradeDialog(plot)
@@ -115,7 +147,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun triggerCollectionAnimation(plot: MapPlot) {
-        if (!plot.isReady) return
+        if (!plot.isReady || plot.resourceType == ResourceType.NONE) return
         plot.isReady = false
         plot.collectIcon?.visibility = View.GONE
         plot.progress = 0f
@@ -151,17 +183,20 @@ class MainActivity : AppCompatActivity() {
             .withEndAction {
                 rootLayout.removeView(flyingIcon)
                 when (plot.resourceType) {
-                    ResourceType.GOLD -> totalGold += plot.reward
-                    ResourceType.IRON -> totalIron += plot.reward
-                    ResourceType.WHEAT -> totalWheat += plot.reward
+                    ResourceType.GOLD -> totalGold += plot.getReward()
+                    ResourceType.IRON -> totalIron += plot.getReward()
+                    ResourceType.WHEAT -> totalWheat += plot.getReward()
                     else -> {}
                 }
-                updateResourcesHud()
+                updateHud()
                 saveGameData()
                 targetView.startAnimation(AnimationUtils.loadAnimation(this, android.R.anim.fade_in))
             }.start()
     }
 
+    // ==========================================
+    // 💡 قلب الاستراتيجية: نافذة الترقية والمنطق
+    // ==========================================
     private fun showUpgradeDialog(plot: MapPlot) {
         val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         dialog.setContentView(R.layout.dialog_upgrade_building)
@@ -173,38 +208,94 @@ class MainActivity : AppCompatActivity() {
         val btnClose = dialog.findViewById<ImageView>(R.id.btnClose)
         val layoutCost = dialog.findViewById<LinearLayout>(R.id.layoutCost)
 
-        tvTitle.text = plot.name
+        tvTitle.text = "${plot.name} (مستوى ${plot.level})"
+        val cost = plot.getUpgradeCost()
+        tvCost.text = cost.toString()
 
-        if (plot.speed == 0f) {
-            tvInfo.text = "هذا المرفق هو ركيزة أساسية في مدينتك، تطويره يتطلب استراتيجية حكيمة."
-            btnUpgrade.visibility = View.GONE
-            layoutCost.visibility = View.GONE
+        // 1. فحص الشروط الاستراتيجية
+        var canUpgrade = true
+        var errorMessage = ""
+        val castleLevel = myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
+
+        if (plot.idCode == "CASTLE") {
+            // شرط القلعة: يجب أن تكون جميع المباني الأخرى على الأقل (مستوى القلعة - 1)
+            // في بداية اللعبة (القلعة 1)، المباني كلها 1. لترقية القلعة لـ 2، يجب أن تكون المباني 1. 
+            // لترقية القلعة لـ 3، يجب أن تكون المباني 2.
+            val requiredLevel = if (plot.level == 1) 1 else plot.level - 1
+            val missingBuildings = myPlots.filter { it.idCode != "CASTLE" && it.level < requiredLevel }
+            
+            if (missingBuildings.isNotEmpty()) {
+                canUpgrade = false
+                errorMessage = "يتطلب ترقية جميع المباني للمستوى $requiredLevel أولاً!"
+            } else {
+                tvInfo.text = "ترقية القلعة تسمح لك بترقية باقي المباني لمستويات أعلى."
+            }
         } else {
-            tvInfo.text = "الإنتاج الحالي: ${plot.speed}\nالمكافأة عند الجمع: ${plot.reward}"
-            tvCost.text = "500"
+            // شرط المباني العادية: لا يمكن أن يتجاوز مستواها مستوى القلعة
+            if (plot.level >= castleLevel) {
+                canUpgrade = false
+                errorMessage = "تتطلب قلعة مستوى ${plot.level + 1} للترقية!"
+            } else {
+                tvInfo.text = "الإنتاج: ${plot.getProductionSpeed()}/ث\nالمكافأة: ${plot.getReward()}"
+            }
+        }
+
+        // 2. تطبيق حالة الزر بناءً على الشروط
+        if (!canUpgrade) {
+            btnUpgrade.text = "شرط غير متوفر"
+            btnUpgrade.setTextColor(android.graphics.Color.RED)
+            tvInfo.text = errorMessage
+            tvInfo.setTextColor(android.graphics.Color.RED)
+            layoutCost.visibility = View.GONE
+            
             btnUpgrade.setOnClickListener {
-                if (totalGold >= 500) {
-                    totalGold -= 500
-                    plot.speed += 0.6f
-                    updateResourcesHud()
+                Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            // الزر طبيعي
+            btnUpgrade.setOnClickListener {
+                if (totalGold >= cost) {
+                    totalGold -= cost
+                    plot.level += 1
+                    
+                    // زيادة خبرة اللاعب
+                    playerExp += plot.getExpReward()
+                    checkPlayerLevelUp()
+                    
+                    updateHud()
                     saveGameData()
-                    Toast.makeText(this, "تمت الترقية بنجاح!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "تمت الترقية للمستوى ${plot.level}!", Toast.LENGTH_SHORT).show()
                     dialog.dismiss()
                 } else {
                     Toast.makeText(this, "أيها القائد، الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
                 }
             }
         }
+
         btnClose.setOnClickListener { dialog.dismiss() }
         dialog.show()
+    }
+
+    // ==========================================
+    // نظام مستويات اللاعب (EXP)
+    // ==========================================
+    private fun checkPlayerLevelUp() {
+        val expNeeded = playerLevel * 500
+        if (playerExp >= expNeeded) {
+            playerLevel++
+            playerExp -= expNeeded
+            Toast.makeText(this, "ارتفع مستوى المُهيب للمستوى $playerLevel!", Toast.LENGTH_LONG).show()
+            // يمكننا إضافة أنيميشن هنا لاحقاً
+        }
     }
 
     private fun startGameLoop() {
         gameHandler.post(object : Runnable {
             override fun run() {
                 myPlots.forEach { p ->
-                    if (p.speed > 0f && !p.isReady) {
-                        p.progress += p.speed
+                    // تعمل فقط للمباني المنتجة
+                    if (p.resourceType != ResourceType.NONE && p.idCode != "CASTLE" && p.idCode != "HOSPITAL" && !p.isReady) {
+                        p.progress += p.getProductionSpeed()
                         p.pb?.progress = p.progress.toInt()
                         if (p.progress >= 100f) {
                             p.isReady = true
@@ -218,10 +309,26 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private fun updateResourcesHud() {
-        tvTotalGold.text = totalGold.toString()
-        tvTotalIron.text = totalIron.toString()
-        tvTotalWheat.text = totalWheat.toString()
+    private fun updateHud() {
+        tvTotalGold.text = formatResourceNumber(totalGold)
+        tvTotalIron.text = formatResourceNumber(totalIron)
+        tvTotalWheat.text = formatResourceNumber(totalWheat)
+        
+        tvPlayerLevel.text = "مستوى $playerLevel"
+        
+        // تحديث شريط الخبرة (المانا الأزرق)
+        val expNeeded = playerLevel * 500
+        val expPercent = ((playerExp.toFloat() / expNeeded.toFloat()) * 100).toInt()
+        pbPlayerMP.progress = expPercent
+    }
+
+    // دالة لتنسيق الأرقام الطويلة (مثال: 1500 تصبح 1.5K)
+    private fun formatResourceNumber(num: Long): String {
+        return when {
+            num >= 1000000 -> String.format("%.1fM", num / 1000000.0)
+            num >= 1000 -> String.format("%.1fK", num / 1000.0)
+            else -> num.toString()
+        }
     }
 
     private fun loadImg(id: Int, view: ImageView, w: Int, h: Int) {
