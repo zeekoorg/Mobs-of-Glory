@@ -3,19 +3,20 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#80000000"
+    android:background="#A6000000"
     android:gravity="center">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="320dp"
-        android:layout_height="wrap_content"
-        android:minHeight="420dp">
+        android:layout_height="wrap_content">
 
         <ImageView
+            android:id="@+id/imgDialogBg"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="0dp"
+            app:layout_constraintDimensionRatio="W,5:6.5"
             android:scaleType="fitXY"
-            android:src="@drawable/bg_dialog_dark"
+            android:src="@drawable/bg_dialog_scroll"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
 
@@ -23,10 +24,10 @@
             android:id="@+id/tvDialogTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="45dp"
+            android:layout_marginTop="60dp"
             android:text="مزرعة القمح"
             android:textColor="#000000"
-            android:textSize="24sp"
+            android:textSize="22sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -37,12 +38,12 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="35dp"
-            android:layout_marginTop="25dp"
+            android:layout_marginTop="20dp"
             android:gravity="center"
             android:lineSpacingExtra="4dp"
             android:text="أيها القائد، تطوير هذا المرفق سيزيد من إمدادات إمبراطوريتك بشكل ملحوظ."
             android:textColor="#000000"
-            android:textSize="17sp"
+            android:textSize="16sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -52,7 +53,7 @@
             android:id="@+id/layoutCost"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="35dp"
+            android:layout_marginTop="20dp"
             android:gravity="center"
             android:orientation="horizontal"
             app:layout_constraintEnd_toEndOf="parent"
@@ -77,26 +78,24 @@
 
         <Button
             android:id="@+id/btnUpgrade"
-            android:layout_width="170dp"
-            android:layout_height="55dp"
-            android:layout_marginTop="30dp"
-            android:layout_marginBottom="45dp"
+            android:layout_width="160dp"
+            android:layout_height="50dp"
+            android:layout_marginBottom="55dp"
             android:background="@drawable/bg_btn_gold_border"
             android:text="ترقية"
             android:textColor="#000000"
-            android:textSize="19sp"
+            android:textSize="18sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/layoutCost" />
+            app:layout_constraintStart_toStartOf="parent" />
 
         <ImageView
             android:id="@+id/btnClose"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:layout_marginTop="15dp"
-            android:layout_marginEnd="15dp"
+            android:layout_width="35dp"
+            android:layout_height="35dp"
+            android:layout_marginTop="25dp"
+            android:layout_marginEnd="25dp"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
