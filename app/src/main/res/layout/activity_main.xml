@@ -14,6 +14,33 @@
         android:src="@drawable/bg_mobs_city_isometric" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/mapContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipChildren="false"
+        app:layout_constraintDimensionRatio="9:16"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <FrameLayout android:id="@+id/plotCastle" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.52" app:layout_constraintHeight_percent="0.30" app:layout_constraintHorizontal_bias="0.55" app:layout_constraintVertical_bias="0.22" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+        
+        <FrameLayout android:id="@+id/plotFarmR1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.77" app:layout_constraintVertical_bias="0.54" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+        
+        <FrameLayout android:id="@+id/plotBarracksL1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.26" app:layout_constraintVertical_bias="0.54" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+        
+        <FrameLayout android:id="@+id/plotHospitalM1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.52" app:layout_constraintVertical_bias="0.65" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+        
+        <FrameLayout android:id="@+id/plotFarmR2" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.77" app:layout_constraintVertical_bias="0.79" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+        
+        <FrameLayout android:id="@+id/plotBarracksL2" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.26" app:layout_constraintVertical_bias="0.78" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+        
+        <FrameLayout android:id="@+id/plotHospitalM2" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.51" app:layout_constraintVertical_bias="0.87" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/topHudContainer"
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -47,16 +74,19 @@
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="5.5" android:orientation="horizontal" android:weightSum="3" android:layout_marginHorizontal="4dp">
+                
                 <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:orientation="vertical" android:gravity="center" android:layout_margin="1dp">
-                    <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@drawable/ic_resource_gold" />
+                    <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/ic_resource_gold" />
                     <TextView android:id="@+id/tvTotalGold" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="125K" android:textColor="#F4D03F" android:textSize="10sp" android:textStyle="bold"/>
                 </LinearLayout>
+
                 <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:orientation="vertical" android:gravity="center" android:layout_margin="1dp">
-                    <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@drawable/ic_resource_iron" />
+                    <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/ic_resource_iron" />
                     <TextView android:id="@+id/tvTotalIron" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="85K" android:textColor="#BDC3C7" android:textSize="10sp" android:textStyle="bold"/>
                 </LinearLayout>
+
                 <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:orientation="vertical" android:gravity="center" android:layout_margin="1dp">
-                    <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@drawable/ic_resource_wheat" />
+                    <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/ic_resource_wheat" />
                     <TextView android:id="@+id/tvTotalWheat" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="210K" android:textColor="#FFFFFF" android:textSize="10sp" android:textStyle="bold"/>
                 </LinearLayout>
             </LinearLayout>
@@ -81,7 +111,9 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:scaleType="fitXY"
-            android:src="@drawable/bg_top_hud_blank" /> <LinearLayout
+            android:src="@drawable/bg_top_hud_blank" />
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="horizontal"
@@ -116,24 +148,4 @@
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/mapContainer"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:clipChildren="false"
-        app:layout_constraintDimensionRatio="9:16"
-        app:layout_constraintBottom_toTopOf="@id/bottomNavBar"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/topHudContainer">
-
-        <FrameLayout android:id="@+id/plotCastle" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.52" app:layout_constraintHeight_percent="0.30" app:layout_constraintHorizontal_bias="0.55" app:layout_constraintVertical_bias="0.20" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        <FrameLayout android:id="@+id/plotFarmR1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.77" app:layout_constraintVertical_bias="0.52" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        <FrameLayout android:id="@+id/plotBarracksL1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.26" app:layout_constraintVertical_bias="0.52" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        <FrameLayout android:id="@+id/plotHospitalM1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.52" app:layout_constraintVertical_bias="0.63" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        <FrameLayout android:id="@+id/plotFarmR2" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.77" app:layout_constraintVertical_bias="0.77" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        <FrameLayout android:id="@+id/plotBarracksL2" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.26" app:layout_constraintVertical_bias="0.76" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        <FrameLayout android:id="@+id/plotHospitalM2" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.51" app:layout_constraintVertical_bias="0.85" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
