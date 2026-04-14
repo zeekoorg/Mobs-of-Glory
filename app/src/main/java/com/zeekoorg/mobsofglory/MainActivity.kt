@@ -362,10 +362,74 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun showStoreDialog() {
-        // سيتم تصميم نافذة المتجر في الخطوة القادمة، حالياً نكتفي بـ Toast للتأكيد
-        Toast.makeText(this, "سيتم فتح نافذة المتجر الضخمة قريباً!", Toast.LENGTH_SHORT).show()
+        private fun showStoreDialog() {
+        val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+        dialog.setContentView(R.layout.dialog_store)
+
+        val btnPyramid = dialog.findViewById<Button>(R.id.btnBuyPyramid)
+        val btnPeacock = dialog.findViewById<Button>(R.id.btnBuyPeacock)
+        val btnDiamond = dialog.findViewById<Button>(R.id.btnBuyDiamond)
+        val btnWheat = dialog.findViewById<Button>(R.id.btnBuyWheat)
+        val btnSpeedup = dialog.findViewById<Button>(R.id.btnBuySpeedup)
+
+        // تحديث حالة الأزرار إذا كانت مشتراة مسبقاً
+        if (isPyramidUnlocked) { btnPyramid.text = "مملوكة"; btnPyramid.isEnabled = false }
+        if (isPeacockUnlocked) { btnPeacock.text = "مملوكة"; btnPeacock.isEnabled = false }
+        if (isDiamondUnlocked) { btnDiamond.text = "مملوكة"; btnDiamond.isEnabled = false }
+
+        // شراء الهرم (500,000)
+        btnPyramid.setOnClickListener {
+            if (totalGold >= 500000) {
+                totalGold -= 500000; isPyramidUnlocked = true
+                btnPyramid.text = "مملوكة"; btnPyramid.isEnabled = false
+                updateHud(); saveGameData()
+                Toast.makeText(this, "تم شراء زينة الهرم بنجاح!", Toast.LENGTH_SHORT).show()
+            } else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+        }
+
+        // شراء الطاؤوس (1,500,000)
+        btnPeacock.setOnClickListener {
+            if (totalGold >= 1500000) {
+                totalGold -= 1500000; isPeacockUnlocked = true
+                btnPeacock.text = "مملوكة"; btnPeacock.isEnabled = false
+                updateHud(); saveGameData()
+                Toast.makeText(this, "تم شراء زينة الطاؤوس!", Toast.LENGTH_SHORT).show()
+            } else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+        }
+
+        // شراء الألماس (3,000,000)
+        btnDiamond.setOnClickListener {
+            if (totalGold >= 3000000) {
+                totalGold -= 3000000; isDiamondUnlocked = true
+                btnDiamond.text = "مملوكة"; btnDiamond.isEnabled = false
+                updateHud(); saveGameData()
+                Toast.makeText(this, "تم شراء زينة الألماس الأسطورية!", Toast.LENGTH_SHORT).show()
+            } else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+        }
+
+        // شراء الموارد (مثال: 100K قمح بـ 20K ذهب)
+        btnWheat.setOnClickListener {
+            if (totalGold >= 20000) {
+                totalGold -= 20000; totalWheat += 100000
+                updateHud(); saveGameData()
+                Toast.makeText(this, "تم شراء 100K قمح!", Toast.LENGTH_SHORT).show()
+            } else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+        }
+
+        // أداة التسريع (سنبرمجها لاحقاً لخصم الوقت، حالياً شراء فقط)
+        btnSpeedup.setOnClickListener {
+            if (totalGold >= 15000) {
+                totalGold -= 15000
+                // هنا سنضيف لاحقاً (inventory.speedups++) 
+                updateHud(); saveGameData()
+                Toast.makeText(this, "تم شراء أداة تسريع (1 ساعة)!", Toast.LENGTH_SHORT).show()
+            } else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+        }
+
+        dialog.findViewById<ImageView>(R.id.btnClose).setOnClickListener { dialog.dismiss() }
+        dialog.show()
     }
+
 
     private fun showSpeedupDialog(plot: MapPlot) {
         Toast.makeText(this, "نافذة استخدام أدوات التسريع أو الإعلانات ستضاف هنا!", Toast.LENGTH_SHORT).show()
