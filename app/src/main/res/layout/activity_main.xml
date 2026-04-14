@@ -25,17 +25,11 @@
         app:layout_constraintEnd_toEndOf="parent">
 
         <FrameLayout android:id="@+id/plotCastle" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.52" app:layout_constraintHeight_percent="0.30" app:layout_constraintHorizontal_bias="0.55" app:layout_constraintVertical_bias="0.22" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        
         <FrameLayout android:id="@+id/plotFarmR1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.77" app:layout_constraintVertical_bias="0.54" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        
         <FrameLayout android:id="@+id/plotBarracksL1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.26" app:layout_constraintVertical_bias="0.54" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        
         <FrameLayout android:id="@+id/plotHospitalM1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.52" app:layout_constraintVertical_bias="0.65" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        
         <FrameLayout android:id="@+id/plotFarmR2" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.77" app:layout_constraintVertical_bias="0.79" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        
         <FrameLayout android:id="@+id/plotBarracksL2" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.26" app:layout_constraintVertical_bias="0.78" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        
         <FrameLayout android:id="@+id/plotHospitalM2" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.51" app:layout_constraintVertical_bias="0.87" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
@@ -68,7 +62,11 @@
                 android:layout_height="match_parent"
                 android:layout_weight="3">
                 <ImageView android:id="@+id/imgAvatarFrame" android:layout_width="0dp" android:layout_height="match_parent" android:src="@drawable/ic_user_frame" app:layout_constraintDimensionRatio="1:1" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" />
+                
                 <TextView android:id="@+id/tvPlayerName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المُهيب" android:textColor="#FFFFFF" android:textSize="10sp" android:textStyle="bold" android:layout_marginStart="6dp" app:layout_constraintStart_toEndOf="@id/imgAvatarFrame" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toTopOf="@id/pbPlayerHP" />
+                
+                <TextView android:id="@+id/tvPlayerLevel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مستوى 1" android:textColor="#F4D03F" android:textSize="8sp" android:textStyle="bold" android:layout_marginStart="4dp" app:layout_constraintStart_toEndOf="@id/tvPlayerName" app:layout_constraintBottom_toBottomOf="@id/tvPlayerName" />
+                
                 <ProgressBar android:id="@+id/pbPlayerHP" style="@android:style/Widget.ProgressBar.Horizontal" android:layout_width="0dp" android:layout_height="4dp" android:layout_marginStart="6dp" android:progress="85" android:progressDrawable="@drawable/custom_hp_bar" app:layout_constraintStart_toEndOf="@id/imgAvatarFrame" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" />
                 <ProgressBar android:id="@+id/pbPlayerMP" style="@android:style/Widget.ProgressBar.Horizontal" android:layout_width="0dp" android:layout_height="4dp" android:layout_marginStart="6dp" android:progress="70" android:progressDrawable="@drawable/custom_mp_bar" app:layout_constraintStart_toEndOf="@id/imgAvatarFrame" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toBottomOf="@id/pbPlayerHP" app:layout_constraintBottom_toBottomOf="parent" />
             </androidx.constraintlayout.widget.ConstraintLayout>
