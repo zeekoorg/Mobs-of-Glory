@@ -14,11 +14,11 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AnimationUtils
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import java.util.Locale
 import kotlin.math.pow
 
 class MainActivity : AppCompatActivity() {
 
-    // عناصر الواجهة
     private lateinit var tvTotalGold: TextView
     private lateinit var tvTotalIron: TextView
     private lateinit var tvTotalWheat: TextView
@@ -26,14 +26,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var pbPlayerMP: ProgressBar
     private lateinit var imgCityBackground: ImageView
     
-    // أرصدة الموارد
     private var totalGold: Long = 0
     private var totalIron: Long = 0
     private var totalWheat: Long = 0
-    
-    // بيانات اللاعب
     private var playerLevel: Int = 1
     private var playerExp: Int = 0
+    
+    // نظام المتجر للزينات
+    private var isSnakeUnlocked = false
+    private var isDiamondUnlocked = false
+    private var isPeacockUnlocked = false
     
     private val gameHandler = Handler(Looper.getMainLooper())
 
@@ -44,16 +46,25 @@ class MainActivity : AppCompatActivity() {
         NONE(0)
     }
 
+    // 💡 تمت ترقية كائن المبنى ليتحمل نظام الوقت والموارد الثلاثة
     data class MapPlot(
         val idCode: String, val name: String, val slotId: Int, val resId: Int, 
         val resourceType: ResourceType, var level: Int = 1,
-        var progress: Float = 0f, var isReady: Boolean = false, 
+        var progress: Float = 0f, var isReady: Boolean = false,
+        var isUpgrading: Boolean = false, var upgradeEndTime: Long = 0L,
         var pb: ProgressBar? = null, var collectIcon: ImageView? = null
     ) {
         fun getProductionSpeed(): Float = if (level == 0) 0f else (level * 1.2f)
         fun getReward(): Long = (level * 50).toLong()
-        fun getUpgradeCost(): Long = (500 * 1.5.pow(level.toDouble())).toLong()
-        fun getExpReward(): Int = level * 100
+        
+        // تكلفة انتقام السلاطين (3 موارد)
+        fun getCostWheat(): Long = (level * 1200).toLong()
+        fun getCostIron(): Long = (level * 800).toLong()
+        fun getCostGold(): Long = (level * 250).toLong()
+        
+        // وقت الترقية (بالثواني) - يزداد مع المستوى
+        fun getUpgradeTimeSeconds(): Long = (level * 30).toLong() 
+        fun getExpReward(): Int = level * 150
     }
 
     private val myPlots = mutableListOf(
@@ -96,32 +107,47 @@ class MainActivity : AppCompatActivity() {
         prefs.putLong("TOTAL_WHEAT", totalWheat)
         prefs.putInt("PLAYER_LEVEL", playerLevel)
         prefs.putInt("PLAYER_EXP", playerExp)
-        myPlots.forEach { prefs.putInt("LEVEL_${it.idCode}", it.level) }
+        
+        // حفظ المشتريات
+        prefs.putBoolean("SNAKE_UNLOCKED", isSnakeUnlocked)
+        prefs.putBoolean("DIAMOND_UNLOCKED", isDiamondUnlocked)
+        prefs.putBoolean("PEACOCK_UNLOCKED", isPeacockUnlocked)
+        
+        myPlots.forEach { 
+            prefs.putInt("LEVEL_${it.idCode}", it.level) 
+            prefs.putBoolean("UPGRADING_${it.idCode}", it.isUpgrading)
+            prefs.putLong("UPGRADE_TIME_${it.idCode}", it.upgradeEndTime)
+        }
         prefs.apply()
     }
 
     private fun loadGameData() {
         val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
-        totalGold = prefs.getLong("TOTAL_GOLD", 5000)
-        totalIron = prefs.getLong("TOTAL_IRON", 5000)
-        totalWheat = prefs.getLong("TOTAL_WHEAT", 5000)
+        totalGold = prefs.getLong("TOTAL_GOLD", 10000)
+        totalIron = prefs.getLong("TOTAL_IRON", 10000)
+        totalWheat = prefs.getLong("TOTAL_WHEAT", 10000)
         playerLevel = prefs.getInt("PLAYER_LEVEL", 1)
         playerExp = prefs.getInt("PLAYER_EXP", 0)
 
-        myPlots.forEach { it.level = prefs.getInt("LEVEL_${it.idCode}", 1) }
+        isSnakeUnlocked = prefs.getBoolean("SNAKE_UNLOCKED", false)
+        isDiamondUnlocked = prefs.getBoolean("DIAMOND_UNLOCKED", false)
+        isPeacockUnlocked = prefs.getBoolean("PEACOCK_UNLOCKED", false)
+
+        myPlots.forEach { 
+            it.level = prefs.getInt("LEVEL_${it.idCode}", 1) 
+            it.isUpgrading = prefs.getBoolean("UPGRADING_${it.idCode}", false)
+            it.upgradeEndTime = prefs.getLong("UPGRADE_TIME_${it.idCode}", 0L)
+        }
         
-        // تحميل الزينة (السكن) المحفوظة
         val savedSkin = prefs.getInt("SELECTED_SKIN", R.drawable.bg_mobs_city_isometric)
         loadImg(savedSkin, imgCityBackground, 1080, 1920)
     }
 
-    // دالة تغيير الزينة وحفظها
     private fun changeCitySkin(skinResId: Int) {
         loadImg(skinResId, imgCityBackground, 1080, 1920)
         val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit()
         prefs.putInt("SELECTED_SKIN", skinResId)
         prefs.apply()
-        Toast.makeText(this, "تم تغيير زينة الإمبراطورية بنجاح!", Toast.LENGTH_SHORT).show()
     }
 
     private fun setupPlot(plot: MapPlot) {
@@ -144,9 +170,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         img.setOnClickListener {
+            if (plot.isUpgrading) {
+                Toast.makeText(this, "هذا المبنى قيد التطوير حالياً!", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            
             if (plot.idCode == "CASTLE") {
-                // إذا تم النقر على القلعة، نفتح النافذة الخاصة بها
                 showCastleMainDialog(plot)
+            } else if (plot.idCode.startsWith("BARRACKS")) {
+                showBarracksDialog(plot) // سيتم تصميم نافذة تدريب لاحقاً، حالياً تفتح الترقية
             } else {
                 if (plot.isReady) triggerCollectionAnimation(plot) else showUpgradeDialog(plot)
             }
@@ -164,29 +196,25 @@ class MainActivity : AppCompatActivity() {
 
         val startLocation = IntArray(2)
         plot.collectIcon?.getLocationInWindow(startLocation)
-        
         val targetView = when (plot.resourceType) {
             ResourceType.GOLD -> tvTotalGold
             ResourceType.IRON -> tvTotalIron
             ResourceType.WHEAT -> tvTotalWheat
             else -> tvTotalGold
         }
-
         val targetLocation = IntArray(2)
         targetView.getLocationInWindow(targetLocation)
 
         val rootLayout = findViewById<ViewGroup>(android.R.id.content)
         val flyingIcon = ImageView(this)
         flyingIcon.setImageResource(plot.resourceType.iconResId)
-        
         val size = (35 * resources.displayMetrics.density).toInt()
         flyingIcon.layoutParams = FrameLayout.LayoutParams(size, size)
         flyingIcon.x = startLocation[0].toFloat()
         flyingIcon.y = startLocation[1].toFloat()
         rootLayout.addView(flyingIcon)
 
-        flyingIcon.animate()
-            .x(targetLocation[0].toFloat()).y(targetLocation[1].toFloat())
+        flyingIcon.animate().x(targetLocation[0].toFloat()).y(targetLocation[1].toFloat())
             .setDuration(650).setInterpolator(AccelerateDecelerateInterpolator())
             .withEndAction {
                 rootLayout.removeView(flyingIcon)
@@ -197,131 +225,156 @@ class MainActivity : AppCompatActivity() {
                     else -> {}
                 }
                 updateHud()
-                saveGameData()
                 targetView.startAnimation(AnimationUtils.loadAnimation(this, android.R.anim.fade_in))
             }.start()
     }
 
-    // ==========================================
-    // 🏰 نافذة القلعة المركزية (ترقية أو زينة)
-    // ==========================================
     private fun showCastleMainDialog(plot: MapPlot) {
         val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         dialog.setContentView(R.layout.dialog_castle_main)
 
-        val btnUpgrade = dialog.findViewById<Button>(R.id.btnCastleUpgrade)
-        val btnDecorations = dialog.findViewById<Button>(R.id.btnCastleDecorations)
-        val btnClose = dialog.findViewById<ImageView>(R.id.btnClose)
-
-        btnUpgrade.setOnClickListener {
+        dialog.findViewById<Button>(R.id.btnCastleUpgrade).setOnClickListener {
             dialog.dismiss()
-            showUpgradeDialog(plot) // يفتح نافذة الترقية العادية للمخطوطة
+            showUpgradeDialog(plot)
         }
-
-        btnDecorations.setOnClickListener {
+        dialog.findViewById<Button>(R.id.btnCastleDecorations).setOnClickListener {
             dialog.dismiss()
-            showDecorationsDialog() // يفتح متجر الزينات
+            showDecorationsDialog()
         }
-
-        btnClose.setOnClickListener { dialog.dismiss() }
+        dialog.findViewById<ImageView>(R.id.btnClose).setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
 
-    // ==========================================
-    // 👑 نافذة الزينات (السكنات)
-    // ==========================================
+    private fun showBarracksDialog(plot: MapPlot) {
+        // للثكنات، سنفتح نافذة الترقية حالياً (لاحقاً يمكننا إضافة نافذة التدريب)
+        showUpgradeDialog(plot)
+    }
+
     private fun showDecorationsDialog() {
         val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         dialog.setContentView(R.layout.dialog_decorations)
 
-        // الأزرار الخاصة باختيار الزينة
+        // الأزرار ستتغير نصوصها حسب الشراء
+        val btnSnake = dialog.findViewById<TextView>(R.id.tvSkinSnake)
+        val btnDiamond = dialog.findViewById<TextView>(R.id.tvSkinDiamond)
+        val btnPeacock = dialog.findViewById<TextView>(R.id.tvSkinPeacock)
+
+        btnSnake.text = if (isSnakeUnlocked) "تطبيق" else "شراء (5000 ذهب)"
+        btnDiamond.text = if (isDiamondUnlocked) "تطبيق" else "شراء (10000 ذهب)"
+        btnPeacock.text = if (isPeacockUnlocked) "تطبيق" else "شراء (20000 ذهب)"
+
         dialog.findViewById<View>(R.id.btnSkinDefault).setOnClickListener {
             changeCitySkin(R.drawable.bg_mobs_city_isometric)
             dialog.dismiss()
         }
+
         dialog.findViewById<View>(R.id.btnSkinSnake).setOnClickListener {
-            changeCitySkin(R.drawable.bg_city_snake)
-            dialog.dismiss()
+            if (isSnakeUnlocked) {
+                changeCitySkin(R.drawable.bg_city_snake)
+                dialog.dismiss()
+            } else {
+                if (totalGold >= 5000) { totalGold -= 5000; isSnakeUnlocked = true; updateHud(); saveGameData(); btnSnake.text = "تطبيق"; Toast.makeText(this, "تم فتح زينة الأفعى!", Toast.LENGTH_SHORT).show() }
+                else Toast.makeText(this, "ذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+            }
         }
+
         dialog.findViewById<View>(R.id.btnSkinDiamond).setOnClickListener {
-            changeCitySkin(R.drawable.bg_city_diamond)
-            dialog.dismiss()
+            if (isDiamondUnlocked) {
+                changeCitySkin(R.drawable.bg_city_diamond)
+                dialog.dismiss()
+            } else {
+                if (totalGold >= 10000) { totalGold -= 10000; isDiamondUnlocked = true; updateHud(); saveGameData(); btnDiamond.text = "تطبيق"; Toast.makeText(this, "تم فتح زينة الألماس!", Toast.LENGTH_SHORT).show() }
+                else Toast.makeText(this, "ذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+            }
         }
+
         dialog.findViewById<View>(R.id.btnSkinPeacock).setOnClickListener {
-            changeCitySkin(R.drawable.bg_city_peacock)
-            dialog.dismiss()
+            if (isPeacockUnlocked) {
+                changeCitySkin(R.drawable.bg_city_peacock)
+                dialog.dismiss()
+            } else {
+                if (totalGold >= 20000) { totalGold -= 20000; isPeacockUnlocked = true; updateHud(); saveGameData(); btnPeacock.text = "تطبيق"; Toast.makeText(this, "تم فتح زينة الطاؤوس!", Toast.LENGTH_SHORT).show() }
+                else Toast.makeText(this, "ذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+            }
         }
 
         dialog.findViewById<ImageView>(R.id.btnClose).setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
 
-    // ==========================================
-    // 📜 نافذة الترقية والمخطوطة
-    // ==========================================
     private fun showUpgradeDialog(plot: MapPlot) {
         val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         dialog.setContentView(R.layout.dialog_upgrade_building)
 
         val tvTitle = dialog.findViewById<TextView>(R.id.tvDialogTitle)
         val tvInfo = dialog.findViewById<TextView>(R.id.tvDialogInfo)
-        val tvCost = dialog.findViewById<TextView>(R.id.tvUpgradeCost)
+        val tvCostWheat = dialog.findViewById<TextView>(R.id.tvCostWheat)
+        val tvCostIron = dialog.findViewById<TextView>(R.id.tvCostIron)
+        val tvCostGold = dialog.findViewById<TextView>(R.id.tvCostGold)
+        val tvTime = dialog.findViewById<TextView>(R.id.tvUpgradeTime)
         val btnUpgrade = dialog.findViewById<Button>(R.id.btnUpgrade)
         val btnClose = dialog.findViewById<ImageView>(R.id.btnClose)
-        val layoutCost = dialog.findViewById<LinearLayout>(R.id.layoutCost)
+        val layoutCosts = dialog.findViewById<LinearLayout>(R.id.layoutCosts)
 
         tvTitle.text = "${plot.name} (مستوى ${plot.level})"
-        val cost = plot.getUpgradeCost()
-        tvCost.text = cost.toString()
+        
+        val cWheat = plot.getCostWheat()
+        val cIron = plot.getCostIron()
+        val cGold = plot.getCostGold()
+        val uTimeSec = plot.getUpgradeTimeSeconds()
+
+        // استخدام try-catch لتفادي الأخطاء إذا لم يتم تحديث الـ XML بعد
+        try {
+            tvCostWheat.text = formatResourceNumber(cWheat)
+            tvCostIron.text = formatResourceNumber(cIron)
+            tvCostGold.text = formatResourceNumber(cGold)
+            tvTime.text = "${uTimeSec / 60}د ${uTimeSec % 60}ث"
+        } catch (e: Exception) {}
 
         var canUpgrade = true
         var errorMessage = ""
         val castleLevel = myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
 
+        // قواعد انتقام السلاطين
         if (plot.idCode == "CASTLE") {
-            val requiredLevel = if (plot.level == 1) 1 else plot.level - 1
-            val missingBuildings = myPlots.filter { it.idCode != "CASTLE" && it.level < requiredLevel }
-            
-            if (missingBuildings.isNotEmpty()) {
+            val reqLevel = plot.level
+            val missing = myPlots.filter { it.idCode != "CASTLE" && it.level < reqLevel }
+            if (missing.isNotEmpty()) {
                 canUpgrade = false
-                errorMessage = "عذراً أيها القائد، يجب ترقية جميع المباني للمستوى $requiredLevel أولاً."
-            } else {
-                tvInfo.text = "ترقية القلعة تسمح لك بتطوير الإمبراطورية واكتساب هيبة أكبر."
-            }
+                errorMessage = "يتطلب وصول جميع المباني للمستوى $reqLevel"
+            } else tvInfo.text = "ترقية القلعة ستفتح لك آفاقاً جديدة."
         } else {
             if (plot.level >= castleLevel) {
                 canUpgrade = false
-                errorMessage = "لا يمكن أن يتجاوز مستوى المبنى مستوى القلعة. قم بترقية القلعة أولاً."
-            } else {
-                tvInfo.text = "الإنتاج: ${plot.getProductionSpeed()}/ث\nالمكافأة: ${plot.getReward()}"
-            }
+                errorMessage = "تتطلب قلعة مستوى ${plot.level + 1}"
+            } else tvInfo.text = "الترقية ستعزز قوة الإمبراطورية."
         }
 
-        // تم إزالة اللون الأحمر تماماً واستخدام الأسود الملكي
+        if (totalWheat < cWheat || totalIron < cIron || totalGold < cGold) {
+            canUpgrade = false
+            errorMessage += if(errorMessage.isNotEmpty()) "\nومواردك لا تكفي!" else "الموارد لا تكفي للترقية!"
+        }
+
         if (!canUpgrade) {
-            btnUpgrade.text = "شروط غير مستوفاة"
-            btnUpgrade.setTextColor(Color.parseColor("#000000")) // لون أسود
+            btnUpgrade.text = "غير متاح"
+            btnUpgrade.setTextColor(Color.parseColor("#000000"))
             tvInfo.text = errorMessage
-            tvInfo.setTextColor(Color.parseColor("#000000")) // لون أسود ملكي للتحذير
-            layoutCost.visibility = View.GONE
-            
-            btnUpgrade.setOnClickListener {
-                Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
-            }
+            tvInfo.setTextColor(Color.parseColor("#000000"))
+            layoutCosts?.visibility = View.GONE
         } else {
             btnUpgrade.setOnClickListener {
-                if (totalGold >= cost) {
-                    totalGold -= cost
-                    plot.level += 1
-                    playerExp += plot.getExpReward()
-                    checkPlayerLevelUp()
-                    updateHud()
-                    saveGameData()
-                    Toast.makeText(this, "تمت الترقية للمستوى ${plot.level}!", Toast.LENGTH_SHORT).show()
-                    dialog.dismiss()
-                } else {
-                    Toast.makeText(this, "الذهب المتوفر لا يكفي أيها القائد!", Toast.LENGTH_SHORT).show()
-                }
+                totalWheat -= cWheat
+                totalIron -= cIron
+                totalGold -= cGold
+                
+                // بدء التطوير (الوقت الحقيقي)
+                plot.isUpgrading = true
+                plot.upgradeEndTime = System.currentTimeMillis() + (uTimeSec * 1000)
+                
+                updateHud()
+                saveGameData()
+                Toast.makeText(this, "بدأ تطوير ${plot.name}!", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
             }
         }
 
@@ -334,15 +387,30 @@ class MainActivity : AppCompatActivity() {
         if (playerExp >= expNeeded) {
             playerLevel++
             playerExp -= expNeeded
-            Toast.makeText(this, "ارتفع مستوى المُهيب للمستوى $playerLevel!", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "ارتقى المُهيب للمستوى $playerLevel!", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun startGameLoop() {
         gameHandler.post(object : Runnable {
             override fun run() {
+                val currentTime = System.currentTimeMillis()
+                
                 myPlots.forEach { p ->
-                    if (p.resourceType != ResourceType.NONE && p.idCode != "CASTLE" && p.idCode != "HOSPITAL" && !p.isReady) {
+                    // 1. فحص المؤقتات الاستراتيجية للترقية
+                    if (p.isUpgrading) {
+                        if (currentTime >= p.upgradeEndTime) {
+                            p.isUpgrading = false
+                            p.level++
+                            playerExp += p.getExpReward()
+                            checkPlayerLevelUp()
+                            updateHud()
+                            saveGameData()
+                            Toast.makeText(this@MainActivity, "اكتمل تطوير ${p.name}!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    // 2. نظام الإنتاج
+                    else if (p.resourceType != ResourceType.NONE && p.idCode != "CASTLE" && p.idCode != "HOSPITAL" && !p.isReady) {
                         p.progress += p.getProductionSpeed()
                         p.pb?.progress = p.progress.toInt()
                         if (p.progress >= 100f) {
@@ -368,31 +436,30 @@ class MainActivity : AppCompatActivity() {
         pbPlayerMP.progress = expPercent
     }
 
+    // 💡 الأرقام بالإنجليزية مع نظام K, M, B
     private fun formatResourceNumber(num: Long): String {
         return when {
-            num >= 1000000 -> String.format("%.1fM", num / 1000000.0)
-            num >= 1000 -> String.format("%.1fK", num / 1000.0)
-            else -> num.toString()
+            num >= 1_000_000_000 -> String.format(Locale.US, "%.1fB", num / 1_000_000_000.0)
+            num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0)
+            num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0)
+            else -> String.format(Locale.US, "%d", num)
         }
     }
 
     private fun loadImg(id: Int, view: ImageView, w: Int, h: Int) {
         try {
             val opts = BitmapFactory.Options().apply {
-                inJustDecodeBounds = true
-                BitmapFactory.decodeResource(resources, id, this)
-                inSampleSize = calculateInSampleSize(this, w, h)
-                inJustDecodeBounds = false
+                inJustDecodeBounds = true; BitmapFactory.decodeResource(resources, id, this)
+                inSampleSize = calculateInSampleSize(this, w, h); inJustDecodeBounds = false
             }
             view.setImageBitmap(BitmapFactory.decodeResource(resources, id, opts))
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) {}
     }
 
     private fun calculateInSampleSize(o: BitmapFactory.Options, rw: Int, rh: Int): Int {
         var s = 1
         if (o.outHeight > rh || o.outWidth > rw) {
-            val hh = o.outHeight / 2
-            val hw = o.outWidth / 2
+            val hh = o.outHeight / 2; val hw = o.outWidth / 2
             while (hh / s >= rh && hw / s >= rw) s *= 2
         }
         return s
