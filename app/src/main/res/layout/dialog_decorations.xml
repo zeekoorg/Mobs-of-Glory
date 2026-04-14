@@ -27,7 +27,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="50dp"
-            android:text="متجر الزينات الملكي"
+            android:text="خزانة الزينات"
             android:textColor="#000000"
             android:textSize="24sp"
             android:textStyle="bold"
@@ -60,22 +60,22 @@
                     android:orientation="vertical"
                     android:gravity="center"
                     android:background="?attr/selectableItemBackground">
-                    <ImageView android:layout_width="70dp" android:layout_height="70dp" android:src="@drawable/ic_castle_default" />
+                    <ImageView android:layout_width="75dp" android:layout_height="75dp" android:src="@drawable/ic_castle_default" />
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الأساسية" android:textColor="#000000" android:textStyle="bold" android:layout_marginTop="6dp"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مملوكة" android:textColor="#000000" android:textSize="13sp" android:layout_marginTop="2dp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مملوكة" android:textColor="#000000" android:textSize="13sp" />
                 </LinearLayout>
 
                 <LinearLayout
-                    android:id="@+id/btnSkinSnake"
+                    android:id="@+id/btnSkinSnake" 
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
                     android:background="?attr/selectableItemBackground">
-                    <ImageView android:layout_width="70dp" android:layout_height="70dp" android:src="@drawable/ic_castle_snake" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الأفعى" android:textColor="#000000" android:textStyle="bold" android:layout_marginTop="6dp"/>
-                    <TextView android:id="@+id/tvSkinSnake" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="شراء" android:textColor="#000000" android:textSize="13sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                    <ImageView android:layout_width="75dp" android:layout_height="75dp" android:src="@drawable/ic_castle_pyramid" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الهرم العظيم" android:textColor="#000000" android:textStyle="bold" android:layout_marginTop="6dp"/>
+                    <TextView android:id="@+id/tvSkinSnake" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مقفلة" android:textColor="#000000" android:textSize="13sp" android:textStyle="bold" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -94,9 +94,9 @@
                     android:orientation="vertical"
                     android:gravity="center"
                     android:background="?attr/selectableItemBackground">
-                    <ImageView android:layout_width="70dp" android:layout_height="70dp" android:src="@drawable/ic_castle_diamond" />
+                    <ImageView android:layout_width="75dp" android:layout_height="75dp" android:src="@drawable/ic_castle_diamond" />
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الألماس" android:textColor="#000000" android:textStyle="bold" android:layout_marginTop="6dp"/>
-                    <TextView android:id="@+id/tvSkinDiamond" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="شراء" android:textColor="#000000" android:textSize="13sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                    <TextView android:id="@+id/tvSkinDiamond" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مقفلة" android:textColor="#000000" android:textSize="13sp" android:textStyle="bold" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -107,9 +107,9 @@
                     android:orientation="vertical"
                     android:gravity="center"
                     android:background="?attr/selectableItemBackground">
-                    <ImageView android:layout_width="70dp" android:layout_height="70dp" android:src="@drawable/ic_castle_peacock" />
+                    <ImageView android:layout_width="75dp" android:layout_height="75dp" android:src="@drawable/ic_castle_peacock" />
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الطاؤوس" android:textColor="#000000" android:textStyle="bold" android:layout_marginTop="6dp"/>
-                    <TextView android:id="@+id/tvSkinPeacock" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="شراء" android:textColor="#000000" android:textSize="13sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                    <TextView android:id="@+id/tvSkinPeacock" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مقفلة" android:textColor="#000000" android:textSize="13sp" android:textStyle="bold" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
@@ -118,7 +118,7 @@
             android:id="@+id/btnClose"
             android:layout_width="45dp"
             android:layout_height="45dp"
-            android:layout_marginBottom="40dp"
+            android:layout_marginBottom="30dp"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
