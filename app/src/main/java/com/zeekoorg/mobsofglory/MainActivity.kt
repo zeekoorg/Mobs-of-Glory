@@ -3,6 +3,7 @@ package com.zeekoorg.mobsofglory
 import android.app.Dialog
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -22,7 +23,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvTotalIron: TextView
     private lateinit var tvTotalWheat: TextView
     private lateinit var tvPlayerLevel: TextView
-    private lateinit var pbPlayerMP: ProgressBar // سنستخدم شريط المانا كشريط خبرة EXP مؤقتاً
+    private lateinit var pbPlayerMP: ProgressBar
     private lateinit var imgCityBackground: ImageView
     
     // أرصدة الموارد
@@ -43,22 +44,18 @@ class MainActivity : AppCompatActivity() {
         NONE(0)
     }
 
-    // 💡 تم تحديث نموذج المبنى ليشمل "المستوى" بدلاً من السرعة الثابتة
     data class MapPlot(
         val idCode: String, val name: String, val slotId: Int, val resId: Int, 
         val resourceType: ResourceType, var level: Int = 1,
         var progress: Float = 0f, var isReady: Boolean = false, 
         var pb: ProgressBar? = null, var collectIcon: ImageView? = null
     ) {
-        // معادلات انتقام السلاطين الرياضية
         fun getProductionSpeed(): Float = if (level == 0) 0f else (level * 1.2f)
         fun getReward(): Long = (level * 50).toLong()
-        // تكلفة الترقية تزيد بشكل أسي (مثال: مستوى 1 بـ 500، مستوى 2 بـ 750 وهكذا)
         fun getUpgradeCost(): Long = (500 * 1.5.pow(level.toDouble())).toLong()
         fun getExpReward(): Int = level * 100
     }
 
-    // الإمبراطورية (تم إضافة idCode لمعرفة نوع المبنى برمجياً)
     private val myPlots = mutableListOf(
         MapPlot("CASTLE", "القلعة المركزية", R.id.plotCastle, 0, ResourceType.NONE, 1),
         MapPlot("FARM_1", "مزرعة القمح", R.id.plotFarmR1, 0, ResourceType.WHEAT, 1),
@@ -77,7 +74,7 @@ class MainActivity : AppCompatActivity() {
         tvTotalIron = findViewById(R.id.tvTotalIron)
         tvTotalWheat = findViewById(R.id.tvTotalWheat)
         tvPlayerLevel = findViewById(R.id.tvPlayerLevel)
-        pbPlayerMP = findViewById(R.id.pbPlayerMP) // نستخدمه كشريط EXP
+        pbPlayerMP = findViewById(R.id.pbPlayerMP)
         imgCityBackground = findViewById(R.id.imgCityBackground)
 
         loadGameData()
@@ -99,8 +96,6 @@ class MainActivity : AppCompatActivity() {
         prefs.putLong("TOTAL_WHEAT", totalWheat)
         prefs.putInt("PLAYER_LEVEL", playerLevel)
         prefs.putInt("PLAYER_EXP", playerExp)
-        
-        // حفظ مستويات المباني
         myPlots.forEach { prefs.putInt("LEVEL_${it.idCode}", it.level) }
         prefs.apply()
     }
@@ -113,11 +108,20 @@ class MainActivity : AppCompatActivity() {
         playerLevel = prefs.getInt("PLAYER_LEVEL", 1)
         playerExp = prefs.getInt("PLAYER_EXP", 0)
 
-        // تحميل مستويات المباني
         myPlots.forEach { it.level = prefs.getInt("LEVEL_${it.idCode}", 1) }
         
-        val savedSkin = prefs.getInt("selected_skin", R.drawable.bg_mobs_city_isometric)
+        // تحميل الزينة (السكن) المحفوظة
+        val savedSkin = prefs.getInt("SELECTED_SKIN", R.drawable.bg_mobs_city_isometric)
         loadImg(savedSkin, imgCityBackground, 1080, 1920)
+    }
+
+    // دالة تغيير الزينة وحفظها
+    private fun changeCitySkin(skinResId: Int) {
+        loadImg(skinResId, imgCityBackground, 1080, 1920)
+        val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit()
+        prefs.putInt("SELECTED_SKIN", skinResId)
+        prefs.apply()
+        Toast.makeText(this, "تم تغيير زينة الإمبراطورية بنجاح!", Toast.LENGTH_SHORT).show()
     }
 
     private fun setupPlot(plot: MapPlot) {
@@ -135,13 +139,17 @@ class MainActivity : AppCompatActivity() {
         }
 
         img.setImageResource(android.R.color.transparent)
-        // عرض شريط التقدم فقط للمباني المنتجة
         if (plot.resourceType != ResourceType.NONE && plot.idCode != "CASTLE" && plot.idCode != "HOSPITAL") {
             hud.visibility = View.VISIBLE
         }
 
         img.setOnClickListener {
-            if (plot.isReady) triggerCollectionAnimation(plot) else showUpgradeDialog(plot)
+            if (plot.idCode == "CASTLE") {
+                // إذا تم النقر على القلعة، نفتح النافذة الخاصة بها
+                showCastleMainDialog(plot)
+            } else {
+                if (plot.isReady) triggerCollectionAnimation(plot) else showUpgradeDialog(plot)
+            }
         }
         plot.collectIcon?.setOnClickListener { triggerCollectionAnimation(plot) }
     }
@@ -195,7 +203,61 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 💡 قلب الاستراتيجية: نافذة الترقية والمنطق
+    // 🏰 نافذة القلعة المركزية (ترقية أو زينة)
+    // ==========================================
+    private fun showCastleMainDialog(plot: MapPlot) {
+        val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+        dialog.setContentView(R.layout.dialog_castle_main)
+
+        val btnUpgrade = dialog.findViewById<Button>(R.id.btnCastleUpgrade)
+        val btnDecorations = dialog.findViewById<Button>(R.id.btnCastleDecorations)
+        val btnClose = dialog.findViewById<ImageView>(R.id.btnClose)
+
+        btnUpgrade.setOnClickListener {
+            dialog.dismiss()
+            showUpgradeDialog(plot) // يفتح نافذة الترقية العادية للمخطوطة
+        }
+
+        btnDecorations.setOnClickListener {
+            dialog.dismiss()
+            showDecorationsDialog() // يفتح متجر الزينات
+        }
+
+        btnClose.setOnClickListener { dialog.dismiss() }
+        dialog.show()
+    }
+
+    // ==========================================
+    // 👑 نافذة الزينات (السكنات)
+    // ==========================================
+    private fun showDecorationsDialog() {
+        val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+        dialog.setContentView(R.layout.dialog_decorations)
+
+        // الأزرار الخاصة باختيار الزينة
+        dialog.findViewById<View>(R.id.btnSkinDefault).setOnClickListener {
+            changeCitySkin(R.drawable.bg_mobs_city_isometric)
+            dialog.dismiss()
+        }
+        dialog.findViewById<View>(R.id.btnSkinSnake).setOnClickListener {
+            changeCitySkin(R.drawable.bg_city_snake)
+            dialog.dismiss()
+        }
+        dialog.findViewById<View>(R.id.btnSkinDiamond).setOnClickListener {
+            changeCitySkin(R.drawable.bg_city_diamond)
+            dialog.dismiss()
+        }
+        dialog.findViewById<View>(R.id.btnSkinPeacock).setOnClickListener {
+            changeCitySkin(R.drawable.bg_city_peacock)
+            dialog.dismiss()
+        }
+
+        dialog.findViewById<ImageView>(R.id.btnClose).setOnClickListener { dialog.dismiss() }
+        dialog.show()
+    }
+
+    // ==========================================
+    // 📜 نافذة الترقية والمخطوطة
     // ==========================================
     private fun showUpgradeDialog(plot: MapPlot) {
         val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
@@ -212,62 +274,53 @@ class MainActivity : AppCompatActivity() {
         val cost = plot.getUpgradeCost()
         tvCost.text = cost.toString()
 
-        // 1. فحص الشروط الاستراتيجية
         var canUpgrade = true
         var errorMessage = ""
         val castleLevel = myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
 
         if (plot.idCode == "CASTLE") {
-            // شرط القلعة: يجب أن تكون جميع المباني الأخرى على الأقل (مستوى القلعة - 1)
-            // في بداية اللعبة (القلعة 1)، المباني كلها 1. لترقية القلعة لـ 2، يجب أن تكون المباني 1. 
-            // لترقية القلعة لـ 3، يجب أن تكون المباني 2.
             val requiredLevel = if (plot.level == 1) 1 else plot.level - 1
             val missingBuildings = myPlots.filter { it.idCode != "CASTLE" && it.level < requiredLevel }
             
             if (missingBuildings.isNotEmpty()) {
                 canUpgrade = false
-                errorMessage = "يتطلب ترقية جميع المباني للمستوى $requiredLevel أولاً!"
+                errorMessage = "عذراً أيها القائد، يجب ترقية جميع المباني للمستوى $requiredLevel أولاً."
             } else {
-                tvInfo.text = "ترقية القلعة تسمح لك بترقية باقي المباني لمستويات أعلى."
+                tvInfo.text = "ترقية القلعة تسمح لك بتطوير الإمبراطورية واكتساب هيبة أكبر."
             }
         } else {
-            // شرط المباني العادية: لا يمكن أن يتجاوز مستواها مستوى القلعة
             if (plot.level >= castleLevel) {
                 canUpgrade = false
-                errorMessage = "تتطلب قلعة مستوى ${plot.level + 1} للترقية!"
+                errorMessage = "لا يمكن أن يتجاوز مستوى المبنى مستوى القلعة. قم بترقية القلعة أولاً."
             } else {
                 tvInfo.text = "الإنتاج: ${plot.getProductionSpeed()}/ث\nالمكافأة: ${plot.getReward()}"
             }
         }
 
-        // 2. تطبيق حالة الزر بناءً على الشروط
+        // تم إزالة اللون الأحمر تماماً واستخدام الأسود الملكي
         if (!canUpgrade) {
-            btnUpgrade.text = "شرط غير متوفر"
-            btnUpgrade.setTextColor(android.graphics.Color.RED)
+            btnUpgrade.text = "شروط غير مستوفاة"
+            btnUpgrade.setTextColor(Color.parseColor("#000000")) // لون أسود
             tvInfo.text = errorMessage
-            tvInfo.setTextColor(android.graphics.Color.RED)
+            tvInfo.setTextColor(Color.parseColor("#000000")) // لون أسود ملكي للتحذير
             layoutCost.visibility = View.GONE
             
             btnUpgrade.setOnClickListener {
                 Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
             }
         } else {
-            // الزر طبيعي
             btnUpgrade.setOnClickListener {
                 if (totalGold >= cost) {
                     totalGold -= cost
                     plot.level += 1
-                    
-                    // زيادة خبرة اللاعب
                     playerExp += plot.getExpReward()
                     checkPlayerLevelUp()
-                    
                     updateHud()
                     saveGameData()
                     Toast.makeText(this, "تمت الترقية للمستوى ${plot.level}!", Toast.LENGTH_SHORT).show()
                     dialog.dismiss()
                 } else {
-                    Toast.makeText(this, "أيها القائد، الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "الذهب المتوفر لا يكفي أيها القائد!", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -276,16 +329,12 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    // ==========================================
-    // نظام مستويات اللاعب (EXP)
-    // ==========================================
     private fun checkPlayerLevelUp() {
         val expNeeded = playerLevel * 500
         if (playerExp >= expNeeded) {
             playerLevel++
             playerExp -= expNeeded
             Toast.makeText(this, "ارتفع مستوى المُهيب للمستوى $playerLevel!", Toast.LENGTH_LONG).show()
-            // يمكننا إضافة أنيميشن هنا لاحقاً
         }
     }
 
@@ -293,7 +342,6 @@ class MainActivity : AppCompatActivity() {
         gameHandler.post(object : Runnable {
             override fun run() {
                 myPlots.forEach { p ->
-                    // تعمل فقط للمباني المنتجة
                     if (p.resourceType != ResourceType.NONE && p.idCode != "CASTLE" && p.idCode != "HOSPITAL" && !p.isReady) {
                         p.progress += p.getProductionSpeed()
                         p.pb?.progress = p.progress.toInt()
@@ -313,16 +361,13 @@ class MainActivity : AppCompatActivity() {
         tvTotalGold.text = formatResourceNumber(totalGold)
         tvTotalIron.text = formatResourceNumber(totalIron)
         tvTotalWheat.text = formatResourceNumber(totalWheat)
-        
         tvPlayerLevel.text = "مستوى $playerLevel"
         
-        // تحديث شريط الخبرة (المانا الأزرق)
         val expNeeded = playerLevel * 500
         val expPercent = ((playerExp.toFloat() / expNeeded.toFloat()) * 100).toInt()
         pbPlayerMP.progress = expPercent
     }
 
-    // دالة لتنسيق الأرقام الطويلة (مثال: 1500 تصبح 1.5K)
     private fun formatResourceNumber(num: Long): String {
         return when {
             num >= 1000000 -> String.format("%.1fM", num / 1000000.0)
