@@ -4,91 +4,64 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#80000000"
-    android:gravity="center"
-    android:layoutDirection="ltr">
+    android:gravity="center">
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="340dp"
+        android:layout_width="320dp"
         android:layout_height="wrap_content"
-        android:minHeight="400dp">
+        android:minHeight="420dp">
 
         <ImageView
-            android:id="@+id/imgDialogBg"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:scaleType="fitXY"
-            android:src="@drawable/bg_dialog_scroll"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <ImageView
-            android:id="@+id/btnClose"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginEnd="16dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:padding="8dp"
-            android:src="@android:drawable/ic_menu_close_clear_cancel"
-            app:tint="#5D4037"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:src="@drawable/bg_dialog_dark"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
         <TextView
             android:id="@+id/tvDialogTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:text="اسم المبنى"
-            android:textColor="#3E2723"
-            android:textSize="26sp"
+            android:layout_marginTop="45dp"
+            android:text="مزرعة القمح"
+            android:textColor="#000000"
+            android:textSize="24sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <View
-            android:id="@+id/divider"
-            android:layout_width="200dp"
-            android:layout_height="2dp"
-            android:layout_marginTop="8dp"
-            android:background="#8D6E63"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvDialogTitle" />
-
         <TextView
             android:id="@+id/tvDialogInfo"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="32dp"
-            android:layout_marginTop="24dp"
+            android:layout_marginHorizontal="35dp"
+            android:layout_marginTop="25dp"
             android:gravity="center"
-            android:lineSpacingExtra="6dp"
-            android:text="تفاصيل المبنى ومعلومات الترقية ومستوى الإنتاج الحالي."
-            android:textColor="#4E342E"
-            android:textSize="18sp"
+            android:lineSpacingExtra="4dp"
+            android:text="أيها القائد، تطوير هذا المرفق سيزيد من إمدادات إمبراطوريتك بشكل ملحوظ."
+            android:textColor="#000000"
+            android:textSize="17sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/divider" />
+            app:layout_constraintTop_toBottomOf="@id/tvDialogTitle" />
 
         <LinearLayout
             android:id="@+id/layoutCost"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:gravity="center_vertical"
+            android:layout_marginTop="35dp"
+            android:gravity="center"
             android:orientation="horizontal"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvDialogInfo">
 
             <ImageView
-                android:layout_width="35dp"
-                android:layout_height="35dp"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
                 android:src="@drawable/ic_resource_gold" />
 
             <TextView
@@ -97,26 +70,37 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:text="500"
-                android:textColor="#D84315"
-                android:textSize="24sp"
+                android:textColor="#000000"
+                android:textSize="22sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
         <Button
             android:id="@+id/btnUpgrade"
-            android:layout_width="180dp"
+            android:layout_width="170dp"
             android:layout_height="55dp"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="32dp"
-            android:background="@drawable/bg_upgrade_btn"
+            android:layout_marginTop="30dp"
+            android:layout_marginBottom="45dp"
+            android:background="@drawable/bg_btn_gold_border"
             android:text="ترقية"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp"
+            android:textColor="#000000"
+            android:textSize="19sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/layoutCost" />
+
+        <ImageView
+            android:id="@+id/btnClose"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_marginTop="15dp"
+            android:layout_marginEnd="15dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="#000000" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </RelativeLayout>
