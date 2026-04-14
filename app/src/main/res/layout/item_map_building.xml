@@ -1,55 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:clipChildren="false"
-    android:clipToPadding="false"
-    android:background="@android:color/transparent">
+    android:layout_height="match_parent">
 
     <ImageView
         android:id="@+id/imgBuilding"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scaleType="fitCenter"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:clickable="true"
+        android:focusable="true"
+        android:scaleType="fitXY" />
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/includeHud"
+    <ImageView
+        android:id="@+id/imgCollect"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        android:elevation="5dp" />
+
+    <LinearLayout
+        android:id="@+id/layoutUpgradeProgress"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_inner_frame"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="5dp"
+        android:paddingVertical="3dp"
         android:visibility="gone"
-        android:clipChildren="false"
-        app:layout_constraintBottom_toTopOf="@+id/imgBuilding"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.6">
+        android:elevation="6dp">
 
         <ProgressBar
-            android:id="@+id/pbCollection"
+            android:id="@+id/pbUpgrade"
             style="@android:style/Widget.ProgressBar.Horizontal"
-            android:layout_width="45dp"
+            android:layout_width="55dp"
             android:layout_height="6dp"
-            android:progressDrawable="@drawable/custom_progress_gold"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
+            android:progressDrawable="@drawable/custom_upgrade_bar"
+            android:max="100" />
 
-        <ImageView
-            android:id="@+id/imgCollect"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginBottom="2dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_resource_gold"
-            android:visibility="gone"
-            app:layout_constraintBottom_toTopOf="@+id/pbCollection"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
+        <TextView
+            android:id="@+id/tvUpgradeTimer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:text="00:00"
+            android:textColor="#FFFFFF"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</FrameLayout>
