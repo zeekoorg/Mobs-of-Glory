@@ -3,12 +3,14 @@ package com.zeekoorg.mobsofglory
 import android.app.Dialog
 import android.graphics.Color
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import com.zeekoorg.mobsofglory.R // 💡 ضمان استدعاء المعرفات بشكل صحيح
+import com.zeekoorg.mobsofglory.R
 import java.util.Locale
 import kotlin.random.Random
 
@@ -19,7 +21,6 @@ object DialogManager {
         d.setContentView(R.layout.dialog_player_profile)
         try {
             d.findViewById<TextView>(R.id.tvProfileName)?.text = GameState.playerName
-            // 💡 إذا استمر الخطأ هنا بعد الـ Clean Project، تأكد أن معرف النص في dialog_player_profile.xml هو tvProfileLevel بالضبط
             d.findViewById<TextView>(R.id.tvProfileLevel)?.text = "المستوى: ${GameState.playerLevel}"
             d.findViewById<TextView>(R.id.tvProfilePower)?.text = formatResourceNumber(GameState.playerPower)
             d.findViewById<TextView>(R.id.tvProfileInfantry)?.text = formatResourceNumber(GameState.totalInfantry)
@@ -253,7 +254,7 @@ object DialogManager {
         val tvCount = d.findViewById<TextView>(R.id.tvSpeedupCount)
         val btnUse = d.findViewById<Button>(R.id.btnUseSpeedup)
 
-        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        val handler = Handler(Looper.getMainLooper())
         val runnable = object : Runnable {
             override fun run() {
                 val remaining = if (p.isUpgrading) p.upgradeEndTime - System.currentTimeMillis() else p.trainingEndTime - System.currentTimeMillis()
@@ -281,20 +282,60 @@ object DialogManager {
         d.show()
     }
 
+    // ==========================================
+    // 🏪 المتجر الملكي (الزينات + التسريعات + الإعلانات)
+    // ==========================================
     fun showStoreDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_store)
 
-        val btnP = d.findViewById<Button>(R.id.btnBuyPyramid); val btnPe = d.findViewById<Button>(R.id.btnBuyPeacock); val btnD = d.findViewById<Button>(R.id.btnBuyDiamond)
-        if (GameState.isPyramidUnlocked) { btnP?.text = "مملوكة"; btnP?.isEnabled = false }
-        if (GameState.isPeacockUnlocked) { btnPe?.text = "مملوكة"; btnPe?.isEnabled = false }
-        if (GameState.isDiamondUnlocked) { btnD?.text = "مملوكة"; btnD?.isEnabled = false }
+        // 1. أزرار الزينات
+        val btnPyramid = d.findViewById<Button>(R.id.btnBuyPyramid)
+        val btnPeacock = d.findViewById<Button>(R.id.btnBuyPeacock)
+        val btnDiamond = d.findViewById<Button>(R.id.btnBuyDiamond)
+        
+        if (GameState.isPyramidUnlocked) { btnPyramid?.text = "مملوكة"; btnPyramid?.isEnabled = false }
+        if (GameState.isPeacockUnlocked) { btnPeacock?.text = "مملوكة"; btnPeacock?.isEnabled = false }
+        if (GameState.isDiamondUnlocked) { btnDiamond?.text = "مملوكة"; btnDiamond?.isEnabled = false }
 
-        btnP?.setOnClickListener { if (GameState.totalGold >= 500000) { GameState.totalGold -= 500000; GameState.isPyramidUnlocked = true; btnP.text = "مملوكة"; btnP.isEnabled = false; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء!", Toast.LENGTH_SHORT).show() } }
-        d.findViewById<Button>(R.id.btnBuyWheat)?.setOnClickListener { if (GameState.totalGold >= 20000) { GameState.totalGold -= 20000; GameState.totalWheat += 100000; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء!", Toast.LENGTH_SHORT).show() } }
-        d.findViewById<Button>(R.id.btnBuySpeedup)?.setOnClickListener { if (GameState.totalGold >= 15000) { GameState.totalGold -= 15000; GameState.countSpeedup1Hour++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم إضافة التسريع!", Toast.LENGTH_SHORT).show() } }
+        btnPyramid?.setOnClickListener { if (GameState.totalGold >= 500000) { GameState.totalGold -= 500000; GameState.isPyramidUnlocked = true; btnPyramid.text = "مملوكة"; btnPyramid.isEnabled = false; activity.updateHudUI(); GameState.saveGameData(activity); activity.changeCitySkin(R.drawable.bg_city_pyramid); Toast.makeText(activity, "تم الشراء والتطبيق!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
+        btnPeacock?.setOnClickListener { if (GameState.totalGold >= 1500000) { GameState.totalGold -= 1500000; GameState.isPeacockUnlocked = true; btnPeacock.text = "مملوكة"; btnPeacock.isEnabled = false; activity.updateHudUI(); GameState.saveGameData(activity); activity.changeCitySkin(R.drawable.bg_city_peacock); Toast.makeText(activity, "تم الشراء والتطبيق!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
+        btnDiamond?.setOnClickListener { if (GameState.totalGold >= 3000000) { GameState.totalGold -= 3000000; GameState.isDiamondUnlocked = true; btnDiamond.text = "مملوكة"; btnDiamond.isEnabled = false; activity.updateHudUI(); GameState.saveGameData(activity); activity.changeCitySkin(R.drawable.bg_city_diamond); Toast.makeText(activity, "تم الشراء والتطبيق!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
 
-        d.findViewById<Button>(R.id.btnAdWheat)?.setOnClickListener { Toast.makeText(activity, "جاري عرض الإعلان...", Toast.LENGTH_SHORT).show(); android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ GameState.totalWheat += 50000; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "حصلت على الموارد!", Toast.LENGTH_SHORT).show() }, 1500) }
+        // 2. أزرار شراء التسريعات بالذهب (سيتم حفظها قريباً في متغيرات جديدة بـ GameState)
+        // في هذه المرحلة سنربط زر الساعة فقط كمثال عامل، يمكنك استنساخه للبقية عند تحديث GameState.
+        d.findViewById<Button>(R.id.btnBuySpeedup5m)?.setOnClickListener { if (GameState.totalGold >= 1000) { GameState.totalGold -= 1000; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء! (ستحفظ في الحقيبة لاحقاً)", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
+        d.findViewById<Button>(R.id.btnBuySpeedup15m)?.setOnClickListener { if (GameState.totalGold >= 3000) { GameState.totalGold -= 3000; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء!", Toast.LENGTH_SHORT).show() } }
+        d.findViewById<Button>(R.id.btnBuySpeedup30m)?.setOnClickListener { if (GameState.totalGold >= 5000) { GameState.totalGold -= 5000; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء!", Toast.LENGTH_SHORT).show() } }
+        d.findViewById<Button>(R.id.btnBuySpeedup1h)?.setOnClickListener { if (GameState.totalGold >= 15000) { GameState.totalGold -= 15000; GameState.countSpeedup1Hour++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء بنجاح!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
+        d.findViewById<Button>(R.id.btnBuySpeedup2h)?.setOnClickListener { if (GameState.totalGold >= 28000) { GameState.totalGold -= 28000; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء!", Toast.LENGTH_SHORT).show() } }
+        d.findViewById<Button>(R.id.btnBuySpeedup8h)?.setOnClickListener { if (GameState.totalGold >= 100000) { GameState.totalGold -= 100000; GameState.countSpeedup8Hour++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء بنجاح!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
+
+        // 3. أزرار الإعلانات الحقيقية باستخدام ياندكس
+        d.findViewById<Button>(R.id.btnAdResources)?.setOnClickListener { 
+            YandexAdsManager.showRewardedAd(activity, onRewarded = {
+                GameState.totalWheat += 50000
+                GameState.totalIron += 50000
+                activity.updateHudUI(); GameState.saveGameData(activity)
+                Toast.makeText(activity, "حصلت على 50K قمح و 50K حديد!", Toast.LENGTH_LONG).show()
+            }, onAdClosed = {})
+        }
+        
+        d.findViewById<Button>(R.id.btnAdGold)?.setOnClickListener { 
+            YandexAdsManager.showRewardedAd(activity, onRewarded = {
+                GameState.totalGold += 10000
+                activity.updateHudUI(); GameState.saveGameData(activity)
+                Toast.makeText(activity, "حصلت على 10K ذهب!", Toast.LENGTH_LONG).show()
+            }, onAdClosed = {})
+        }
+
+        d.findViewById<Button>(R.id.btnAdSpeedup)?.setOnClickListener { 
+            YandexAdsManager.showRewardedAd(activity, onRewarded = {
+                // سيتم حفظ تسريع الـ 30 دقيقة لاحقاً
+                Toast.makeText(activity, "حصلت على تسريع 30 دقيقة!", Toast.LENGTH_LONG).show()
+            }, onAdClosed = {})
+        }
+
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
         d.show()
     }
