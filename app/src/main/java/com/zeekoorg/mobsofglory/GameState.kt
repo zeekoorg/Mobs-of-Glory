@@ -19,7 +19,13 @@ object GameState {
     var isPyramidUnlocked = false
     var isDiamondUnlocked = false
     var isPeacockUnlocked = false
+    
+    // ⏳ متغيرات التسريعات الجديدة والصناديق
+    var countSpeedup5m: Int = 0
+    var countSpeedup15m: Int = 0
+    var countSpeedup30m: Int = 0
     var countSpeedup1Hour: Int = 0
+    var countSpeedup2h: Int = 0
     var countSpeedup8Hour: Int = 0
     var countResourceBox: Int = 0
     var countGoldBox: Int = 0
@@ -86,7 +92,13 @@ object GameState {
         prefs.putBoolean("PYRAMID_UNLOCKED", isPyramidUnlocked)
         prefs.putBoolean("DIAMOND_UNLOCKED", isDiamondUnlocked)
         prefs.putBoolean("PEACOCK_UNLOCKED", isPeacockUnlocked)
+        
+        // حفظ التسريعات والصناديق
+        prefs.putInt("SPEEDUP_5M", countSpeedup5m)
+        prefs.putInt("SPEEDUP_15M", countSpeedup15m)
+        prefs.putInt("SPEEDUP_30M", countSpeedup30m)
         prefs.putInt("SPEEDUP_1H", countSpeedup1Hour)
+        prefs.putInt("SPEEDUP_2H", countSpeedup2h)
         prefs.putInt("SPEEDUP_8H", countSpeedup8Hour)
         prefs.putInt("RESOURCE_BOX", countResourceBox)
         prefs.putInt("GOLD_BOX", countGoldBox)
@@ -114,14 +126,21 @@ object GameState {
         totalGold = prefs.getLong("TOTAL_GOLD", 100000); totalIron = prefs.getLong("TOTAL_IRON", 100000); totalWheat = prefs.getLong("TOTAL_WHEAT", 100000)
         playerLevel = prefs.getInt("PLAYER_LEVEL", 1); playerExp = prefs.getInt("PLAYER_EXP", 0)
         totalInfantry = prefs.getLong("TOTAL_INFANTRY", 0); totalCavalry = prefs.getLong("TOTAL_CAVALRY", 0)
-        summonMedals = prefs.getInt("SUMMON_MEDALS", 2); countSpeedup1Hour = prefs.getInt("SPEEDUP_1H", 5)
-        countSpeedup8Hour = prefs.getInt("SPEEDUP_8H", 2)
-        countResourceBox = prefs.getInt("RESOURCE_BOX", 5)
-        countGoldBox = prefs.getInt("GOLD_BOX", 3)
-
+        summonMedals = prefs.getInt("SUMMON_MEDALS", 2)
+        
         isPyramidUnlocked = prefs.getBoolean("PYRAMID_UNLOCKED", false)
         isDiamondUnlocked = prefs.getBoolean("DIAMOND_UNLOCKED", false)
         isPeacockUnlocked = prefs.getBoolean("PEACOCK_UNLOCKED", false)
+
+        // تحميل التسريعات والصناديق
+        countSpeedup5m = prefs.getInt("SPEEDUP_5M", 0)
+        countSpeedup15m = prefs.getInt("SPEEDUP_15M", 0)
+        countSpeedup30m = prefs.getInt("SPEEDUP_30M", 0)
+        countSpeedup1Hour = prefs.getInt("SPEEDUP_1H", 5)
+        countSpeedup2h = prefs.getInt("SPEEDUP_2H", 0)
+        countSpeedup8Hour = prefs.getInt("SPEEDUP_8H", 2)
+        countResourceBox = prefs.getInt("RESOURCE_BOX", 5)
+        countGoldBox = prefs.getInt("GOLD_BOX", 3)
 
         myHeroes.forEachIndexed { i, h ->
             h.isUnlocked = prefs.getBoolean("H_${i}_U", h.isUnlocked)
