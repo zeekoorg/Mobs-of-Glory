@@ -41,7 +41,7 @@ class MainActivity : AppCompatActivity() {
     private var isPyramidUnlocked = false
     private var isDiamondUnlocked = false
     private var isPeacockUnlocked = false
-    private var countSpeedup1Hour: Int = 0 // مخزون أدوات التسريع
+    private var countSpeedup1Hour: Int = 0 
     
     private val gameHandler = Handler(Looper.getMainLooper())
     
@@ -160,7 +160,7 @@ class MainActivity : AppCompatActivity() {
         isPyramidUnlocked = prefs.getBoolean("PYRAMID_UNLOCKED", false)
         isDiamondUnlocked = prefs.getBoolean("DIAMOND_UNLOCKED", false)
         isPeacockUnlocked = prefs.getBoolean("PEACOCK_UNLOCKED", false)
-        countSpeedup1Hour = prefs.getInt("SPEEDUP_1H", 3) // هدية 3 أدوات للمبتدئين
+        countSpeedup1Hour = prefs.getInt("SPEEDUP_1H", 3) 
 
         myPlots.forEach { 
             it.level = prefs.getInt("LEVEL_${it.idCode}", 1) 
@@ -262,7 +262,6 @@ class MainActivity : AppCompatActivity() {
                 
                 myPlots.forEach { p ->
                     if (p.isUpgrading) {
-                        // === حالة المبنى: جاري التطوير ===
                         p.layoutUpgradeProgress?.visibility = View.VISIBLE
                         p.collectIcon?.visibility = View.GONE
                         
@@ -283,7 +282,6 @@ class MainActivity : AppCompatActivity() {
                             p.tvUpgradeTimer?.text = formatTimeMillis(remaining)
                         }
                     } else {
-                        // === حالة المبنى: لا يتم تطويره (إظهار شريط الجمع للموارد) ===
                         if (p.resourceType != ResourceType.NONE && p.idCode != "CASTLE" && p.idCode != "HOSPITAL") {
                             if (!p.isReady) {
                                 p.layoutUpgradeProgress?.visibility = View.VISIBLE
@@ -291,11 +289,9 @@ class MainActivity : AppCompatActivity() {
                                 
                                 p.collectTimer += 1000 
                                 
-                                // حساب نسبة تقدم الجمع (المدة الكاملة 60 ثانية = 60000 مللي ثانية)
                                 val progress = ((p.collectTimer.toFloat() / 60000f) * 100).toInt()
                                 p.pbUpgrade?.progress = progress
                                 
-                                // الوقت المتبقي للجمع
                                 val remainingCollectTime = 60000L - p.collectTimer
                                 p.tvUpgradeTimer?.text = formatTimeMillis(remainingCollectTime)
                                 
@@ -305,12 +301,10 @@ class MainActivity : AppCompatActivity() {
                                     p.collectIcon?.visibility = View.VISIBLE
                                 }
                             } else {
-                                // الجمع جاهز
                                 p.layoutUpgradeProgress?.visibility = View.GONE
                                 p.collectIcon?.visibility = View.VISIBLE
                             }
                         } else {
-                            // مباني غير منتجة للموارد (مثل القلعة)
                             p.layoutUpgradeProgress?.visibility = View.GONE
                         }
                     }
@@ -328,7 +322,7 @@ class MainActivity : AppCompatActivity() {
 
         dialog.findViewById<Button>(R.id.btnCastleUpgrade).setOnClickListener { dialog.dismiss(); showUpgradeDialog(plot) }
         dialog.findViewById<Button>(R.id.btnCastleDecorations).setOnClickListener { dialog.dismiss(); showDecorationsDialog() }
-        dialog.findViewById<ImageView>(R.id.btnClose).setOnClickListener { dialog.dismiss() }
+        dialog.findViewById<Button>(R.id.btnClose).setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
 
@@ -350,7 +344,7 @@ class MainActivity : AppCompatActivity() {
         dialog.findViewById<View>(R.id.btnSkinPeacock).setOnClickListener {
             if (isPeacockUnlocked) { changeCitySkin(R.drawable.bg_city_peacock); dialog.dismiss() } else Toast.makeText(this, "هذه الزينة مقفلة!", Toast.LENGTH_SHORT).show()
         }
-        dialog.findViewById<ImageView>(R.id.btnClose).setOnClickListener { dialog.dismiss() }
+        dialog.findViewById<Button>(R.id.btnClose).setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
 
@@ -358,11 +352,17 @@ class MainActivity : AppCompatActivity() {
         val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         dialog.setContentView(R.layout.dialog_store)
 
+        // الأزرار الأصلية
         val btnPyramid = dialog.findViewById<Button>(R.id.btnBuyPyramid)
         val btnPeacock = dialog.findViewById<Button>(R.id.btnBuyPeacock)
         val btnDiamond = dialog.findViewById<Button>(R.id.btnBuyDiamond)
         val btnWheat = dialog.findViewById<Button>(R.id.btnBuyWheat)
         val btnSpeedup = dialog.findViewById<Button>(R.id.btnBuySpeedup)
+
+        // أزرار الإعلانات بمكافأة الجديدة
+        val btnAdWheat = dialog.findViewById<Button>(R.id.btnAdWheat)
+        val btnAdIron = dialog.findViewById<Button>(R.id.btnAdIron)
+        val btnAdGold = dialog.findViewById<Button>(R.id.btnAdGold)
 
         if (isPyramidUnlocked) { btnPyramid.text = "مملوكة"; btnPyramid.isEnabled = false }
         if (isPeacockUnlocked) { btnPeacock.text = "مملوكة"; btnPeacock.isEnabled = false }
@@ -393,7 +393,36 @@ class MainActivity : AppCompatActivity() {
             } else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
         }
 
-        dialog.findViewById<ImageView>(R.id.btnClose).setOnClickListener { dialog.dismiss() }
+        // أحداث مشاهدة الإعلانات بمكافأة (محاكاة مؤقتة للشبكات الإعلانية)
+        btnAdWheat?.setOnClickListener {
+            Toast.makeText(this, "جاري عرض الإعلان...", Toast.LENGTH_SHORT).show()
+            gameHandler.postDelayed({
+                totalWheat += 50000 
+                updateHud()
+                saveGameData()
+                Toast.makeText(this, "حصلت على 50K قمح!", Toast.LENGTH_SHORT).show()
+            }, 1500)
+        }
+        btnAdIron?.setOnClickListener {
+            Toast.makeText(this, "جاري عرض الإعلان...", Toast.LENGTH_SHORT).show()
+            gameHandler.postDelayed({
+                totalIron += 50000 
+                updateHud()
+                saveGameData()
+                Toast.makeText(this, "حصلت على 50K حديد!", Toast.LENGTH_SHORT).show()
+            }, 1500)
+        }
+        btnAdGold?.setOnClickListener {
+            Toast.makeText(this, "جاري عرض الإعلان...", Toast.LENGTH_SHORT).show()
+            gameHandler.postDelayed({
+                totalGold += 10000 
+                updateHud()
+                saveGameData()
+                Toast.makeText(this, "حصلت على 10K ذهب!", Toast.LENGTH_SHORT).show()
+            }, 1500)
+        }
+
+        dialog.findViewById<Button>(R.id.btnClose).setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
 
@@ -447,9 +476,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        dialog.findViewById<ImageView>(R.id.btnClose).setOnClickListener { 
-            dialog.dismiss() 
-        }
+        dialog.findViewById<Button>(R.id.btnClose).setOnClickListener { dialog.dismiss() }
         
         dialog.setOnDismissListener {
             speedupTimerRunnable?.let { gameHandler.removeCallbacks(it) }
@@ -476,16 +503,14 @@ class MainActivity : AppCompatActivity() {
         val cGold = plot.getCostGold()
         val uTimeSec = plot.getUpgradeTimeSeconds()
 
-        // عرض المتطلبات بصيغة "مطلوب / متوفر" مثل انتقام السلاطين
         tvCostWheat.text = "${formatResourceNumber(cWheat)} / ${formatResourceNumber(totalWheat)}"
         tvCostIron.text = "${formatResourceNumber(cIron)} / ${formatResourceNumber(totalIron)}"
         tvCostGold.text = "${formatResourceNumber(cGold)} / ${formatResourceNumber(totalGold)}"
         tvTime.text = formatTimeSec(uTimeSec)
 
-        // تحديد لون الأرقام فقط حسب كفاية الموارد (أحمر إذا غير كافٍ، أخضر إذا كافٍ)
         val colorRed = Color.parseColor("#FF5252")
         val colorGreen = Color.parseColor("#4CAF50")
-        val colorDefault = Color.parseColor("#FFD700") // لون ذهبي افتراضي
+        val colorDefault = Color.parseColor("#FFFFFF") // تم تغيير اللون ليكون أبيض كما طلبت
         
         val hasEnoughWheat = totalWheat >= cWheat
         val hasEnoughIron = totalIron >= cIron
@@ -499,7 +524,6 @@ class MainActivity : AppCompatActivity() {
         var errorMessage = ""
         val castleLevel = myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
 
-        // التحقق من شروط الترقية
         if (plot.idCode == "CASTLE") {
             val reqLevel = plot.level
             val missing = myPlots.filter { it.idCode != "CASTLE" && it.level < reqLevel }
@@ -520,7 +544,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // التحقق من الموارد
         if (!hasEnoughWheat || !hasEnoughIron || !hasEnoughGold) {
             canUpgrade = false
             if (errorMessage.isNotEmpty()) {
@@ -547,7 +570,7 @@ class MainActivity : AppCompatActivity() {
                 plot.isUpgrading = true
                 plot.totalUpgradeTime = uTimeSec * 1000
                 plot.upgradeEndTime = System.currentTimeMillis() + plot.totalUpgradeTime
-                plot.collectTimer = 0L // <--- تصفير عداد الجمع وإيقافه بمجرد بدء التطوير
+                plot.collectTimer = 0L 
                 
                 updateHud()
                 saveGameData()
@@ -556,7 +579,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        dialog.findViewById<ImageView>(R.id.btnClose).setOnClickListener { dialog.dismiss() }
+        dialog.findViewById<Button>(R.id.btnClose).setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
 
