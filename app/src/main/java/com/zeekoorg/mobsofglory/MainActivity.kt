@@ -1,5 +1,6 @@
 package com.zeekoorg.mobsofglory
 
+import android.content.Context // 💡 تم إضافة هذا السطر لحل مشكلة Context
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -76,7 +77,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { DialogManager.showHeroesDialog(this) }
         findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { DialogManager.showQuestsDialog(this) }
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { DialogManager.showBagDialog(this) }
-        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { DialogManager.showSummoningTavernDialog(this) } // ربطنا الحانة مؤقتاً بالمدينة
+        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { DialogManager.showSummoningTavernDialog(this) } 
     }
 
     private fun setupPlot(plot: MapPlot) {
