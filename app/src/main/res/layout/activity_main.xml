@@ -167,12 +167,12 @@
             android:paddingVertical="4dp">
 
             <LinearLayout android:id="@+id/btnNavHeroes" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
-                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_heroes" app:tint="#B3B3B3" />
+                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_heroes" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الأبطال" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
             </LinearLayout>
 
             <LinearLayout android:id="@+id/btnNavQuests" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
-                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_quests" app:tint="#B3B3B3" />
+                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_quests" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المهام" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
             </LinearLayout>
 
@@ -182,12 +182,12 @@
             </LinearLayout>
 
             <LinearLayout android:id="@+id/btnNavStore" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
-                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_store" app:tint="#B3B3B3" />
+                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_store" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المتجر" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
             </LinearLayout>
 
             <LinearLayout android:id="@+id/btnNavBag" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
-                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_bag" app:tint="#B3B3B3" />
+                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_bag" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الحقيبة" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
