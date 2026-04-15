@@ -1,0 +1,158 @@
+package com.zeekoorg.mobsofglory
+
+import android.content.Context
+
+object GameState {
+    var playerName: String = "المهيب زيكو"
+    var selectedAvatarUri: String? = null
+    var totalGold: Long = 0
+    var totalIron: Long = 0
+    var totalWheat: Long = 0
+    var playerLevel: Int = 1
+    var playerExp: Int = 0
+    var playerPower: Long = 0
+    
+    var totalInfantry: Long = 0
+    var totalCavalry: Long = 0
+    var summonMedals: Int = 0
+    
+    var isPyramidUnlocked = false
+    var isDiamondUnlocked = false
+    var isPeacockUnlocked = false
+    var countSpeedup1Hour: Int = 0
+    var countSpeedup8Hour: Int = 0
+    var countResourceBox: Int = 0
+    var countGoldBox: Int = 0
+
+    val myHeroes = mutableListOf<Hero>()
+    val dailyQuests = mutableListOf<Quest>()
+    val myPlots = mutableListOf<MapPlot>()
+
+    fun initializeDataLists() {
+        if (myHeroes.isEmpty()) {
+            myHeroes.add(Hero(1, "صقر البيداء", 1, 5000, true, 10, 10)) 
+            myHeroes.add(Hero(2, "ضرغام الليل", 1, 10000, false, 0, 20))
+            myHeroes.add(Hero(3, "غضب الجبال", 1, 15000, false, 0, 30))
+            myHeroes.add(Hero(4, "رعد الصحراء", 1, 20000, false, 0, 50))
+            myHeroes.add(Hero(5, "سيف العاصفة", 1, 30000, false, 0, 80))
+            myHeroes.add(Hero(6, "كاسر الأمواج", 1, 40000, false, 0, 100))
+            myHeroes.add(Hero(7, "أميرة الحرب", 1, 50000, false, 0, 150))
+            myHeroes.add(Hero(8, "ساحرة المجد", 1, 70000, false, 0, 200))
+        }
+        if (dailyQuests.isEmpty()) {
+            dailyQuests.add(Quest(1, "اجمع الموارد 5 مرات", 500, false, false))
+            dailyQuests.add(Quest(2, "قم بترقية مبنى واحد", 1000, false, false))
+        }
+        if (myPlots.isEmpty()) {
+            myPlots.add(MapPlot("CASTLE", "القلعة المركزية", R.id.plotCastle, 0, ResourceType.NONE, 1))
+            myPlots.add(MapPlot("FARM_1", "مزرعة القمح", R.id.plotFarmR1, 0, ResourceType.WHEAT, 1))
+            myPlots.add(MapPlot("MINE_1", "منجم الحديد", R.id.plotHospitalM1, 0, ResourceType.IRON, 1))
+            myPlots.add(MapPlot("GOLD_1", "منجم الذهب", R.id.plotFarmR2, 0, ResourceType.GOLD, 1))
+            myPlots.add(MapPlot("BARRACKS_1", "ثكنة المشاة", R.id.plotBarracksL1, 0, ResourceType.NONE, 1))
+            myPlots.add(MapPlot("BARRACKS_2", "ثكنة الفرسان", R.id.plotBarracksL2, 0, ResourceType.NONE, 1))
+            myPlots.add(MapPlot("HOSPITAL", "دار الشفاء", R.id.plotHospitalM2, 0, ResourceType.NONE, 1))
+        }
+    }
+
+    fun calculatePower() {
+        var p: Long = (playerLevel * 1500).toLong()
+        myPlots.forEach { p += it.getPowerProvided() }
+        p += (totalInfantry * 5) + (totalCavalry * 10)
+        myHeroes.filter { it.isUnlocked }.forEach { p += it.powerBoost }
+        playerPower = p
+    }
+
+    fun checkPlayerLevelUp(): Boolean {
+        val expNeeded = playerLevel * 1000
+        if (playerExp >= expNeeded) { 
+            playerLevel++; playerExp -= expNeeded; calculatePower(); return true 
+        }
+        return false
+    }
+
+    // 💾 حفظ وتحميل البيانات
+    fun saveGameData(context: Context) {
+        val prefs = context.getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit()
+        prefs.putString("PLAYER_NAME", playerName)
+        prefs.putString("PLAYER_AVATAR", selectedAvatarUri)
+        prefs.putLong("TOTAL_GOLD", totalGold)
+        prefs.putLong("TOTAL_IRON", totalIron)
+        prefs.putLong("TOTAL_WHEAT", totalWheat)
+        prefs.putInt("PLAYER_LEVEL", playerLevel)
+        prefs.putInt("PLAYER_EXP", playerExp)
+        prefs.putLong("TOTAL_INFANTRY", totalInfantry)
+        prefs.putLong("TOTAL_CAVALRY", totalCavalry)
+        prefs.putInt("SUMMON_MEDALS", summonMedals)
+        prefs.putBoolean("PYRAMID_UNLOCKED", isPyramidUnlocked)
+        prefs.putBoolean("DIAMOND_UNLOCKED", isDiamondUnlocked)
+        prefs.putBoolean("PEACOCK_UNLOCKED", isPeacockUnlocked)
+        prefs.putInt("SPEEDUP_1H", countSpeedup1Hour)
+        prefs.putInt("SPEEDUP_8H", countSpeedup8Hour)
+        prefs.putInt("RESOURCE_BOX", countResourceBox)
+        prefs.putInt("GOLD_BOX", countGoldBox)
+        
+        prefs.putLong("LAST_LOGIN_TIME", System.currentTimeMillis())
+        
+        myHeroes.forEachIndexed { i, h ->
+            prefs.putBoolean("H_${i}_U", h.isUnlocked); prefs.putInt("H_${i}_L", h.level)
+            prefs.putInt("H_${i}_S", h.shardsOwned)
+        }
+        myPlots.forEach { 
+            prefs.putInt("L_${it.idCode}", it.level); prefs.putBoolean("U_${it.idCode}", it.isUpgrading)
+            prefs.putLong("UT_${it.idCode}", it.upgradeEndTime); prefs.putLong("CT_${it.idCode}", it.collectTimer)
+            prefs.putBoolean("IR_${it.idCode}", it.isReady)
+            prefs.putBoolean("TR_${it.idCode}", it.isTraining); prefs.putLong("TT_${it.idCode}", it.trainingEndTime)
+            prefs.putInt("TA_${it.idCode}", it.trainingAmount)
+        }
+        prefs.apply()
+    }
+
+    fun loadGameDataAndProcessOffline(context: Context) {
+        val prefs = context.getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
+        playerName = prefs.getString("PLAYER_NAME", "المهيب زيكو") ?: "المهيب زيكو"
+        selectedAvatarUri = prefs.getString("PLAYER_AVATAR", null)
+        totalGold = prefs.getLong("TOTAL_GOLD", 100000); totalIron = prefs.getLong("TOTAL_IRON", 100000); totalWheat = prefs.getLong("TOTAL_WHEAT", 100000)
+        playerLevel = prefs.getInt("PLAYER_LEVEL", 1); playerExp = prefs.getInt("PLAYER_EXP", 0)
+        totalInfantry = prefs.getLong("TOTAL_INFANTRY", 0); totalCavalry = prefs.getLong("TOTAL_CAVALRY", 0)
+        summonMedals = prefs.getInt("SUMMON_MEDALS", 2); countSpeedup1Hour = prefs.getInt("SPEEDUP_1H", 5)
+        countSpeedup8Hour = prefs.getInt("SPEEDUP_8H", 2)
+        countResourceBox = prefs.getInt("RESOURCE_BOX", 5)
+        countGoldBox = prefs.getInt("GOLD_BOX", 3)
+
+        isPyramidUnlocked = prefs.getBoolean("PYRAMID_UNLOCKED", false)
+        isDiamondUnlocked = prefs.getBoolean("DIAMOND_UNLOCKED", false)
+        isPeacockUnlocked = prefs.getBoolean("PEACOCK_UNLOCKED", false)
+
+        myHeroes.forEachIndexed { i, h ->
+            h.isUnlocked = prefs.getBoolean("H_${i}_U", h.isUnlocked)
+            h.level = prefs.getInt("H_${i}_L", h.level)
+            h.shardsOwned = prefs.getInt("H_${i}_S", h.shardsOwned)
+        }
+
+        val currentTime = System.currentTimeMillis()
+        val offlineTime = currentTime - prefs.getLong("LAST_LOGIN_TIME", currentTime)
+
+        myPlots.forEach { 
+            it.level = prefs.getInt("L_${it.idCode}", 1) 
+            it.isUpgrading = prefs.getBoolean("U_${it.idCode}", false)
+            it.upgradeEndTime = prefs.getLong("UT_${it.idCode}", 0L)
+            it.isTraining = prefs.getBoolean("TR_${it.idCode}", false)
+            it.trainingEndTime = prefs.getLong("TT_${it.idCode}", 0L)
+            it.trainingAmount = prefs.getInt("TA_${it.idCode}", 0)
+            it.collectTimer = prefs.getLong("CT_${it.idCode}", 0L)
+            it.isReady = prefs.getBoolean("IR_${it.idCode}", false)
+            
+            // حساب ما تم أثناء الأوفلاين
+            if (it.isUpgrading && currentTime >= it.upgradeEndTime) { it.isUpgrading = false; it.level++; playerExp += it.getExpReward() }
+            if (it.isTraining && currentTime >= it.trainingEndTime) { 
+                it.isTraining = false
+                if (it.idCode == "BARRACKS_1") totalInfantry += it.trainingAmount else totalCavalry += it.trainingAmount
+            }
+            if (!it.isUpgrading && !it.isTraining && it.resourceType != ResourceType.NONE && !it.isReady) {
+                it.collectTimer += offlineTime
+                if (it.collectTimer >= 60000L) { it.isReady = true; it.collectTimer = 60000L }
+            }
+        }
+        checkPlayerLevelUp()
+    }
+}
