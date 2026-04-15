@@ -163,22 +163,24 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun initializeDataLists() {
+        private fun initializeDataLists() {
         if (myHeroes.isEmpty()) {
+            // ترتيب الأبطال من الأساسي إلى الأسطوري
             myHeroes.add(Hero(1, "صقر البيداء", 1, 5000, true, 0)) 
             myHeroes.add(Hero(2, "ضرغام الليل", 1, 10000, false, 100000))
-            myHeroes.add(Hero(3, "أمير الظلال", 1, 15000, false, 250000))
-            myHeroes.add(Hero(4, "كاسر الأمواج", 1, 20000, false, 500000))
+            myHeroes.add(Hero(3, "غضب الجبال", 1, 15000, false, 250000))
+            myHeroes.add(Hero(4, "رعد الصحراء", 1, 20000, false, 500000))
             myHeroes.add(Hero(5, "سيف العاصفة", 1, 30000, false, 1000000))
-            myHeroes.add(Hero(6, "رعد الصحراء", 1, 40000, false, 2000000))
-            myHeroes.add(Hero(7, "غضب الجبال", 1, 50000, false, 4000000))
-            myHeroes.add(Hero(8, "فهد الرمال", 1, 70000, false, 8000000))
+            myHeroes.add(Hero(6, "كاسر الأمواج", 1, 40000, false, 2000000))
+            myHeroes.add(Hero(7, "أميرة الحرب", 1, 50000, false, 4000000)) // بطلة حرب
+            myHeroes.add(Hero(8, "ساحرة المجد", 1, 70000, false, 8000000)) // بطلة حرب أسطورية
         }
         if (dailyQuests.isEmpty()) {
             dailyQuests.add(Quest(1, "اجمع الموارد 5 مرات", 500, false, false))
             dailyQuests.add(Quest(2, "قم بترقية مبنى واحد", 1000, false, false))
         }
     }
+
 
     private fun calculatePower() {
         var p: Long = (playerLevel * 1500).toLong()
