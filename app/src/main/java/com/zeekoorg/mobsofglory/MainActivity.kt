@@ -2,6 +2,7 @@ package com.zeekoorg.mobsofglory
 
 import android.app.Dialog
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Bundle
@@ -43,6 +44,9 @@ class MainActivity : AppCompatActivity() {
     private var countSpeedup1Hour: Int = 0 // مخزون أدوات التسريع
     
     private val gameHandler = Handler(Looper.getMainLooper())
+    
+    // متغير لتتبع Runnable مؤقت التسريع
+    private var speedupTimerRunnable: Runnable? = null
 
     enum class ResourceType(val iconResId: Int) {
         GOLD(R.drawable.ic_resource_gold),
@@ -166,11 +170,11 @@ class MainActivity : AppCompatActivity() {
         }
         
         val savedSkin = prefs.getInt("SELECTED_SKIN", R.drawable.bg_mobs_city_isometric)
-        loadImg(savedSkin, imgCityBackground, 1080, 1920)
+        loadImg(savedSkin, imgCityBackground)
     }
 
     private fun changeCitySkin(skinResId: Int) {
-        loadImg(skinResId, imgCityBackground, 1080, 1920)
+        loadImg(skinResId, imgCityBackground)
         val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit()
         prefs.putInt("SELECTED_SKIN", skinResId)
         prefs.apply()
@@ -196,18 +200,36 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             if (plot.idCode == "CASTLE") showCastleMainDialog(plot)
-            else if (plot.isReady) triggerCollectionAnimation(plot) 
+            else if (plot.isReady) collectResources(plot) 
             else showUpgradeDialog(plot)
         }
-        plot.collectIcon?.setOnClickListener { triggerCollectionAnimation(plot) }
+        plot.collectIcon?.setOnClickListener { collectResources(plot) }
     }
 
-    private fun triggerCollectionAnimation(plot: MapPlot) {
+    private fun collectResources(plot: MapPlot) {
         if (!plot.isReady || plot.resourceType == ResourceType.NONE) return
+        
+        // منع الجمع المزدوج: نجمع مرة واحدة فقط
         plot.isReady = false
-        plot.collectIcon?.visibility = View.GONE
         plot.collectTimer = 0L
+        plot.collectIcon?.visibility = View.GONE
 
+        // تحديث الموارد
+        when (plot.resourceType) {
+            ResourceType.GOLD -> totalGold += plot.getReward()
+            ResourceType.IRON -> totalIron += plot.getReward()
+            ResourceType.WHEAT -> totalWheat += plot.getReward()
+            else -> return
+        }
+        
+        // تشغيل الأنيميشن فقط للعرض
+        playCollectionAnimation(plot)
+        
+        updateHud()
+        saveGameData()
+    }
+
+    private fun playCollectionAnimation(plot: MapPlot) {
         val startLocation = IntArray(2)
         plot.collectIcon?.getLocationInWindow(startLocation)
         val targetView = when (plot.resourceType) {
@@ -232,13 +254,6 @@ class MainActivity : AppCompatActivity() {
             .setDuration(600).setInterpolator(AccelerateDecelerateInterpolator())
             .withEndAction {
                 rootLayout.removeView(flyingIcon)
-                when (plot.resourceType) {
-                    ResourceType.GOLD -> totalGold += plot.getReward()
-                    ResourceType.IRON -> totalIron += plot.getReward()
-                    ResourceType.WHEAT -> totalWheat += plot.getReward()
-                    else -> {}
-                }
-                updateHud()
                 targetView.startAnimation(AnimationUtils.loadAnimation(this, android.R.anim.fade_in))
             }.start()
     }
@@ -271,9 +286,10 @@ class MainActivity : AppCompatActivity() {
                         }
                     } else {
                         p.layoutUpgradeProgress?.visibility = View.GONE
+                        // المباني المنتجة للموارد فقط
                         if (p.resourceType != ResourceType.NONE && p.idCode != "CASTLE" && p.idCode != "HOSPITAL" && !p.isReady) {
                             p.collectTimer += 1000 
-                            if (p.collectTimer >= 60000L) { 
+                            if (p.collectTimer >= 60000L) { // دقيقة واحدة للإنتاج
                                 p.isReady = true
                                 p.collectIcon?.visibility = View.VISIBLE
                             }
@@ -358,7 +374,7 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    // ⏳ النافذة الجديدة المخصصة لتسريع البناء ⏳
+    // النافذة المخصصة لتسريع البناء
     private fun showSpeedupDialog(plot: MapPlot) {
         val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         dialog.setContentView(R.layout.dialog_speedup)
@@ -367,7 +383,9 @@ class MainActivity : AppCompatActivity() {
         val tvCount = dialog.findViewById<TextView>(R.id.tvSpeedupCount)
         val btnUse = dialog.findViewById<Button>(R.id.btnUseSpeedup)
 
-        // تحديث الوقت المتبقي في النافذة كل ثانية
+        // إيقاف أي Runnable سابق لتجنب تسريب الذاكرة أو التحديثات الوهمية
+        speedupTimerRunnable?.let { gameHandler.removeCallbacks(it) }
+
         val updateTimerRunnable = object : Runnable {
             override fun run() {
                 val remaining = plot.upgradeEndTime - System.currentTimeMillis()
@@ -375,10 +393,11 @@ class MainActivity : AppCompatActivity() {
                     tvRemaining.text = "الوقت المتبقي: ${formatTimeMillis(remaining)}"
                     gameHandler.postDelayed(this, 1000)
                 } else {
-                    dialog.dismiss() // إغلاق النافذة إذا انتهى البناء
+                    dialog.dismiss() // إغلاق النافذة إذا انتهى البناء فجأة
                 }
             }
         }
+        speedupTimerRunnable = updateTimerRunnable
         gameHandler.post(updateTimerRunnable)
 
         // إعداد بيانات الأداة
@@ -386,6 +405,8 @@ class MainActivity : AppCompatActivity() {
         if (countSpeedup1Hour <= 0) {
             btnUse.text = "شراء"
             btnUse.setTextColor(Color.parseColor("#000000"))
+        } else {
+            btnUse.text = "استخدام"
         }
 
         btnUse.setOnClickListener {
@@ -398,7 +419,9 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "تم تسريع البناء بمقدار 1 ساعة!", Toast.LENGTH_SHORT).show()
                 
                 // تحديث الزر إذا نفدت الأدوات
-                if (countSpeedup1Hour <= 0) btnUse.text = "شراء"
+                if (countSpeedup1Hour <= 0) {
+                    btnUse.text = "شراء"
+                }
                 
             } else {
                 dialog.dismiss()
@@ -407,11 +430,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         dialog.findViewById<ImageView>(R.id.btnClose).setOnClickListener { 
-            gameHandler.removeCallbacks(updateTimerRunnable) // إيقاف التحديث عند الإغلاق
             dialog.dismiss() 
         }
         
-        dialog.setOnDismissListener { gameHandler.removeCallbacks(updateTimerRunnable) }
+        dialog.setOnDismissListener {
+            speedupTimerRunnable?.let { gameHandler.removeCallbacks(it) }
+        }
         dialog.show()
     }
 
@@ -435,17 +459,16 @@ class MainActivity : AppCompatActivity() {
         val cGold = plot.getCostGold()
         val uTimeSec = plot.getUpgradeTimeSeconds()
 
-        try {
-            tvCostWheat.text = formatResourceNumber(cWheat)
-            tvCostIron.text = formatResourceNumber(cIron)
-            tvCostGold.text = formatResourceNumber(cGold)
-            tvTime.text = formatTimeSec(uTimeSec)
-        } catch (e: Exception) {}
+        tvCostWheat.text = formatResourceNumber(cWheat)
+        tvCostIron.text = formatResourceNumber(cIron)
+        tvCostGold.text = formatResourceNumber(cGold)
+        tvTime.text = formatTimeSec(uTimeSec)
 
         var canUpgrade = true
         var errorMessage = ""
         val castleLevel = myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
 
+        // التحقق من الشروط
         if (plot.idCode == "CASTLE") {
             val reqLevel = plot.level
             val missing = myPlots.filter { it.idCode != "CASTLE" && it.level < reqLevel }
@@ -497,6 +520,8 @@ class MainActivity : AppCompatActivity() {
             playerLevel++
             playerExp -= expNeeded
             calculatePower()
+            updateHud()
+            Toast.makeText(this, "تهانينا! وصلت للمستوى $playerLevel", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -507,7 +532,7 @@ class MainActivity : AppCompatActivity() {
         tvPlayerLevel.text = "Lv. $playerLevel"
         
         val expNeeded = playerLevel * 800
-        val expPercent = ((playerExp.toFloat() / expNeeded.toFloat()) * 100).toInt()
+        val expPercent = if (expNeeded > 0) ((playerExp.toFloat() / expNeeded.toFloat()) * 100).toInt() else 0
         pbPlayerMP.progress = expPercent
     }
 
@@ -532,22 +557,53 @@ class MainActivity : AppCompatActivity() {
         return formatTimeSec(millis / 1000)
     }
 
-    private fun loadImg(id: Int, view: ImageView, w: Int, h: Int) {
-        try {
-            val opts = BitmapFactory.Options().apply {
-                inJustDecodeBounds = true; BitmapFactory.decodeResource(resources, id, this)
-                inSampleSize = calculateInSampleSize(this, w, h); inJustDecodeBounds = false
+    // دالة محسنة لتحميل الصور بكفاءة دون تحديد مقاسات ثابتة
+    private fun loadImg(resId: Int, imageView: ImageView) {
+        // ننتظر حتى يتم قياس الـ ImageView في الواجهة
+        imageView.post {
+            try {
+                val targetW = imageView.width
+                val targetH = imageView.height
+                
+                if (targetW <= 0 || targetH <= 0) {
+                    // إذا لم تكن المقاسات جاهزة، نكرر المحاولة بعد قليل
+                    imageView.post { loadImg(resId, imageView) }
+                    return@post
+                }
+
+                val options = BitmapFactory.Options().apply {
+                    inJustDecodeBounds = true
+                    BitmapFactory.decodeResource(resources, resId, this)
+                    
+                    // حساب نسبة التصغير
+                    inSampleSize = calculateInSampleSize(this, targetW, targetH)
+                    inJustDecodeBounds = false
+                }
+                
+                val bitmap = BitmapFactory.decodeResource(resources, resId, options)
+                imageView.setImageBitmap(bitmap)
+                
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // في حال فشل التحميل، نعرض لونًا شفافًا أو صورة بديلة
+                imageView.setImageResource(android.R.color.transparent)
             }
-            view.setImageBitmap(BitmapFactory.decodeResource(resources, id, opts))
-        } catch (e: Exception) {}
+        }
     }
 
-    private fun calculateInSampleSize(o: BitmapFactory.Options, rw: Int, rh: Int): Int {
-        var s = 1
-        if (o.outHeight > rh || o.outWidth > rw) {
-            val hh = o.outHeight / 2; val hw = o.outWidth / 2
-            while (hh / s >= rh && hw / s >= rw) s *= 2
+    private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+        val height = options.outHeight
+        val width = options.outWidth
+        var inSampleSize = 1
+
+        if (height > reqHeight || width > reqWidth) {
+            val halfHeight = height / 2
+            val halfWidth = width / 2
+
+            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2
+            }
         }
-        return s
+        return inSampleSize
     }
 }
