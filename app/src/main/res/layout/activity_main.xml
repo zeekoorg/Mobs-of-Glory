@@ -40,9 +40,7 @@
         app:layout_constraintDimensionRatio="H,5.4:1"
         android:layout_marginHorizontal="2dp"
         android:layout_marginTop="4dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintTop_toTopOf="parent">
 
         <ImageView
             android:layout_width="match_parent"
@@ -63,10 +61,40 @@
                 android:layout_height="match_parent"
                 android:layout_weight="3">
                 
-                <ImageView android:id="@+id/imgAvatarFrame" android:layout_width="0dp" android:layout_height="match_parent" android:src="@drawable/ic_user_frame" app:layout_constraintDimensionRatio="1:1" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" />
+                <FrameLayout
+                    android:id="@+id/layoutAvatarClick"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    app:layout_constraintDimensionRatio="1:1"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:clickable="true"
+                    android:focusable="true">
+                    
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        app:cardCornerRadius="100dp"
+                        app:cardElevation="0dp"
+                        android:layout_margin="3dp">
+                        <ImageView
+                            android:id="@+id/imgMainPlayerAvatar"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="centerCrop"
+                            android:src="@drawable/img_default_avatar" />
+                    </androidx.cardview.widget.CardView>
+                    
+                    <ImageView 
+                        android:id="@+id/imgAvatarFrame" 
+                        android:layout_width="match_parent" 
+                        android:layout_height="match_parent" 
+                        android:src="@drawable/ic_user_frame" />
+                </FrameLayout>
                 
-                <ProgressBar android:id="@+id/pbPlayerHP" style="@android:style/Widget.ProgressBar.Horizontal" android:layout_width="0dp" android:layout_height="6dp" android:layout_marginStart="6dp" android:progress="100" android:progressDrawable="@drawable/custom_hp_bar" app:layout_constraintStart_toEndOf="@id/imgAvatarFrame" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toTopOf="@id/pbPlayerMP" />
-                <ProgressBar android:id="@+id/pbPlayerMP" style="@android:style/Widget.ProgressBar.Horizontal" android:layout_width="0dp" android:layout_height="6dp" android:layout_marginStart="6dp" android:progress="70" android:progressDrawable="@drawable/custom_progress_bar" app:layout_constraintStart_toEndOf="@id/imgAvatarFrame" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toBottomOf="@id/pbPlayerHP" app:layout_constraintBottom_toBottomOf="parent" />
+                <ProgressBar android:id="@+id/pbPlayerHP" style="@android:style/Widget.ProgressBar.Horizontal" android:layout_width="0dp" android:layout_height="6dp" android:layout_marginStart="6dp" android:progress="100" android:progressDrawable="@drawable/custom_hp_bar" app:layout_constraintStart_toEndOf="@id/layoutAvatarClick" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toTopOf="@id/pbPlayerMP" />
+                <ProgressBar android:id="@+id/pbPlayerMP" style="@android:style/Widget.ProgressBar.Horizontal" android:layout_width="0dp" android:layout_height="6dp" android:layout_marginStart="6dp" android:progress="70" android:progressDrawable="@drawable/custom_progress_bar" app:layout_constraintStart_toEndOf="@id/layoutAvatarClick" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toBottomOf="@id/pbPlayerHP" app:layout_constraintBottom_toBottomOf="parent" />
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="5.5" android:orientation="horizontal" android:weightSum="3" android:layout_marginHorizontal="4dp">
@@ -102,8 +130,6 @@
         android:background="@drawable/bg_level_tag"
         android:paddingHorizontal="10dp"
         android:paddingVertical="4dp"
-        android:clickable="true"
-        android:focusable="true"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/topHudContainer">
         
@@ -124,9 +150,7 @@
         app:layout_constraintDimensionRatio="H,5.4:1"
         android:layout_marginHorizontal="2dp"
         android:layout_marginBottom="4dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintBottom_toBottomOf="parent">
 
         <ImageView
             android:layout_width="match_parent"
@@ -143,12 +167,12 @@
             android:paddingVertical="4dp">
 
             <LinearLayout android:id="@+id/btnNavHeroes" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
-                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@android:drawable/ic_menu_gallery" app:tint="#B3B3B3" />
+                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_heroes" app:tint="#B3B3B3" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الأبطال" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
             </LinearLayout>
 
             <LinearLayout android:id="@+id/btnNavQuests" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
-                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@android:drawable/ic_menu_agenda" app:tint="#B3B3B3" />
+                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_quests" app:tint="#B3B3B3" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المهام" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
             </LinearLayout>
 
@@ -158,15 +182,14 @@
             </LinearLayout>
 
             <LinearLayout android:id="@+id/btnNavStore" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
-                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@android:drawable/ic_menu_myplaces" app:tint="#B3B3B3" />
+                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_store" app:tint="#B3B3B3" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المتجر" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
             </LinearLayout>
 
             <LinearLayout android:id="@+id/btnNavBag" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
-                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@android:drawable/ic_menu_manage" app:tint="#B3B3B3" />
+                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_bag" app:tint="#B3B3B3" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الحقيبة" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
-
 </androidx.constraintlayout.widget.ConstraintLayout>
