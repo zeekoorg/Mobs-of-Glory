@@ -24,12 +24,13 @@
 
         <TextView
             android:id="@+id/tvDialogTitle"
-            android:layout_width="wrap_content"
+            android:layout_width="220dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="50dp"
+            android:layout_marginTop="40dp"
+            android:gravity="center"
             android:text="مزرعة القمح (مستوى 1)"
-            android:textColor="#000000"
-            android:textSize="22sp"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -37,15 +38,14 @@
 
         <TextView
             android:id="@+id/tvDialogInfo"
-            android:layout_width="0dp"
+            android:layout_width="220dp"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="30dp"
-            android:layout_marginTop="15dp"
+            android:layout_marginTop="10dp"
             android:gravity="center"
             android:lineSpacingExtra="4dp"
             android:text="التطوير سيعزز قوة الإمبراطورية."
-            android:textColor="#000000"
-            android:textSize="16sp"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -53,69 +53,78 @@
 
         <LinearLayout
             android:id="@+id/layoutCosts"
-            android:layout_width="match_parent"
+            android:layout_width="220dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="15dp"
             android:gravity="center"
             android:orientation="horizontal"
             android:weightSum="3"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvDialogInfo">
 
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
                 <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@drawable/ic_resource_wheat" />
-                <TextView android:id="@+id/tvCostWheat" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1.2K" android:textColor="#000000" android:textSize="15sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                <TextView android:id="@+id/tvCostWheat" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1.2K" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
             </LinearLayout>
 
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
                 <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@drawable/ic_resource_iron" />
-                <TextView android:id="@+id/tvCostIron" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="800" android:textColor="#000000" android:textSize="15sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                <TextView android:id="@+id/tvCostIron" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="800" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
             </LinearLayout>
 
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
                 <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@drawable/ic_resource_gold" />
-                <TextView android:id="@+id/tvCostGold" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="250" android:textColor="#000000" android:textSize="15sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                <TextView android:id="@+id/tvCostGold" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="250" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
             </LinearLayout>
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/layoutTime"
-            android:layout_width="wrap_content"
+            android:layout_width="220dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
+            android:layout_marginTop="10dp"
             android:gravity="center"
             android:orientation="horizontal"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/layoutCosts">
 
-            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@android:drawable/ic_menu_recent_history" app:tint="#000000" />
-            <TextView android:id="@+id/tvUpgradeTime" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:text="0د 30ث" android:textColor="#000000" android:textSize="16sp" android:textStyle="bold" />
+            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@android:drawable/ic_menu_recent_history" app:tint="#FFFFFF" />
+            <TextView android:id="@+id/tvUpgradeTime" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:text="0د 30ث" android:textColor="#FFFFFF" android:textSize="14sp" android:textStyle="bold" />
         </LinearLayout>
 
-        <ImageView
-            android:id="@+id/btnClose"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginBottom="35dp"
-            android:src="@android:drawable/ic_menu_close_clear_cancel"
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginBottom="25dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:tint="#000000" />
+            app:layout_constraintStart_toStartOf="parent">
 
-        <Button
-            android:id="@+id/btnUpgrade"
-            android:layout_width="180dp"
-            android:layout_height="55dp"
-            android:layout_marginBottom="20dp"
-            android:background="@drawable/bg_btn_gold_border"
-            android:text="تطوير"
-            android:textColor="#000000"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            app:layout_constraintBottom_toTopOf="@id/btnClose"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
+            <Button
+                android:id="@+id/btnUpgrade"
+                android:layout_width="160dp"
+                android:layout_height="45dp"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/bg_btn_gold_border"
+                android:text="تطوير"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnClose"
+                android:layout_width="160dp"
+                android:layout_height="45dp"
+                android:background="@drawable/bg_btn_gold_border"
+                android:text="إغلاق"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
