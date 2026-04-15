@@ -27,7 +27,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="35dp"
-            android:text="قاعة الأبطال العظماء"
+            android:text="قاعة أبطال الحرب"
             android:textColor="#FFFFFF"
             android:textSize="22sp"
             android:textStyle="bold"
@@ -83,7 +83,7 @@
 
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
                         <ImageView android:layout_width="50dp" android:layout_height="50dp" android:src="@drawable/ic_user_frame"/>
-                        <TextView android:id="@+id/tvHero3Name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="أمير الظلال" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <TextView android:id="@+id/tvHero3Name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="غضب الجبال" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
                         <TextView android:id="@+id/tvHero3Level" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مغلق" android:textColor="#FF5252" android:textSize="11sp"/>
                         <TextView android:id="@+id/tvHero3Boost" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قوة: +15K" android:textColor="#BDC3C7" android:textSize="11sp" android:layout_marginTop="2dp"/>
                         <Button android:id="@+id/btnHero3" android:layout_width="90dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="تجنيد" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
@@ -91,7 +91,7 @@
 
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
                         <ImageView android:layout_width="50dp" android:layout_height="50dp" android:src="@drawable/ic_user_frame"/>
-                        <TextView android:id="@+id/tvHero4Name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="كاسر الأمواج" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <TextView android:id="@+id/tvHero4Name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="رعد الصحراء" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
                         <TextView android:id="@+id/tvHero4Level" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مغلق" android:textColor="#FF5252" android:textSize="11sp"/>
                         <TextView android:id="@+id/tvHero4Boost" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قوة: +20K" android:textColor="#BDC3C7" android:textSize="11sp" android:layout_marginTop="2dp"/>
                         <Button android:id="@+id/btnHero4" android:layout_width="90dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="تجنيد" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
@@ -115,7 +115,7 @@
 
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
                         <ImageView android:layout_width="50dp" android:layout_height="50dp" android:src="@drawable/ic_user_frame"/>
-                        <TextView android:id="@+id/tvHero6Name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="رعد الصحراء" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <TextView android:id="@+id/tvHero6Name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="كاسر الأمواج" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
                         <TextView android:id="@+id/tvHero6Level" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مغلق" android:textColor="#FF5252" android:textSize="11sp"/>
                         <TextView android:id="@+id/tvHero6Boost" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قوة: +40K" android:textColor="#BDC3C7" android:textSize="11sp" android:layout_marginTop="2dp"/>
                         <Button android:id="@+id/btnHero6" android:layout_width="90dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="تجنيد" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
@@ -130,7 +130,7 @@
 
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
                         <ImageView android:layout_width="50dp" android:layout_height="50dp" android:src="@drawable/ic_user_frame"/>
-                        <TextView android:id="@+id/tvHero7Name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="غضب الجبال" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <TextView android:id="@+id/tvHero7Name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="أميرة الحرب" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
                         <TextView android:id="@+id/tvHero7Level" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مغلق" android:textColor="#FF5252" android:textSize="11sp"/>
                         <TextView android:id="@+id/tvHero7Boost" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قوة: +50K" android:textColor="#BDC3C7" android:textSize="11sp" android:layout_marginTop="2dp"/>
                         <Button android:id="@+id/btnHero7" android:layout_width="90dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="تجنيد" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
@@ -138,7 +138,7 @@
 
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
                         <ImageView android:layout_width="50dp" android:layout_height="50dp" android:src="@drawable/ic_user_frame"/>
-                        <TextView android:id="@+id/tvHero8Name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="فهد الرمال" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <TextView android:id="@+id/tvHero8Name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ساحرة المجد" android:textColor="#F4D03F" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
                         <TextView android:id="@+id/tvHero8Level" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مغلق" android:textColor="#FF5252" android:textSize="11sp"/>
                         <TextView android:id="@+id/tvHero8Boost" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قوة: +70K" android:textColor="#BDC3C7" android:textSize="11sp" android:layout_marginTop="2dp"/>
                         <Button android:id="@+id/btnHero8" android:layout_width="90dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="تجنيد" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
