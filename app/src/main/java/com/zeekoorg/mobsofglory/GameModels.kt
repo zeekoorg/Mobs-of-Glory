@@ -1,0 +1,46 @@
+package com.zeekoorg.mobsofglory
+
+import android.view.View
+import android.widget.ImageView
+import android.widget.ProgressBar
+import android.widget.TextView
+import kotlin.math.pow
+
+enum class ResourceType(val iconResId: Int) { 
+    GOLD(R.drawable.ic_resource_gold), 
+    IRON(R.drawable.ic_resource_iron), 
+    WHEAT(R.drawable.ic_resource_wheat), 
+    NONE(0) 
+}
+
+data class Hero(
+    val id: Int, val name: String, var level: Int, var powerBoost: Long, 
+    var isUnlocked: Boolean, var shardsOwned: Int, val shardsRequired: Int
+)
+
+data class Quest(
+    val id: Int, val title: String, val rewardGold: Long, 
+    var isCompleted: Boolean, var isCollected: Boolean
+)
+
+data class MapPlot(
+    val idCode: String, val name: String, val slotId: Int, val resId: Int, val resourceType: ResourceType, var level: Int = 1,
+    var isReady: Boolean = false, var collectTimer: Long = 0L,
+    var isUpgrading: Boolean = false, var upgradeEndTime: Long = 0L, var totalUpgradeTime: Long = 0L,
+    var isTraining: Boolean = false, var trainingEndTime: Long = 0L, var trainingTotalTime: Long = 0L,
+    var trainingAmount: Int = 0, var trainingIsInfantry: Boolean = false,
+    
+    // عناصر الواجهة المرتبطة بالمبنى
+    var layoutUpgradeProgress: View? = null, 
+    var pbUpgrade: ProgressBar? = null, 
+    var tvUpgradeTimer: TextView? = null, 
+    var collectIcon: ImageView? = null
+) {
+    fun getCostWheat(): Long = (if (idCode == "CASTLE") 1200 else 800 * level.toDouble().pow(3)).toLong()
+    fun getCostIron(): Long = (if (idCode == "CASTLE") 1000 else 500 * level.toDouble().pow(3)).toLong()
+    fun getCostGold(): Long = (if (idCode == "CASTLE") 300 else 100 * level.toDouble().pow(2.5)).toLong()
+    fun getUpgradeTimeSeconds(): Long = (level * level * 45).toLong() 
+    fun getReward(): Long = (level * 150).toLong()
+    fun getPowerProvided(): Long = (level * 250).toLong()
+    fun getExpReward(): Int = level * 300
+}
