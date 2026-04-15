@@ -209,12 +209,10 @@ class MainActivity : AppCompatActivity() {
     private fun collectResources(plot: MapPlot) {
         if (!plot.isReady || plot.resourceType == ResourceType.NONE) return
         
-        // منع الجمع المزدوج: نجمع مرة واحدة فقط
         plot.isReady = false
         plot.collectTimer = 0L
         plot.collectIcon?.visibility = View.GONE
 
-        // تحديث الموارد
         when (plot.resourceType) {
             ResourceType.GOLD -> totalGold += plot.getReward()
             ResourceType.IRON -> totalIron += plot.getReward()
@@ -222,7 +220,6 @@ class MainActivity : AppCompatActivity() {
             else -> return
         }
         
-        // تشغيل الأنيميشن فقط للعرض
         playCollectionAnimation(plot)
         
         updateHud()
@@ -265,6 +262,7 @@ class MainActivity : AppCompatActivity() {
                 
                 myPlots.forEach { p ->
                     if (p.isUpgrading) {
+                        // === حالة المبنى: جاري التطوير ===
                         p.layoutUpgradeProgress?.visibility = View.VISIBLE
                         p.collectIcon?.visibility = View.GONE
                         
@@ -285,14 +283,35 @@ class MainActivity : AppCompatActivity() {
                             p.tvUpgradeTimer?.text = formatTimeMillis(remaining)
                         }
                     } else {
-                        p.layoutUpgradeProgress?.visibility = View.GONE
-                        // المباني المنتجة للموارد فقط
-                        if (p.resourceType != ResourceType.NONE && p.idCode != "CASTLE" && p.idCode != "HOSPITAL" && !p.isReady) {
-                            p.collectTimer += 1000 
-                            if (p.collectTimer >= 60000L) { // دقيقة واحدة للإنتاج
-                                p.isReady = true
+                        // === حالة المبنى: لا يتم تطويره (إظهار شريط الجمع للموارد) ===
+                        if (p.resourceType != ResourceType.NONE && p.idCode != "CASTLE" && p.idCode != "HOSPITAL") {
+                            if (!p.isReady) {
+                                p.layoutUpgradeProgress?.visibility = View.VISIBLE
+                                p.collectIcon?.visibility = View.GONE
+                                
+                                p.collectTimer += 1000 
+                                
+                                // حساب نسبة تقدم الجمع (المدة الكاملة 60 ثانية = 60000 مللي ثانية)
+                                val progress = ((p.collectTimer.toFloat() / 60000f) * 100).toInt()
+                                p.pbUpgrade?.progress = progress
+                                
+                                // الوقت المتبقي للجمع
+                                val remainingCollectTime = 60000L - p.collectTimer
+                                p.tvUpgradeTimer?.text = formatTimeMillis(remainingCollectTime)
+                                
+                                if (p.collectTimer >= 60000L) {
+                                    p.isReady = true
+                                    p.layoutUpgradeProgress?.visibility = View.GONE
+                                    p.collectIcon?.visibility = View.VISIBLE
+                                }
+                            } else {
+                                // الجمع جاهز
+                                p.layoutUpgradeProgress?.visibility = View.GONE
                                 p.collectIcon?.visibility = View.VISIBLE
                             }
+                        } else {
+                            // مباني غير منتجة للموارد (مثل القلعة)
+                            p.layoutUpgradeProgress?.visibility = View.GONE
                         }
                     }
                 }
@@ -351,20 +370,24 @@ class MainActivity : AppCompatActivity() {
 
         btnPyramid.setOnClickListener {
             if (totalGold >= 500000) { totalGold -= 500000; isPyramidUnlocked = true; btnPyramid.text = "مملوكة"; btnPyramid.isEnabled = false; updateHud(); saveGameData(); Toast.makeText(this, "تم الشراء!", Toast.LENGTH_SHORT).show() }
+            else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
         }
         btnPeacock.setOnClickListener {
             if (totalGold >= 1500000) { totalGold -= 1500000; isPeacockUnlocked = true; btnPeacock.text = "مملوكة"; btnPeacock.isEnabled = false; updateHud(); saveGameData(); Toast.makeText(this, "تم الشراء!", Toast.LENGTH_SHORT).show() }
+            else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
         }
         btnDiamond.setOnClickListener {
             if (totalGold >= 3000000) { totalGold -= 3000000; isDiamondUnlocked = true; btnDiamond.text = "مملوكة"; btnDiamond.isEnabled = false; updateHud(); saveGameData(); Toast.makeText(this, "تم الشراء!", Toast.LENGTH_SHORT).show() }
+            else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
         }
         btnWheat.setOnClickListener {
             if (totalGold >= 20000) { totalGold -= 20000; totalWheat += 100000; updateHud(); saveGameData(); Toast.makeText(this, "تم شراء 100K قمح!", Toast.LENGTH_SHORT).show() }
+            else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
         }
         btnSpeedup.setOnClickListener {
             if (totalGold >= 15000) { 
                 totalGold -= 15000
-                countSpeedup1Hour++ // إضافة الأداة للحقيبة
+                countSpeedup1Hour++
                 updateHud(); saveGameData()
                 Toast.makeText(this, "تم إضافة التسريع لحقيبتك!", Toast.LENGTH_SHORT).show() 
             } else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
@@ -374,7 +397,6 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    // النافذة المخصصة لتسريع البناء
     private fun showSpeedupDialog(plot: MapPlot) {
         val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         dialog.setContentView(R.layout.dialog_speedup)
@@ -383,7 +405,6 @@ class MainActivity : AppCompatActivity() {
         val tvCount = dialog.findViewById<TextView>(R.id.tvSpeedupCount)
         val btnUse = dialog.findViewById<Button>(R.id.btnUseSpeedup)
 
-        // إيقاف أي Runnable سابق لتجنب تسريب الذاكرة أو التحديثات الوهمية
         speedupTimerRunnable?.let { gameHandler.removeCallbacks(it) }
 
         val updateTimerRunnable = object : Runnable {
@@ -393,14 +414,13 @@ class MainActivity : AppCompatActivity() {
                     tvRemaining.text = "الوقت المتبقي: ${formatTimeMillis(remaining)}"
                     gameHandler.postDelayed(this, 1000)
                 } else {
-                    dialog.dismiss() // إغلاق النافذة إذا انتهى البناء فجأة
+                    dialog.dismiss()
                 }
             }
         }
         speedupTimerRunnable = updateTimerRunnable
         gameHandler.post(updateTimerRunnable)
 
-        // إعداد بيانات الأداة
         tvCount.text = "الكمية المملوكة: $countSpeedup1Hour"
         if (countSpeedup1Hour <= 0) {
             btnUse.text = "شراء"
@@ -412,20 +432,18 @@ class MainActivity : AppCompatActivity() {
         btnUse.setOnClickListener {
             if (countSpeedup1Hour > 0) {
                 countSpeedup1Hour--
-                // خصم ساعة واحدة (3,600,000 مللي ثانية) من وقت الانتهاء
                 plot.upgradeEndTime -= 3600000L 
                 tvCount.text = "الكمية المملوكة: $countSpeedup1Hour"
                 saveGameData()
                 Toast.makeText(this, "تم تسريع البناء بمقدار 1 ساعة!", Toast.LENGTH_SHORT).show()
                 
-                // تحديث الزر إذا نفدت الأدوات
                 if (countSpeedup1Hour <= 0) {
                     btnUse.text = "شراء"
                 }
                 
             } else {
                 dialog.dismiss()
-                showStoreDialog() // توجيه للمتجر للشراء
+                showStoreDialog()
             }
         }
 
@@ -450,7 +468,6 @@ class MainActivity : AppCompatActivity() {
         val tvCostGold = dialog.findViewById<TextView>(R.id.tvCostGold)
         val tvTime = dialog.findViewById<TextView>(R.id.tvUpgradeTime)
         val btnUpgrade = dialog.findViewById<Button>(R.id.btnUpgrade)
-        val layoutCosts = dialog.findViewById<LinearLayout>(R.id.layoutCosts)
         
         tvTitle.text = "${plot.name} (مستوى ${plot.level})"
         
@@ -459,42 +476,69 @@ class MainActivity : AppCompatActivity() {
         val cGold = plot.getCostGold()
         val uTimeSec = plot.getUpgradeTimeSeconds()
 
-        tvCostWheat.text = formatResourceNumber(cWheat)
-        tvCostIron.text = formatResourceNumber(cIron)
-        tvCostGold.text = formatResourceNumber(cGold)
+        // عرض المتطلبات بصيغة "مطلوب / متوفر" مثل انتقام السلاطين
+        tvCostWheat.text = "${formatResourceNumber(cWheat)} / ${formatResourceNumber(totalWheat)}"
+        tvCostIron.text = "${formatResourceNumber(cIron)} / ${formatResourceNumber(totalIron)}"
+        tvCostGold.text = "${formatResourceNumber(cGold)} / ${formatResourceNumber(totalGold)}"
         tvTime.text = formatTimeSec(uTimeSec)
+
+        // تحديد لون الأرقام فقط حسب كفاية الموارد (أحمر إذا غير كافٍ، أخضر إذا كافٍ)
+        val colorRed = Color.parseColor("#FF5252")
+        val colorGreen = Color.parseColor("#4CAF50")
+        val colorDefault = Color.parseColor("#FFD700") // لون ذهبي افتراضي
+        
+        val hasEnoughWheat = totalWheat >= cWheat
+        val hasEnoughIron = totalIron >= cIron
+        val hasEnoughGold = totalGold >= cGold
+        
+        tvCostWheat.setTextColor(if (hasEnoughWheat) colorGreen else colorRed)
+        tvCostIron.setTextColor(if (hasEnoughIron) colorGreen else colorRed)
+        tvCostGold.setTextColor(if (hasEnoughGold) colorGreen else colorRed)
 
         var canUpgrade = true
         var errorMessage = ""
         val castleLevel = myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
 
-        // التحقق من الشروط
+        // التحقق من شروط الترقية
         if (plot.idCode == "CASTLE") {
             val reqLevel = plot.level
             val missing = myPlots.filter { it.idCode != "CASTLE" && it.level < reqLevel }
             if (missing.isNotEmpty()) {
                 canUpgrade = false
                 errorMessage = "يتطلب ترقية جميع المباني للمستوى $reqLevel"
-            } else tvInfo.text = "ترقية القلعة ستزيد القوة بمقدار ${plot.getPowerProvided()}"
+            } else {
+                tvInfo.text = "ترقية القلعة ستزيد القوة بمقدار ${formatResourceNumber(plot.getPowerProvided())}"
+                tvInfo.setTextColor(colorDefault)
+            }
         } else {
             if (plot.level >= castleLevel) {
                 canUpgrade = false
                 errorMessage = "تتطلب قلعة مستوى ${plot.level + 1}"
-            } else tvInfo.text = "الترقية ستزيد القوة والإنتاج."
+            } else {
+                tvInfo.text = "الترقية ستزيد القوة والإنتاج"
+                tvInfo.setTextColor(colorDefault)
+            }
         }
 
-        if (totalWheat < cWheat || totalIron < cIron || totalGold < cGold) {
+        // التحقق من الموارد
+        if (!hasEnoughWheat || !hasEnoughIron || !hasEnoughGold) {
             canUpgrade = false
-            errorMessage += if(errorMessage.isNotEmpty()) "\nومواردك لا تكفي!" else "الموارد لا تكفي!"
+            if (errorMessage.isNotEmpty()) {
+                errorMessage += "\nالموارد غير كافية!"
+            } else {
+                errorMessage = "الموارد غير كافية!"
+            }
         }
 
         if (!canUpgrade) {
-            btnUpgrade.text = "غير متاح"
-            btnUpgrade.setTextColor(Color.parseColor("#000000"))
+            btnUpgrade.text = "المتطلبات غير مكتملة"
+            btnUpgrade.setTextColor(colorRed)
             tvInfo.text = errorMessage
-            tvInfo.setTextColor(Color.parseColor("#000000"))
-            layoutCosts?.visibility = View.INVISIBLE
+            tvInfo.setTextColor(colorRed)
         } else {
+            btnUpgrade.text = "تطوير"
+            btnUpgrade.setTextColor(Color.WHITE)
+            
             btnUpgrade.setOnClickListener {
                 totalWheat -= cWheat
                 totalIron -= cIron
@@ -503,10 +547,12 @@ class MainActivity : AppCompatActivity() {
                 plot.isUpgrading = true
                 plot.totalUpgradeTime = uTimeSec * 1000
                 plot.upgradeEndTime = System.currentTimeMillis() + plot.totalUpgradeTime
+                plot.collectTimer = 0L // <--- تصفير عداد الجمع وإيقافه بمجرد بدء التطوير
                 
                 updateHud()
                 saveGameData()
                 dialog.dismiss()
+                Toast.makeText(this, "بدأ تطوير ${plot.name}!", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -557,16 +603,13 @@ class MainActivity : AppCompatActivity() {
         return formatTimeSec(millis / 1000)
     }
 
-    // دالة محسنة لتحميل الصور بكفاءة دون تحديد مقاسات ثابتة
     private fun loadImg(resId: Int, imageView: ImageView) {
-        // ننتظر حتى يتم قياس الـ ImageView في الواجهة
         imageView.post {
             try {
                 val targetW = imageView.width
                 val targetH = imageView.height
                 
                 if (targetW <= 0 || targetH <= 0) {
-                    // إذا لم تكن المقاسات جاهزة، نكرر المحاولة بعد قليل
                     imageView.post { loadImg(resId, imageView) }
                     return@post
                 }
@@ -574,8 +617,6 @@ class MainActivity : AppCompatActivity() {
                 val options = BitmapFactory.Options().apply {
                     inJustDecodeBounds = true
                     BitmapFactory.decodeResource(resources, resId, this)
-                    
-                    // حساب نسبة التصغير
                     inSampleSize = calculateInSampleSize(this, targetW, targetH)
                     inJustDecodeBounds = false
                 }
@@ -585,7 +626,6 @@ class MainActivity : AppCompatActivity() {
                 
             } catch (e: Exception) {
                 e.printStackTrace()
-                // في حال فشل التحميل، نعرض لونًا شفافًا أو صورة بديلة
                 imageView.setImageResource(android.R.color.transparent)
             }
         }
