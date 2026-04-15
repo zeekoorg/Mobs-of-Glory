@@ -1,146 +1,144 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layoutDirection="ltr"
-    android:background="@color/black">
+    android:background="#121212">
 
     <ImageView
         android:id="@+id/imgCityBackground"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scaleType="centerCrop"
-        android:src="@drawable/bg_mobs_city_isometric" />
+        android:scaleType="centerCrop" />
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/mapContainer"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:clipChildren="false"
-        app:layout_constraintDimensionRatio="9:16"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <FrameLayout android:id="@+id/plotCastle" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.52" app:layout_constraintHeight_percent="0.30" app:layout_constraintHorizontal_bias="0.55" app:layout_constraintVertical_bias="0.22" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        <FrameLayout android:id="@+id/plotFarmR1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.77" app:layout_constraintVertical_bias="0.54" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        <FrameLayout android:id="@+id/plotBarracksL1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.26" app:layout_constraintVertical_bias="0.54" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        <FrameLayout android:id="@+id/plotHospitalM1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.52" app:layout_constraintVertical_bias="0.65" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        <FrameLayout android:id="@+id/plotFarmR2" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.77" app:layout_constraintVertical_bias="0.79" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        <FrameLayout android:id="@+id/plotBarracksL2" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.26" app:layout_constraintVertical_bias="0.78" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        <FrameLayout android:id="@+id/plotHospitalM2" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.51" app:layout_constraintVertical_bias="0.87" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/topHudContainer"
+    <LinearLayout
+        android:id="@+id/topResourcesBar"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintDimensionRatio="H,5.4:1"
-        android:layout_marginHorizontal="2dp"
-        android:layout_marginTop="4dp"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:scaleType="fitXY"
-            android:src="@drawable/bg_top_hud_blank" />
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:background="#99000000"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="8dp">
 
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="horizontal"
-            android:weightSum="10"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="6dp">
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="3">
-                <ImageView android:id="@+id/imgAvatarFrame" android:layout_width="0dp" android:layout_height="match_parent" android:src="@drawable/ic_user_frame" app:layout_constraintDimensionRatio="1:1" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" />
-                
-                <TextView android:id="@+id/tvPlayerLevel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Lv. 1" android:textColor="#F4D03F" android:textSize="11sp" android:textStyle="bold" android:background="@drawable/bg_level_tag" android:paddingHorizontal="8dp" android:paddingVertical="2dp" android:layout_marginStart="6dp" app:layout_constraintStart_toEndOf="@id/imgAvatarFrame" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toTopOf="@id/pbPlayerHP" />
-                
-                <ProgressBar android:id="@+id/pbPlayerHP" style="@android:style/Widget.ProgressBar.Horizontal" android:layout_width="0dp" android:layout_height="4dp" android:layout_marginStart="6dp" android:progress="85" android:progressDrawable="@drawable/custom_hp_bar" app:layout_constraintStart_toEndOf="@id/imgAvatarFrame" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" />
-                <ProgressBar android:id="@+id/pbPlayerMP" style="@android:style/Widget.ProgressBar.Horizontal" android:layout_width="0dp" android:layout_height="4dp" android:layout_marginStart="6dp" android:progress="70" android:progressDrawable="@drawable/custom_mp_bar" app:layout_constraintStart_toEndOf="@id/imgAvatarFrame" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toBottomOf="@id/pbPlayerHP" app:layout_constraintBottom_toBottomOf="parent" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="5.5" android:orientation="horizontal" android:weightSum="3" android:layout_marginHorizontal="4dp">
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:orientation="vertical" android:gravity="center" android:layout_margin="1dp">
-                    <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/ic_resource_gold" />
-                    <TextView android:id="@+id/tvTotalGold" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#F4D03F" android:textSize="10sp" android:textStyle="bold"/>
-                </LinearLayout>
-
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:orientation="vertical" android:gravity="center" android:layout_margin="1dp">
-                    <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/ic_resource_iron" />
-                    <TextView android:id="@+id/tvTotalIron" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#BDC3C7" android:textSize="10sp" android:textStyle="bold"/>
-                </LinearLayout>
-
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:orientation="vertical" android:gravity="center" android:layout_margin="1dp">
-                    <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/ic_resource_wheat" />
-                    <TextView android:id="@+id/tvTotalWheat" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFFFFF" android:textSize="10sp" android:textStyle="bold"/>
-                </LinearLayout>
-            </LinearLayout>
-
-            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.5" android:orientation="vertical" android:gravity="center">
-                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_settings_gear" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الإعدادات" android:textColor="#D7CCC8" android:textSize="9sp" android:textStyle="bold"/>
-            </LinearLayout>
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="horizontal">
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_resource_gold" />
+            <TextView
+                android:id="@+id/tvTotalGold"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="0"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold" />
         </LinearLayout>
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/bottomNavBar"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintDimensionRatio="H,5.4:1"
-        android:layout_marginHorizontal="2dp"
-        android:layout_marginBottom="4dp"
-        app:layout_constraintBottom_toBottomOf="parent">
-
-        <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:scaleType="fitXY"
-            android:src="@drawable/bg_top_hud_blank" />
 
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="horizontal"
-            android:weightSum="5"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="4dp">
-
-            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical">
-                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@android:drawable/ic_menu_gallery" app:tint="#B3B3B3" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الأبطال" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
-            </LinearLayout>
-
-            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical">
-                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@android:drawable/ic_menu_agenda" app:tint="#B3B3B3" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المهام" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
-            </LinearLayout>
-
-            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical">
-                <ImageView android:layout_width="25dp" android:layout_height="25dp" android:src="@android:drawable/ic_menu_mapmode" app:tint="@color/royal_gold_light" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المدينة" android:textColor="@color/royal_gold_light" android:textSize="9sp" android:textStyle="bold" />
-            </LinearLayout>
-
-            <LinearLayout android:id="@+id/btnNavStore" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
-                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@android:drawable/ic_menu_myplaces" app:tint="#B3B3B3" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المتجر" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
-            </LinearLayout>
-
-            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical">
-                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@android:drawable/ic_menu_manage" app:tint="#B3B3B3" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الحقيبة" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
-            </LinearLayout>
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="horizontal">
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_resource_iron" />
+            <TextView
+                android:id="@+id/tvTotalIron"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="0"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold" />
         </LinearLayout>
-    </androidx.constraintlayout.widget.ConstraintLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="horizontal">
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_resource_wheat" />
+            <TextView
+                android:id="@+id/tvTotalWheat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="0"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layoutPlayerLevel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/topResourcesBar"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:layout_margin="8dp"
+        android:background="#B3000000"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvPlayerLevel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Lv. 1"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <ProgressBar
+                android:id="@+id/pbPlayerMP"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="80dp"
+                android:layout_height="8dp"
+                android:layout_marginTop="4dp"
+                android:progressDrawable="@drawable/custom_progress_bar"
+                android:max="100" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/btnNavStore"
+        android:layout_width="55dp"
+        android:layout_height="55dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentBottom="true"
+        android:layout_margin="16dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_nav_store" />
+
+    <FrameLayout android:id="@+id/plotCastle" android:layout_width="150dp" android:layout_height="150dp" android:layout_centerInParent="true" />
+    <FrameLayout android:id="@+id/plotFarmR1" android:layout_width="110dp" android:layout_height="110dp" android:layout_above="@id/plotCastle" android:layout_toEndOf="@id/plotCastle" android:layout_marginStart="10dp" android:layout_marginBottom="10dp" />
+    <FrameLayout android:id="@+id/plotFarmR2" android:layout_width="110dp" android:layout_height="110dp" android:layout_below="@id/plotCastle" android:layout_toEndOf="@id/plotCastle" android:layout_marginStart="10dp" android:layout_marginTop="10dp" />
+    <FrameLayout android:id="@+id/plotHospitalM1" android:layout_width="110dp" android:layout_height="110dp" android:layout_above="@id/plotCastle" android:layout_toStartOf="@id/plotCastle" android:layout_marginEnd="10dp" android:layout_marginBottom="10dp" />
+    <FrameLayout android:id="@+id/plotHospitalM2" android:layout_width="110dp" android:layout_height="110dp" android:layout_below="@id/plotCastle" android:layout_toStartOf="@id/plotCastle" android:layout_marginEnd="10dp" android:layout_marginTop="10dp" />
+    <FrameLayout android:id="@+id/plotBarracksL1" android:layout_width="110dp" android:layout_height="110dp" android:layout_above="@id/plotHospitalM1" android:layout_alignStart="@id/plotHospitalM1" android:layout_marginBottom="10dp" />
+    <FrameLayout android:id="@+id/plotBarracksL2" android:layout_width="110dp" android:layout_height="110dp" android:layout_below="@id/plotHospitalM2" android:layout_alignStart="@id/plotHospitalM2" android:layout_marginTop="10dp" />
+
+</RelativeLayout>
