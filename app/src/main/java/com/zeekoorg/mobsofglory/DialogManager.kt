@@ -8,6 +8,7 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import com.zeekoorg.mobsofglory.R // 💡 ضمان استدعاء المعرفات بشكل صحيح
 import java.util.Locale
 import kotlin.random.Random
 
@@ -18,6 +19,7 @@ object DialogManager {
         d.setContentView(R.layout.dialog_player_profile)
         try {
             d.findViewById<TextView>(R.id.tvProfileName)?.text = GameState.playerName
+            // 💡 إذا استمر الخطأ هنا بعد الـ Clean Project، تأكد أن معرف النص في dialog_player_profile.xml هو tvProfileLevel بالضبط
             d.findViewById<TextView>(R.id.tvProfileLevel)?.text = "المستوى: ${GameState.playerLevel}"
             d.findViewById<TextView>(R.id.tvProfilePower)?.text = formatResourceNumber(GameState.playerPower)
             d.findViewById<TextView>(R.id.tvProfileInfantry)?.text = formatResourceNumber(GameState.totalInfantry)
