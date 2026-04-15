@@ -40,18 +40,17 @@ class MainActivity : AppCompatActivity() {
     private var playerExp: Int = 0
     private var playerPower: Long = 0
     
-    // ⚔️ الجيش العسكري (المشاة والفرسان)
+    // ⚔️ الجيش العسكري
     private var totalInfantry: Long = 0
     private var totalCavalry: Long = 0
     
-    // 🎒 الحقيبة والمشتريات
+    // 🎒 الحقيبة
     private var isPyramidUnlocked = false
     private var isDiamondUnlocked = false
     private var isPeacockUnlocked = false
     private var countSpeedup1Hour: Int = 0
-    private var countResourceBox: Int = 0 
     
-    // 🦸‍♂️ قائمة الأبطال والمهام
+    // 🦸‍♂️ الأبطال والمهام
     private val myHeroes = mutableListOf<Hero>()
     private val dailyQuests = mutableListOf<Quest>()
     
@@ -59,30 +58,25 @@ class MainActivity : AppCompatActivity() {
     private var speedupTimerRunnable: Runnable? = null
 
     // ==========================================
-    // 🏗️ الهياكل البيانية (Data Structures)
+    // 🏗️ الهياكل البيانية الذكية
     // ==========================================
-    enum class ResourceType(val iconResId: Int) {
-        GOLD(R.drawable.ic_resource_gold),
-        IRON(R.drawable.ic_resource_iron),
-        WHEAT(R.drawable.ic_resource_wheat),
-        NONE(0)
-    }
+    enum class ResourceType(val iconResId: Int) { GOLD(R.drawable.ic_resource_gold), IRON(R.drawable.ic_resource_iron), WHEAT(R.drawable.ic_resource_wheat), NONE(0) }
 
     data class Hero(val id: Int, val name: String, var level: Int, var powerBoost: Long, var isUnlocked: Boolean, val unlockCost: Long)
     data class Quest(val id: Int, val title: String, val rewardGold: Long, var isCompleted: Boolean, var isCollected: Boolean)
 
     data class MapPlot(
-        val idCode: String, val name: String, val slotId: Int, val resId: Int, 
-        val resourceType: ResourceType, var level: Int = 1,
+        val idCode: String, val name: String, val slotId: Int, val resId: Int, val resourceType: ResourceType, var level: Int = 1,
         var isReady: Boolean = false, var collectTimer: Long = 0L,
         var isUpgrading: Boolean = false, var upgradeEndTime: Long = 0L, var totalUpgradeTime: Long = 0L,
         
-        var layoutUpgradeProgress: View? = null,
-        var pbUpgrade: ProgressBar? = null, 
-        var tvUpgradeTimer: TextView? = null,
-        var collectIcon: ImageView? = null
+        // ⚔️ متغيرات التدريب (الوقت للجنود)
+        var isTraining: Boolean = false, var trainingEndTime: Long = 0L, var trainingTotalTime: Long = 0L,
+        var trainingAmount: Int = 0, var trainingIsInfantry: Boolean = false,
+        
+        var layoutUpgradeProgress: View? = null, var pbUpgrade: ProgressBar? = null, 
+        var tvUpgradeTimer: TextView? = null, var collectIcon: ImageView? = null
     ) {
-        // التكاليف والوقت وفق استراتيجية متصاعدة
         fun getCostWheat(): Long = (if (idCode == "CASTLE") 1200 else 800 * level.toDouble().pow(3)).toLong()
         fun getCostIron(): Long = (if (idCode == "CASTLE") 1000 else 500 * level.toDouble().pow(3)).toLong()
         fun getCostGold(): Long = (if (idCode == "CASTLE") 300 else 100 * level.toDouble().pow(2.5)).toLong()
@@ -92,7 +86,6 @@ class MainActivity : AppCompatActivity() {
         fun getExpReward(): Int = level * 300
     }
 
-    // خريطة المباني الأساسية
     private val myPlots = mutableListOf(
         MapPlot("CASTLE", "القلعة المركزية", R.id.plotCastle, 0, ResourceType.NONE, 1),
         MapPlot("FARM_1", "مزرعة القمح", R.id.plotFarmR1, 0, ResourceType.WHEAT, 1),
@@ -108,8 +101,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         initViews()
-        initializeDataLists() // تهيئة القوائم أولاً
-        loadGameData()        // ثم تحميل البيانات المحفوظة فوقها
+        initializeDataLists()
+        loadGameDataAndProcessOffline() // 💡 استدعاء معالجة وقت الأوفلاين
         calculatePower()
         updateHudUI()
 
@@ -134,18 +127,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupActionListeners() {
-        // ربط أزرار الواجهة بنوافذها
-        findViewById<View>(R.id.layoutPlayerLevel)?.setOnClickListener { showPlayerProfileDialog() }
+        // 💡 تعديل هام: ملف اللاعب يظهر عند النقر على صورة القائد (الأفاتار)
+        findViewById<View>(R.id.imgAvatarFrame)?.setOnClickListener { showPlayerProfileDialog() }
+        
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { showStoreDialog() }
         findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { showHeroesDialog() }
-        findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { Toast.makeText(this, "سجل المهام: قريباً!", Toast.LENGTH_SHORT).show() }
-        findViewById<View>(R.id.btnNavBag)?.setOnClickListener { Toast.makeText(this, "الحقيبة: لديك $countSpeedup1Hour أداة تسريع.", Toast.LENGTH_SHORT).show() }
-        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { Toast.makeText(this, "أنت بالفعل داخل المدينة!", Toast.LENGTH_SHORT).show() }
     }
 
     private fun initializeDataLists() {
         if (myHeroes.isEmpty()) {
-            myHeroes.add(Hero(1, "صقر البيداء", 1, 5000, true, 0)) // بطل مجاني للبداية
+            myHeroes.add(Hero(1, "صقر البيداء", 1, 5000, true, 0)) 
             myHeroes.add(Hero(2, "ضرغام الليل", 1, 10000, false, 100000))
             myHeroes.add(Hero(3, "أمير الظلال", 1, 15000, false, 250000))
         }
@@ -155,7 +146,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ⚔️ حساب القوة العسكرية والاقتصادية الشاملة
     private fun calculatePower() {
         var p: Long = (playerLevel * 1500).toLong()
         myPlots.forEach { p += it.getPowerProvided() }
@@ -166,7 +156,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 💾 نظام الحفظ والتحميل المتقدم
+    // 💾 نظام الأوفلاين والحفظ (Offline Progression)
     // ==========================================
     private fun saveGameData() {
         val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit()
@@ -178,31 +168,36 @@ class MainActivity : AppCompatActivity() {
         prefs.putInt("PLAYER_EXP", playerExp)
         prefs.putLong("TOTAL_INFANTRY", totalInfantry)
         prefs.putLong("TOTAL_CAVALRY", totalCavalry)
-        
         prefs.putBoolean("PYRAMID_UNLOCKED", isPyramidUnlocked)
         prefs.putBoolean("DIAMOND_UNLOCKED", isDiamondUnlocked)
         prefs.putBoolean("PEACOCK_UNLOCKED", isPeacockUnlocked)
         prefs.putInt("SPEEDUP_1H", countSpeedup1Hour)
-        prefs.putInt("RESOURCE_BOX", countResourceBox)
         
-        // حفظ بيانات الأبطال
+        // 💡 حفظ وقت الخروج بدقة
+        prefs.putLong("LAST_LOGIN_TIME", System.currentTimeMillis())
+        
         myHeroes.forEachIndexed { index, hero ->
             prefs.putBoolean("HERO_${index}_UNLOCKED", hero.isUnlocked)
             prefs.putInt("HERO_${index}_LEVEL", hero.level)
             prefs.putLong("HERO_${index}_BOOST", hero.powerBoost)
         }
 
-        // حفظ بيانات المباني
         myPlots.forEach { 
             prefs.putInt("LEVEL_${it.idCode}", it.level) 
             prefs.putBoolean("UPGRADING_${it.idCode}", it.isUpgrading)
             prefs.putLong("UPGRADE_TIME_${it.idCode}", it.upgradeEndTime)
             prefs.putLong("UPGRADE_TOTAL_${it.idCode}", it.totalUpgradeTime)
+            prefs.putBoolean("TRAINING_${it.idCode}", it.isTraining)
+            prefs.putLong("TRAIN_TIME_${it.idCode}", it.trainingEndTime)
+            prefs.putLong("TRAIN_TOTAL_${it.idCode}", it.trainingTotalTime)
+            prefs.putInt("TRAIN_AMT_${it.idCode}", it.trainingAmount)
+            prefs.putLong("COLLECT_TIMER_${it.idCode}", it.collectTimer)
+            prefs.putBoolean("IS_READY_${it.idCode}", it.isReady)
         }
         prefs.apply()
     }
 
-    private fun loadGameData() {
+    private fun loadGameDataAndProcessOffline() {
         val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
         playerName = prefs.getString("PLAYER_NAME", "المهيب زيكو") ?: "المهيب زيكو"
         totalGold = prefs.getLong("TOTAL_GOLD", 500000) 
@@ -212,28 +207,51 @@ class MainActivity : AppCompatActivity() {
         playerExp = prefs.getInt("PLAYER_EXP", 0)
         totalInfantry = prefs.getLong("TOTAL_INFANTRY", 0)
         totalCavalry = prefs.getLong("TOTAL_CAVALRY", 0)
-
         isPyramidUnlocked = prefs.getBoolean("PYRAMID_UNLOCKED", false)
         isDiamondUnlocked = prefs.getBoolean("DIAMOND_UNLOCKED", false)
         isPeacockUnlocked = prefs.getBoolean("PEACOCK_UNLOCKED", false)
         countSpeedup1Hour = prefs.getInt("SPEEDUP_1H", 5) 
-        countResourceBox = prefs.getInt("RESOURCE_BOX", 2) 
 
-        // تحميل بيانات الأبطال
         myHeroes.forEachIndexed { index, hero ->
             hero.isUnlocked = prefs.getBoolean("HERO_${index}_UNLOCKED", hero.isUnlocked)
             hero.level = prefs.getInt("HERO_${index}_LEVEL", hero.level)
             hero.powerBoost = prefs.getLong("HERO_${index}_BOOST", hero.powerBoost)
         }
 
-        // تحميل بيانات المباني
+        val currentTime = System.currentTimeMillis()
+        val lastLogin = prefs.getLong("LAST_LOGIN_TIME", currentTime)
+        val offlineTimePassed = currentTime - lastLogin
+
         myPlots.forEach { 
             it.level = prefs.getInt("LEVEL_${it.idCode}", 1) 
             it.isUpgrading = prefs.getBoolean("UPGRADING_${it.idCode}", false)
             it.upgradeEndTime = prefs.getLong("UPGRADE_TIME_${it.idCode}", 0L)
             it.totalUpgradeTime = prefs.getLong("UPGRADE_TOTAL_${it.idCode}", 1L)
+            it.isTraining = prefs.getBoolean("TRAINING_${it.idCode}", false)
+            it.trainingEndTime = prefs.getLong("TRAIN_TIME_${it.idCode}", 0L)
+            it.trainingTotalTime = prefs.getLong("TRAIN_TOTAL_${it.idCode}", 1L)
+            it.trainingAmount = prefs.getInt("TRAIN_AMT_${it.idCode}", 0)
+            it.trainingIsInfantry = it.idCode == "BARRACKS_1"
+            it.collectTimer = prefs.getLong("COLLECT_TIMER_${it.idCode}", 0L)
+            it.isReady = prefs.getBoolean("IS_READY_${it.idCode}", false)
+            
+            // 💡 معالجة ذكية للوقت الضائع (الأوفلاين)
+            if (it.isUpgrading && currentTime >= it.upgradeEndTime) {
+                it.isUpgrading = false; it.level++; playerExp += it.getExpReward()
+            }
+            if (it.isTraining && currentTime >= it.trainingEndTime) {
+                it.isTraining = false
+                if (it.trainingIsInfantry) totalInfantry += it.trainingAmount else totalCavalry += it.trainingAmount
+            }
+            if (!it.isUpgrading && !it.isTraining && it.resourceType != ResourceType.NONE && it.idCode != "CASTLE" && !it.isReady) {
+                it.collectTimer += offlineTimePassed
+                if (it.collectTimer >= 60000L) {
+                    it.isReady = true; it.collectTimer = 60000L
+                }
+            }
         }
         
+        checkPlayerLevelUp()
         val savedSkin = prefs.getInt("SELECTED_SKIN", R.drawable.bg_mobs_city_isometric)
         loadImg(savedSkin, imgCityBackground)
     }
@@ -246,7 +264,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // ⚙️ منطق الخريطة والمباني
+    // ⚙️ منطق الخريطة والتفاعل الذكي
     // ==========================================
     private fun setupPlot(plot: MapPlot) {
         val container = findViewById<FrameLayout>(plot.slotId) ?: return
@@ -262,16 +280,18 @@ class MainActivity : AppCompatActivity() {
         if (plot.resourceType != ResourceType.NONE) plot.collectIcon?.setImageResource(plot.resourceType.iconResId)
         img.setImageResource(android.R.color.transparent)
 
+        // 💡 التفاعل الذكي (Smart Click Logic) كما طلبت تماماً
         img.setOnClickListener {
-            if (plot.isUpgrading) {
+            if (plot.isReady) {
+                collectResources(plot)
+            } else if (plot.isUpgrading || plot.isTraining) {
                 showSpeedupDialog(plot)
-                return@setOnClickListener
-            }
-            // ⚔️ توجيه النوافذ بناءً على نوع المبنى
-            when (plot.idCode) {
-                "CASTLE" -> showCastleMainDialog(plot)
-                "BARRACKS_1", "BARRACKS_2" -> showBarracksMenuDialog(plot)
-                else -> if (plot.isReady) collectResources(plot) else showUpgradeDialog(plot)
+            } else {
+                when (plot.idCode) {
+                    "CASTLE" -> showCastleMainDialog(plot)
+                    "BARRACKS_1", "BARRACKS_2" -> showBarracksMenuDialog(plot)
+                    else -> showUpgradeDialog(plot)
+                }
             }
         }
         plot.collectIcon?.setOnClickListener { collectResources(plot) }
@@ -288,10 +308,6 @@ class MainActivity : AppCompatActivity() {
             else -> return
         }
         playCollectionAnimation(plot); updateHudUI(); saveGameData()
-        
-        if (dailyQuests.isNotEmpty() && !dailyQuests[0].isCompleted) {
-            dailyQuests[0].isCompleted = true
-        }
     }
 
     private fun playCollectionAnimation(plot: MapPlot) {
@@ -318,6 +334,7 @@ class MainActivity : AppCompatActivity() {
             override fun run() {
                 val currentTime = System.currentTimeMillis()
                 myPlots.forEach { p ->
+                    // حالة التطوير
                     if (p.isUpgrading) {
                         p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectIcon?.visibility = View.GONE
                         val remaining = p.upgradeEndTime - currentTime
@@ -327,19 +344,34 @@ class MainActivity : AppCompatActivity() {
                             p.layoutUpgradeProgress?.visibility = View.GONE
                             Toast.makeText(this@MainActivity, "اكتمل تطوير ${p.name} للمستوى ${p.level}!", Toast.LENGTH_SHORT).show()
                         } else {
-                            val progress = ((p.totalUpgradeTime - remaining).toFloat() / p.totalUpgradeTime.toFloat()) * 100
-                            p.pbUpgrade?.progress = progress.toInt()
+                            p.pbUpgrade?.progress = (((p.totalUpgradeTime - remaining).toFloat() / p.totalUpgradeTime.toFloat()) * 100).toInt()
                             p.tvUpgradeTimer?.text = formatTimeMillis(remaining)
                         }
-                    } else {
+                    } 
+                    // حالة التدريب العسكري
+                    else if (p.isTraining) {
+                        p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectIcon?.visibility = View.GONE
+                        val remaining = p.trainingEndTime - currentTime
+                        if (remaining <= 0) {
+                            p.isTraining = false
+                            if (p.trainingIsInfantry) totalInfantry += p.trainingAmount else totalCavalry += p.trainingAmount
+                            calculatePower(); updateHudUI(); saveGameData()
+                            p.layoutUpgradeProgress?.visibility = View.GONE
+                            Toast.makeText(this@MainActivity, "اكتمل تدريب ${p.trainingAmount} جندي!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            p.pbUpgrade?.progress = (((p.trainingTotalTime - remaining).toFloat() / p.trainingTotalTime.toFloat()) * 100).toInt()
+                            p.tvUpgradeTimer?.text = formatTimeMillis(remaining)
+                        }
+                    }
+                    // حالة الجمع المستمر
+                    else {
                         if (p.resourceType != ResourceType.NONE && p.idCode != "CASTLE" && p.idCode != "HOSPITAL") {
                             if (!p.isReady) {
                                 p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectIcon?.visibility = View.GONE
                                 p.collectTimer += 1000 
-                                val progress = ((p.collectTimer.toFloat() / 60000f) * 100).toInt()
-                                p.pbUpgrade?.progress = progress
+                                p.pbUpgrade?.progress = ((p.collectTimer.toFloat() / 60000f) * 100).toInt()
                                 p.tvUpgradeTimer?.text = formatTimeMillis(60000L - p.collectTimer)
-                                if (p.collectTimer >= 60000L) { p.isReady = true; p.layoutUpgradeProgress?.visibility = View.GONE; p.collectIcon?.visibility = View.VISIBLE }
+                                if (p.collectTimer >= 60000L) { p.isReady = true; p.collectTimer = 60000L; p.layoutUpgradeProgress?.visibility = View.GONE; p.collectIcon?.visibility = View.VISIBLE }
                             } else { p.layoutUpgradeProgress?.visibility = View.GONE; p.collectIcon?.visibility = View.VISIBLE }
                         } else p.layoutUpgradeProgress?.visibility = View.GONE
                     }
@@ -356,7 +388,6 @@ class MainActivity : AppCompatActivity() {
     private fun showPlayerProfileDialog() {
         val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         dialog.setContentView(R.layout.dialog_player_profile)
-        // إذا واجهت خطأ هنا، تأكد أنك أنشأت ملف dialog_player_profile.xml بالمُعرّفات الصحيحة
         try {
             dialog.findViewById<TextView>(R.id.tvProfileName)?.text = playerName
             dialog.findViewById<TextView>(R.id.tvProfileLevel)?.text = "المستوى: $playerLevel"
@@ -364,7 +395,6 @@ class MainActivity : AppCompatActivity() {
             dialog.findViewById<TextView>(R.id.tvProfileInfantry)?.text = formatResourceNumber(totalInfantry)
             dialog.findViewById<TextView>(R.id.tvProfileCavalry)?.text = formatResourceNumber(totalCavalry)
         } catch (e: Exception) { e.printStackTrace() }
-        
         dialog.findViewById<View>(R.id.btnClose)?.setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
@@ -373,32 +403,27 @@ class MainActivity : AppCompatActivity() {
         val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         dialog.setContentView(R.layout.dialog_heroes)
 
-        // البطل 1: صقر البيداء
+        val tvHero1Level = dialog.findViewById<TextView>(R.id.tvHero1Level)
+        val tvHero1Boost = dialog.findViewById<TextView>(R.id.tvHero1Boost)
         val btnHero1 = dialog.findViewById<Button>(R.id.btnUpgradeHero1)
-        dialog.findViewById<TextView>(R.id.tvHero1Level)?.text = "المستوى: ${myHeroes[0].level}"
-        dialog.findViewById<TextView>(R.id.tvHero1Boost)?.text = "قوة المشاة: +${myHeroes[0].powerBoost}"
         
+        tvHero1Level?.text = "المستوى: ${myHeroes[0].level}"
+        tvHero1Boost?.text = "قوة المشاة: +${myHeroes[0].powerBoost}"
         btnHero1?.setOnClickListener {
             val cost = myHeroes[0].level * 50000L
             if (totalGold >= cost) {
                 totalGold -= cost; myHeroes[0].level++; myHeroes[0].powerBoost += 2500
                 calculatePower(); updateHudUI(); saveGameData()
-                dialog.findViewById<TextView>(R.id.tvHero1Level)?.text = "المستوى: ${myHeroes[0].level}"
-                dialog.findViewById<TextView>(R.id.tvHero1Boost)?.text = "قوة المشاة: +${myHeroes[0].powerBoost}"
+                tvHero1Level?.text = "المستوى: ${myHeroes[0].level}"; tvHero1Boost?.text = "قوة المشاة: +${myHeroes[0].powerBoost}"
                 Toast.makeText(this, "تم ترقية صقر البيداء!", Toast.LENGTH_SHORT).show()
             } else Toast.makeText(this, "تحتاج $cost ذهب للترقية!", Toast.LENGTH_SHORT).show()
         }
 
-        // البطل 2: ضرغام الليل
         val tvHero2Level = dialog.findViewById<TextView>(R.id.tvHero2Level)
         val tvHero2Boost = dialog.findViewById<TextView>(R.id.tvHero2Boost)
         val btnHero2 = dialog.findViewById<Button>(R.id.btnUnlockHero2)
         
-        if (myHeroes[1].isUnlocked) {
-            tvHero2Level?.text = "المستوى: ${myHeroes[1].level}"; tvHero2Level?.setTextColor(Color.parseColor("#F4D03F")); btnHero2?.text = "ترقية"
-            tvHero2Boost?.text = "قوة الفرسان: +${myHeroes[1].powerBoost}"
-        }
-
+        if (myHeroes[1].isUnlocked) { tvHero2Level?.text = "المستوى: ${myHeroes[1].level}"; tvHero2Level?.setTextColor(Color.parseColor("#F4D03F")); btnHero2?.text = "ترقية"; tvHero2Boost?.text = "قوة الفرسان: +${myHeroes[1].powerBoost}" }
         btnHero2?.setOnClickListener {
             if (!myHeroes[1].isUnlocked) {
                 if (totalGold >= myHeroes[1].unlockCost) {
@@ -414,20 +439,15 @@ class MainActivity : AppCompatActivity() {
                     calculatePower(); updateHudUI(); saveGameData()
                     tvHero2Level?.text = "المستوى: ${myHeroes[1].level}"; tvHero2Boost?.text = "قوة الفرسان: +${myHeroes[1].powerBoost}"
                     Toast.makeText(this, "تم ترقية ضرغام الليل!", Toast.LENGTH_SHORT).show()
-                } else Toast.makeText(this, "تحتاج $cost ذهب للترقية!", Toast.LENGTH_SHORT).show()
+                } else Toast.makeText(this, "تحتاج $cost ذهب!", Toast.LENGTH_SHORT).show()
             }
         }
 
-        // البطل 3: أمير الظلال
         val tvHero3Level = dialog.findViewById<TextView>(R.id.tvHero3Level)
         val tvHero3Boost = dialog.findViewById<TextView>(R.id.tvHero3Boost)
         val btnHero3 = dialog.findViewById<Button>(R.id.btnUnlockHero3)
 
-        if (myHeroes[2].isUnlocked) {
-            tvHero3Level?.text = "المستوى: ${myHeroes[2].level}"; tvHero3Level?.setTextColor(Color.parseColor("#F4D03F")); btnHero3?.text = "ترقية"
-            tvHero3Boost?.text = "قوة الإمبراطورية: +${myHeroes[2].powerBoost}"
-        }
-
+        if (myHeroes[2].isUnlocked) { tvHero3Level?.text = "المستوى: ${myHeroes[2].level}"; tvHero3Level?.setTextColor(Color.parseColor("#F4D03F")); btnHero3?.text = "ترقية"; tvHero3Boost?.text = "قوة الإمبراطورية: +${myHeroes[2].powerBoost}" }
         btnHero3?.setOnClickListener {
             if (!myHeroes[2].isUnlocked) {
                 if (totalGold >= myHeroes[2].unlockCost) {
@@ -443,10 +463,9 @@ class MainActivity : AppCompatActivity() {
                     calculatePower(); updateHudUI(); saveGameData()
                     tvHero3Level?.text = "المستوى: ${myHeroes[2].level}"; tvHero3Boost?.text = "قوة الإمبراطورية: +${myHeroes[2].powerBoost}"
                     Toast.makeText(this, "تم ترقية أمير الظلال!", Toast.LENGTH_SHORT).show()
-                } else Toast.makeText(this, "تحتاج $cost ذهب للترقية!", Toast.LENGTH_SHORT).show()
+                } else Toast.makeText(this, "تحتاج $cost ذهب!", Toast.LENGTH_SHORT).show()
             }
         }
-
         dialog.findViewById<View>(R.id.btnClose)?.setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
@@ -474,13 +493,13 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    // 💡 نظام التدريب المعتمد على الوقت
     private fun showTrainTroopsDialog(plot: MapPlot) {
         val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         dialog.setContentView(R.layout.dialog_train_troops)
 
         val isInfantry = plot.idCode == "BARRACKS_1"
         var currentTrainAmount = 100
-
         val costWheatPerUnit = if (isInfantry) 20 else 50
         val costIronPerUnit = if (isInfantry) 10 else 30
 
@@ -509,11 +528,18 @@ class MainActivity : AppCompatActivity() {
         btnConfirm?.setOnClickListener {
             val totalCostWheat = (currentTrainAmount * costWheatPerUnit).toLong()
             val totalCostIron = (currentTrainAmount * costIronPerUnit).toLong()
+            
             if (totalWheat >= totalCostWheat && totalIron >= totalCostIron) {
                 totalWheat -= totalCostWheat; totalIron -= totalCostIron
-                if (isInfantry) totalInfantry += currentTrainAmount else totalCavalry += currentTrainAmount
-                calculatePower(); updateHudUI(); saveGameData(); dialog.dismiss()
-                Toast.makeText(this, "تم بدء تدريب $currentTrainAmount جندي بنجاح!", Toast.LENGTH_SHORT).show()
+                
+                plot.isTraining = true
+                plot.trainingAmount = currentTrainAmount
+                plot.trainingTotalTime = currentTrainAmount * 2000L // كل جندي ثانيتين
+                plot.trainingEndTime = System.currentTimeMillis() + plot.trainingTotalTime
+                plot.collectTimer = 0L 
+                
+                updateHudUI(); saveGameData(); dialog.dismiss()
+                Toast.makeText(this, "بدأ معسكر التدريب!", Toast.LENGTH_SHORT).show()
             } else Toast.makeText(this, "الموارد لا تكفي للتدريب!", Toast.LENGTH_SHORT).show()
         }
 
@@ -522,6 +548,7 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    // 💡 متطلبات الترقية الصارمة (انتقام السلاطين)
     private fun showUpgradeDialog(plot: MapPlot) {
         val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         dialog.setContentView(R.layout.dialog_upgrade_building)
@@ -534,16 +561,36 @@ class MainActivity : AppCompatActivity() {
         dialog.findViewById<TextView>(R.id.tvUpgradeTime)?.text = formatTimeSec(uTimeSec)
 
         val btnUpgrade = dialog.findViewById<Button>(R.id.btnUpgrade)
-        val hasEnough = totalWheat >= cWheat && totalIron >= cIron && totalGold >= cGold
-        val castleLevel = myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
+        val tvInfo = dialog.findViewById<TextView>(R.id.tvDialogInfo)
+        val colorRed = Color.parseColor("#FF5252"); val colorDefault = Color.parseColor("#FFFFFF")
         
-        if (!hasEnough) { btnUpgrade?.text = "الموارد غير كافية"; btnUpgrade?.isEnabled = false }
-        else if (plot.idCode != "CASTLE" && plot.level >= castleLevel) { btnUpgrade?.text = "طور القلعة أولاً"; btnUpgrade?.isEnabled = false }
-        else {
+        var canUpgrade = true
+        var errorMessage = ""
+        val castleLevel = myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
+
+        // 💡 تطبيق القيود
+        if (plot.idCode == "CASTLE") {
+            val missing = myPlots.filter { it.idCode != "CASTLE" && it.level < plot.level }
+            if (missing.isNotEmpty()) { canUpgrade = false; errorMessage = "يجب ترقية جميع المباني للمستوى ${plot.level} أولاً!" }
+        } else {
+            if (plot.level >= castleLevel) { canUpgrade = false; errorMessage = "تتطلب قلعة مستوى ${plot.level + 1} أولاً!" }
+        }
+
+        if (totalWheat < cWheat || totalIron < cIron || totalGold < cGold) {
+            canUpgrade = false; errorMessage += if (errorMessage.isNotEmpty()) "\nالموارد غير كافية!" else "الموارد غير كافية!"
+        }
+
+        if (!canUpgrade) {
+            btnUpgrade?.text = "المتطلبات غير مكتملة"; btnUpgrade?.setTextColor(colorRed)
+            tvInfo?.text = errorMessage; tvInfo?.setTextColor(colorRed)
+        } else {
+            btnUpgrade?.text = "تطوير"; btnUpgrade?.setTextColor(Color.WHITE)
+            tvInfo?.text = "الترقية ستعزز قوة الإمبراطورية."; tvInfo?.setTextColor(colorDefault)
             btnUpgrade?.setOnClickListener {
                 totalWheat -= cWheat; totalIron -= cIron; totalGold -= cGold
                 plot.isUpgrading = true; plot.totalUpgradeTime = uTimeSec * 1000; plot.upgradeEndTime = System.currentTimeMillis() + plot.totalUpgradeTime
                 plot.collectTimer = 0L; updateHudUI(); saveGameData(); dialog.dismiss()
+                Toast.makeText(this, "بدأ التطوير بنجاح!", Toast.LENGTH_SHORT).show()
             }
         }
         dialog.findViewById<View>(R.id.btnClose)?.setOnClickListener { dialog.dismiss() }
@@ -557,25 +604,18 @@ class MainActivity : AppCompatActivity() {
         val btnPyramid = dialog.findViewById<Button>(R.id.btnBuyPyramid)
         val btnPeacock = dialog.findViewById<Button>(R.id.btnBuyPeacock)
         val btnDiamond = dialog.findViewById<Button>(R.id.btnBuyDiamond)
-        val btnWheat = dialog.findViewById<Button>(R.id.btnBuyWheat)
-        val btnSpeedup = dialog.findViewById<Button>(R.id.btnBuySpeedup)
-        val btnAdWheat = dialog.findViewById<Button>(R.id.btnAdWheat)
-        val btnAdIron = dialog.findViewById<Button>(R.id.btnAdIron)
-        val btnAdGold = dialog.findViewById<Button>(R.id.btnAdGold)
-
+        
         if (isPyramidUnlocked) { btnPyramid?.text = "مملوكة"; btnPyramid?.isEnabled = false }
         if (isPeacockUnlocked) { btnPeacock?.text = "مملوكة"; btnPeacock?.isEnabled = false }
         if (isDiamondUnlocked) { btnDiamond?.text = "مملوكة"; btnDiamond?.isEnabled = false }
 
         btnPyramid?.setOnClickListener { if (totalGold >= 500000) { totalGold -= 500000; isPyramidUnlocked = true; btnPyramid.text = "مملوكة"; btnPyramid.isEnabled = false; updateHudUI(); saveGameData(); Toast.makeText(this, "تم الشراء!", Toast.LENGTH_SHORT).show() } else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
-        btnPeacock?.setOnClickListener { if (totalGold >= 1500000) { totalGold -= 1500000; isPeacockUnlocked = true; btnPeacock.text = "مملوكة"; btnPeacock.isEnabled = false; updateHudUI(); saveGameData(); Toast.makeText(this, "تم الشراء!", Toast.LENGTH_SHORT).show() } else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
-        btnDiamond?.setOnClickListener { if (totalGold >= 3000000) { totalGold -= 3000000; isDiamondUnlocked = true; btnDiamond.text = "مملوكة"; btnDiamond.isEnabled = false; updateHudUI(); saveGameData(); Toast.makeText(this, "تم الشراء!", Toast.LENGTH_SHORT).show() } else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
-        btnWheat?.setOnClickListener { if (totalGold >= 20000) { totalGold -= 20000; totalWheat += 100000; updateHudUI(); saveGameData(); Toast.makeText(this, "تم الشراء!", Toast.LENGTH_SHORT).show() } else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
-        btnSpeedup?.setOnClickListener { if (totalGold >= 15000) { totalGold -= 15000; countSpeedup1Hour++; updateHudUI(); saveGameData(); Toast.makeText(this, "تم إضافة التسريع!", Toast.LENGTH_SHORT).show() } else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
+        dialog.findViewById<Button>(R.id.btnBuyWheat)?.setOnClickListener { if (totalGold >= 20000) { totalGold -= 20000; totalWheat += 100000; updateHudUI(); saveGameData(); Toast.makeText(this, "تم الشراء!", Toast.LENGTH_SHORT).show() } else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
+        dialog.findViewById<Button>(R.id.btnBuySpeedup)?.setOnClickListener { if (totalGold >= 15000) { totalGold -= 15000; countSpeedup1Hour++; updateHudUI(); saveGameData(); Toast.makeText(this, "تم إضافة التسريع!", Toast.LENGTH_SHORT).show() } else Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
 
-        btnAdWheat?.setOnClickListener { Toast.makeText(this, "جاري عرض الإعلان...", Toast.LENGTH_SHORT).show(); gameHandler.postDelayed({ totalWheat += 50000; updateHudUI(); saveGameData(); Toast.makeText(this, "حصلت على الموارد!", Toast.LENGTH_SHORT).show() }, 1500) }
-        btnAdIron?.setOnClickListener { Toast.makeText(this, "جاري عرض الإعلان...", Toast.LENGTH_SHORT).show(); gameHandler.postDelayed({ totalIron += 50000; updateHudUI(); saveGameData(); Toast.makeText(this, "حصلت على الموارد!", Toast.LENGTH_SHORT).show() }, 1500) }
-        btnAdGold?.setOnClickListener { Toast.makeText(this, "جاري عرض الإعلان...", Toast.LENGTH_SHORT).show(); gameHandler.postDelayed({ totalGold += 10000; updateHudUI(); saveGameData(); Toast.makeText(this, "حصلت على الموارد!", Toast.LENGTH_SHORT).show() }, 1500) }
+        dialog.findViewById<Button>(R.id.btnAdWheat)?.setOnClickListener { Toast.makeText(this, "جاري عرض الإعلان...", Toast.LENGTH_SHORT).show(); gameHandler.postDelayed({ totalWheat += 50000; updateHudUI(); saveGameData(); Toast.makeText(this, "حصلت على الموارد!", Toast.LENGTH_SHORT).show() }, 1500) }
+        dialog.findViewById<Button>(R.id.btnAdIron)?.setOnClickListener { Toast.makeText(this, "جاري عرض الإعلان...", Toast.LENGTH_SHORT).show(); gameHandler.postDelayed({ totalIron += 50000; updateHudUI(); saveGameData(); Toast.makeText(this, "حصلت على الموارد!", Toast.LENGTH_SHORT).show() }, 1500) }
+        dialog.findViewById<Button>(R.id.btnAdGold)?.setOnClickListener { Toast.makeText(this, "جاري عرض الإعلان...", Toast.LENGTH_SHORT).show(); gameHandler.postDelayed({ totalGold += 10000; updateHudUI(); saveGameData(); Toast.makeText(this, "حصلت على الموارد!", Toast.LENGTH_SHORT).show() }, 1500) }
 
         dialog.findViewById<View>(R.id.btnClose)?.setOnClickListener { dialog.dismiss() }
         dialog.show()
@@ -598,6 +638,7 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    // 💡 التفاعل الذكي للتسريع (يعمل للتطوير وللتدريب)
     private fun showSpeedupDialog(plot: MapPlot) {
         val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         dialog.setContentView(R.layout.dialog_speedup)
@@ -610,7 +651,7 @@ class MainActivity : AppCompatActivity() {
 
         speedupTimerRunnable = object : Runnable {
             override fun run() {
-                val remaining = plot.upgradeEndTime - System.currentTimeMillis()
+                val remaining = if (plot.isUpgrading) plot.upgradeEndTime - System.currentTimeMillis() else plot.trainingEndTime - System.currentTimeMillis()
                 if (remaining > 0) { tvRemaining?.text = "الوقت المتبقي: ${formatTimeMillis(remaining)}"; gameHandler.postDelayed(this, 1000) } 
                 else dialog.dismiss()
             }
@@ -622,7 +663,9 @@ class MainActivity : AppCompatActivity() {
 
         btnUse?.setOnClickListener {
             if (countSpeedup1Hour > 0) {
-                countSpeedup1Hour--; plot.upgradeEndTime -= 3600000L; tvCount?.text = "الكمية المملوكة: $countSpeedup1Hour"; saveGameData(); Toast.makeText(this, "تم التسريع!", Toast.LENGTH_SHORT).show()
+                countSpeedup1Hour--
+                if (plot.isUpgrading) plot.upgradeEndTime -= 3600000L else plot.trainingEndTime -= 3600000L
+                tvCount?.text = "الكمية المملوكة: $countSpeedup1Hour"; saveGameData(); Toast.makeText(this, "تم التسريع!", Toast.LENGTH_SHORT).show()
                 if (countSpeedup1Hour <= 0) btnUse.text = "شراء"
             } else { dialog.dismiss(); showStoreDialog() }
         }
