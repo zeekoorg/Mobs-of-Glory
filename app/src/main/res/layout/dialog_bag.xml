@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#B3000000">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/dialogBox"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintWidth_percent="0.90"
+        app:layout_constraintHeight_percent="0.85"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitXY"
+            android:src="@drawable/bg_dialog_dark" />
+
+        <TextView
+            android:id="@+id/tvDialogTitle"
+            android:layout_width="220dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="35dp"
+            android:gravity="center"
+            android:text="حقيبة القائد"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginHorizontal="15dp"
+            android:layout_marginTop="15dp"
+            android:layout_marginBottom="15dp"
+            app:layout_constraintTop_toBottomOf="@id/tvDialogTitle"
+            app:layout_constraintBottom_toTopOf="@id/btnClose">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingBottom="10dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:weightSum="2"
+                    android:layout_marginBottom="8dp">
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
+                        <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@android:drawable/ic_menu_recent_history" app:tint="#F4D03F"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="تسريع (ساعة)" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <TextView android:id="@+id/tvBagSpeedup1h" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الكمية: 0" android:textColor="#BDC3C7" android:textSize="12sp" android:layout_marginTop="4dp"/>
+                        <Button android:id="@+id/btnUseBagSpeedup1h" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="استخدام" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
+                    </LinearLayout>
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
+                        <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@android:drawable/ic_menu_recent_history" app:tint="#E74C3C"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="تسريع (8 ساعات)" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="4dp"/>
+                        <TextView android:id="@+id/tvBagSpeedup8h" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الكمية: 0" android:textColor="#BDC3C7" android:textSize="12sp" android:layout_marginTop="4dp"/>
+                        <Button android:id="@+id/btnUseBagSpeedup8h" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="استخدام" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:weightSum="2">
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
+                        <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_resource_wheat"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="صندوق موارد" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <TextView android:id="@+id/tvBagResBox" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الكمية: 0" android:textColor="#BDC3C7" android:textSize="12sp" android:layout_marginTop="4dp"/>
+                        <Button android:id="@+id/btnUseBagResBox" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="فتح" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
+                    </LinearLayout>
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
+                        <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_resource_gold"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="صندوق ذهب" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <TextView android:id="@+id/tvBagGoldBox" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الكمية: 0" android:textColor="#BDC3C7" android:textSize="12sp" android:layout_marginTop="4dp"/>
+                        <Button android:id="@+id/btnUseBagGoldBox" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="فتح" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+            </LinearLayout>
+        </ScrollView>
+
+        <Button
+            android:id="@+id/btnClose"
+            android:layout_width="180dp"
+            android:layout_height="45dp"
+            android:layout_marginBottom="25dp"
+            android:background="@drawable/bg_btn_gold_border"
+            android:text="إغلاق الحقيبة"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
