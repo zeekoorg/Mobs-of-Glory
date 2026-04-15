@@ -4,6 +4,7 @@ import android.app.Dialog
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -13,6 +14,7 @@ import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AnimationUtils
 import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import java.util.Locale
 import kotlin.math.pow
@@ -28,11 +30,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvPlayerLevel: TextView
     private lateinit var pbPlayerMP: ProgressBar
     private lateinit var imgCityBackground: ImageView
+    private lateinit var imgMainPlayerAvatar: ImageView
     
     // ==========================================
     // 📊 بيانات الإمبراطورية الشاملة
     // ==========================================
     private var playerName: String = "المهيب زيكو"
+    private var selectedAvatarUri: String? = null // مسار الصورة الشخصية
     private var totalGold: Long = 0
     private var totalIron: Long = 0
     private var totalWheat: Long = 0
@@ -60,6 +64,16 @@ class MainActivity : AppCompatActivity() {
     private val gameHandler = Handler(Looper.getMainLooper())
     private var speedupTimerRunnable: Runnable? = null
 
+    // 📸 مبرمج اختيار الصورة من المعرض
+    private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            selectedAvatarUri = it.toString()
+            saveGameData()
+            updateAvatarImages()
+            Toast.makeText(this, "تم تحديث صورة القائد بنجاح!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     // ==========================================
     // 🏗️ الهياكل البيانية
     // ==========================================
@@ -86,13 +100,14 @@ class MainActivity : AppCompatActivity() {
         fun getExpReward(): Int = level * 300
     }
 
+    // 💡 تم تصحيح الثكنات لتكون ResourceType.NONE لتجنب إنتاج الموارد
     private val myPlots = mutableListOf(
         MapPlot("CASTLE", "القلعة المركزية", R.id.plotCastle, 0, ResourceType.NONE, 1),
         MapPlot("FARM_1", "مزرعة القمح", R.id.plotFarmR1, 0, ResourceType.WHEAT, 1),
         MapPlot("MINE_1", "منجم الحديد", R.id.plotHospitalM1, 0, ResourceType.IRON, 1),
         MapPlot("GOLD_1", "منجم الذهب", R.id.plotFarmR2, 0, ResourceType.GOLD, 1),
-        MapPlot("BARRACKS_1", "ثكنة المشاة", R.id.plotBarracksL1, 0, ResourceType.IRON, 1),
-        MapPlot("BARRACKS_2", "ثكنة الفرسان", R.id.plotBarracksL2, 0, ResourceType.IRON, 1),
+        MapPlot("BARRACKS_1", "ثكنة المشاة", R.id.plotBarracksL1, 0, ResourceType.NONE, 1),
+        MapPlot("BARRACKS_2", "ثكنة الفرسان", R.id.plotBarracksL2, 0, ResourceType.NONE, 1),
         MapPlot("HOSPITAL", "دار الشفاء", R.id.plotHospitalM2, 0, ResourceType.NONE, 1)
     )
 
@@ -105,6 +120,7 @@ class MainActivity : AppCompatActivity() {
         loadGameDataAndProcessOffline()
         calculatePower()
         updateHudUI()
+        updateAvatarImages()
 
         myPlots.forEach { setupPlot(it) }
         setupActionListeners()
@@ -123,15 +139,28 @@ class MainActivity : AppCompatActivity() {
         tvPlayerLevel = findViewById(R.id.tvPlayerLevel)
         pbPlayerMP = findViewById(R.id.pbPlayerMP)
         imgCityBackground = findViewById(R.id.imgCityBackground)
+        imgMainPlayerAvatar = findViewById(R.id.imgMainPlayerAvatar)
     }
 
     private fun setupActionListeners() {
-        findViewById<View>(R.id.layoutPlayerLevel)?.setOnClickListener { showPlayerProfileDialog() }
+        // النقر على الأفاتار يفتح نافذة اللاعب (تم فصله عن المستوى)
+        findViewById<View>(R.id.layoutAvatarClick)?.setOnClickListener { showPlayerProfileDialog() }
+        
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { showStoreDialog() }
         findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { showHeroesDialog() }
         findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { showQuestsDialog() }
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { showBagDialog() }
         findViewById<View>(R.id.btnNavCity)?.setOnClickListener { Toast.makeText(this, "أنت بالفعل داخل المدينة!", Toast.LENGTH_SHORT).show() }
+    }
+
+    private fun updateAvatarImages() {
+        if (selectedAvatarUri != null) {
+            try {
+                imgMainPlayerAvatar.setImageURI(Uri.parse(selectedAvatarUri))
+            } catch (e: Exception) {
+                imgMainPlayerAvatar.setImageResource(R.drawable.img_default_avatar)
+            }
+        }
     }
 
     private fun initializeDataLists() {
@@ -160,9 +189,13 @@ class MainActivity : AppCompatActivity() {
         playerPower = p
     }
 
+    // ==========================================
+    // 💾 نظام الأوفلاين والحفظ الذكي
+    // ==========================================
     private fun saveGameData() {
         val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit()
         prefs.putString("PLAYER_NAME", playerName)
+        prefs.putString("PLAYER_AVATAR", selectedAvatarUri)
         prefs.putLong("TOTAL_GOLD", totalGold)
         prefs.putLong("TOTAL_IRON", totalIron)
         prefs.putLong("TOTAL_WHEAT", totalWheat)
@@ -204,6 +237,7 @@ class MainActivity : AppCompatActivity() {
     private fun loadGameDataAndProcessOffline() {
         val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
         playerName = prefs.getString("PLAYER_NAME", "المهيب زيكو") ?: "المهيب زيكو"
+        selectedAvatarUri = prefs.getString("PLAYER_AVATAR", null)
         totalGold = prefs.getLong("TOTAL_GOLD", 500000) 
         totalIron = prefs.getLong("TOTAL_IRON", 1000000)
         totalWheat = prefs.getLong("TOTAL_WHEAT", 1000000)
@@ -242,6 +276,7 @@ class MainActivity : AppCompatActivity() {
             it.collectTimer = prefs.getLong("COLLECT_TIMER_${it.idCode}", 0L)
             it.isReady = prefs.getBoolean("IS_READY_${it.idCode}", false)
             
+            // حساب ما تم أثناء إغلاق اللعبة
             if (it.isUpgrading && currentTime >= it.upgradeEndTime) {
                 it.isUpgrading = false; it.level++; playerExp += it.getExpReward()
             }
@@ -249,7 +284,7 @@ class MainActivity : AppCompatActivity() {
                 it.isTraining = false
                 if (it.trainingIsInfantry) totalInfantry += it.trainingAmount else totalCavalry += it.trainingAmount
             }
-            if (!it.isUpgrading && !it.isTraining && it.resourceType != ResourceType.NONE && it.idCode != "CASTLE" && !it.isReady) {
+            if (!it.isUpgrading && !it.isTraining && it.resourceType != ResourceType.NONE && !it.isReady) {
                 it.collectTimer += offlineTimePassed
                 if (it.collectTimer >= 60000L) { it.isReady = true; it.collectTimer = 60000L }
             }
@@ -267,6 +302,9 @@ class MainActivity : AppCompatActivity() {
         prefs.apply()
     }
 
+    // ==========================================
+    // ⚙️ منطق النقر الذكي على المباني
+    // ==========================================
     private fun setupPlot(plot: MapPlot) {
         val container = findViewById<FrameLayout>(plot.slotId) ?: return
         val view = LayoutInflater.from(this).inflate(R.layout.item_map_building, container, false)
@@ -281,9 +319,14 @@ class MainActivity : AppCompatActivity() {
         if (plot.resourceType != ResourceType.NONE) plot.collectIcon?.setImageResource(plot.resourceType.iconResId)
         img.setImageResource(android.R.color.transparent)
 
+        // 💡 التفاعل الذكي الشامل (كما طلبت تماماً)
         img.setOnClickListener {
-            if (plot.isReady) { collectResources(plot) } 
-            else if (plot.isUpgrading || plot.isTraining) { showSpeedupDialog(plot) } 
+            if (plot.isReady && plot.resourceType != ResourceType.NONE) { 
+                collectResources(plot) 
+            } 
+            else if (plot.isUpgrading || plot.isTraining) { 
+                showSpeedupDialog(plot) 
+            } 
             else {
                 when (plot.idCode) {
                     "CASTLE" -> showCastleMainDialog(plot)
@@ -334,6 +377,7 @@ class MainActivity : AppCompatActivity() {
             override fun run() {
                 val currentTime = System.currentTimeMillis()
                 myPlots.forEach { p ->
+                    // 💡 معالجة التطوير
                     if (p.isUpgrading) {
                         p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectIcon?.visibility = View.GONE
                         val remaining = p.upgradeEndTime - currentTime
@@ -346,7 +390,9 @@ class MainActivity : AppCompatActivity() {
                             p.pbUpgrade?.progress = (((p.totalUpgradeTime - remaining).toFloat() / p.totalUpgradeTime.toFloat()) * 100).toInt()
                             p.tvUpgradeTimer?.text = formatTimeMillis(remaining)
                         }
-                    } else if (p.isTraining) {
+                    } 
+                    // 💡 معالجة التدريب للجنود (عداد مرئي يقبل التسريع)
+                    else if (p.isTraining) {
                         p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectIcon?.visibility = View.GONE
                         val remaining = p.trainingEndTime - currentTime
                         if (remaining <= 0) {
@@ -359,8 +405,10 @@ class MainActivity : AppCompatActivity() {
                             p.pbUpgrade?.progress = (((p.trainingTotalTime - remaining).toFloat() / p.trainingTotalTime.toFloat()) * 100).toInt()
                             p.tvUpgradeTimer?.text = formatTimeMillis(remaining)
                         }
-                    } else {
-                        if (p.resourceType != ResourceType.NONE && p.idCode != "CASTLE" && p.idCode != "HOSPITAL") {
+                    } 
+                    // 💡 معالجة الجمع المستمر (للموارد فقط)
+                    else {
+                        if (p.resourceType != ResourceType.NONE) {
                             if (!p.isReady) {
                                 p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectIcon?.visibility = View.GONE
                                 p.collectTimer += 1000 
@@ -368,7 +416,9 @@ class MainActivity : AppCompatActivity() {
                                 p.tvUpgradeTimer?.text = formatTimeMillis(60000L - p.collectTimer)
                                 if (p.collectTimer >= 60000L) { p.isReady = true; p.collectTimer = 60000L; p.layoutUpgradeProgress?.visibility = View.GONE; p.collectIcon?.visibility = View.VISIBLE }
                             } else { p.layoutUpgradeProgress?.visibility = View.GONE; p.collectIcon?.visibility = View.VISIBLE }
-                        } else p.layoutUpgradeProgress?.visibility = View.GONE
+                        } else {
+                            p.layoutUpgradeProgress?.visibility = View.GONE
+                        }
                     }
                 }
                 gameHandler.postDelayed(this, 1000) 
@@ -377,7 +427,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 🛡️ النوافذ الاستراتيجية (Dialogs)
+    // 🛡️ النوافذ الاستراتيجية
     // ==========================================
     
     private fun showPlayerProfileDialog() {
@@ -389,6 +439,18 @@ class MainActivity : AppCompatActivity() {
             dialog.findViewById<TextView>(R.id.tvProfilePower)?.text = formatResourceNumber(playerPower)
             dialog.findViewById<TextView>(R.id.tvProfileInfantry)?.text = formatResourceNumber(totalInfantry)
             dialog.findViewById<TextView>(R.id.tvProfileCavalry)?.text = formatResourceNumber(totalCavalry)
+            
+            val imgProfileAvatar = dialog.findViewById<ImageView>(R.id.imgProfileAvatar)
+            if (selectedAvatarUri != null) {
+                imgProfileAvatar?.setImageURI(Uri.parse(selectedAvatarUri))
+            }
+            
+            // 📸 تفعيل زر تغيير الصورة
+            dialog.findViewById<Button>(R.id.btnChangePic)?.setOnClickListener {
+                pickImageLauncher.launch("image/*")
+                dialog.dismiss()
+            }
+            
         } catch (e: Exception) { e.printStackTrace() }
         dialog.findViewById<View>(R.id.btnClose)?.setOnClickListener { dialog.dismiss() }
         dialog.show()
@@ -411,8 +473,8 @@ class MainActivity : AppCompatActivity() {
         }
         refreshBagUI()
 
-        dialog.findViewById<Button>(R.id.btnUseBagSpeedup1h)?.setOnClickListener { Toast.makeText(this, "استخدم التسريع من المبنى مباشرة!", Toast.LENGTH_SHORT).show() }
-        dialog.findViewById<Button>(R.id.btnUseBagSpeedup8h)?.setOnClickListener { Toast.makeText(this, "استخدم التسريع من المبنى مباشرة!", Toast.LENGTH_SHORT).show() }
+        dialog.findViewById<Button>(R.id.btnUseBagSpeedup1h)?.setOnClickListener { Toast.makeText(this, "اضغط على المبنى قيد التطوير/التدريب لاستخدام التسريع مباشرة!", Toast.LENGTH_SHORT).show() }
+        dialog.findViewById<Button>(R.id.btnUseBagSpeedup8h)?.setOnClickListener { Toast.makeText(this, "اضغط على المبنى لاستخدامه!", Toast.LENGTH_SHORT).show() }
 
         dialog.findViewById<Button>(R.id.btnUseBagResBox)?.setOnClickListener {
             if (countResourceBox > 0) {
@@ -494,7 +556,7 @@ class MainActivity : AppCompatActivity() {
                         Toast.makeText(this, "تم تجنيد ${hero.name}!", Toast.LENGTH_SHORT).show()
                     } else Toast.makeText(this, "تحتاج ${formatResourceNumber(hero.unlockCost)} ذهب!", Toast.LENGTH_SHORT).show()
                 } else {
-                    val cost = hero.level * (hero.unlockCost / 2 + 50000L) // استراتيجية تكلفة ترقية
+                    val cost = hero.level * (hero.unlockCost / 2 + 50000L) 
                     if (totalGold >= cost) {
                         totalGold -= cost; hero.level++; hero.powerBoost += (hero.powerBoost * 0.2).toLong()
                         calculatePower(); updateHudUI(); saveGameData()
@@ -596,6 +658,7 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    // 💡 الترقية الذكية مع القيود الصارمة
     private fun showUpgradeDialog(plot: MapPlot) {
         val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         dialog.setContentView(R.layout.dialog_upgrade_building)
@@ -684,6 +747,7 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    // 💡 التسريع الذكي للتطوير والتدريب
     private fun showSpeedupDialog(plot: MapPlot) {
         val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         dialog.setContentView(R.layout.dialog_speedup)
