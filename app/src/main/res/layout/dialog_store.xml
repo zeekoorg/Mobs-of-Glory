@@ -9,7 +9,7 @@
         android:id="@+id/dialogBox"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintWidth_percent="0.9"
+        app:layout_constraintWidth_percent="0.90"
         app:layout_constraintHeight_percent="0.85"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -24,13 +24,13 @@
 
         <TextView
             android:id="@+id/tvDialogTitle"
-            android:layout_width="wrap_content"
+            android:layout_width="220dp"
             android:layout_height="wrap_content"
-            android:maxWidth="220dp"
             android:layout_marginTop="35dp"
+            android:gravity="center"
             android:text="المتجر الملكي"
             android:textColor="#FFFFFF"
-            android:textSize="24sp"
+            android:textSize="22sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -41,7 +41,7 @@
             android:layout_height="0dp"
             android:layout_marginHorizontal="15dp"
             android:layout_marginTop="15dp"
-            android:layout_marginBottom="10dp"
+            android:layout_marginBottom="15dp"
             app:layout_constraintTop_toBottomOf="@id/tvDialogTitle"
             app:layout_constraintBottom_toTopOf="@id/btnClose">
 
@@ -49,7 +49,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingBottom="15dp">
+                android:paddingBottom="10dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -60,9 +60,9 @@
 
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
                         <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_castle_pyramid"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="220dp" android:maxLines="1" android:text="زينة الهرم" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="زينة الهرم" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
                         <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginTop="4dp">
-                            <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@drawable/ic_resource_gold"/>
+                            <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_resource_gold"/>
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="500K" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginStart="4dp"/>
                         </LinearLayout>
                         <Button android:id="@+id/btnBuyPyramid" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="شراء" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
@@ -70,9 +70,9 @@
 
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
                         <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_castle_peacock"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="220dp" android:maxLines="1" android:text="طاؤوس الملوك" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الطاؤوس" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
                         <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginTop="4dp">
-                            <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@drawable/ic_resource_gold"/>
+                            <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_resource_gold"/>
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1.5M" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginStart="4dp"/>
                         </LinearLayout>
                         <Button android:id="@+id/btnBuyPeacock" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="شراء" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
@@ -88,9 +88,9 @@
 
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
                         <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_castle_diamond"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="220dp" android:maxLines="1" android:text="الألماس" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الألماس" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
                         <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginTop="4dp">
-                            <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@drawable/ic_resource_gold"/>
+                            <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_resource_gold"/>
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="3.0M" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginStart="4dp"/>
                         </LinearLayout>
                         <Button android:id="@+id/btnBuyDiamond" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="شراء" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
@@ -98,9 +98,9 @@
 
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
                         <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@android:drawable/ic_menu_recent_history" app:tint="#F4D03F"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="220dp" android:maxLines="1" android:text="تسريع (1 ساعة)" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="تسريع (ساعة)" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
                         <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginTop="4dp">
-                            <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@drawable/ic_resource_gold"/>
+                            <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_resource_gold"/>
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="15K" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginStart="4dp"/>
                         </LinearLayout>
                         <Button android:id="@+id/btnBuySpeedup" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="شراء" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
@@ -116,9 +116,9 @@
 
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
                         <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_resource_wheat"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="220dp" android:maxLines="1" android:text="100K قمح" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="100K قمح" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
                         <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginTop="4dp">
-                            <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@drawable/ic_resource_gold"/>
+                            <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_resource_gold"/>
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="20K" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginStart="4dp"/>
                         </LinearLayout>
                         <Button android:id="@+id/btnBuyWheat" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="شراء" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
@@ -126,9 +126,9 @@
 
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
                         <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_resource_wheat"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="220dp" android:maxLines="1" android:text="50K قمح" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="50K قمح" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مجانًا" android:textColor="#2ECC71" android:textStyle="bold" android:textSize="12sp" android:layout_marginTop="4dp"/>
-                        <Button android:id="@+id/btnAdWheat" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="مشاهدة إعلان" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold"/>
+                        <Button android:id="@+id/btnAdWheat" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="إعلان" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
                     </LinearLayout>
                 </LinearLayout>
 
@@ -140,16 +140,16 @@
 
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
                         <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_resource_iron"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="220dp" android:maxLines="1" android:text="50K حديد" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="50K حديد" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مجانًا" android:textColor="#2ECC71" android:textStyle="bold" android:textSize="12sp" android:layout_marginTop="4dp"/>
-                        <Button android:id="@+id/btnAdIron" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="مشاهدة إعلان" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold"/>
+                        <Button android:id="@+id/btnAdIron" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="إعلان" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
                     </LinearLayout>
 
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
                         <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_resource_gold"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="220dp" android:maxLines="1" android:text="10K ذهب" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="10K ذهب" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مجانًا" android:textColor="#2ECC71" android:textStyle="bold" android:textSize="12sp" android:layout_marginTop="4dp"/>
-                        <Button android:id="@+id/btnAdGold" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="مشاهدة إعلان" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold"/>
+                        <Button android:id="@+id/btnAdGold" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="إعلان" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
                     </LinearLayout>
                 </LinearLayout>
 
