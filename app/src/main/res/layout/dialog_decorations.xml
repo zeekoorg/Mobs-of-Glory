@@ -26,9 +26,10 @@
             android:id="@+id/tvDialogTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:maxWidth="220dp"
             android:layout_marginTop="50dp"
             android:text="خزانة الزينات"
-            android:textColor="#000000"
+            android:textColor="#FFFFFF"
             android:textSize="24sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
@@ -61,8 +62,8 @@
                     android:gravity="center"
                     android:background="?attr/selectableItemBackground">
                     <ImageView android:layout_width="75dp" android:layout_height="75dp" android:src="@drawable/ic_castle_default" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الأساسية" android:textColor="#000000" android:textStyle="bold" android:layout_marginTop="6dp"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مملوكة" android:textColor="#000000" android:textSize="13sp" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="220dp" android:text="الأساسية" android:textColor="#FFFFFF" android:textStyle="bold" android:layout_marginTop="6dp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مملوكة" android:textColor="#FFFFFF" android:textSize="13sp" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -74,8 +75,8 @@
                     android:gravity="center"
                     android:background="?attr/selectableItemBackground">
                     <ImageView android:layout_width="75dp" android:layout_height="75dp" android:src="@drawable/ic_castle_pyramid" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الهرم العظيم" android:textColor="#000000" android:textStyle="bold" android:layout_marginTop="6dp"/>
-                    <TextView android:id="@+id/tvSkinSnake" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مقفلة" android:textColor="#000000" android:textSize="13sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="220dp" android:text="الهرم العظيم" android:textColor="#FFFFFF" android:textStyle="bold" android:layout_marginTop="6dp"/>
+                    <TextView android:id="@+id/tvSkinSnake" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مقفلة" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -95,8 +96,8 @@
                     android:gravity="center"
                     android:background="?attr/selectableItemBackground">
                     <ImageView android:layout_width="75dp" android:layout_height="75dp" android:src="@drawable/ic_castle_diamond" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الألماس" android:textColor="#000000" android:textStyle="bold" android:layout_marginTop="6dp"/>
-                    <TextView android:id="@+id/tvSkinDiamond" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مقفلة" android:textColor="#000000" android:textSize="13sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="220dp" android:text="الألماس" android:textColor="#FFFFFF" android:textStyle="bold" android:layout_marginTop="6dp"/>
+                    <TextView android:id="@+id/tvSkinDiamond" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مقفلة" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -108,22 +109,25 @@
                     android:gravity="center"
                     android:background="?attr/selectableItemBackground">
                     <ImageView android:layout_width="75dp" android:layout_height="75dp" android:src="@drawable/ic_castle_peacock" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الطاؤوس" android:textColor="#000000" android:textStyle="bold" android:layout_marginTop="6dp"/>
-                    <TextView android:id="@+id/tvSkinPeacock" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مقفلة" android:textColor="#000000" android:textSize="13sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="220dp" android:text="الطاؤوس" android:textColor="#FFFFFF" android:textStyle="bold" android:layout_marginTop="6dp"/>
+                    <TextView android:id="@+id/tvSkinPeacock" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مقفلة" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
 
-        <ImageView
+        <Button
             android:id="@+id/btnClose"
-            android:layout_width="45dp"
+            android:layout_width="180dp"
             android:layout_height="45dp"
-            android:layout_marginBottom="30dp"
-            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:layout_marginBottom="25dp"
+            android:background="@drawable/bg_btn_gold_border"
+            android:text="إغلاق"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:tint="#000000" />
+            app:layout_constraintStart_toStartOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
