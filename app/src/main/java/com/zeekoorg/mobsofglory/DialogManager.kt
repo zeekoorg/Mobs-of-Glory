@@ -34,17 +34,15 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 دالة نافذة ترقية المستوى (Level Up)
     fun showLevelUpDialog(activity: MainActivity, newLevel: Int) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_level_up)
-        d.setCancelable(false) // لا يغلقها اللاعب إلا بالضغط على الزر لزيادة هيبة الموقف
+        d.setCancelable(false) 
 
         d.findViewById<TextView>(R.id.tvLevelUpMessage)?.text = "لقد وصلت للمستوى $newLevel"
         
-        // حساب الجوائز بناءً على المستوى الجديد
         val goldReward = (newLevel * 5000L)
-        val medalReward = if (newLevel % 2 == 0) 2 else 1 // يعطي ميداليتين في المستويات الزوجية
+        val medalReward = if (newLevel % 2 == 0) 2 else 1 
 
         d.findViewById<TextView>(R.id.tvRewardGold)?.text = "+${formatResourceNumber(goldReward)}"
         d.findViewById<TextView>(R.id.tvRewardMedals)?.text = "+$medalReward"
@@ -270,6 +268,85 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 دالة مكافآت القلعة المتقدمة (تعمل بالنظام الديناميكي)
+    fun showCastleRewardsDialog(activity: MainActivity, castleLevel: Int) {
+        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_castle_rewards)
+        
+        val container = d.findViewById<LinearLayout>(R.id.layoutCastleRewardsContainer)
+        container?.removeAllViews() 
+        val inflater = LayoutInflater.from(activity)
+
+        // تعريف مستويات المكافآت وجوائزها الصعبة والمتوازنة
+        val milestones = listOf(
+            Triple(5, "قلعة مستوى 5", "مكافأة: صندوق موارد x1 + 10K ذهب"),
+            Triple(10, "قلعة مستوى 10", "مكافأة: تسريع 8س x1 + صندوق ذهب x1"),
+            Triple(15, "قلعة مستوى 15", "مكافأة: بطاقة VIP 8س x1 + صندوق موارد x2"),
+            Triple(20, "قلعة مستوى 20", "مكافأة: ميداليات أبطال x5 + 50K ذهب")
+        )
+
+        milestones.forEach { (reqLevel, title, rewardText) ->
+            // نستخدم نفس تصميم بطاقة المهام لتوحيد الشكل
+            val view = inflater.inflate(R.layout.item_quest, container, false)
+            
+            val icon = view.findViewById<ImageView>(R.id.imgQuestIcon)
+            val tvTitle = view.findViewById<TextView>(R.id.tvQuestTitle)
+            val pbProgress = view.findViewById<ProgressBar>(R.id.pbQuestProgress)
+            val tvProgressText = view.findViewById<TextView>(R.id.tvQuestProgressText)
+            val tvReward = view.findViewById<TextView>(R.id.tvQuestReward)
+            val btnClaim = view.findViewById<Button>(R.id.btnClaimQuest)
+            
+            // تحديد أيقونة تناسب كل جائزة
+            when (reqLevel) {
+                5 -> icon.setImageResource(R.drawable.ic_resource_gold)
+                10 -> icon.setImageResource(R.drawable.ic_item_speedup)
+                15 -> icon.setImageResource(R.drawable.ic_vip_crown) // أو ic_item_speedup إذا لم تضع التاج بعد
+                20 -> icon.setImageResource(R.drawable.ic_menu_heroes)
+            }
+
+            tvTitle.text = title
+            tvReward.text = rewardText
+            
+            pbProgress.max = reqLevel
+            pbProgress.progress = if (castleLevel > reqLevel) reqLevel else castleLevel
+            tvProgressText.text = "${pbProgress.progress} / $reqLevel"
+
+            if (GameState.claimedCastleRewards.contains(reqLevel)) {
+                btnClaim.text = "مستلمة"
+                btnClaim.setTextColor(Color.parseColor("#2ECC71"))
+                btnClaim.isEnabled = false
+            } else if (castleLevel >= reqLevel) {
+                btnClaim.text = "استلام"
+                btnClaim.setTextColor(Color.WHITE)
+                btnClaim.setOnClickListener {
+                    GameState.claimedCastleRewards.add(reqLevel)
+                    when (reqLevel) {
+                        5 -> { GameState.countResourceBox += 1; GameState.totalGold += 10000 }
+                        10 -> { GameState.countSpeedup8Hour += 1; GameState.countGoldBox += 1 }
+                        15 -> { GameState.countVip8h += 1; GameState.countResourceBox += 2 }
+                        20 -> { GameState.summonMedals += 5; GameState.totalGold += 50000 }
+                    }
+                    activity.updateHudUI()
+                    GameState.saveGameData(activity)
+                    
+                    btnClaim.text = "مستلمة"
+                    btnClaim.setTextColor(Color.parseColor("#2ECC71"))
+                    btnClaim.isEnabled = false
+                    Toast.makeText(activity, "تم استلام غنائم القلعة!", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                btnClaim.text = "مقفلة"
+                btnClaim.setTextColor(Color.parseColor("#7F8C8D"))
+                btnClaim.isEnabled = false
+            }
+            
+            container?.addView(view)
+        }
+
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.show()
+    }
+
     fun showHeroesDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_heroes)
@@ -308,13 +385,21 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 إضافة زر "مكافآت القلعة" في نافذة القلعة
     fun showCastleMainDialog(activity: MainActivity, p: MapPlot) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_castle_main)
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = p.name
         d.findViewById<TextView>(R.id.tvDialogInfo)?.text = "أيها المُهيب، القلعة هي رمز هيبتك.\nقوة الإمبراطورية: ${formatResourceNumber(GameState.playerPower)}"
+        
         d.findViewById<Button>(R.id.btnCastleUpgrade)?.apply { text = "تطوير المبنى"; setOnClickListener { d.dismiss(); showUpgradeDialog(activity, p) } }
-        d.findViewById<Button>(R.id.btnCastleDecorations)?.apply { text = "زينة المدينة"; setOnClickListener { d.dismiss(); showDecorationsDialog(activity) } }
+        
+        // غيرنا وظيفة الزر الثاني ليفتح المكافآت بدلاً من الزينة (يمكننا وضع الزينة في مبنى آخر)
+        d.findViewById<Button>(R.id.btnCastleDecorations)?.apply { 
+            text = "مكافآت القلعة"
+            setOnClickListener { d.dismiss(); showCastleRewardsDialog(activity, p.level) } 
+        }
+        
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
         d.show()
     }
