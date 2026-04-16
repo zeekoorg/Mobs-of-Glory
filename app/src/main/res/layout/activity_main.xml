@@ -160,7 +160,7 @@
             android:id="@+id/imgVipIcon"
             android:layout_width="35dp"
             android:layout_height="35dp"
-            android:src="@drawable/ic_item_speedup" 
+            android:src="@drawable/ic_vip_crown" 
             android:background="@drawable/bg_inner_frame"
             android:padding="5dp"/>
 
