@@ -56,7 +56,7 @@
                     android:layout_height="wrap_content"
                     android:text="الصورة الأساسية (مجانية)"
                     android:textColor="#BDC3C7"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="10dp"/>
 
@@ -69,9 +69,30 @@
                     android:padding="10dp"
                     android:layout_marginBottom="15dp">
                     
-                    <ImageView android:layout_width="70dp" android:layout_height="70dp" android:scaleType="centerCrop" android:src="@drawable/img_default_avatar" android:background="@drawable/ic_user_frame" android:padding="3dp"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="القائد الأساسي" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="6dp"/>
-                    <Button android:id="@+id/btnUseDefaultAvatar" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="اختيار" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
+                    <FrameLayout
+                        android:layout_width="80dp"
+                        android:layout_height="80dp">
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            app:cardCornerRadius="40dp"
+                            app:cardElevation="0dp"
+                            android:layout_margin="4dp">
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:scaleType="centerCrop"
+                                android:src="@drawable/img_default_avatar" />
+                        </androidx.cardview.widget.CardView>
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:src="@drawable/ic_user_frame" />
+                    </FrameLayout>
+                    
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="القائد الأساسي" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginTop="6dp"/>
+                    
+                    <Button android:id="@+id/btnUseDefaultAvatar" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="اختيار" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" android:gravity="center" android:padding="0dp" android:insetTop="0dp" android:insetBottom="0dp" />
                 </LinearLayout>
 
                 <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#555555" android:layout_marginVertical="5dp" />
@@ -81,33 +102,53 @@
                     android:layout_height="wrap_content"
                     android:text="الصور النادرة (شراء دائم)"
                     android:textColor="#F4D03F"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     android:textStyle="bold"
                     android:layout_marginVertical="10dp"/>
 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:weightSum="2" android:layout_marginBottom="8dp">
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
-                        <ImageView android:layout_width="65dp" android:layout_height="65dp" android:scaleType="centerCrop" android:src="@drawable/img_avatar_king" android:background="@drawable/ic_user_frame" android:padding="3dp"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الملك" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="6dp"/>
-                        <Button android:id="@+id/btnBuyAvatarKing" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="50K ذهب" android:textColor="#F4D03F" android:textSize="11sp" android:textStyle="bold"/>
+                        <FrameLayout android:layout_width="70dp" android:layout_height="70dp">
+                            <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="match_parent" app:cardCornerRadius="35dp" app:cardElevation="0dp" android:layout_margin="3dp">
+                                <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" android:src="@drawable/img_avatar_king" />
+                            </androidx.cardview.widget.CardView>
+                            <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/ic_user_frame" />
+                        </FrameLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الملك" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginTop="6dp"/>
+                        <Button android:id="@+id/btnBuyAvatarKing" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="50K ذهب" android:textColor="#F4D03F" android:textSize="11sp" android:textStyle="bold" android:gravity="center" android:padding="0dp" android:insetTop="0dp" android:insetBottom="0dp" />
                     </LinearLayout>
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
-                        <ImageView android:layout_width="65dp" android:layout_height="65dp" android:scaleType="centerCrop" android:src="@drawable/img_avatar_knight" android:background="@drawable/ic_user_frame" android:padding="3dp"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الفارس" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="6dp"/>
-                        <Button android:id="@+id/btnBuyAvatarKnight" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="50K ذهب" android:textColor="#F4D03F" android:textSize="11sp" android:textStyle="bold"/>
+                        <FrameLayout android:layout_width="70dp" android:layout_height="70dp">
+                            <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="match_parent" app:cardCornerRadius="35dp" app:cardElevation="0dp" android:layout_margin="3dp">
+                                <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" android:src="@drawable/img_avatar_knight" />
+                            </androidx.cardview.widget.CardView>
+                            <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/ic_user_frame" />
+                        </FrameLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الفارس" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginTop="6dp"/>
+                        <Button android:id="@+id/btnBuyAvatarKnight" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="50K ذهب" android:textColor="#F4D03F" android:textSize="11sp" android:textStyle="bold" android:gravity="center" android:padding="0dp" android:insetTop="0dp" android:insetBottom="0dp" />
                     </LinearLayout>
                 </LinearLayout>
 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:weightSum="2" android:layout_marginBottom="8dp">
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
-                        <ImageView android:layout_width="65dp" android:layout_height="65dp" android:scaleType="centerCrop" android:src="@drawable/img_avatar_assassin" android:background="@drawable/ic_user_frame" android:padding="3dp"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="شبح الليل" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="6dp"/>
-                        <Button android:id="@+id/btnBuyAvatarAssassin" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="50K ذهب" android:textColor="#F4D03F" android:textSize="11sp" android:textStyle="bold"/>
+                        <FrameLayout android:layout_width="70dp" android:layout_height="70dp">
+                            <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="match_parent" app:cardCornerRadius="35dp" app:cardElevation="0dp" android:layout_margin="3dp">
+                                <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" android:src="@drawable/img_avatar_assassin" />
+                            </androidx.cardview.widget.CardView>
+                            <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/ic_user_frame" />
+                        </FrameLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="شبح الليل" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginTop="6dp"/>
+                        <Button android:id="@+id/btnBuyAvatarAssassin" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="50K ذهب" android:textColor="#F4D03F" android:textSize="11sp" android:textStyle="bold" android:gravity="center" android:padding="0dp" android:insetTop="0dp" android:insetBottom="0dp" />
                     </LinearLayout>
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
-                        <ImageView android:layout_width="65dp" android:layout_height="65dp" android:scaleType="centerCrop" android:src="@drawable/img_avatar_emperor" android:background="@drawable/ic_user_frame" android:padding="3dp"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الإمبراطور" android:textColor="#F4D03F" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="6dp"/>
-                        <Button android:id="@+id/btnBuyAvatarEmperor" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="50K ذهب" android:textColor="#F4D03F" android:textSize="11sp" android:textStyle="bold"/>
+                        <FrameLayout android:layout_width="70dp" android:layout_height="70dp">
+                            <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="match_parent" app:cardCornerRadius="35dp" app:cardElevation="0dp" android:layout_margin="3dp">
+                                <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" android:src="@drawable/img_avatar_emperor" />
+                            </androidx.cardview.widget.CardView>
+                            <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/ic_user_frame" />
+                        </FrameLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الإمبراطور" android:textColor="#F4D03F" android:textStyle="bold" android:textSize="12sp" android:layout_marginTop="6dp"/>
+                        <Button android:id="@+id/btnBuyAvatarEmperor" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="50K ذهب" android:textColor="#F4D03F" android:textSize="11sp" android:textStyle="bold" android:gravity="center" android:padding="0dp" android:insetTop="0dp" android:insetBottom="0dp" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -121,8 +162,12 @@
                     android:background="@drawable/bg_btn_gold_border"
                     android:text="اختيار من المعرض (VIP)"
                     android:textColor="#2ECC71"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:gravity="center" 
+                    android:padding="0dp" 
+                    android:insetTop="0dp" 
+                    android:insetBottom="0dp" />
 
             </LinearLayout>
         </ScrollView>
@@ -139,7 +184,11 @@
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
+            app:layout_constraintStart_toStartOf="parent"
+            android:gravity="center" 
+            android:padding="0dp" 
+            android:insetTop="0dp" 
+            android:insetBottom="0dp" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
