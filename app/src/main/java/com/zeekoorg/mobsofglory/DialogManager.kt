@@ -17,6 +17,23 @@ import kotlin.random.Random
 
 object DialogManager {
 
+    // 💡 دالة نافذة تأكيد الإعلانات الذكية (جديدة)
+    private fun showAdConfirmDialog(activity: MainActivity, onConfirm: () -> Unit) {
+        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_ad_confirm)
+
+        d.findViewById<Button>(R.id.btnConfirmAd)?.setOnClickListener {
+            d.dismiss()
+            onConfirm() // تشغيل الإعلان إذا وافق اللاعب
+        }
+
+        d.findViewById<Button>(R.id.btnCancelAd)?.setOnClickListener {
+            d.dismiss() // إغلاق النافذة فقط
+        }
+        
+        d.show()
+    }
+
     fun showPlayerProfileDialog(activity: MainActivity, onPickImage: () -> Unit, onChangeName: () -> Unit) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_player_profile)
@@ -54,9 +71,6 @@ object DialogManager {
         d.show()
     }
 
-    // ==========================================
-    // 👑 نافذة الـ VIP (الامتيازات الملكية)
-    // ==========================================
     fun showVipDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_vip)
@@ -154,7 +168,6 @@ object DialogManager {
             if (GameState.countResourceBox > 0) {
                 GameState.countResourceBox--; GameState.totalWheat += 50000; GameState.totalIron += 50000
                 
-                // 💡 فرصة 1% بطاقة VIP 8 ساعات
                 if(Random.nextInt(100) == 0) {
                     GameState.countVip8h++
                     Toast.makeText(activity, "مبروك! وجدت بطاقة VIP 8 ساعات في الصندوق!", Toast.LENGTH_LONG).show()
@@ -297,7 +310,6 @@ object DialogManager {
                 GameState.totalWheat -= totalW; GameState.totalIron -= totalI
                 p.isTraining = true; p.trainingAmount = currentAmt
                 
-                // 💡 خصم VIP لزمن التدريب (20%)
                 var tTime = currentAmt * 2000L
                 if(GameState.isVipActive()) tTime = (tTime * 0.8).toLong()
                 
@@ -318,7 +330,6 @@ object DialogManager {
         d.setContentView(R.layout.dialog_upgrade_building)
         val cW = p.getCostWheat(); val cI = p.getCostIron(); val cG = p.getCostGold()
         
-        // 💡 خصم VIP لزمن التطوير (20%)
         var uSec = p.getUpgradeTimeSeconds()
         if(GameState.isVipActive()) uSec = (uSec * 0.8).toLong()
         
@@ -366,7 +377,6 @@ object DialogManager {
 
         val tvRemaining = d.findViewById<TextView>(R.id.tvRemainingTime)
         
-        // جلب أزرار وأعداد التسريعات من الواجهة (تمت إضافة كل التسريعات)
         val tvCount5m = d.findViewById<TextView>(R.id.tvSpeedupCount5m)
         val btnUse5m = d.findViewById<Button>(R.id.btnUseSpeedup5m)
         val tvCount15m = d.findViewById<TextView>(R.id.tvSpeedupCount15m)
@@ -388,7 +398,6 @@ object DialogManager {
             tvCount2h?.text = "الكمية: ${GameState.countSpeedup2h}"
             tvCount8h?.text = "الكمية: ${GameState.countSpeedup8Hour}"
 
-            // تلوين الزر بالأبيض إذا كان متاحاً، وبالرمادي إذا كان 0
             val colorAvailable = Color.WHITE
             val colorEmpty = Color.parseColor("#555555")
 
@@ -453,25 +462,32 @@ object DialogManager {
         d.findViewById<Button>(R.id.btnBuySpeedup2h)?.setOnClickListener { if (GameState.totalGold >= 28000) { GameState.totalGold -= 28000; GameState.countSpeedup2h++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء بنجاح!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
         d.findViewById<Button>(R.id.btnBuySpeedup8h)?.setOnClickListener { if (GameState.totalGold >= 100000) { GameState.totalGold -= 100000; GameState.countSpeedup8Hour++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء بنجاح!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
 
+        // 💡 استخدام دالة التأكيد قبل فتح الإعلان
         d.findViewById<Button>(R.id.btnAdResources)?.setOnClickListener { 
-            YandexAdsManager.showRewardedAd(activity, onRewarded = {
-                GameState.totalWheat += 50000; GameState.totalIron += 50000; activity.updateHudUI(); GameState.saveGameData(activity)
-                Toast.makeText(activity, "حصلت على 50K قمح و 50K حديد!", Toast.LENGTH_LONG).show()
-            }, onAdClosed = {})
+            showAdConfirmDialog(activity) {
+                YandexAdsManager.showRewardedAd(activity, onRewarded = {
+                    GameState.totalWheat += 50000; GameState.totalIron += 50000; activity.updateHudUI(); GameState.saveGameData(activity)
+                    Toast.makeText(activity, "حصلت على 50K قمح و 50K حديد!", Toast.LENGTH_LONG).show()
+                }, onAdClosed = {})
+            }
         }
         
         d.findViewById<Button>(R.id.btnAdGold)?.setOnClickListener { 
-            YandexAdsManager.showRewardedAd(activity, onRewarded = {
-                GameState.totalGold += 10000; activity.updateHudUI(); GameState.saveGameData(activity)
-                Toast.makeText(activity, "حصلت على 10K ذهب!", Toast.LENGTH_LONG).show()
-            }, onAdClosed = {})
+            showAdConfirmDialog(activity) {
+                YandexAdsManager.showRewardedAd(activity, onRewarded = {
+                    GameState.totalGold += 10000; activity.updateHudUI(); GameState.saveGameData(activity)
+                    Toast.makeText(activity, "حصلت على 10K ذهب!", Toast.LENGTH_LONG).show()
+                }, onAdClosed = {})
+            }
         }
 
         d.findViewById<Button>(R.id.btnAdSpeedup)?.setOnClickListener { 
-            YandexAdsManager.showRewardedAd(activity, onRewarded = {
-                GameState.countSpeedup30m++; GameState.saveGameData(activity)
-                Toast.makeText(activity, "حصلت على تسريع 30 دقيقة!", Toast.LENGTH_LONG).show()
-            }, onAdClosed = {})
+            showAdConfirmDialog(activity) {
+                YandexAdsManager.showRewardedAd(activity, onRewarded = {
+                    GameState.countSpeedup30m++; GameState.saveGameData(activity)
+                    Toast.makeText(activity, "حصلت على تسريع 30 دقيقة!", Toast.LENGTH_LONG).show()
+                }, onAdClosed = {})
+            }
         }
 
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
@@ -497,14 +513,17 @@ object DialogManager {
         val tvMedals = d.findViewById<TextView>(R.id.tvSummonMedals)
         tvMedals?.text = "ميداليات الأبطال: ${GameState.summonMedals}"
 
+        // 💡 استخدام دالة التأكيد قبل فتح الإعلان
         d.findViewById<Button>(R.id.btnSummonAd)?.setOnClickListener {
-            YandexAdsManager.showRewardedAd(activity, onRewarded = {
-                val luckyHero = GameState.myHeroes[Random.nextInt(GameState.myHeroes.size)]
-                val shardsCount = Random.nextInt(1, 5)
-                luckyHero.shardsOwned += shardsCount
-                GameState.saveGameData(activity)
-                Toast.makeText(activity, "حصلت على $shardsCount شظية لـ ${luckyHero.name}!", Toast.LENGTH_LONG).show()
-            }, onAdClosed = {})
+            showAdConfirmDialog(activity) {
+                YandexAdsManager.showRewardedAd(activity, onRewarded = {
+                    val luckyHero = GameState.myHeroes[Random.nextInt(GameState.myHeroes.size)]
+                    val shardsCount = Random.nextInt(1, 5)
+                    luckyHero.shardsOwned += shardsCount
+                    GameState.saveGameData(activity)
+                    Toast.makeText(activity, "حصلت على $shardsCount شظية لـ ${luckyHero.name}!", Toast.LENGTH_LONG).show()
+                }, onAdClosed = {})
+            }
         }
 
         d.findViewById<Button>(R.id.btnSummonPremium)?.setOnClickListener {
@@ -513,7 +532,6 @@ object DialogManager {
                 val luckyHero = GameState.myHeroes[Random.nextInt(4, 8)] 
                 luckyHero.shardsOwned += Random.nextInt(5, 15)
                 
-                // 💡 فرصة 5% لبطاقة VIP في الاستدعاء المميز
                 if (Random.nextInt(100) < 5) {
                     GameState.countVip8h++
                     Toast.makeText(activity, "استدعاء أسطوري مزدوج! شظايا لـ ${luckyHero.name} وبطاقة VIP 8 ساعات!", Toast.LENGTH_LONG).show()
