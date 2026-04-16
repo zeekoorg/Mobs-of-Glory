@@ -180,32 +180,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     // 💡 دالة تغيير الاسم
-    private fun showChangeNameDialog() {
+        private fun showChangeNameDialog() {
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
-        d.setContentView(R.layout.dialog_quests) // نستخدم واجهة بسيطة مؤقتاً كقالب
+        d.setContentView(R.layout.dialog_change_name) // نستخدم الملف الجديد النظيف!
         
-        // بناء القالب برمجياً لسرعة الإنجاز بدون الحاجة لملف xml جديد الآن
-        val rootLayout = d.findViewById<ViewGroup>(android.R.id.content)
-        rootLayout.removeAllViews() // تنظيف القالب
+        val input = d.findViewById<EditText>(R.id.etNewName)
+        val btnConfirm = d.findViewById<Button>(R.id.btnConfirmChangeName)
+        val btnCancel = d.findViewById<Button>(R.id.btnCancelChangeName)
         
-        val inflater = LayoutInflater.from(this)
-        val view = inflater.inflate(R.layout.dialog_store, rootLayout, false) // نستخدم نافذة المتجر كقالب فارغ
-        rootLayout.addView(view)
-        
-        val dialogBox = view.findViewById<ViewGroup>(R.id.dialogBox)
-        dialogBox.removeAllViews() // تنظيف صندوق المتجر
-        
-        // رسم صندوق إدخال الاسم
-        val bg = ImageView(this).apply { setImageResource(R.drawable.bg_dialog_dark); scaleType = ImageView.ScaleType.FIT_XY; layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT) }
-        val title = TextView(this).apply { text = "تغيير اسم القائد"; setTextColor(android.graphics.Color.WHITE); textSize = 20f; setTypeface(null, android.graphics.Typeface.BOLD); gravity = android.view.Gravity.CENTER; layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = 50 } }
-        val input = EditText(this).apply { hint = "أدخل الاسم الجديد"; setTextColor(android.graphics.Color.WHITE); setHintTextColor(android.graphics.Color.GRAY); gravity = android.view.Gravity.CENTER; setBackgroundResource(R.drawable.bg_inner_frame); setPadding(20, 20, 20, 20); layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = 150; leftMargin = 50; rightMargin = 50 } }
-        val btnConfirm = Button(this).apply { text = "تغيير (500 ذهب)"; setTextColor(android.graphics.Color.WHITE); setBackgroundResource(R.drawable.bg_btn_gold_border); layoutParams = FrameLayout.LayoutParams(300, 100).apply { gravity = android.view.Gravity.CENTER_HORIZONTAL; topMargin = 280 } }
-        val btnCancel = Button(this).apply { text = "إلغاء"; setTextColor(android.graphics.Color.WHITE); setBackgroundResource(R.drawable.bg_btn_gold_border); layoutParams = FrameLayout.LayoutParams(300, 100).apply { gravity = android.view.Gravity.CENTER_HORIZONTAL; topMargin = 400 } }
-        
-        dialogBox.addView(bg); dialogBox.addView(title); dialogBox.addView(input); dialogBox.addView(btnConfirm); dialogBox.addView(btnCancel)
-        
-        btnConfirm.setOnClickListener {
-            val newName = input.text.toString().trim()
+        btnConfirm?.setOnClickListener {
+            val newName = input?.text.toString().trim()
             if (newName.isNotEmpty()) {
                 if (GameState.totalGold >= 500) {
                     GameState.totalGold -= 500
@@ -221,9 +205,11 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "الاسم لا يمكن أن يكون فارغاً!", Toast.LENGTH_SHORT).show()
             }
         }
-        btnCancel.setOnClickListener { d.dismiss() }
+        
+        btnCancel?.setOnClickListener { d.dismiss() }
         d.show()
     }
+
 
     private fun copyImageToInternalStorage(uri: Uri): String? {
         return try {
