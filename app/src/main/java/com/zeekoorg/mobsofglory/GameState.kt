@@ -2,14 +2,12 @@ package com.zeekoorg.mobsofglory
 
 import android.content.Context
 
-// 💡 1. أنواع المهام المتاحة في اللعبة
 enum class QuestType {
     COLLECT_RESOURCES,
     TRAIN_TROOPS,
     UPGRADE_BUILDING
 }
 
-// 💡 2. قالب المهمة الديناميكية (الاحترافي)
 data class DynamicQuest(
     val id: Int,
     val title: String,
@@ -49,7 +47,6 @@ object GameState {
     var countResourceBox: Int = 0
     var countGoldBox: Int = 0
 
-    // 💎 متغيرات نظام الـ VIP
     var vipEndTime: Long = 0L
     var countVip8h: Int = 0
     var countVip24h: Int = 0
@@ -59,11 +56,11 @@ object GameState {
 
     val myHeroes = mutableListOf<Hero>()
     val myPlots = mutableListOf<MapPlot>()
-    
-    // 💡 3. قائمة المهام الديناميكية الجديدة
     val dailyQuestsList = mutableListOf<DynamicQuest>()
+    
+    // 💡 سجل استلام جوائز القلعة (مستويات 5, 10, 15...)
+    val claimedCastleRewards = mutableSetOf<Int>()
 
-    // 💡 4. الدالة الذكية لزيادة تقدم المهام
     fun addQuestProgress(type: QuestType, amount: Int) {
         dailyQuestsList.filter { it.type == type }.forEach { quest ->
             if (!quest.isCollected && !quest.isCompleted) {
@@ -87,7 +84,6 @@ object GameState {
             myHeroes.add(Hero(8, "ساحرة المجد", 1, 70000, false, 0, 200))
         }
         
-        // 💡 5. توليد المهام الملكية
         if (dailyQuestsList.isEmpty()) {
             dailyQuestsList.add(DynamicQuest(1, "اجمع الموارد من الحقول", QuestType.COLLECT_RESOURCES, 5, 2000))
             dailyQuestsList.add(DynamicQuest(2, "درّب 500 جندي جديد", QuestType.TRAIN_TROOPS, 500, 5000))
@@ -153,11 +149,13 @@ object GameState {
         
         prefs.putLong("LAST_LOGIN_TIME", System.currentTimeMillis())
         
-        // 💡 حفظ تقدم المهام
         dailyQuestsList.forEachIndexed { i, q ->
             prefs.putInt("QUEST_${i}_PROG", q.currentAmount)
             prefs.putBoolean("QUEST_${i}_COLL", q.isCollected)
         }
+        
+        // 💡 حفظ سجل جوائز القلعة
+        prefs.putString("CLAIMED_CASTLE_REWARDS", claimedCastleRewards.joinToString(","))
         
         myHeroes.forEachIndexed { i, h ->
             prefs.putBoolean("H_${i}_U", h.isUnlocked); prefs.putInt("H_${i}_L", h.level)
@@ -200,10 +198,16 @@ object GameState {
         countVip24h = prefs.getInt("VIP_24H", 0)
         countVip7d = prefs.getInt("VIP_7D", 0)
 
-        // 💡 تحميل تقدم المهام
         dailyQuestsList.forEachIndexed { i, q ->
             q.currentAmount = prefs.getInt("QUEST_${i}_PROG", 0)
             q.isCollected = prefs.getBoolean("QUEST_${i}_COLL", false)
+        }
+
+        // 💡 تحميل سجل جوائز القلعة
+        val claimedStr = prefs.getString("CLAIMED_CASTLE_REWARDS", "") ?: ""
+        claimedCastleRewards.clear()
+        if (claimedStr.isNotEmpty()) {
+            claimedCastleRewards.addAll(claimedStr.split(",").mapNotNull { it.toIntOrNull() })
         }
 
         myHeroes.forEachIndexed { i, h ->
