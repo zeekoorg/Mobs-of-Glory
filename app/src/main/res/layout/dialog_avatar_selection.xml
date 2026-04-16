@@ -10,7 +10,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintWidth_percent="0.90"
-        app:layout_constraintHeight_percent="0.75"
+        app:layout_constraintHeight_percent="0.85"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -27,7 +27,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="35dp"
-            android:text="اختيار صورتك الرمزية"
+            android:text="تغيير الصورة الرمزية"
             android:textColor="#FFFFFF"
             android:textSize="22sp"
             android:textStyle="bold"
@@ -35,103 +35,105 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <LinearLayout
+        <ScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginHorizontal="20dp"
-            android:layout_marginTop="20dp"
+            android:layout_marginHorizontal="15dp"
+            android:layout_marginTop="15dp"
             android:layout_marginBottom="15dp"
-            android:gravity="center_horizontal"
-            android:orientation="vertical"
-            app:layout_constraintBottom_toTopOf="@id/btnClose"
-            app:layout_constraintTop_toBottomOf="@id/tvDialogTitle">
+            app:layout_constraintTop_toBottomOf="@id/tvDialogTitle"
+            app:layout_constraintBottom_toTopOf="@id/btnClose">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_inner_frame"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:padding="10dp">
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:paddingBottom="10dp">
 
-                <ImageView
-                    android:id="@+id/imgAvatar1"
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:layout_margin="3dp"
-                    android:background="@drawable/ic_user_frame"
-                    android:padding="2dp"
-                    android:scaleType="centerCrop"
-                    android:src="@drawable/img_hero_1" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="الصورة الأساسية (مجانية)"
+                    android:textColor="#BDC3C7"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="10dp"/>
 
-                <ImageView
-                    android:id="@+id/imgAvatar2"
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:layout_margin="3dp"
-                    android:background="@drawable/ic_user_frame"
-                    android:padding="2dp"
-                    android:scaleType="centerCrop"
-                    android:src="@drawable/img_hero_2" />
+                <LinearLayout
+                    android:layout_width="160dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="@drawable/bg_inner_frame"
+                    android:padding="10dp"
+                    android:layout_marginBottom="15dp">
+                    
+                    <ImageView android:layout_width="70dp" android:layout_height="70dp" android:scaleType="centerCrop" android:src="@drawable/img_default_avatar" android:background="@drawable/ic_user_frame" android:padding="3dp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="القائد الأساسي" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="6dp"/>
+                    <Button android:id="@+id/btnUseDefaultAvatar" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="اختيار" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold"/>
+                </LinearLayout>
 
-                <ImageView
-                    android:id="@+id/imgAvatar3"
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:layout_margin="3dp"
-                    android:background="@drawable/ic_user_frame"
-                    android:padding="2dp"
-                    android:scaleType="centerCrop"
-                    android:src="@drawable/img_hero_3" />
+                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#555555" android:layout_marginVertical="5dp" />
 
-                <ImageView
-                    android:id="@+id/imgAvatar4"
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:layout_margin="3dp"
-                    android:background="@drawable/ic_user_frame"
-                    android:padding="2dp"
-                    android:scaleType="centerCrop"
-                    android:src="@drawable/img_hero_4" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="الصور النادرة (شراء دائم)"
+                    android:textColor="#F4D03F"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginVertical="10dp"/>
 
-                <ImageView
-                    android:id="@+id/imgAvatar5"
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:layout_margin="3dp"
-                    android:background="@drawable/ic_user_frame"
-                    android:padding="2dp"
-                    android:scaleType="centerCrop"
-                    android:src="@drawable/img_hero_5" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:weightSum="2" android:layout_marginBottom="8dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
+                        <ImageView android:layout_width="65dp" android:layout_height="65dp" android:scaleType="centerCrop" android:src="@drawable/img_avatar_king" android:background="@drawable/ic_user_frame" android:padding="3dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الملك" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="6dp"/>
+                        <Button android:id="@+id/btnBuyAvatarKing" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="50K ذهب" android:textColor="#F4D03F" android:textSize="11sp" android:textStyle="bold"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
+                        <ImageView android:layout_width="65dp" android:layout_height="65dp" android:scaleType="centerCrop" android:src="@drawable/img_avatar_knight" android:background="@drawable/ic_user_frame" android:padding="3dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الفارس" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="6dp"/>
+                        <Button android:id="@+id/btnBuyAvatarKnight" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="50K ذهب" android:textColor="#F4D03F" android:textSize="11sp" android:textStyle="bold"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:weightSum="2" android:layout_marginBottom="8dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
+                        <ImageView android:layout_width="65dp" android:layout_height="65dp" android:scaleType="centerCrop" android:src="@drawable/img_avatar_assassin" android:background="@drawable/ic_user_frame" android:padding="3dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="شبح الليل" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="6dp"/>
+                        <Button android:id="@+id/btnBuyAvatarAssassin" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="50K ذهب" android:textColor="#F4D03F" android:textSize="11sp" android:textStyle="bold"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
+                        <ImageView android:layout_width="65dp" android:layout_height="65dp" android:scaleType="centerCrop" android:src="@drawable/img_avatar_emperor" android:background="@drawable/ic_user_frame" android:padding="3dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الإمبراطور" android:textColor="#F4D03F" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="6dp"/>
+                        <Button android:id="@+id/btnBuyAvatarEmperor" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="50K ذهب" android:textColor="#F4D03F" android:textSize="11sp" android:textStyle="bold"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#555555" android:layout_marginVertical="10dp" />
+
+                <Button
+                    android:id="@+id/btnChooseFromGallery"
+                    android:layout_width="200dp"
+                    android:layout_height="45dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_btn_gold_border"
+                    android:text="اختيار من المعرض (VIP)"
+                    android:textColor="#2ECC71"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
             </LinearLayout>
-
-            <Button
-                android:id="@+id/btnChooseFromGallery"
-                android:layout_width="200dp"
-                android:layout_height="45dp"
-                android:layout_marginTop="30dp"
-                android:background="@drawable/bg_btn_gold_border"
-                android:text="اختيار من المعرض"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
-                android:text="(يتطلب VIP)"
-                android:textColor="#BDC3C7"
-                android:textSize="11sp" />
-        </LinearLayout>
+        </ScrollView>
 
         <Button
             android:id="@+id/btnClose"
             android:layout_width="160dp"
             android:layout_height="40dp"
-            android:layout_marginBottom="25dp"
+            android:layout_marginBottom="20dp"
             android:background="@drawable/bg_btn_gold_border"
-            android:text="مغادرة القاعة"
+            android:text="إغلاق"
             android:textColor="#FFFFFF"
             android:textSize="14sp"
             android:textStyle="bold"
