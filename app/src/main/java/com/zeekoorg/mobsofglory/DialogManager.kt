@@ -268,7 +268,6 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 دالة مكافآت القلعة المتقدمة (تعمل بالنظام الديناميكي)
     fun showCastleRewardsDialog(activity: MainActivity, castleLevel: Int) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_castle_rewards)
@@ -277,7 +276,6 @@ object DialogManager {
         container?.removeAllViews() 
         val inflater = LayoutInflater.from(activity)
 
-        // تعريف مستويات المكافآت وجوائزها الصعبة والمتوازنة
         val milestones = listOf(
             Triple(5, "قلعة مستوى 5", "مكافأة: صندوق موارد x1 + 10K ذهب"),
             Triple(10, "قلعة مستوى 10", "مكافأة: تسريع 8س x1 + صندوق ذهب x1"),
@@ -286,7 +284,6 @@ object DialogManager {
         )
 
         milestones.forEach { (reqLevel, title, rewardText) ->
-            // نستخدم نفس تصميم بطاقة المهام لتوحيد الشكل
             val view = inflater.inflate(R.layout.item_quest, container, false)
             
             val icon = view.findViewById<ImageView>(R.id.imgQuestIcon)
@@ -296,11 +293,11 @@ object DialogManager {
             val tvReward = view.findViewById<TextView>(R.id.tvQuestReward)
             val btnClaim = view.findViewById<Button>(R.id.btnClaimQuest)
             
-            // تحديد أيقونة تناسب كل جائزة
+            // تم تغيير الصورة إلى أيقونة التسريع المتوفرة لديك
             when (reqLevel) {
                 5 -> icon.setImageResource(R.drawable.ic_resource_gold)
-                10 -> icon.setImageResource(R.drawable.ic_item_speedup)
-                15 -> icon.setImageResource(R.drawable.ic_vip_crown) // أو ic_item_speedup إذا لم تضع التاج بعد
+                10 -> icon.setImageResource(R.drawable.ic_speedup_8h) 
+                15 -> icon.setImageResource(R.drawable.ic_vip_crown)
                 20 -> icon.setImageResource(R.drawable.ic_menu_heroes)
             }
 
@@ -385,7 +382,6 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 إضافة زر "مكافآت القلعة" في نافذة القلعة
     fun showCastleMainDialog(activity: MainActivity, p: MapPlot) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_castle_main)
@@ -394,7 +390,6 @@ object DialogManager {
         
         d.findViewById<Button>(R.id.btnCastleUpgrade)?.apply { text = "تطوير المبنى"; setOnClickListener { d.dismiss(); showUpgradeDialog(activity, p) } }
         
-        // غيرنا وظيفة الزر الثاني ليفتح المكافآت بدلاً من الزينة (يمكننا وضع الزينة في مبنى آخر)
         d.findViewById<Button>(R.id.btnCastleDecorations)?.apply { 
             text = "مكافآت القلعة"
             setOnClickListener { d.dismiss(); showCastleRewardsDialog(activity, p.level) } 
