@@ -47,7 +47,6 @@ class MainActivity : AppCompatActivity() {
                 
                 GameState.saveGameData(this)
                 updateAvatarImages()
-                // 💡 استبدال التوست بنافذة ملكية
                 DialogManager.showGameMessage(this, "تغيير الصورة", "تم حفظ صورتك الملكية في خزائن اللعبة!", R.drawable.ic_vip_crown)
             } else {
                 DialogManager.showGameMessage(this, "خطأ", "فشل في حفظ الصورة!", R.drawable.ic_settings_gear)
@@ -156,9 +155,13 @@ class MainActivity : AppCompatActivity() {
             d.dismiss()
         }
 
-        fun setupPremiumAvatar(btnId: Int, imgId: Int, imgResId: Int, cost: Long, prefKey: String, avatarName: String) {
+        // 💡 التعديل هنا: استخدام FrameLayout أو الحاوية المحيطة بالصورة لتفعيل النقر بدلاً من الصورة نفسها 
+        // نظراً لأن التصميم لا يحتوي على id للـ ImageView المباشر
+        fun setupPremiumAvatar(btnId: Int, imgResId: Int, cost: Long, prefKey: String, avatarName: String) {
             val btn = d.findViewById<Button>(btnId)
-            val img = d.findViewById<ImageView>(imgId)
+            val parentLayout = btn?.parent as? ViewGroup
+            val imageContainer = parentLayout?.getChildAt(0) as? FrameLayout // الحاوية الأولى هي الـ FrameLayout للصور
+
             val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
             val isUnlocked = prefs.getBoolean(prefKey, false)
 
@@ -167,7 +170,8 @@ class MainActivity : AppCompatActivity() {
                 btn?.setTextColor(android.graphics.Color.WHITE)
             }
 
-            img?.setOnClickListener {
+            // تفعيل المعاينة عند النقر على إطار الصورة
+            imageContainer?.setOnClickListener {
                 showAvatarPreviewDialog(imgResId, avatarName)
             }
 
@@ -197,10 +201,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         val cost = 50000L
-        setupPremiumAvatar(R.id.btnBuyAvatarKing, R.id.imgAvatarKing, R.drawable.img_avatar_king, cost, "AV_KING_UNLOCKED", "صورة الملك")
-        setupPremiumAvatar(R.id.btnBuyAvatarKnight, R.id.imgAvatarKnight, R.drawable.img_avatar_knight, cost, "AV_KNIGHT_UNLOCKED", "صورة الفارس")
-        setupPremiumAvatar(R.id.btnBuyAvatarAssassin, R.id.imgAvatarAssassin, R.drawable.img_avatar_assassin, cost, "AV_ASSASSIN_UNLOCKED", "صورة السفاح")
-        setupPremiumAvatar(R.id.btnBuyAvatarEmperor, R.id.imgAvatarEmperor, R.drawable.img_avatar_emperor, cost, "AV_EMPEROR_UNLOCKED", "صورة الإمبراطور")
+        // نمرر الـ IDs للأزرار والصور المعنية
+        setupPremiumAvatar(R.id.btnBuyAvatarKing, R.drawable.img_avatar_king, cost, "AV_KING_UNLOCKED", "صورة الملك")
+        setupPremiumAvatar(R.id.btnBuyAvatarKnight, R.drawable.img_avatar_knight, cost, "AV_KNIGHT_UNLOCKED", "صورة الفارس")
+        setupPremiumAvatar(R.id.btnBuyAvatarAssassin, R.drawable.img_avatar_assassin, cost, "AV_ASSASSIN_UNLOCKED", "شبح الليل")
+        setupPremiumAvatar(R.id.btnBuyAvatarEmperor, R.drawable.img_avatar_emperor, cost, "AV_EMPEROR_UNLOCKED", "صورة الإمبراطور")
 
         d.findViewById<Button>(R.id.btnChooseFromGallery)?.setOnClickListener {
             if (GameState.isVipActive()) {
