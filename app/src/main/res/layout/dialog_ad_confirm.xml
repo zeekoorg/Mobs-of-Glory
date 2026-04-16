@@ -7,20 +7,16 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="280dp"
         app:layout_constraintWidth_percent="0.85"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:paddingTop="30dp"
-        android:paddingBottom="55dp">
+        app:layout_constraintEnd_toEndOf="parent">
 
         <ImageView
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_height="match_parent"
             android:scaleType="fitXY"
             android:src="@drawable/bg_dialog_dark" />
 
@@ -28,8 +24,8 @@
             android:id="@+id/tvDialogTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="35dp"
-            android:text="تأكيد"
+            android:layout_marginTop="25dp"
+            android:text="مكافأة الإعلانات"
             android:textColor="#F4D03F"
             android:textSize="22sp"
             android:textStyle="bold"
@@ -41,7 +37,7 @@
             android:id="@+id/imgAdIcon"
             android:layout_width="65dp"
             android:layout_height="65dp"
-            android:layout_marginTop="25dp"
+            android:layout_marginTop="15dp"
             android:src="@drawable/ic_ui_ad_video"
             android:background="@drawable/bg_inner_frame"
             android:padding="8dp"
@@ -53,8 +49,8 @@
             android:id="@+id/tvAdMessage"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:layout_marginHorizontal="25dp"
+            android:layout_marginTop="15dp"
+            android:layout_marginHorizontal="20dp"
             android:text="هل ترغب بمشاهدة إعلان قصير\nللحصول على هذه المكافأة فوراً؟"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
@@ -70,9 +66,9 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:weightSum="2"
-            android:layout_marginTop="35dp"
-            android:layout_marginHorizontal="25dp"
-            app:layout_constraintTop_toBottomOf="@id/tvAdMessage"
+            android:layout_marginBottom="25dp"
+            android:layout_marginHorizontal="20dp"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
