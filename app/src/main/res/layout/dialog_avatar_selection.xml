@@ -27,8 +27,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="35dp"
-            android:text="تغيير الصورة الرمزية"
-            android:textColor="#FFFFFF"
+            android:text="المعرض الملكي للصور"
+            android:textColor="#F4D03F"
             android:textSize="22sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
@@ -47,8 +47,8 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_horizontal"
                 android:orientation="vertical"
+                android:gravity="center"
                 android:paddingBottom="10dp">
 
                 <TextView
@@ -92,7 +92,22 @@
                     
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="القائد الأساسي" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginTop="6dp"/>
                     
-                    <Button android:id="@+id/btnUseDefaultAvatar" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="اختيار" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" android:gravity="center" android:padding="0dp" android:insetTop="0dp" android:insetBottom="0dp" />
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btnUseDefaultAvatar"
+                        android:layout_width="100dp"
+                        android:layout_height="32dp"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/bg_btn_gold_border"
+                        android:text="اختيار"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:padding="0dp"
+                        android:minHeight="0dp"
+                        android:minWidth="0dp"
+                        android:includeFontPadding="false"
+                        android:stateListAnimator="@null" />
                 </LinearLayout>
 
                 <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#555555" android:layout_marginVertical="5dp" />
@@ -106,89 +121,167 @@
                     android:textStyle="bold"
                     android:layout_marginVertical="10dp"/>
 
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:weightSum="2" android:layout_marginBottom="8dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:weightSum="2"
+                    android:layout_marginBottom="10dp">
+
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
                         <FrameLayout android:layout_width="70dp" android:layout_height="70dp">
                             <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="match_parent" app:cardCornerRadius="35dp" app:cardElevation="0dp" android:layout_margin="3dp">
-                                <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" android:src="@drawable/img_avatar_king" />
+                                <ImageView android:id="@+id/imgAvatarKing" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" android:src="@drawable/img_avatar_king"/>
                             </androidx.cardview.widget.CardView>
                             <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/ic_user_frame" />
                         </FrameLayout>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الملك" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginTop="6dp"/>
-                        <Button android:id="@+id/btnBuyAvatarKing" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="50K ذهب" android:textColor="#F4D03F" android:textSize="11sp" android:textStyle="bold" android:gravity="center" android:padding="0dp" android:insetTop="0dp" android:insetBottom="0dp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الملك" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="6dp"/>
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/btnBuyAvatarKing"
+                            android:layout_width="100dp"
+                            android:layout_height="32dp"
+                            android:layout_marginTop="8dp"
+                            android:background="@drawable/bg_btn_gold_border"
+                            android:text="50K ذهب"
+                            android:textColor="#F4D03F"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:padding="0dp"
+                            android:minHeight="0dp"
+                            android:minWidth="0dp"
+                            android:includeFontPadding="false"
+                            android:stateListAnimator="@null" />
                     </LinearLayout>
+
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
                         <FrameLayout android:layout_width="70dp" android:layout_height="70dp">
                             <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="match_parent" app:cardCornerRadius="35dp" app:cardElevation="0dp" android:layout_margin="3dp">
-                                <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" android:src="@drawable/img_avatar_knight" />
+                                <ImageView android:id="@+id/imgAvatarKnight" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" android:src="@drawable/img_avatar_knight"/>
                             </androidx.cardview.widget.CardView>
                             <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/ic_user_frame" />
                         </FrameLayout>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الفارس" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginTop="6dp"/>
-                        <Button android:id="@+id/btnBuyAvatarKnight" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="50K ذهب" android:textColor="#F4D03F" android:textSize="11sp" android:textStyle="bold" android:gravity="center" android:padding="0dp" android:insetTop="0dp" android:insetBottom="0dp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الفارس" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="6dp"/>
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/btnBuyAvatarKnight"
+                            android:layout_width="100dp"
+                            android:layout_height="32dp"
+                            android:layout_marginTop="8dp"
+                            android:background="@drawable/bg_btn_gold_border"
+                            android:text="50K ذهب"
+                            android:textColor="#F4D03F"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:padding="0dp"
+                            android:minHeight="0dp"
+                            android:minWidth="0dp"
+                            android:includeFontPadding="false"
+                            android:stateListAnimator="@null" />
                     </LinearLayout>
                 </LinearLayout>
 
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:weightSum="2" android:layout_marginBottom="8dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:weightSum="2"
+                    android:layout_marginBottom="10dp">
+
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
                         <FrameLayout android:layout_width="70dp" android:layout_height="70dp">
                             <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="match_parent" app:cardCornerRadius="35dp" app:cardElevation="0dp" android:layout_margin="3dp">
-                                <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" android:src="@drawable/img_avatar_assassin" />
+                                <ImageView android:id="@+id/imgAvatarAssassin" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" android:src="@drawable/img_avatar_assassin"/>
                             </androidx.cardview.widget.CardView>
                             <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/ic_user_frame" />
                         </FrameLayout>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="شبح الليل" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginTop="6dp"/>
-                        <Button android:id="@+id/btnBuyAvatarAssassin" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="50K ذهب" android:textColor="#F4D03F" android:textSize="11sp" android:textStyle="bold" android:gravity="center" android:padding="0dp" android:insetTop="0dp" android:insetBottom="0dp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="شبح الليل" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="6dp"/>
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/btnBuyAvatarAssassin"
+                            android:layout_width="100dp"
+                            android:layout_height="32dp"
+                            android:layout_marginTop="8dp"
+                            android:background="@drawable/bg_btn_gold_border"
+                            android:text="50K ذهب"
+                            android:textColor="#F4D03F"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:padding="0dp"
+                            android:minHeight="0dp"
+                            android:minWidth="0dp"
+                            android:includeFontPadding="false"
+                            android:stateListAnimator="@null" />
                     </LinearLayout>
+
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
                         <FrameLayout android:layout_width="70dp" android:layout_height="70dp">
                             <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="match_parent" app:cardCornerRadius="35dp" app:cardElevation="0dp" android:layout_margin="3dp">
-                                <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" android:src="@drawable/img_avatar_emperor" />
+                                <ImageView android:id="@+id/imgAvatarEmperor" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" android:src="@drawable/img_avatar_emperor"/>
                             </androidx.cardview.widget.CardView>
                             <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/ic_user_frame" />
                         </FrameLayout>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الإمبراطور" android:textColor="#F4D03F" android:textStyle="bold" android:textSize="12sp" android:layout_marginTop="6dp"/>
-                        <Button android:id="@+id/btnBuyAvatarEmperor" android:layout_width="100dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="50K ذهب" android:textColor="#F4D03F" android:textSize="11sp" android:textStyle="bold" android:gravity="center" android:padding="0dp" android:insetTop="0dp" android:insetBottom="0dp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الإمبراطور" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="6dp"/>
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/btnBuyAvatarEmperor"
+                            android:layout_width="100dp"
+                            android:layout_height="32dp"
+                            android:layout_marginTop="8dp"
+                            android:background="@drawable/bg_btn_gold_border"
+                            android:text="50K ذهب"
+                            android:textColor="#F4D03F"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:padding="0dp"
+                            android:minHeight="0dp"
+                            android:minWidth="0dp"
+                            android:includeFontPadding="false"
+                            android:stateListAnimator="@null" />
                     </LinearLayout>
                 </LinearLayout>
 
                 <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#555555" android:layout_marginVertical="10dp" />
 
-                <Button
+                <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btnChooseFromGallery"
-                    android:layout_width="200dp"
+                    android:layout_width="220dp"
                     android:layout_height="45dp"
                     android:layout_marginTop="10dp"
                     android:background="@drawable/bg_btn_gold_border"
-                    android:text="اختيار من المعرض (VIP)"
+                    android:text="🖼️ اختيار من المعرض (VIP)"
                     android:textColor="#2ECC71"
                     android:textSize="13sp"
                     android:textStyle="bold"
-                    android:gravity="center" 
-                    android:padding="0dp" 
-                    android:insetTop="0dp" 
-                    android:insetBottom="0dp" />
+                    android:gravity="center"
+                    android:padding="0dp"
+                    android:minHeight="0dp"
+                    android:minWidth="0dp"
+                    android:includeFontPadding="false"
+                    android:stateListAnimator="@null" />
 
             </LinearLayout>
         </ScrollView>
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnClose"
             android:layout_width="160dp"
-            android:layout_height="40dp"
-            android:layout_marginBottom="20dp"
+            android:layout_height="45dp"
+            android:layout_marginBottom="25dp"
             android:background="@drawable/bg_btn_gold_border"
-            android:text="إغلاق"
+            android:text="إغلاق المعرض"
             android:textColor="#FFFFFF"
             android:textSize="14sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            android:gravity="center" 
-            android:padding="0dp" 
-            android:insetTop="0dp" 
-            android:insetBottom="0dp" />
+            android:gravity="center"
+            android:padding="0dp"
+            android:minHeight="0dp"
+            android:minWidth="0dp"
+            android:includeFontPadding="false"
+            android:stateListAnimator="@null" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
