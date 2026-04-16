@@ -12,6 +12,7 @@ import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AnimationUtils
 import android.widget.Button
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ProgressBar
@@ -32,6 +33,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var pbPlayerMP: ProgressBar
     private lateinit var imgCityBackground: ImageView
     private lateinit var imgMainPlayerAvatar: ImageView
+    private lateinit var tvVipTimerUI: TextView // 💡 متغير لعداد الـ VIP
     
     private val gameHandler = Handler(Looper.getMainLooper())
 
@@ -81,12 +83,21 @@ class MainActivity : AppCompatActivity() {
         pbPlayerMP = findViewById(R.id.pbPlayerMP)
         imgCityBackground = findViewById(R.id.imgCityBackground)
         imgMainPlayerAvatar = findViewById(R.id.imgMainPlayerAvatar)
+        tvVipTimerUI = findViewById(R.id.tvVipTimerUI) // 💡 ربط العداد
     }
 
     private fun setupActionListeners() {
-        // 💡 تحديث النقر لفتح نافذة اختيار الصور بدلاً من المعرض مباشرة
+        // 💡 النقر على الصورة يفتح ملف اللاعب
         findViewById<View>(R.id.layoutAvatarClick)?.setOnClickListener { 
-            DialogManager.showPlayerProfileDialog(this) { showAvatarSelectionDialog() } 
+            DialogManager.showPlayerProfileDialog(this, 
+                onPickImage = { showAvatarSelectionDialog() },
+                onChangeName = { showChangeNameDialog() } // 💡 تمرير دالة تغيير الاسم
+            ) 
+        }
+        
+        // 💡 النقر على الـ VIP
+        findViewById<View>(R.id.layoutVipClick)?.setOnClickListener { 
+            DialogManager.showVipDialog(this)
         }
         
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { DialogManager.showStoreDialog(this) }
@@ -97,10 +108,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 🎭 نظام الصور الرمزية
+    // 🎭 نظام الصور الرمزية وتغيير الاسم
     // ==========================================
     
-        private fun showAvatarSelectionDialog() {
+    private fun showAvatarSelectionDialog() {
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_avatar_selection)
 
@@ -147,38 +158,73 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // جميعها بـ 50,000 ذهب كما طلبت
         val cost = 50000L
         setupPremiumAvatar(R.id.btnBuyAvatarKing, R.drawable.img_avatar_king, cost, "AV_KING_UNLOCKED")
         setupPremiumAvatar(R.id.btnBuyAvatarKnight, R.drawable.img_avatar_knight, cost, "AV_KNIGHT_UNLOCKED")
         setupPremiumAvatar(R.id.btnBuyAvatarAssassin, R.drawable.img_avatar_assassin, cost, "AV_ASSASSIN_UNLOCKED")
         setupPremiumAvatar(R.id.btnBuyAvatarEmperor, R.drawable.img_avatar_emperor, cost, "AV_EMPEROR_UNLOCKED")
 
-        // 3. زر المعرض (VIP - يحفظ الصورة سرياً في اللعبة)
+        // 3. زر المعرض (مربوط بنظام الـ VIP الحقيقي الآن)
         d.findViewById<Button>(R.id.btnChooseFromGallery)?.setOnClickListener {
-            // سيتم برمجة قفل الـ VIP الفعلي لاحقاً
-            pickImageLauncher.launch("image/*")
-            d.dismiss()
+            if (GameState.isVipActive()) {
+                pickImageLauncher.launch("image/*")
+                d.dismiss()
+            } else {
+                Toast.makeText(this, "هذه الميزة تتطلب تفعيل الـ VIP!", Toast.LENGTH_SHORT).show()
+                DialogManager.showVipDialog(this)
+            }
         }
 
         d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
         d.show()
     }
 
-
-        // ربط زر اختيار من المعرض (مع تمهيد لنظام الـ VIP)
-        d.findViewById<Button>(R.id.btnChooseFromGallery)?.setOnClickListener {
-            // TODO: سنبرمج التحقق من الـ VIP الحقيقي لاحقاً
-            Toast.makeText(this, "ميزة VIP مفعلة تجريبياً للاختبار!", Toast.LENGTH_SHORT).show()
-            pickImageLauncher.launch("image/*")
-            d.dismiss()
+    // 💡 دالة تغيير الاسم
+    private fun showChangeNameDialog() {
+        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_quests) // نستخدم واجهة بسيطة مؤقتاً كقالب
+        
+        // بناء القالب برمجياً لسرعة الإنجاز بدون الحاجة لملف xml جديد الآن
+        val rootLayout = d.findViewById<ViewGroup>(android.R.id.content)
+        rootLayout.removeAllViews() // تنظيف القالب
+        
+        val inflater = LayoutInflater.from(this)
+        val view = inflater.inflate(R.layout.dialog_store, rootLayout, false) // نستخدم نافذة المتجر كقالب فارغ
+        rootLayout.addView(view)
+        
+        val dialogBox = view.findViewById<ViewGroup>(R.id.dialogBox)
+        dialogBox.removeAllViews() // تنظيف صندوق المتجر
+        
+        // رسم صندوق إدخال الاسم
+        val bg = ImageView(this).apply { setImageResource(R.drawable.bg_dialog_dark); scaleType = ImageView.ScaleType.FIT_XY; layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT) }
+        val title = TextView(this).apply { text = "تغيير اسم القائد"; setTextColor(android.graphics.Color.WHITE); textSize = 20f; setTypeface(null, android.graphics.Typeface.BOLD); gravity = android.view.Gravity.CENTER; layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = 50 } }
+        val input = EditText(this).apply { hint = "أدخل الاسم الجديد"; setTextColor(android.graphics.Color.WHITE); setHintTextColor(android.graphics.Color.GRAY); gravity = android.view.Gravity.CENTER; setBackgroundResource(R.drawable.bg_inner_frame); setPadding(20, 20, 20, 20); layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = 150; leftMargin = 50; rightMargin = 50 } }
+        val btnConfirm = Button(this).apply { text = "تغيير (500 ذهب)"; setTextColor(android.graphics.Color.WHITE); setBackgroundResource(R.drawable.bg_btn_gold_border); layoutParams = FrameLayout.LayoutParams(300, 100).apply { gravity = android.view.Gravity.CENTER_HORIZONTAL; topMargin = 280 } }
+        val btnCancel = Button(this).apply { text = "إلغاء"; setTextColor(android.graphics.Color.WHITE); setBackgroundResource(R.drawable.bg_btn_gold_border); layoutParams = FrameLayout.LayoutParams(300, 100).apply { gravity = android.view.Gravity.CENTER_HORIZONTAL; topMargin = 400 } }
+        
+        dialogBox.addView(bg); dialogBox.addView(title); dialogBox.addView(input); dialogBox.addView(btnConfirm); dialogBox.addView(btnCancel)
+        
+        btnConfirm.setOnClickListener {
+            val newName = input.text.toString().trim()
+            if (newName.isNotEmpty()) {
+                if (GameState.totalGold >= 500) {
+                    GameState.totalGold -= 500
+                    GameState.playerName = newName
+                    GameState.saveGameData(this)
+                    updateHudUI()
+                    Toast.makeText(this, "تم تغيير اسمك إلى $newName", Toast.LENGTH_SHORT).show()
+                    d.dismiss()
+                } else {
+                    Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Toast.makeText(this, "الاسم لا يمكن أن يكون فارغاً!", Toast.LENGTH_SHORT).show()
+            }
         }
-
-        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        btnCancel.setOnClickListener { d.dismiss() }
         d.show()
     }
 
-    // 💡 الدالة العبقرية لنسخ الصورة إلى ملفات اللعبة المخفية
     private fun copyImageToInternalStorage(uri: Uri): String? {
         return try {
             val inputStream = contentResolver.openInputStream(uri) ?: return null
@@ -190,7 +236,7 @@ class MainActivity : AppCompatActivity() {
             inputStream.close()
             outputStream.close()
             
-            Uri.fromFile(file).toString() // إرجاع المسار الداخلي السري
+            Uri.fromFile(file).toString() 
         } catch (e: Exception) {
             e.printStackTrace()
             null
@@ -205,7 +251,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // ⚙️ منطق النقر الذكي على المباني
+    // ⚙️ منطق النقر الذكي على المباني ودورة اللعبة
     // ==========================================
     private fun setupPlot(plot: MapPlot) {
         val container = findViewById<FrameLayout>(plot.slotId) ?: return
@@ -250,6 +296,10 @@ class MainActivity : AppCompatActivity() {
         gameHandler.post(object : Runnable {
             override fun run() {
                 val now = System.currentTimeMillis()
+                
+                // 💡 تحديث واجهة الـ VIP كل ثانية
+                updateVipUI(now)
+
                 GameState.myPlots.forEach { p ->
                     if (p.isUpgrading) {
                         p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectIcon?.visibility = View.GONE
@@ -276,12 +326,35 @@ class MainActivity : AppCompatActivity() {
                         p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectTimer += 1000
                         p.pbUpgrade?.progress = ((p.collectTimer.toFloat() / 60000f) * 100).toInt()
                         p.tvUpgradeTimer?.text = "%02d:%02d".format(((60000L - p.collectTimer)/60000), ((60000L - p.collectTimer)%60000)/1000)
-                        if (p.collectTimer >= 60000L) { p.isReady = true; p.layoutUpgradeProgress?.visibility = View.GONE; p.collectIcon?.visibility = View.VISIBLE }
+                        
+                        // 💡 تطبيق خصم وقت الجمع إذا كان الـ VIP مفعل
+                        val targetTime = if(GameState.isVipActive()) 45000L else 60000L
+                        if (p.collectTimer >= targetTime) { p.isReady = true; p.layoutUpgradeProgress?.visibility = View.GONE; p.collectIcon?.visibility = View.VISIBLE }
                     }
                 }
                 gameHandler.postDelayed(this, 1000)
             }
         })
+    }
+
+    // 💡 دالة تحديث عداد الـ VIP في الشاشة الرئيسية
+    fun updateVipUI(now: Long) {
+        if (GameState.isVipActive()) {
+            val remaining = GameState.vipEndTime - now
+            val hours = remaining / 3600000
+            val minutes = (remaining % 3600000) / 60000
+            val seconds = (remaining % 60000) / 1000
+            
+            if (hours > 24) {
+                tvVipTimerUI.text = String.format(Locale.US, "%d أيام", hours / 24)
+            } else {
+                tvVipTimerUI.text = String.format(Locale.US, "%02d:%02d:%02d", hours, minutes, seconds)
+            }
+            tvVipTimerUI.setTextColor(android.graphics.Color.parseColor("#2ECC71")) // أخضر
+        } else {
+            tvVipTimerUI.text = "VIP غير مفعل"
+            tvVipTimerUI.setTextColor(android.graphics.Color.parseColor("#FF5252")) // أحمر
+        }
     }
 
     private fun playCollectionAnimation(plot: MapPlot) {
