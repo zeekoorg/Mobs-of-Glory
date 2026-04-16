@@ -5,9 +5,11 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -17,20 +19,18 @@ import kotlin.random.Random
 
 object DialogManager {
 
-    // 💡 دالة نافذة تأكيد الإعلانات الذكية (جديدة)
     private fun showAdConfirmDialog(activity: MainActivity, onConfirm: () -> Unit) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_ad_confirm)
 
         d.findViewById<Button>(R.id.btnConfirmAd)?.setOnClickListener {
             d.dismiss()
-            onConfirm() // تشغيل الإعلان إذا وافق اللاعب
+            onConfirm() 
         }
 
         d.findViewById<Button>(R.id.btnCancelAd)?.setOnClickListener {
-            d.dismiss() // إغلاق النافذة فقط
+            d.dismiss() 
         }
-        
         d.show()
     }
 
@@ -114,7 +114,7 @@ object DialogManager {
 
         d.findViewById<Button>(R.id.btnUseVip8h)?.setOnClickListener {
             if (GameState.countVip8h > 0) {
-                GameState.countVip8h--; addVipTime(28800000L) // 8 ساعات
+                GameState.countVip8h--; addVipTime(28800000L)
             } else if (GameState.totalGold >= 200000) {
                 GameState.totalGold -= 200000; activity.updateHudUI(); addVipTime(28800000L)
             } else Toast.makeText(activity, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
@@ -122,7 +122,7 @@ object DialogManager {
 
         d.findViewById<Button>(R.id.btnUseVip24h)?.setOnClickListener {
             if (GameState.countVip24h > 0) {
-                GameState.countVip24h--; addVipTime(86400000L) // 24 ساعة
+                GameState.countVip24h--; addVipTime(86400000L)
             } else if (GameState.totalGold >= 500000) {
                 GameState.totalGold -= 500000; activity.updateHudUI(); addVipTime(86400000L)
             } else Toast.makeText(activity, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
@@ -130,7 +130,7 @@ object DialogManager {
 
         d.findViewById<Button>(R.id.btnUseVip7d)?.setOnClickListener {
             if (GameState.countVip7d > 0) {
-                GameState.countVip7d--; addVipTime(604800000L) // 7 أيام
+                GameState.countVip7d--; addVipTime(604800000L)
             } else if (GameState.totalGold >= 3000000) {
                 GameState.totalGold -= 3000000; activity.updateHudUI(); addVipTime(604800000L)
             } else Toast.makeText(activity, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
@@ -167,12 +167,10 @@ object DialogManager {
         d.findViewById<Button>(R.id.btnUseBagResBox)?.setOnClickListener {
             if (GameState.countResourceBox > 0) {
                 GameState.countResourceBox--; GameState.totalWheat += 50000; GameState.totalIron += 50000
-                
                 if(Random.nextInt(100) == 0) {
                     GameState.countVip8h++
                     Toast.makeText(activity, "مبروك! وجدت بطاقة VIP 8 ساعات في الصندوق!", Toast.LENGTH_LONG).show()
                 }
-                
                 activity.updateHudUI(); GameState.saveGameData(activity); refreshBagUI()
                 Toast.makeText(activity, "حصلت على 50K قمح و 50K حديد!", Toast.LENGTH_SHORT).show()
             } else Toast.makeText(activity, "لا تملك صناديق موارد!", Toast.LENGTH_SHORT).show()
@@ -189,35 +187,59 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 التحديث الأسطوري: دالة المهام الديناميكية الشاملة
     fun showQuestsDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_quests)
-        val q1 = GameState.dailyQuests[0]; val q2 = GameState.dailyQuests[1]
-
-        val btnQuest1 = d.findViewById<Button>(R.id.btnCollectQuest1)
-        if (q1.isCollected) { btnQuest1?.text = "مستلمة"; btnQuest1?.setTextColor(Color.parseColor("#2ECC71")); btnQuest1?.isEnabled = false } 
-        else if (q1.isCompleted) {
-            btnQuest1?.text = "استلام"; btnQuest1?.setTextColor(Color.WHITE)
-            btnQuest1?.setOnClickListener {
-                GameState.totalGold += q1.rewardGold; q1.isCollected = true
-                activity.updateHudUI(); GameState.saveGameData(activity)
-                btnQuest1.text = "مستلمة"; btnQuest1.setTextColor(Color.parseColor("#2ECC71")); btnQuest1.isEnabled = false
-                Toast.makeText(activity, "تم الاستلام!", Toast.LENGTH_SHORT).show()
+        
+        val container = d.findViewById<LinearLayout>(R.id.layoutQuestsContainer)
+        container?.removeAllViews() // تفريغ الحاوية قبل الرسم
+        
+        val inflater = LayoutInflater.from(activity)
+        
+        GameState.dailyQuestsList.forEach { quest ->
+            val view = inflater.inflate(R.layout.item_quest, container, false)
+            
+            val tvTitle = view.findViewById<TextView>(R.id.tvQuestTitle)
+            val pbProgress = view.findViewById<ProgressBar>(R.id.pbQuestProgress)
+            val tvProgressText = view.findViewById<TextView>(R.id.tvQuestProgressText)
+            val tvReward = view.findViewById<TextView>(R.id.tvQuestReward)
+            val btnClaim = view.findViewById<Button>(R.id.btnClaimQuest)
+            
+            tvTitle.text = quest.title
+            tvReward.text = "المكافأة: ${formatResourceNumber(quest.rewardGold)} ذهب"
+            
+            pbProgress.max = quest.targetAmount
+            pbProgress.progress = quest.currentAmount
+            tvProgressText.text = "${quest.currentAmount} / ${quest.targetAmount}"
+            
+            if (quest.isCollected) {
+                btnClaim.text = "مستلمة"
+                btnClaim.setTextColor(Color.parseColor("#2ECC71"))
+                btnClaim.isEnabled = false
+            } else if (quest.isCompleted) {
+                btnClaim.text = "استلام"
+                btnClaim.setTextColor(Color.WHITE)
+                btnClaim.setOnClickListener {
+                    GameState.totalGold += quest.rewardGold
+                    quest.isCollected = true
+                    activity.updateHudUI()
+                    GameState.saveGameData(activity)
+                    
+                    btnClaim.text = "مستلمة"
+                    btnClaim.setTextColor(Color.parseColor("#2ECC71"))
+                    btnClaim.isEnabled = false
+                    Toast.makeText(activity, "تم استلام المكافأة بنجاح!", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                btnClaim.text = "غير مكتمل"
+                btnClaim.setTextColor(Color.parseColor("#7F8C8D"))
+                btnClaim.isEnabled = false
             }
+            
+            container?.addView(view)
         }
-
-        val btnQuest2 = d.findViewById<Button>(R.id.btnCollectQuest2)
-        if (GameState.myPlots.any { it.idCode != "CASTLE" && it.level > 1 }) { q2.isCompleted = true }
-        if (q2.isCollected) { btnQuest2?.text = "مستلمة"; btnQuest2?.setTextColor(Color.parseColor("#2ECC71")); btnQuest2?.isEnabled = false } 
-        else if (q2.isCompleted) {
-            btnQuest2?.text = "استلام"; btnQuest2?.setTextColor(Color.WHITE)
-            btnQuest2?.setOnClickListener {
-                GameState.totalGold += q2.rewardGold; q2.isCollected = true
-                activity.updateHudUI(); GameState.saveGameData(activity)
-                btnQuest2.text = "مستلمة"; btnQuest2.setTextColor(Color.parseColor("#2ECC71")); btnQuest2.isEnabled = false
-                Toast.makeText(activity, "تم الاستلام!", Toast.LENGTH_SHORT).show()
-            }
-        }
+        
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
         d.show()
     }
@@ -462,7 +484,6 @@ object DialogManager {
         d.findViewById<Button>(R.id.btnBuySpeedup2h)?.setOnClickListener { if (GameState.totalGold >= 28000) { GameState.totalGold -= 28000; GameState.countSpeedup2h++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء بنجاح!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
         d.findViewById<Button>(R.id.btnBuySpeedup8h)?.setOnClickListener { if (GameState.totalGold >= 100000) { GameState.totalGold -= 100000; GameState.countSpeedup8Hour++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء بنجاح!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
 
-        // 💡 استخدام دالة التأكيد قبل فتح الإعلان
         d.findViewById<Button>(R.id.btnAdResources)?.setOnClickListener { 
             showAdConfirmDialog(activity) {
                 YandexAdsManager.showRewardedAd(activity, onRewarded = {
@@ -513,7 +534,6 @@ object DialogManager {
         val tvMedals = d.findViewById<TextView>(R.id.tvSummonMedals)
         tvMedals?.text = "ميداليات الأبطال: ${GameState.summonMedals}"
 
-        // 💡 استخدام دالة التأكيد قبل فتح الإعلان
         d.findViewById<Button>(R.id.btnSummonAd)?.setOnClickListener {
             showAdConfirmDialog(activity) {
                 YandexAdsManager.showRewardedAd(activity, onRewarded = {
