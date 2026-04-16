@@ -34,6 +34,7 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 تحديث نافذة ترقية المستوى لتشمل الموارد والميدالية الجديدة
     fun showLevelUpDialog(activity: MainActivity, newLevel: Int) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_level_up)
@@ -41,19 +42,42 @@ object DialogManager {
 
         d.findViewById<TextView>(R.id.tvLevelUpMessage)?.text = "لقد وصلت للمستوى $newLevel"
         
+        // حساب الجوائز برمجياً
         val goldReward = (newLevel * 5000L)
-        val medalReward = if (newLevel % 2 == 0) 2 else 1 
+        val ironReward = (newLevel * 2000L)
+        val wheatReward = (newLevel * 3000L)
+        // ميدالية واحدة كل مستويين
+        val medalReward = if (newLevel % 2 == 0) 1 else 0 
 
+        // تحديث النصوص في الواجهة
         d.findViewById<TextView>(R.id.tvRewardGold)?.text = "+${formatResourceNumber(goldReward)}"
-        d.findViewById<TextView>(R.id.tvRewardMedals)?.text = "+$medalReward"
+        d.findViewById<TextView>(R.id.tvRewardIron)?.text = "+${formatResourceNumber(ironReward)}"
+        d.findViewById<TextView>(R.id.tvRewardWheat)?.text = "+${formatResourceNumber(wheatReward)}"
+        
+        val tvMedal = d.findViewById<TextView>(R.id.tvRewardMedals)
+        val imgMedal = d.findViewById<ImageView>(R.id.imgRewardMedal) // تأكد من وجود هذا الآي دي في XML
+
+        if (medalReward > 0) {
+            tvMedal?.text = "+$medalReward دعوة ملكية"
+            imgMedal?.setImageResource(R.drawable.ic_item_legend_medal) // 💡 استخدام الصورة الجديدة
+            tvMedal?.visibility = View.VISIBLE
+            imgMedal?.visibility = View.VISIBLE
+        } else {
+            tvMedal?.visibility = View.GONE
+            imgMedal?.visibility = View.GONE
+        }
 
         d.findViewById<Button>(R.id.btnCollectLevelReward)?.setOnClickListener {
+            // إضافة الجوائز للخزنة
             GameState.totalGold += goldReward
+            GameState.totalIron += ironReward
+            GameState.totalWheat += wheatReward
             GameState.summonMedals += medalReward
+            
             GameState.saveGameData(activity)
             activity.updateHudUI()
             d.dismiss()
-            Toast.makeText(activity, "تمت إضافة المكافآت لخزانتك!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, "تمت إضافة الغنائم الملكية لخزانتك!", Toast.LENGTH_SHORT).show()
         }
         
         d.show()
@@ -268,7 +292,6 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 دالة مكافآت القلعة التي طلبتها (تعمل بالنظام الديناميكي)
     fun showCastleRewardsDialog(activity: MainActivity, castleLevel: Int) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_castle_rewards)
@@ -277,12 +300,11 @@ object DialogManager {
         container?.removeAllViews() 
         val inflater = LayoutInflater.from(activity)
 
-        // تعريف مستويات المكافآت وجوائزها
         val milestones = listOf(
             Triple(5, "قلعة مستوى 5", "مكافأة: صندوق موارد x1 + 10K ذهب"),
             Triple(10, "قلعة مستوى 10", "مكافأة: تسريع 8س x1 + صندوق ذهب x1"),
             Triple(15, "قلعة مستوى 15", "مكافأة: بطاقة VIP 8س x1 + صندوق موارد x2"),
-            Triple(20, "قلعة مستوى 20", "مكافأة: ميداليات أبطال x5 + 50K ذهب")
+            Triple(20, "قلعة مستوى 20", "مكافأة: دعوات ملكية x5 + 50K ذهب") // 💡 تحديث النص
         )
 
         milestones.forEach { (reqLevel, title, rewardText) ->
@@ -299,7 +321,7 @@ object DialogManager {
                 5 -> icon.setImageResource(R.drawable.ic_resource_gold)
                 10 -> icon.setImageResource(R.drawable.ic_speedup_8h) 
                 15 -> icon.setImageResource(R.drawable.ic_vip_crown)
-                20 -> icon.setImageResource(R.drawable.ic_menu_heroes)
+                20 -> icon.setImageResource(R.drawable.ic_item_legend_medal) // 💡 استخدام الصورة الجديدة
             }
 
             tvTitle.text = title
@@ -630,59 +652,23 @@ object DialogManager {
         d.show()
     }
 
-        fun showSummoningTavernDialog(activity: MainActivity) {
+    fun showSummoningTavernDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
-        d.setContentView(R.layout.dialog_summoning_tavern) // يجب أن تغير النصوص داخل هذا الملف لاحقاً لـ "قاعة الأساطير"
+        d.setContentView(R.layout.dialog_summoning_tavern)
         val tvMedals = d.findViewById<TextView>(R.id.tvSummonMedals)
         tvMedals?.text = "ميداليات الأبطال: ${GameState.summonMedals}"
 
-        // 1. الاستدعاء المجاني بالإعلان (صعب جداً)
         d.findViewById<Button>(R.id.btnSummonAd)?.setOnClickListener {
             showAdConfirmDialog(activity) {
                 YandexAdsManager.showRewardedAd(activity, onRewarded = {
-                    // اختيار بطل من المستويات العادية (أول 4 أبطال فقط)
-                    val luckyHero = GameState.myHeroes[Random.nextInt(0, 4)]
-                    
-                    // شظية واحدة فقط كضمان، وفرصة 10% لشظيتين
-                    val shardsCount = if (Random.nextInt(100) < 10) 2 else 1
-                    
+                    val luckyHero = GameState.myHeroes[Random.nextInt(GameState.myHeroes.size)]
+                    val shardsCount = Random.nextInt(1, 5)
                     luckyHero.shardsOwned += shardsCount
                     GameState.saveGameData(activity)
-                    Toast.makeText(activity, "استدعاء ناجح! حصلت على $shardsCount شظية لـ ${luckyHero.name}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(activity, "حصلت على $shardsCount شظية لـ ${luckyHero.name}!", Toast.LENGTH_LONG).show()
                 }, onAdClosed = {})
             }
         }
-
-        // 2. الاستدعاء الملكي بالميدالية النادرة (متوازن وصعب)
-        d.findViewById<Button>(R.id.btnSummonPremium)?.setOnClickListener {
-            if (GameState.summonMedals > 0) {
-                GameState.summonMedals--
-                
-                // فرصة للحصول على بطل من المستويات المتقدمة
-                val luckyHero = GameState.myHeroes[Random.nextInt(2, GameState.myHeroes.size)] 
-                
-                // يحصل على 2 إلى 4 شظايا كحد أقصى!
-                val shardsCount = Random.nextInt(2, 5)
-                luckyHero.shardsOwned += shardsCount
-                
-                // فرصة نادرة جداً 1% للحصول على بطاقة VIP 8 ساعات
-                if (Random.nextInt(100) < 1) {
-                    GameState.countVip8h++
-                    Toast.makeText(activity, "استدعاء أسطوري! $shardsCount شظية لـ ${luckyHero.name} وبطاقة VIP!", Toast.LENGTH_LONG).show()
-                } else {
-                    Toast.makeText(activity, "استدعاء مبهر! حصلت على $shardsCount شظايا لـ ${luckyHero.name}", Toast.LENGTH_SHORT).show()
-                }
-                
-                tvMedals?.text = "ميداليات الأبطال: ${GameState.summonMedals}"
-                GameState.saveGameData(activity)
-            } else {
-                Toast.makeText(activity, "لا تملك دعوات ملكية (ميداليات)!", Toast.LENGTH_SHORT).show()
-            }
-        }
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
-        d.show()
-    }
-
 
         d.findViewById<Button>(R.id.btnSummonPremium)?.setOnClickListener {
             if (GameState.summonMedals > 0) {
