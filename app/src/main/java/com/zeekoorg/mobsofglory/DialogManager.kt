@@ -34,6 +34,33 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 دالة نافذة ترقية المستوى (Level Up)
+    fun showLevelUpDialog(activity: MainActivity, newLevel: Int) {
+        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_level_up)
+        d.setCancelable(false) // لا يغلقها اللاعب إلا بالضغط على الزر لزيادة هيبة الموقف
+
+        d.findViewById<TextView>(R.id.tvLevelUpMessage)?.text = "لقد وصلت للمستوى $newLevel"
+        
+        // حساب الجوائز بناءً على المستوى الجديد
+        val goldReward = (newLevel * 5000L)
+        val medalReward = if (newLevel % 2 == 0) 2 else 1 // يعطي ميداليتين في المستويات الزوجية
+
+        d.findViewById<TextView>(R.id.tvRewardGold)?.text = "+${formatResourceNumber(goldReward)}"
+        d.findViewById<TextView>(R.id.tvRewardMedals)?.text = "+$medalReward"
+
+        d.findViewById<Button>(R.id.btnCollectLevelReward)?.setOnClickListener {
+            GameState.totalGold += goldReward
+            GameState.summonMedals += medalReward
+            GameState.saveGameData(activity)
+            activity.updateHudUI()
+            d.dismiss()
+            Toast.makeText(activity, "تمت إضافة المكافآت لخزانتك!", Toast.LENGTH_SHORT).show()
+        }
+        
+        d.show()
+    }
+
     fun showPlayerProfileDialog(activity: MainActivity, onPickImage: () -> Unit, onChangeName: () -> Unit) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_player_profile)
@@ -187,13 +214,12 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 التحديث الأسطوري: دالة المهام الديناميكية الشاملة
     fun showQuestsDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_quests)
         
         val container = d.findViewById<LinearLayout>(R.id.layoutQuestsContainer)
-        container?.removeAllViews() // تفريغ الحاوية قبل الرسم
+        container?.removeAllViews() 
         
         val inflater = LayoutInflater.from(activity)
         
