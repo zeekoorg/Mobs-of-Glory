@@ -1,6 +1,7 @@
 package com.zeekoorg.mobsofglory
 
-import android.content.Context // 💡 تم إضافة هذا السطر لحل مشكلة Context
+import android.app.Dialog
+import android.content.Context 
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -10,12 +11,16 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AnimationUtils
+import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import java.io.File
+import java.io.FileOutputStream
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
@@ -30,11 +35,18 @@ class MainActivity : AppCompatActivity() {
     
     private val gameHandler = Handler(Looper.getMainLooper())
 
+    // 📸 مبرمج اختيار الصورة من المعرض (محدث بالنسخ الداخلي)
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
-            GameState.selectedAvatarUri = it.toString()
-            GameState.saveGameData(this)
-            updateAvatarImages()
+            val internalPath = copyImageToInternalStorage(it)
+            if (internalPath != null) {
+                GameState.selectedAvatarUri = internalPath
+                GameState.saveGameData(this)
+                updateAvatarImages()
+                Toast.makeText(this, "تم حفظ الصورة الرمزية في خزائن اللعبة!", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "فشل في حفظ الصورة!", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -72,7 +84,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupActionListeners() {
-        findViewById<View>(R.id.layoutAvatarClick)?.setOnClickListener { DialogManager.showPlayerProfileDialog(this) { pickImageLauncher.launch("image/*") } }
+        // 💡 تحديث النقر لفتح نافذة اختيار الصور بدلاً من المعرض مباشرة
+        findViewById<View>(R.id.layoutAvatarClick)?.setOnClickListener { 
+            DialogManager.showPlayerProfileDialog(this) { showAvatarSelectionDialog() } 
+        }
+        
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { DialogManager.showStoreDialog(this) }
         findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { DialogManager.showHeroesDialog(this) }
         findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { DialogManager.showQuestsDialog(this) }
@@ -80,6 +96,75 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnNavCity)?.setOnClickListener { DialogManager.showSummoningTavernDialog(this) } 
     }
 
+    // ==========================================
+    // 🎭 نظام الصور الرمزية
+    // ==========================================
+    
+    private fun showAvatarSelectionDialog() {
+        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_avatar_selection)
+
+        // تعيين صور الأبطال المتاحة
+        val avatars = listOf(
+            R.id.imgAvatar1 to "android.resource://$packageName/${R.drawable.img_hero_1}",
+            R.id.imgAvatar2 to "android.resource://$packageName/${R.drawable.img_hero_2}",
+            R.id.imgAvatar3 to "android.resource://$packageName/${R.drawable.img_hero_3}",
+            R.id.imgAvatar4 to "android.resource://$packageName/${R.drawable.img_hero_4}",
+            R.id.imgAvatar5 to "android.resource://$packageName/${R.drawable.img_hero_5}"
+        )
+
+        // ربط النقر على أي صورة
+        avatars.forEach { (viewId, uriString) ->
+            d.findViewById<ImageView>(viewId)?.setOnClickListener {
+                GameState.selectedAvatarUri = uriString
+                GameState.saveGameData(this)
+                updateAvatarImages()
+                Toast.makeText(this, "تم تغيير الصورة الرمزية!", Toast.LENGTH_SHORT).show()
+                d.dismiss()
+            }
+        }
+
+        // ربط زر اختيار من المعرض (مع تمهيد لنظام الـ VIP)
+        d.findViewById<Button>(R.id.btnChooseFromGallery)?.setOnClickListener {
+            // TODO: سنبرمج التحقق من الـ VIP الحقيقي لاحقاً
+            Toast.makeText(this, "ميزة VIP مفعلة تجريبياً للاختبار!", Toast.LENGTH_SHORT).show()
+            pickImageLauncher.launch("image/*")
+            d.dismiss()
+        }
+
+        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.show()
+    }
+
+    // 💡 الدالة العبقرية لنسخ الصورة إلى ملفات اللعبة المخفية
+    private fun copyImageToInternalStorage(uri: Uri): String? {
+        return try {
+            val inputStream = contentResolver.openInputStream(uri) ?: return null
+            val fileName = "royal_avatar_${System.currentTimeMillis()}.jpg"
+            val file = File(filesDir, fileName)
+            val outputStream = FileOutputStream(file)
+            
+            inputStream.copyTo(outputStream)
+            inputStream.close()
+            outputStream.close()
+            
+            Uri.fromFile(file).toString() // إرجاع المسار الداخلي السري
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private fun updateAvatarImages() {
+        if (GameState.selectedAvatarUri != null) {
+            try { imgMainPlayerAvatar.setImageURI(Uri.parse(GameState.selectedAvatarUri)) } 
+            catch (e: Exception) { imgMainPlayerAvatar.setImageResource(R.drawable.img_default_avatar) }
+        }
+    }
+
+    // ==========================================
+    // ⚙️ منطق النقر الذكي على المباني
+    // ==========================================
     private fun setupPlot(plot: MapPlot) {
         val container = findViewById<FrameLayout>(plot.slotId) ?: return
         val view = LayoutInflater.from(this).inflate(R.layout.item_map_building, container, false)
@@ -177,13 +262,6 @@ class MainActivity : AppCompatActivity() {
         tvTotalWheat.text = formatResourceNumber(GameState.totalWheat)
         tvPlayerLevel.text = "Lv. ${GameState.playerLevel}"
         pbPlayerMP.progress = ((GameState.playerExp.toFloat() / (GameState.playerLevel * 1000).toFloat()) * 100).toInt()
-    }
-
-    private fun updateAvatarImages() {
-        if (GameState.selectedAvatarUri != null) {
-            try { imgMainPlayerAvatar.setImageURI(Uri.parse(GameState.selectedAvatarUri)) } 
-            catch (e: Exception) { imgMainPlayerAvatar.setImageResource(R.drawable.img_default_avatar) }
-        }
     }
 
     fun changeCitySkin(skinResId: Int) {
