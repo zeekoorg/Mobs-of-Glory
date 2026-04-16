@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var imgCityBackground: ImageView
     private lateinit var imgMainPlayerAvatar: ImageView
     private lateinit var tvVipTimerUI: TextView 
-    private lateinit var tvMainTotalPower: TextView // 💡 متغير القوة الإجمالية
+    private lateinit var tvMainTotalPower: TextView 
     
     private val gameHandler = Handler(Looper.getMainLooper())
 
@@ -84,7 +84,7 @@ class MainActivity : AppCompatActivity() {
         imgCityBackground = findViewById(R.id.imgCityBackground)
         imgMainPlayerAvatar = findViewById(R.id.imgMainPlayerAvatar)
         tvVipTimerUI = findViewById(R.id.tvVipTimerUI)
-        tvMainTotalPower = findViewById(R.id.tvMainTotalPower) // 💡 ربط عنصر القوة
+        tvMainTotalPower = findViewById(R.id.tvMainTotalPower) 
     }
 
     private fun setupActionListeners() {
@@ -261,8 +261,11 @@ class MainActivity : AppCompatActivity() {
             ResourceType.WHEAT -> GameState.totalWheat += plot.getReward()
             else -> return
         }
+        
+        // 💡 إشعار نظام المهام بأننا قمنا بالجمع!
+        GameState.addQuestProgress(QuestType.COLLECT_RESOURCES, 1)
+
         playCollectionAnimation(plot); updateHudUI(); GameState.saveGameData(this)
-        if (GameState.dailyQuests.isNotEmpty()) GameState.dailyQuests[0].isCompleted = true
     }
 
     private fun startGameLoop() {
@@ -278,6 +281,10 @@ class MainActivity : AppCompatActivity() {
                         val rem = p.upgradeEndTime - now
                         if (rem <= 0) { 
                             p.isUpgrading = false; p.level++; GameState.playerExp += p.getExpReward()
+                            
+                            // 💡 إشعار نظام المهام باكتمال تطوير مبنى!
+                            GameState.addQuestProgress(QuestType.UPGRADE_BUILDING, 1)
+
                             if(GameState.checkPlayerLevelUp()) updateHudUI()
                             GameState.calculatePower(); updateHudUI(); GameState.saveGameData(this@MainActivity); p.layoutUpgradeProgress?.visibility = View.GONE 
                         } else { 
@@ -288,7 +295,12 @@ class MainActivity : AppCompatActivity() {
                         p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectIcon?.visibility = View.GONE
                         val rem = p.trainingEndTime - now
                         if (rem <= 0) { 
-                            p.isTraining = false; if (p.idCode == "BARRACKS_1") GameState.totalInfantry += p.trainingAmount else GameState.totalCavalry += p.trainingAmount
+                            p.isTraining = false; 
+                            if (p.idCode == "BARRACKS_1") GameState.totalInfantry += p.trainingAmount else GameState.totalCavalry += p.trainingAmount
+                            
+                            // 💡 إشعار نظام المهام باكتمال تدريب القوات!
+                            GameState.addQuestProgress(QuestType.TRAIN_TROOPS, p.trainingAmount)
+
                             GameState.calculatePower(); updateHudUI(); GameState.saveGameData(this@MainActivity); p.layoutUpgradeProgress?.visibility = View.GONE 
                         } else { 
                             p.pbUpgrade?.progress = (((p.trainingTotalTime - rem).toFloat() / p.trainingTotalTime) * 100).toInt()
@@ -347,7 +359,7 @@ class MainActivity : AppCompatActivity() {
         tvTotalWheat.text = formatResourceNumber(GameState.totalWheat)
         tvPlayerLevel.text = "Lv. ${GameState.playerLevel}"
         pbPlayerMP.progress = ((GameState.playerExp.toFloat() / (GameState.playerLevel * 1000).toFloat()) * 100).toInt()
-        tvMainTotalPower.text = "القوة: ${formatResourceNumber(GameState.playerPower)}" // 💡 التحديث هنا
+        tvMainTotalPower.text = "القوة: ${formatResourceNumber(GameState.playerPower)}" 
     }
 
     fun changeCitySkin(skinResId: Int) {
