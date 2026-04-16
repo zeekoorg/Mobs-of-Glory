@@ -258,7 +258,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="الحانة"
+            android:text="قاعة الأساطير"
             android:textColor="#FFFFFF"
             android:textSize="9sp"
             android:textStyle="bold"
@@ -291,7 +291,9 @@
             android:paddingHorizontal="10dp"
             android:paddingVertical="4dp">
 
-            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical">
+            <LinearLayout android:id="@+id/btnNavHeroes" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
+                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_heroes" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الأبطال" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
             </LinearLayout>
 
             <LinearLayout android:id="@+id/btnNavQuests" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
