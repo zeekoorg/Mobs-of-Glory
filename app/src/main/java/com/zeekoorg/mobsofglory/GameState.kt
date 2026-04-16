@@ -20,7 +20,6 @@ object GameState {
     var isDiamondUnlocked = false
     var isPeacockUnlocked = false
     
-    // ⏳ متغيرات التسريعات الجديدة والصناديق
     var countSpeedup5m: Int = 0
     var countSpeedup15m: Int = 0
     var countSpeedup30m: Int = 0
@@ -29,6 +28,14 @@ object GameState {
     var countSpeedup8Hour: Int = 0
     var countResourceBox: Int = 0
     var countGoldBox: Int = 0
+
+    // 💎 متغيرات نظام الـ VIP
+    var vipEndTime: Long = 0L
+    var countVip8h: Int = 0
+    var countVip24h: Int = 0
+    var countVip7d: Int = 0
+
+    fun isVipActive(): Boolean = System.currentTimeMillis() < vipEndTime
 
     val myHeroes = mutableListOf<Hero>()
     val dailyQuests = mutableListOf<Quest>()
@@ -93,7 +100,6 @@ object GameState {
         prefs.putBoolean("DIAMOND_UNLOCKED", isDiamondUnlocked)
         prefs.putBoolean("PEACOCK_UNLOCKED", isPeacockUnlocked)
         
-        // حفظ التسريعات والصناديق
         prefs.putInt("SPEEDUP_5M", countSpeedup5m)
         prefs.putInt("SPEEDUP_15M", countSpeedup15m)
         prefs.putInt("SPEEDUP_30M", countSpeedup30m)
@@ -102,6 +108,12 @@ object GameState {
         prefs.putInt("SPEEDUP_8H", countSpeedup8Hour)
         prefs.putInt("RESOURCE_BOX", countResourceBox)
         prefs.putInt("GOLD_BOX", countGoldBox)
+        
+        // حفظ الـ VIP
+        prefs.putLong("VIP_END_TIME", vipEndTime)
+        prefs.putInt("VIP_8H", countVip8h)
+        prefs.putInt("VIP_24H", countVip24h)
+        prefs.putInt("VIP_7D", countVip7d)
         
         prefs.putLong("LAST_LOGIN_TIME", System.currentTimeMillis())
         
@@ -132,7 +144,6 @@ object GameState {
         isDiamondUnlocked = prefs.getBoolean("DIAMOND_UNLOCKED", false)
         isPeacockUnlocked = prefs.getBoolean("PEACOCK_UNLOCKED", false)
 
-        // تحميل التسريعات والصناديق
         countSpeedup5m = prefs.getInt("SPEEDUP_5M", 0)
         countSpeedup15m = prefs.getInt("SPEEDUP_15M", 0)
         countSpeedup30m = prefs.getInt("SPEEDUP_30M", 0)
@@ -141,6 +152,12 @@ object GameState {
         countSpeedup8Hour = prefs.getInt("SPEEDUP_8H", 2)
         countResourceBox = prefs.getInt("RESOURCE_BOX", 5)
         countGoldBox = prefs.getInt("GOLD_BOX", 3)
+
+        // تحميل الـ VIP
+        vipEndTime = prefs.getLong("VIP_END_TIME", 0L)
+        countVip8h = prefs.getInt("VIP_8H", 0)
+        countVip24h = prefs.getInt("VIP_24H", 0)
+        countVip7d = prefs.getInt("VIP_7D", 0)
 
         myHeroes.forEachIndexed { i, h ->
             h.isUnlocked = prefs.getBoolean("H_${i}_U", h.isUnlocked)
@@ -161,7 +178,7 @@ object GameState {
             it.collectTimer = prefs.getLong("CT_${it.idCode}", 0L)
             it.isReady = prefs.getBoolean("IR_${it.idCode}", false)
             
-            // حساب ما تم أثناء الأوفلاين
+            // حساب الأوفلاين
             if (it.isUpgrading && currentTime >= it.upgradeEndTime) { it.isUpgrading = false; it.level++; playerExp += it.getExpReward() }
             if (it.isTraining && currentTime >= it.trainingEndTime) { 
                 it.isTraining = false
@@ -169,7 +186,9 @@ object GameState {
             }
             if (!it.isUpgrading && !it.isTraining && it.resourceType != ResourceType.NONE && !it.isReady) {
                 it.collectTimer += offlineTime
-                if (it.collectTimer >= 60000L) { it.isReady = true; it.collectTimer = 60000L }
+                // 💡 إذا كان الـ VIP مفعل، الجمع أسرع (45 ثانية بدلاً من 60)
+                val targetTime = if(isVipActive()) 45000L else 60000L
+                if (it.collectTimer >= targetTime) { it.isReady = true; it.collectTimer = targetTime }
             }
         }
         checkPlayerLevelUp()
