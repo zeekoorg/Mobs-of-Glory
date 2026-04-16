@@ -639,18 +639,51 @@ object DialogManager {
         d.show()
     }
 
-    fun showDecorationsDialog(activity: MainActivity) {
+        fun showDecorationsDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_decorations)
+        
         d.findViewById<TextView>(R.id.tvSkinSnake)?.text = if (GameState.isPyramidUnlocked) "متاح للتطبيق" else "مقفلة"
         d.findViewById<TextView>(R.id.tvSkinDiamond)?.text = if (GameState.isDiamondUnlocked) "متاح للتطبيق" else "مقفلة"
         d.findViewById<TextView>(R.id.tvSkinPeacock)?.text = if (GameState.isPeacockUnlocked) "متاح للتطبيق" else "مقفلة"
 
-        d.findViewById<View>(R.id.btnSkinDefault)?.setOnClickListener { activity.changeCitySkin(R.drawable.bg_mobs_city_isometric); d.dismiss() }
-        d.findViewById<View>(R.id.btnSkinSnake)?.setOnClickListener { if (GameState.isPyramidUnlocked) { activity.changeCitySkin(R.drawable.bg_city_pyramid); d.dismiss() } else Toast.makeText(activity, "مقفلة!", Toast.LENGTH_SHORT).show() }
+        // 💡 التعديل هنا: تفعيل النقر لجميع الزينات وليس للثعبان فقط
+        d.findViewById<View>(R.id.btnSkinDefault)?.setOnClickListener { 
+            activity.changeCitySkin(R.drawable.bg_mobs_city_isometric)
+            d.dismiss() 
+        }
+        
+        d.findViewById<View>(R.id.btnSkinSnake)?.setOnClickListener { 
+            if (GameState.isPyramidUnlocked) { 
+                activity.changeCitySkin(R.drawable.bg_city_pyramid)
+                d.dismiss() 
+            } else {
+                Toast.makeText(activity, "مقفلة! اشتريها من المتجر أولاً", Toast.LENGTH_SHORT).show()
+            }
+        }
+        
+        d.findViewById<View>(R.id.btnSkinDiamond)?.setOnClickListener { 
+            if (GameState.isDiamondUnlocked) { 
+                activity.changeCitySkin(R.drawable.bg_city_diamond)
+                d.dismiss() 
+            } else {
+                Toast.makeText(activity, "مقفلة! اشتريها من المتجر أولاً", Toast.LENGTH_SHORT).show()
+            }
+        }
+        
+        d.findViewById<View>(R.id.btnSkinPeacock)?.setOnClickListener { 
+            if (GameState.isPeacockUnlocked) { 
+                activity.changeCitySkin(R.drawable.bg_city_peacock)
+                d.dismiss() 
+            } else {
+                Toast.makeText(activity, "مقفلة! اشتريها من المتجر أولاً", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
         d.show()
     }
+
 
     fun showSummoningTavernDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
