@@ -17,7 +17,7 @@ import kotlin.random.Random
 
 object DialogManager {
 
-    fun showPlayerProfileDialog(activity: MainActivity, onPickImage: () -> Unit) {
+    fun showPlayerProfileDialog(activity: MainActivity, onPickImage: () -> Unit, onChangeName: () -> Unit) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_player_profile)
         try {
@@ -27,12 +27,10 @@ object DialogManager {
             d.findViewById<TextView>(R.id.tvProfileInfantry)?.text = formatResourceNumber(GameState.totalInfantry)
             d.findViewById<TextView>(R.id.tvProfileCavalry)?.text = formatResourceNumber(GameState.totalCavalry)
             
-            // حساب قوة المباني
             var buildingPower = 0L
             GameState.myPlots.forEach { buildingPower += it.getPowerProvided() }
             d.findViewById<TextView>(R.id.tvProfileBuildingPower)?.text = formatResourceNumber(buildingPower)
 
-            // شريط الخبرة
             val maxExp = GameState.playerLevel * 1000
             val currentExp = GameState.playerExp
             val expPercent = ((currentExp.toFloat() / maxExp.toFloat()) * 100).toInt()
@@ -48,7 +46,8 @@ object DialogManager {
                 d.dismiss()
             }
             d.findViewById<Button>(R.id.btnChangeName)?.setOnClickListener {
-                Toast.makeText(activity, "سيتم برمجة تغيير الاسم قريباً!", Toast.LENGTH_SHORT).show()
+                onChangeName()
+                d.dismiss()
             }
         } catch (e: Exception) { e.printStackTrace() }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
@@ -56,27 +55,93 @@ object DialogManager {
     }
 
     // ==========================================
-    // 🎒 الحقيبة (مربوطة بكل التسريعات الجديدة)
+    // 👑 نافذة الـ VIP (الامتيازات الملكية)
     // ==========================================
+    fun showVipDialog(activity: MainActivity) {
+        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_vip)
+
+        val tvStatus = d.findViewById<TextView>(R.id.tvVipStatusDialog)
+        fun refreshVipUI() {
+            if (GameState.isVipActive()) {
+                tvStatus?.text = "حالة الـ VIP: مفعّل \uD83C\uDF1F"
+                tvStatus?.setTextColor(Color.parseColor("#2ECC71"))
+            } else {
+                tvStatus?.text = "حالة الـ VIP: غير مفعل"
+                tvStatus?.setTextColor(Color.parseColor("#FF5252"))
+            }
+
+            d.findViewById<TextView>(R.id.tvCountVip8h)?.text = "المملوك: ${GameState.countVip8h}"
+            d.findViewById<TextView>(R.id.tvCountVip24h)?.text = "المملوك: ${GameState.countVip24h}"
+            d.findViewById<TextView>(R.id.tvCountVip7d)?.text = "المملوك: ${GameState.countVip7d}"
+
+            val btn8h = d.findViewById<Button>(R.id.btnUseVip8h)
+            if (GameState.countVip8h > 0) { btn8h?.text = "تفعيل الآن"; btn8h?.setTextColor(Color.WHITE) } else { btn8h?.text = "شراء 200K ذهب"; btn8h?.setTextColor(Color.parseColor("#F4D03F")) }
+
+            val btn24h = d.findViewById<Button>(R.id.btnUseVip24h)
+            if (GameState.countVip24h > 0) { btn24h?.text = "تفعيل الآن"; btn24h?.setTextColor(Color.WHITE) } else { btn24h?.text = "شراء 500K ذهب"; btn24h?.setTextColor(Color.parseColor("#F4D03F")) }
+
+            val btn7d = d.findViewById<Button>(R.id.btnUseVip7d)
+            if (GameState.countVip7d > 0) { btn7d?.text = "تفعيل الآن"; btn7d?.setTextColor(Color.WHITE) } else { btn7d?.text = "شراء 3M ذهب"; btn7d?.setTextColor(Color.parseColor("#F4D03F")) }
+        }
+
+        refreshVipUI()
+
+        fun addVipTime(millis: Long) {
+            val now = System.currentTimeMillis()
+            if (GameState.vipEndTime < now) GameState.vipEndTime = now + millis
+            else GameState.vipEndTime += millis
+            
+            GameState.saveGameData(activity)
+            refreshVipUI()
+            activity.updateVipUI(System.currentTimeMillis())
+            Toast.makeText(activity, "تم تفعيل الامتيازات الملكية!", Toast.LENGTH_SHORT).show()
+        }
+
+        d.findViewById<Button>(R.id.btnUseVip8h)?.setOnClickListener {
+            if (GameState.countVip8h > 0) {
+                GameState.countVip8h--; addVipTime(28800000L) // 8 ساعات
+            } else if (GameState.totalGold >= 200000) {
+                GameState.totalGold -= 200000; activity.updateHudUI(); addVipTime(28800000L)
+            } else Toast.makeText(activity, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+        }
+
+        d.findViewById<Button>(R.id.btnUseVip24h)?.setOnClickListener {
+            if (GameState.countVip24h > 0) {
+                GameState.countVip24h--; addVipTime(86400000L) // 24 ساعة
+            } else if (GameState.totalGold >= 500000) {
+                GameState.totalGold -= 500000; activity.updateHudUI(); addVipTime(86400000L)
+            } else Toast.makeText(activity, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+        }
+
+        d.findViewById<Button>(R.id.btnUseVip7d)?.setOnClickListener {
+            if (GameState.countVip7d > 0) {
+                GameState.countVip7d--; addVipTime(604800000L) // 7 أيام
+            } else if (GameState.totalGold >= 3000000) {
+                GameState.totalGold -= 3000000; activity.updateHudUI(); addVipTime(604800000L)
+            } else Toast.makeText(activity, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+        }
+
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.show()
+    }
+
     fun showBagDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_bag)
 
         fun refreshBagUI() {
-            // التسريعات
             d.findViewById<TextView>(R.id.tvBagSpeedup5m)?.text = "الكمية: ${GameState.countSpeedup5m}"
             d.findViewById<TextView>(R.id.tvBagSpeedup15m)?.text = "الكمية: ${GameState.countSpeedup15m}"
             d.findViewById<TextView>(R.id.tvBagSpeedup30m)?.text = "الكمية: ${GameState.countSpeedup30m}"
             d.findViewById<TextView>(R.id.tvBagSpeedup1h)?.text = "الكمية: ${GameState.countSpeedup1Hour}"
             d.findViewById<TextView>(R.id.tvBagSpeedup2h)?.text = "الكمية: ${GameState.countSpeedup2h}"
             d.findViewById<TextView>(R.id.tvBagSpeedup8h)?.text = "الكمية: ${GameState.countSpeedup8Hour}"
-            // الصناديق
             d.findViewById<TextView>(R.id.tvBagResBox)?.text = "الكمية: ${GameState.countResourceBox}"
             d.findViewById<TextView>(R.id.tvBagGoldBox)?.text = "الكمية: ${GameState.countGoldBox}"
         }
         refreshBagUI()
 
-        // رسائل توجيهية عند استخدام التسريعات من الحقيبة
         val speedupMsg = "استخدم التسريع من المبنى قيد التطوير/التدريب مباشرة!"
         d.findViewById<Button>(R.id.btnUseBagSpeedup5m)?.setOnClickListener { Toast.makeText(activity, speedupMsg, Toast.LENGTH_SHORT).show() }
         d.findViewById<Button>(R.id.btnUseBagSpeedup15m)?.setOnClickListener { Toast.makeText(activity, speedupMsg, Toast.LENGTH_SHORT).show() }
@@ -88,6 +153,13 @@ object DialogManager {
         d.findViewById<Button>(R.id.btnUseBagResBox)?.setOnClickListener {
             if (GameState.countResourceBox > 0) {
                 GameState.countResourceBox--; GameState.totalWheat += 50000; GameState.totalIron += 50000
+                
+                // 💡 فرصة 1% بطاقة VIP 8 ساعات
+                if(Random.nextInt(100) == 0) {
+                    GameState.countVip8h++
+                    Toast.makeText(activity, "مبروك! وجدت بطاقة VIP 8 ساعات في الصندوق!", Toast.LENGTH_LONG).show()
+                }
+                
                 activity.updateHudUI(); GameState.saveGameData(activity); refreshBagUI()
                 Toast.makeText(activity, "حصلت على 50K قمح و 50K حديد!", Toast.LENGTH_SHORT).show()
             } else Toast.makeText(activity, "لا تملك صناديق موارد!", Toast.LENGTH_SHORT).show()
@@ -223,8 +295,15 @@ object DialogManager {
             val totalW = (currentAmt * costW).toLong(); val totalI = (currentAmt * costI).toLong()
             if (GameState.totalWheat >= totalW && GameState.totalIron >= totalI) {
                 GameState.totalWheat -= totalW; GameState.totalIron -= totalI
-                p.isTraining = true; p.trainingAmount = currentAmt; p.trainingTotalTime = currentAmt * 2000L 
+                p.isTraining = true; p.trainingAmount = currentAmt
+                
+                // 💡 خصم VIP لزمن التدريب (20%)
+                var tTime = currentAmt * 2000L
+                if(GameState.isVipActive()) tTime = (tTime * 0.8).toLong()
+                
+                p.trainingTotalTime = tTime
                 p.trainingEndTime = System.currentTimeMillis() + p.trainingTotalTime; p.collectTimer = 0L 
+                
                 activity.updateHudUI(); GameState.saveGameData(activity); d.dismiss()
                 Toast.makeText(activity, "بدأ معسكر التدريب!", Toast.LENGTH_SHORT).show()
             } else Toast.makeText(activity, "الموارد لا تكفي للتدريب!", Toast.LENGTH_SHORT).show()
@@ -237,7 +316,11 @@ object DialogManager {
     fun showUpgradeDialog(activity: MainActivity, p: MapPlot) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_upgrade_building)
-        val cW = p.getCostWheat(); val cI = p.getCostIron(); val cG = p.getCostGold(); val uSec = p.getUpgradeTimeSeconds()
+        val cW = p.getCostWheat(); val cI = p.getCostIron(); val cG = p.getCostGold()
+        
+        // 💡 خصم VIP لزمن التطوير (20%)
+        var uSec = p.getUpgradeTimeSeconds()
+        if(GameState.isVipActive()) uSec = (uSec * 0.8).toLong()
         
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "${p.name} (مستوى ${p.level})"
         d.findViewById<TextView>(R.id.tvCostWheat)?.text = "${formatResourceNumber(cW)} / ${formatResourceNumber(GameState.totalWheat)}"
@@ -282,8 +365,41 @@ object DialogManager {
         d.setContentView(R.layout.dialog_speedup)
 
         val tvRemaining = d.findViewById<TextView>(R.id.tvRemainingTime)
-        val tvCount = d.findViewById<TextView>(R.id.tvSpeedupCount)
-        val btnUse = d.findViewById<Button>(R.id.btnUseSpeedup)
+        
+        // جلب أزرار وأعداد التسريعات من الواجهة (تمت إضافة كل التسريعات)
+        val tvCount5m = d.findViewById<TextView>(R.id.tvSpeedupCount5m)
+        val btnUse5m = d.findViewById<Button>(R.id.btnUseSpeedup5m)
+        val tvCount15m = d.findViewById<TextView>(R.id.tvSpeedupCount15m)
+        val btnUse15m = d.findViewById<Button>(R.id.btnUseSpeedup15m)
+        val tvCount30m = d.findViewById<TextView>(R.id.tvSpeedupCount30m)
+        val btnUse30m = d.findViewById<Button>(R.id.btnUseSpeedup30m)
+        val tvCount1h = d.findViewById<TextView>(R.id.tvSpeedupCount1h)
+        val btnUse1h = d.findViewById<Button>(R.id.btnUseSpeedup1h)
+        val tvCount2h = d.findViewById<TextView>(R.id.tvSpeedupCount2h)
+        val btnUse2h = d.findViewById<Button>(R.id.btnUseSpeedup2h)
+        val tvCount8h = d.findViewById<TextView>(R.id.tvSpeedupCount8h)
+        val btnUse8h = d.findViewById<Button>(R.id.btnUseSpeedup8h)
+
+        fun refreshSpeedupUI() {
+            tvCount5m?.text = "الكمية: ${GameState.countSpeedup5m}"
+            tvCount15m?.text = "الكمية: ${GameState.countSpeedup15m}"
+            tvCount30m?.text = "الكمية: ${GameState.countSpeedup30m}"
+            tvCount1h?.text = "الكمية: ${GameState.countSpeedup1Hour}"
+            tvCount2h?.text = "الكمية: ${GameState.countSpeedup2h}"
+            tvCount8h?.text = "الكمية: ${GameState.countSpeedup8Hour}"
+
+            // تلوين الزر بالأبيض إذا كان متاحاً، وبالرمادي إذا كان 0
+            val colorAvailable = Color.WHITE
+            val colorEmpty = Color.parseColor("#555555")
+
+            if(GameState.countSpeedup5m > 0) btnUse5m?.setTextColor(colorAvailable) else btnUse5m?.setTextColor(colorEmpty)
+            if(GameState.countSpeedup15m > 0) btnUse15m?.setTextColor(colorAvailable) else btnUse15m?.setTextColor(colorEmpty)
+            if(GameState.countSpeedup30m > 0) btnUse30m?.setTextColor(colorAvailable) else btnUse30m?.setTextColor(colorEmpty)
+            if(GameState.countSpeedup1Hour > 0) btnUse1h?.setTextColor(colorAvailable) else btnUse1h?.setTextColor(colorEmpty)
+            if(GameState.countSpeedup2h > 0) btnUse2h?.setTextColor(colorAvailable) else btnUse2h?.setTextColor(colorEmpty)
+            if(GameState.countSpeedup8Hour > 0) btnUse8h?.setTextColor(colorAvailable) else btnUse8h?.setTextColor(colorEmpty)
+        }
+        refreshSpeedupUI()
 
         val handler = Handler(Looper.getMainLooper())
         val runnable = object : Runnable {
@@ -295,27 +411,25 @@ object DialogManager {
         }
         handler.post(runnable)
 
-        tvCount?.text = "الكمية المملوكة: ${GameState.countSpeedup1Hour}"
-        if (GameState.countSpeedup1Hour <= 0) { btnUse?.text = "شراء"; btnUse?.setTextColor(Color.BLACK) } else btnUse?.text = "استخدام"
-
-        btnUse?.setOnClickListener {
-            if (GameState.countSpeedup1Hour > 0) {
-                GameState.countSpeedup1Hour--
-                if (p.isUpgrading) p.upgradeEndTime -= 3600000L else p.trainingEndTime -= 3600000L
-                tvCount?.text = "الكمية المملوكة: ${GameState.countSpeedup1Hour}"; GameState.saveGameData(activity)
-                Toast.makeText(activity, "تم التسريع!", Toast.LENGTH_SHORT).show()
-                if (GameState.countSpeedup1Hour <= 0) { btnUse.text = "شراء"; btnUse.setTextColor(Color.BLACK) }
-            } else { d.dismiss(); showStoreDialog(activity) }
+        fun applySpeedup(millis: Long, name: String) {
+            if (p.isUpgrading) p.upgradeEndTime -= millis else p.trainingEndTime -= millis
+            GameState.saveGameData(activity)
+            refreshSpeedupUI()
+            Toast.makeText(activity, "تم خصم $name!", Toast.LENGTH_SHORT).show()
         }
+
+        btnUse5m?.setOnClickListener { if (GameState.countSpeedup5m > 0) { GameState.countSpeedup5m--; applySpeedup(300000L, "5 دقائق") } else { d.dismiss(); showStoreDialog(activity) } }
+        btnUse15m?.setOnClickListener { if (GameState.countSpeedup15m > 0) { GameState.countSpeedup15m--; applySpeedup(900000L, "15 دقيقة") } else { d.dismiss(); showStoreDialog(activity) } }
+        btnUse30m?.setOnClickListener { if (GameState.countSpeedup30m > 0) { GameState.countSpeedup30m--; applySpeedup(1800000L, "30 دقيقة") } else { d.dismiss(); showStoreDialog(activity) } }
+        btnUse1h?.setOnClickListener { if (GameState.countSpeedup1Hour > 0) { GameState.countSpeedup1Hour--; applySpeedup(3600000L, "ساعة") } else { d.dismiss(); showStoreDialog(activity) } }
+        btnUse2h?.setOnClickListener { if (GameState.countSpeedup2h > 0) { GameState.countSpeedup2h--; applySpeedup(7200000L, "ساعتين") } else { d.dismiss(); showStoreDialog(activity) } }
+        btnUse8h?.setOnClickListener { if (GameState.countSpeedup8Hour > 0) { GameState.countSpeedup8Hour--; applySpeedup(28800000L, "8 ساعات") } else { d.dismiss(); showStoreDialog(activity) } }
 
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
         d.setOnDismissListener { handler.removeCallbacks(runnable) }
         d.show()
     }
 
-    // ==========================================
-    // 🏪 المتجر الملكي (إضافة كاملة للتسريعات)
-    // ==========================================
     fun showStoreDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_store)
@@ -332,7 +446,6 @@ object DialogManager {
         btnPeacock?.setOnClickListener { if (GameState.totalGold >= 1500000) { GameState.totalGold -= 1500000; GameState.isPeacockUnlocked = true; btnPeacock.text = "مملوكة"; btnPeacock.isEnabled = false; activity.updateHudUI(); GameState.saveGameData(activity); activity.changeCitySkin(R.drawable.bg_city_peacock); Toast.makeText(activity, "تم الشراء والتطبيق!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
         btnDiamond?.setOnClickListener { if (GameState.totalGold >= 3000000) { GameState.totalGold -= 3000000; GameState.isDiamondUnlocked = true; btnDiamond.text = "مملوكة"; btnDiamond.isEnabled = false; activity.updateHudUI(); GameState.saveGameData(activity); activity.changeCitySkin(R.drawable.bg_city_diamond); Toast.makeText(activity, "تم الشراء والتطبيق!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
 
-        // أزرار شراء التسريعات الجديدة وربطها بالذاكرة
         d.findViewById<Button>(R.id.btnBuySpeedup5m)?.setOnClickListener { if (GameState.totalGold >= 1000) { GameState.totalGold -= 1000; GameState.countSpeedup5m++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء بنجاح!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
         d.findViewById<Button>(R.id.btnBuySpeedup15m)?.setOnClickListener { if (GameState.totalGold >= 3000) { GameState.totalGold -= 3000; GameState.countSpeedup15m++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء بنجاح!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
         d.findViewById<Button>(R.id.btnBuySpeedup30m)?.setOnClickListener { if (GameState.totalGold >= 5000) { GameState.totalGold -= 5000; GameState.countSpeedup30m++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء بنجاح!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
@@ -340,7 +453,6 @@ object DialogManager {
         d.findViewById<Button>(R.id.btnBuySpeedup2h)?.setOnClickListener { if (GameState.totalGold >= 28000) { GameState.totalGold -= 28000; GameState.countSpeedup2h++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء بنجاح!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
         d.findViewById<Button>(R.id.btnBuySpeedup8h)?.setOnClickListener { if (GameState.totalGold >= 100000) { GameState.totalGold -= 100000; GameState.countSpeedup8Hour++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء بنجاح!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
 
-        // أزرار إعلانات ياندكس
         d.findViewById<Button>(R.id.btnAdResources)?.setOnClickListener { 
             YandexAdsManager.showRewardedAd(activity, onRewarded = {
                 GameState.totalWheat += 50000; GameState.totalIron += 50000; activity.updateHudUI(); GameState.saveGameData(activity)
@@ -400,9 +512,17 @@ object DialogManager {
                 GameState.summonMedals--
                 val luckyHero = GameState.myHeroes[Random.nextInt(4, 8)] 
                 luckyHero.shardsOwned += Random.nextInt(5, 15)
+                
+                // 💡 فرصة 5% لبطاقة VIP في الاستدعاء المميز
+                if (Random.nextInt(100) < 5) {
+                    GameState.countVip8h++
+                    Toast.makeText(activity, "استدعاء أسطوري مزدوج! شظايا لـ ${luckyHero.name} وبطاقة VIP 8 ساعات!", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(activity, "استدعاء أسطوري! شظايا لـ ${luckyHero.name}", Toast.LENGTH_SHORT).show()
+                }
+                
                 tvMedals?.text = "ميداليات الأبطال: ${GameState.summonMedals}"
                 GameState.saveGameData(activity)
-                Toast.makeText(activity, "استدعاء أسطوري! شظايا لـ ${luckyHero.name}", Toast.LENGTH_SHORT).show()
             } else Toast.makeText(activity, "لا تملك ميداليات!", Toast.LENGTH_SHORT).show()
         }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
