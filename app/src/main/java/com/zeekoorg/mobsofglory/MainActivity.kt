@@ -262,7 +262,6 @@ class MainActivity : AppCompatActivity() {
             else -> return
         }
         
-        // 💡 إشعار نظام المهام بأننا قمنا بالجمع!
         GameState.addQuestProgress(QuestType.COLLECT_RESOURCES, 1)
 
         playCollectionAnimation(plot); updateHudUI(); GameState.saveGameData(this)
@@ -282,10 +281,14 @@ class MainActivity : AppCompatActivity() {
                         if (rem <= 0) { 
                             p.isUpgrading = false; p.level++; GameState.playerExp += p.getExpReward()
                             
-                            // 💡 إشعار نظام المهام باكتمال تطوير مبنى!
                             GameState.addQuestProgress(QuestType.UPGRADE_BUILDING, 1)
 
-                            if(GameState.checkPlayerLevelUp()) updateHudUI()
+                            // 💡 إظهار نافذة المستوى عند اكتمال الخبرة
+                            if(GameState.checkPlayerLevelUp()) {
+                                updateHudUI()
+                                DialogManager.showLevelUpDialog(this@MainActivity, GameState.playerLevel)
+                            }
+                            
                             GameState.calculatePower(); updateHudUI(); GameState.saveGameData(this@MainActivity); p.layoutUpgradeProgress?.visibility = View.GONE 
                         } else { 
                             p.pbUpgrade?.progress = (((p.totalUpgradeTime - rem).toFloat() / p.totalUpgradeTime) * 100).toInt()
@@ -298,7 +301,6 @@ class MainActivity : AppCompatActivity() {
                             p.isTraining = false; 
                             if (p.idCode == "BARRACKS_1") GameState.totalInfantry += p.trainingAmount else GameState.totalCavalry += p.trainingAmount
                             
-                            // 💡 إشعار نظام المهام باكتمال تدريب القوات!
                             GameState.addQuestProgress(QuestType.TRAIN_TROOPS, p.trainingAmount)
 
                             GameState.calculatePower(); updateHudUI(); GameState.saveGameData(this@MainActivity); p.layoutUpgradeProgress?.visibility = View.GONE 
