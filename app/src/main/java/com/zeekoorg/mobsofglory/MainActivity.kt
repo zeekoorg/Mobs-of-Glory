@@ -43,7 +43,6 @@ class MainActivity : AppCompatActivity() {
             val internalPath = copyImageToInternalStorage(it)
             if (internalPath != null) {
                 GameState.selectedAvatarUri = internalPath
-                // 💡 الحل الجذري: حفظ المسار في الذاكرة الدائمة
                 getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
                     .edit().putString("PLAYER_CUSTOM_AVATAR", internalPath).apply()
                 
@@ -68,7 +67,6 @@ class MainActivity : AppCompatActivity() {
         val savedSkin = prefs.getInt("SELECTED_SKIN", R.drawable.bg_mobs_city_isometric)
         imgCityBackground.setImageResource(savedSkin)
 
-        // 💡 قراءة الصورة المحفوظة عند فتح التطبيق
         val savedAvatar = prefs.getString("PLAYER_CUSTOM_AVATAR", null)
         if (savedAvatar != null) {
             GameState.selectedAvatarUri = savedAvatar
@@ -133,6 +131,18 @@ class MainActivity : AppCompatActivity() {
         } 
     }
 
+    // 💡 دالة نافذة المعاينة الجديدة
+    private fun showAvatarPreviewDialog(imgResId: Int, title: String) {
+        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_avatar_preview)
+        
+        d.findViewById<TextView>(R.id.tvPreviewTitle)?.text = title
+        d.findViewById<ImageView>(R.id.imgPreviewAvatar)?.setImageResource(imgResId)
+        
+        d.findViewById<Button>(R.id.btnClosePreview)?.setOnClickListener { d.dismiss() }
+        d.show()
+    }
+
     private fun showAvatarSelectionDialog() {
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_avatar_selection)
@@ -147,14 +157,21 @@ class MainActivity : AppCompatActivity() {
             d.dismiss()
         }
 
-        fun setupPremiumAvatar(btnId: Int, imgResId: Int, cost: Long, prefKey: String) {
+        // 💡 تم تحديث هذه الدالة لتستقبل معرّف الصورة للضغط عليها، واسم الصورة لعرضه في المعاينة
+        fun setupPremiumAvatar(btnId: Int, imgId: Int, imgResId: Int, cost: Long, prefKey: String, avatarName: String) {
             val btn = d.findViewById<Button>(btnId)
+            val img = d.findViewById<ImageView>(imgId)
             val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
             val isUnlocked = prefs.getBoolean(prefKey, false)
 
             if (isUnlocked) {
                 btn?.text = "استخدام"
                 btn?.setTextColor(android.graphics.Color.WHITE)
+            }
+
+            // 💡 عند النقر على الصورة، تفتح نافذة المعاينة الكبيرة!
+            img?.setOnClickListener {
+                showAvatarPreviewDialog(imgResId, avatarName)
             }
 
             btn?.setOnClickListener {
@@ -183,10 +200,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         val cost = 50000L
-        setupPremiumAvatar(R.id.btnBuyAvatarKing, R.drawable.img_avatar_king, cost, "AV_KING_UNLOCKED")
-        setupPremiumAvatar(R.id.btnBuyAvatarKnight, R.drawable.img_avatar_knight, cost, "AV_KNIGHT_UNLOCKED")
-        setupPremiumAvatar(R.id.btnBuyAvatarAssassin, R.drawable.img_avatar_assassin, cost, "AV_ASSASSIN_UNLOCKED")
-        setupPremiumAvatar(R.id.btnBuyAvatarEmperor, R.drawable.img_avatar_emperor, cost, "AV_EMPEROR_UNLOCKED")
+        setupPremiumAvatar(R.id.btnBuyAvatarKing, R.id.imgAvatarKing, R.drawable.img_avatar_king, cost, "AV_KING_UNLOCKED", "صورة الملك")
+        setupPremiumAvatar(R.id.btnBuyAvatarKnight, R.id.imgAvatarKnight, R.drawable.img_avatar_knight, cost, "AV_KNIGHT_UNLOCKED", "صورة الفارس")
+        setupPremiumAvatar(R.id.btnBuyAvatarAssassin, R.id.imgAvatarAssassin, R.drawable.img_avatar_assassin, cost, "AV_ASSASSIN_UNLOCKED", "صورة السفاح")
+        setupPremiumAvatar(R.id.btnBuyAvatarEmperor, R.id.imgAvatarEmperor, R.drawable.img_avatar_emperor, cost, "AV_EMPEROR_UNLOCKED", "صورة الإمبراطور")
 
         d.findViewById<Button>(R.id.btnChooseFromGallery)?.setOnClickListener {
             if (GameState.isVipActive()) {
@@ -346,7 +363,6 @@ class MainActivity : AppCompatActivity() {
                     } else if (p.resourceType != ResourceType.NONE && !p.isReady) {
                         p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectTimer += 1000
                         
-                        // 💡 الحل الجذري للـ VIP في الموارد: تعديل الهدف وعرض الوقت الصحيح
                         val targetTime = if(GameState.isVipActive()) 45000L else 60000L
                         
                         if (p.collectTimer >= targetTime) { 
