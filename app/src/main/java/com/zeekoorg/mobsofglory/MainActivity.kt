@@ -60,7 +60,6 @@ class MainActivity : AppCompatActivity() {
         
         initViews()
         
-        // 💡 التعديل هنا: تحميل زينة المدينة المحفوظة فور فتح اللعبة
         val savedSkin = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
             .getInt("SELECTED_SKIN", R.drawable.bg_mobs_city_isometric)
         imgCityBackground.setImageResource(savedSkin)
@@ -93,6 +92,7 @@ class MainActivity : AppCompatActivity() {
         tvMainTotalPower = findViewById(R.id.tvMainTotalPower) 
     }
 
+    // 💡 تم إصلاح وتحديث جميع الأزرار هنا
     private fun setupActionListeners() {
         findViewById<View>(R.id.layoutAvatarClick)?.setOnClickListener { 
             DialogManager.showPlayerProfileDialog(this, 
@@ -114,12 +114,14 @@ class MainActivity : AppCompatActivity() {
             DialogManager.showSummoningTavernDialog(this)
         }
         
+        // 💡 أزرار الشريط السفلي
+        findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { DialogManager.showHeroesDialog(this) } // تمت إعادة زر الأبطال بنجاح!
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { DialogManager.showStoreDialog(this) }
         findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { DialogManager.showQuestsDialog(this) }
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { DialogManager.showBagDialog(this) }
         
         findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
-            // سيتم برمجته لاحقاً لفتح خريطة العالم
+            Toast.makeText(this, "قريباً: سيتم فتح خريطة العالم!", Toast.LENGTH_SHORT).show()
         } 
     }
 
