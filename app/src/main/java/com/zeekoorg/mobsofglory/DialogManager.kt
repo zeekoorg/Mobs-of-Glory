@@ -268,6 +268,7 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 دالة مكافآت القلعة التي طلبتها (تعمل بالنظام الديناميكي)
     fun showCastleRewardsDialog(activity: MainActivity, castleLevel: Int) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_castle_rewards)
@@ -276,6 +277,7 @@ object DialogManager {
         container?.removeAllViews() 
         val inflater = LayoutInflater.from(activity)
 
+        // تعريف مستويات المكافآت وجوائزها
         val milestones = listOf(
             Triple(5, "قلعة مستوى 5", "مكافأة: صندوق موارد x1 + 10K ذهب"),
             Triple(10, "قلعة مستوى 10", "مكافأة: تسريع 8س x1 + صندوق ذهب x1"),
@@ -293,7 +295,6 @@ object DialogManager {
             val tvReward = view.findViewById<TextView>(R.id.tvQuestReward)
             val btnClaim = view.findViewById<Button>(R.id.btnClaimQuest)
             
-            // تم تغيير الصورة إلى أيقونة التسريع المتوفرة لديك
             when (reqLevel) {
                 5 -> icon.setImageResource(R.drawable.ic_resource_gold)
                 10 -> icon.setImageResource(R.drawable.ic_speedup_8h) 
@@ -382,19 +383,14 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 إعادة زر زينة المدينة في القلعة كما كان
     fun showCastleMainDialog(activity: MainActivity, p: MapPlot) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_castle_main)
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = p.name
         d.findViewById<TextView>(R.id.tvDialogInfo)?.text = "أيها المُهيب، القلعة هي رمز هيبتك.\nقوة الإمبراطورية: ${formatResourceNumber(GameState.playerPower)}"
-        
         d.findViewById<Button>(R.id.btnCastleUpgrade)?.apply { text = "تطوير المبنى"; setOnClickListener { d.dismiss(); showUpgradeDialog(activity, p) } }
-        
-        d.findViewById<Button>(R.id.btnCastleDecorations)?.apply { 
-            text = "مكافآت القلعة"
-            setOnClickListener { d.dismiss(); showCastleRewardsDialog(activity, p.level) } 
-        }
-        
+        d.findViewById<Button>(R.id.btnCastleDecorations)?.apply { text = "زينة المدينة"; setOnClickListener { d.dismiss(); showDecorationsDialog(activity) } }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
         d.show()
     }
