@@ -2,6 +2,26 @@ package com.zeekoorg.mobsofglory
 
 import android.content.Context
 
+// 💡 1. أنواع المهام المتاحة في اللعبة
+enum class QuestType {
+    COLLECT_RESOURCES,
+    TRAIN_TROOPS,
+    UPGRADE_BUILDING
+}
+
+// 💡 2. قالب المهمة الديناميكية (الاحترافي)
+data class DynamicQuest(
+    val id: Int,
+    val title: String,
+    val type: QuestType,
+    val targetAmount: Int,
+    val rewardGold: Long,
+    var currentAmount: Int = 0,
+    var isCollected: Boolean = false
+) {
+    val isCompleted: Boolean get() = currentAmount >= targetAmount
+}
+
 object GameState {
     var playerName: String = "المهيب زيكو"
     var selectedAvatarUri: String? = null
@@ -38,8 +58,22 @@ object GameState {
     fun isVipActive(): Boolean = System.currentTimeMillis() < vipEndTime
 
     val myHeroes = mutableListOf<Hero>()
-    val dailyQuests = mutableListOf<Quest>()
     val myPlots = mutableListOf<MapPlot>()
+    
+    // 💡 3. قائمة المهام الديناميكية الجديدة
+    val dailyQuestsList = mutableListOf<DynamicQuest>()
+
+    // 💡 4. الدالة الذكية لزيادة تقدم المهام
+    fun addQuestProgress(type: QuestType, amount: Int) {
+        dailyQuestsList.filter { it.type == type }.forEach { quest ->
+            if (!quest.isCollected && !quest.isCompleted) {
+                quest.currentAmount += amount
+                if (quest.currentAmount > quest.targetAmount) {
+                    quest.currentAmount = quest.targetAmount
+                }
+            }
+        }
+    }
 
     fun initializeDataLists() {
         if (myHeroes.isEmpty()) {
@@ -52,10 +86,14 @@ object GameState {
             myHeroes.add(Hero(7, "أميرة الحرب", 1, 50000, false, 0, 150))
             myHeroes.add(Hero(8, "ساحرة المجد", 1, 70000, false, 0, 200))
         }
-        if (dailyQuests.isEmpty()) {
-            dailyQuests.add(Quest(1, "اجمع الموارد 5 مرات", 500, false, false))
-            dailyQuests.add(Quest(2, "قم بترقية مبنى واحد", 1000, false, false))
+        
+        // 💡 5. توليد المهام الملكية
+        if (dailyQuestsList.isEmpty()) {
+            dailyQuestsList.add(DynamicQuest(1, "اجمع الموارد من الحقول", QuestType.COLLECT_RESOURCES, 5, 2000))
+            dailyQuestsList.add(DynamicQuest(2, "درّب 500 جندي جديد", QuestType.TRAIN_TROOPS, 500, 5000))
+            dailyQuestsList.add(DynamicQuest(3, "قم بتطوير 3 مبانٍ", QuestType.UPGRADE_BUILDING, 3, 10000))
         }
+        
         if (myPlots.isEmpty()) {
             myPlots.add(MapPlot("CASTLE", "القلعة المركزية", R.id.plotCastle, 0, ResourceType.NONE, 1))
             myPlots.add(MapPlot("FARM_1", "مزرعة القمح", R.id.plotFarmR1, 0, ResourceType.WHEAT, 1))
@@ -83,7 +121,6 @@ object GameState {
         return false
     }
 
-    // 💾 حفظ وتحميل البيانات
     fun saveGameData(context: Context) {
         val prefs = context.getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit()
         prefs.putString("PLAYER_NAME", playerName)
@@ -109,13 +146,18 @@ object GameState {
         prefs.putInt("RESOURCE_BOX", countResourceBox)
         prefs.putInt("GOLD_BOX", countGoldBox)
         
-        // حفظ الـ VIP
         prefs.putLong("VIP_END_TIME", vipEndTime)
         prefs.putInt("VIP_8H", countVip8h)
         prefs.putInt("VIP_24H", countVip24h)
         prefs.putInt("VIP_7D", countVip7d)
         
         prefs.putLong("LAST_LOGIN_TIME", System.currentTimeMillis())
+        
+        // 💡 حفظ تقدم المهام
+        dailyQuestsList.forEachIndexed { i, q ->
+            prefs.putInt("QUEST_${i}_PROG", q.currentAmount)
+            prefs.putBoolean("QUEST_${i}_COLL", q.isCollected)
+        }
         
         myHeroes.forEachIndexed { i, h ->
             prefs.putBoolean("H_${i}_U", h.isUnlocked); prefs.putInt("H_${i}_L", h.level)
@@ -153,11 +195,16 @@ object GameState {
         countResourceBox = prefs.getInt("RESOURCE_BOX", 5)
         countGoldBox = prefs.getInt("GOLD_BOX", 3)
 
-        // تحميل الـ VIP
         vipEndTime = prefs.getLong("VIP_END_TIME", 0L)
         countVip8h = prefs.getInt("VIP_8H", 0)
         countVip24h = prefs.getInt("VIP_24H", 0)
         countVip7d = prefs.getInt("VIP_7D", 0)
+
+        // 💡 تحميل تقدم المهام
+        dailyQuestsList.forEachIndexed { i, q ->
+            q.currentAmount = prefs.getInt("QUEST_${i}_PROG", 0)
+            q.isCollected = prefs.getBoolean("QUEST_${i}_COLL", false)
+        }
 
         myHeroes.forEachIndexed { i, h ->
             h.isUnlocked = prefs.getBoolean("H_${i}_U", h.isUnlocked)
@@ -178,7 +225,6 @@ object GameState {
             it.collectTimer = prefs.getLong("CT_${it.idCode}", 0L)
             it.isReady = prefs.getBoolean("IR_${it.idCode}", false)
             
-            // حساب الأوفلاين
             if (it.isUpgrading && currentTime >= it.upgradeEndTime) { it.isUpgrading = false; it.level++; playerExp += it.getExpReward() }
             if (it.isTraining && currentTime >= it.trainingEndTime) { 
                 it.isTraining = false
@@ -186,7 +232,6 @@ object GameState {
             }
             if (!it.isUpgrading && !it.isTraining && it.resourceType != ResourceType.NONE && !it.isReady) {
                 it.collectTimer += offlineTime
-                // 💡 إذا كان الـ VIP مفعل، الجمع أسرع (45 ثانية بدلاً من 60)
                 val targetTime = if(isVipActive()) 45000L else 60000L
                 if (it.collectTimer >= targetTime) { it.isReady = true; it.collectTimer = targetTime }
             }
