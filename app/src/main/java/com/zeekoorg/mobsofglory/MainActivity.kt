@@ -100,29 +100,71 @@ class MainActivity : AppCompatActivity() {
     // 🎭 نظام الصور الرمزية
     // ==========================================
     
-    private fun showAvatarSelectionDialog() {
+        private fun showAvatarSelectionDialog() {
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_avatar_selection)
 
-        // تعيين صور الأبطال المتاحة
-        val avatars = listOf(
-            R.id.imgAvatar1 to "android.resource://$packageName/${R.drawable.img_hero_1}",
-            R.id.imgAvatar2 to "android.resource://$packageName/${R.drawable.img_hero_2}",
-            R.id.imgAvatar3 to "android.resource://$packageName/${R.drawable.img_hero_3}",
-            R.id.imgAvatar4 to "android.resource://$packageName/${R.drawable.img_hero_4}",
-            R.id.imgAvatar5 to "android.resource://$packageName/${R.drawable.img_hero_5}"
-        )
+        // 1. الصورة الافتراضية المجانية
+        d.findViewById<Button>(R.id.btnUseDefaultAvatar)?.setOnClickListener {
+            GameState.selectedAvatarUri = "android.resource://$packageName/${R.drawable.img_default_avatar}"
+            GameState.saveGameData(this)
+            updateAvatarImages()
+            Toast.makeText(this, "تم تعيين الصورة الافتراضية!", Toast.LENGTH_SHORT).show()
+            d.dismiss()
+        }
 
-        // ربط النقر على أي صورة
-        avatars.forEach { (viewId, uriString) ->
-            d.findViewById<ImageView>(viewId)?.setOnClickListener {
-                GameState.selectedAvatarUri = uriString
-                GameState.saveGameData(this)
-                updateAvatarImages()
-                Toast.makeText(this, "تم تغيير الصورة الرمزية!", Toast.LENGTH_SHORT).show()
-                d.dismiss()
+        // 2. ربط الصور النادرة (شراء دائم بـ 50,000 ذهب)
+        fun setupPremiumAvatar(btnId: Int, imgResId: Int, cost: Long, prefKey: String) {
+            val btn = d.findViewById<Button>(btnId)
+            val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
+            val isUnlocked = prefs.getBoolean(prefKey, false)
+
+            if (isUnlocked) {
+                btn?.text = "استخدام"
+                btn?.setTextColor(android.graphics.Color.WHITE)
+            }
+
+            btn?.setOnClickListener {
+                if (prefs.getBoolean(prefKey, false)) {
+                    GameState.selectedAvatarUri = "android.resource://$packageName/$imgResId"
+                    GameState.saveGameData(this)
+                    updateAvatarImages()
+                    Toast.makeText(this, "تم تعيين صورتك النادرة!", Toast.LENGTH_SHORT).show()
+                    d.dismiss()
+                } else {
+                    if (GameState.totalGold >= cost) {
+                        GameState.totalGold -= cost
+                        prefs.edit().putBoolean(prefKey, true).apply()
+                        updateHudUI()
+                        GameState.saveGameData(this)
+                        btn.text = "استخدام"
+                        btn.setTextColor(android.graphics.Color.WHITE)
+                        Toast.makeText(this, "تم شراء الصورة بنجاح!", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
+
+        // جميعها بـ 50,000 ذهب كما طلبت
+        val cost = 50000L
+        setupPremiumAvatar(R.id.btnBuyAvatarKing, R.drawable.img_avatar_king, cost, "AV_KING_UNLOCKED")
+        setupPremiumAvatar(R.id.btnBuyAvatarKnight, R.drawable.img_avatar_knight, cost, "AV_KNIGHT_UNLOCKED")
+        setupPremiumAvatar(R.id.btnBuyAvatarAssassin, R.drawable.img_avatar_assassin, cost, "AV_ASSASSIN_UNLOCKED")
+        setupPremiumAvatar(R.id.btnBuyAvatarEmperor, R.drawable.img_avatar_emperor, cost, "AV_EMPEROR_UNLOCKED")
+
+        // 3. زر المعرض (VIP - يحفظ الصورة سرياً في اللعبة)
+        d.findViewById<Button>(R.id.btnChooseFromGallery)?.setOnClickListener {
+            // سيتم برمجة قفل الـ VIP الفعلي لاحقاً
+            pickImageLauncher.launch("image/*")
+            d.dismiss()
+        }
+
+        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.show()
+    }
+
 
         // ربط زر اختيار من المعرض (مع تمهيد لنظام الـ VIP)
         d.findViewById<Button>(R.id.btnChooseFromGallery)?.setOnClickListener {
