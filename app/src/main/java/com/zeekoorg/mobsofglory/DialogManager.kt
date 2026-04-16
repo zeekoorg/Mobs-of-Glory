@@ -12,12 +12,22 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import com.zeekoorg.mobsofglory.R 
 import java.util.Locale
 import kotlin.random.Random
 
 object DialogManager {
+
+    // 💡 دالة النافذة الملكية الجديدة
+    fun showGameMessage(activity: MainActivity, title: String, message: String, iconResId: Int) {
+        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_game_message)
+        d.findViewById<TextView>(R.id.tvMessageTitle)?.text = title
+        d.findViewById<TextView>(R.id.tvMessageBody)?.text = message
+        d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(iconResId)
+        d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener { d.dismiss() }
+        d.show()
+    }
 
     private fun showAdConfirmDialog(activity: MainActivity, onConfirm: () -> Unit) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
@@ -72,7 +82,7 @@ object DialogManager {
             GameState.saveGameData(activity)
             activity.updateHudUI()
             d.dismiss()
-            Toast.makeText(activity, "تمت إضافة الغنائم الملكية لخزانتك!", Toast.LENGTH_SHORT).show()
+            showGameMessage(activity, "غنائم ملكية", "تمت إضافة المكافآت لخزانتك بنجاح!", R.drawable.ic_resource_gold)
         }
         
         d.show()
@@ -153,7 +163,7 @@ object DialogManager {
             GameState.saveGameData(activity)
             refreshVipUI()
             activity.updateVipUI(System.currentTimeMillis())
-            Toast.makeText(activity, "تم تفعيل الامتيازات الملكية!", Toast.LENGTH_SHORT).show()
+            showGameMessage(activity, "تفعيل ناجح", "تم تفعيل الامتيازات الملكية بنجاح!", R.drawable.ic_vip_crown)
         }
 
         d.findViewById<Button>(R.id.btnUseVip8h)?.setOnClickListener {
@@ -161,7 +171,7 @@ object DialogManager {
                 GameState.countVip8h--; addVipTime(28800000L)
             } else if (GameState.totalGold >= 200000) {
                 GameState.totalGold -= 200000; activity.updateHudUI(); addVipTime(28800000L)
-            } else Toast.makeText(activity, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+            } else showGameMessage(activity, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold)
         }
 
         d.findViewById<Button>(R.id.btnUseVip24h)?.setOnClickListener {
@@ -169,7 +179,7 @@ object DialogManager {
                 GameState.countVip24h--; addVipTime(86400000L)
             } else if (GameState.totalGold >= 500000) {
                 GameState.totalGold -= 500000; activity.updateHudUI(); addVipTime(86400000L)
-            } else Toast.makeText(activity, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+            } else showGameMessage(activity, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold)
         }
 
         d.findViewById<Button>(R.id.btnUseVip7d)?.setOnClickListener {
@@ -177,7 +187,7 @@ object DialogManager {
                 GameState.countVip7d--; addVipTime(604800000L)
             } else if (GameState.totalGold >= 3000000) {
                 GameState.totalGold -= 3000000; activity.updateHudUI(); addVipTime(604800000L)
-            } else Toast.makeText(activity, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+            } else showGameMessage(activity, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold)
         }
 
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
@@ -201,31 +211,32 @@ object DialogManager {
         refreshBagUI()
 
         val speedupMsg = "استخدم التسريع من المبنى قيد التطوير/التدريب مباشرة!"
-        d.findViewById<Button>(R.id.btnUseBagSpeedup5m)?.setOnClickListener { Toast.makeText(activity, speedupMsg, Toast.LENGTH_SHORT).show() }
-        d.findViewById<Button>(R.id.btnUseBagSpeedup15m)?.setOnClickListener { Toast.makeText(activity, speedupMsg, Toast.LENGTH_SHORT).show() }
-        d.findViewById<Button>(R.id.btnUseBagSpeedup30m)?.setOnClickListener { Toast.makeText(activity, speedupMsg, Toast.LENGTH_SHORT).show() }
-        d.findViewById<Button>(R.id.btnUseBagSpeedup1h)?.setOnClickListener { Toast.makeText(activity, speedupMsg, Toast.LENGTH_SHORT).show() }
-        d.findViewById<Button>(R.id.btnUseBagSpeedup2h)?.setOnClickListener { Toast.makeText(activity, speedupMsg, Toast.LENGTH_SHORT).show() }
-        d.findViewById<Button>(R.id.btnUseBagSpeedup8h)?.setOnClickListener { Toast.makeText(activity, speedupMsg, Toast.LENGTH_SHORT).show() }
+        d.findViewById<Button>(R.id.btnUseBagSpeedup5m)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_5m) }
+        d.findViewById<Button>(R.id.btnUseBagSpeedup15m)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_15m) }
+        d.findViewById<Button>(R.id.btnUseBagSpeedup30m)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_30m) }
+        d.findViewById<Button>(R.id.btnUseBagSpeedup1h)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_1h) }
+        d.findViewById<Button>(R.id.btnUseBagSpeedup2h)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_2h) }
+        d.findViewById<Button>(R.id.btnUseBagSpeedup8h)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_8h) }
 
         d.findViewById<Button>(R.id.btnUseBagResBox)?.setOnClickListener {
             if (GameState.countResourceBox > 0) {
                 GameState.countResourceBox--; GameState.totalWheat += 50000; GameState.totalIron += 50000
                 if(Random.nextInt(100) == 0) {
                     GameState.countVip8h++
-                    Toast.makeText(activity, "مبروك! وجدت بطاقة VIP 8 ساعات في الصندوق!", Toast.LENGTH_LONG).show()
+                    showGameMessage(activity, "صندوق أسطوري!", "حصلت على 50K قمح وحديد\nومبروك! وجدت بطاقة VIP 8 ساعات!", R.drawable.ic_vip_crown)
+                } else {
+                    showGameMessage(activity, "مكافأة الموارد", "حصلت على 50K قمح و 50K حديد!", R.drawable.ic_resource_wheat)
                 }
                 activity.updateHudUI(); GameState.saveGameData(activity); refreshBagUI()
-                Toast.makeText(activity, "حصلت على 50K قمح و 50K حديد!", Toast.LENGTH_SHORT).show()
-            } else Toast.makeText(activity, "لا تملك صناديق موارد!", Toast.LENGTH_SHORT).show()
+            } else showGameMessage(activity, "حقيبة فارغة", "لا تملك صناديق موارد!", R.drawable.ic_menu_bag)
         }
 
         d.findViewById<Button>(R.id.btnUseBagGoldBox)?.setOnClickListener {
             if (GameState.countGoldBox > 0) {
                 GameState.countGoldBox--; GameState.totalGold += 25000
                 activity.updateHudUI(); GameState.saveGameData(activity); refreshBagUI()
-                Toast.makeText(activity, "حصلت على 25K ذهب!", Toast.LENGTH_SHORT).show()
-            } else Toast.makeText(activity, "لا تملك صناديق ذهب!", Toast.LENGTH_SHORT).show()
+                showGameMessage(activity, "مكافأة الذهب", "حصلت على 25K ذهب!", R.drawable.ic_resource_gold)
+            } else showGameMessage(activity, "حقيبة فارغة", "لا تملك صناديق ذهب!", R.drawable.ic_menu_bag)
         }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
         d.show()
@@ -272,7 +283,7 @@ object DialogManager {
                     btnClaim.text = "مستلمة"
                     btnClaim.setTextColor(Color.parseColor("#2ECC71"))
                     btnClaim.isEnabled = false
-                    Toast.makeText(activity, "تم استلام المكافأة بنجاح!", Toast.LENGTH_SHORT).show()
+                    showGameMessage(activity, "إنجاز المهمة", "تم استلام مكافأة المهمة بنجاح!", R.drawable.ic_resource_gold)
                 }
             } else {
                 btnClaim.text = "غير مكتمل"
@@ -347,7 +358,7 @@ object DialogManager {
                     btnClaim.text = "مستلمة"
                     btnClaim.setTextColor(Color.parseColor("#2ECC71"))
                     btnClaim.isEnabled = false
-                    Toast.makeText(activity, "تم استلام غنائم القلعة!", Toast.LENGTH_SHORT).show()
+                    showGameMessage(activity, "غنائم القلعة", "تم استلام المكافآت الأسطورية!", R.drawable.ic_ui_castle_rewards)
                 }
             } else {
                 btnClaim.text = "مقفلة"
@@ -374,15 +385,16 @@ object DialogManager {
             btnAct?.setOnClickListener {
                 if (!h.isUnlocked && h.shardsOwned >= h.shardsRequired) { 
                     h.isUnlocked = true; h.shardsOwned -= h.shardsRequired; GameState.saveGameData(activity); updateHeroUI(i, tvL, tvB, btn)
-                    Toast.makeText(activity, "تم تجنيد ${h.name}!", Toast.LENGTH_SHORT).show()
-                } else if (!h.isUnlocked) { Toast.makeText(activity, "اجمع المزيد من الشظايا من مجلس الأبطال!", Toast.LENGTH_SHORT).show() }
-                else {
+                    showGameMessage(activity, "تجنيد بطل", "تم تجنيد ${h.name} بنجاح!", R.drawable.ic_menu_heroes)
+                } else if (!h.isUnlocked) { 
+                    showGameMessage(activity, "عذراً", "اجمع المزيد من الشظايا من قاعة الأساطير!", R.drawable.ic_menu_heroes)
+                } else {
                     val cost = h.level * 50000L 
                     if (GameState.totalGold >= cost) {
                         GameState.totalGold -= cost; h.level++; h.powerBoost += (h.powerBoost * 0.2).toLong()
                         GameState.calculatePower(); activity.updateHudUI(); GameState.saveGameData(activity); updateHeroUI(i, tvL, tvB, btn)
-                        Toast.makeText(activity, "تم ترقية ${h.name}!", Toast.LENGTH_SHORT).show()
-                    } else Toast.makeText(activity, "تحتاج ${formatResourceNumber(cost)} ذهب للترقية!", Toast.LENGTH_SHORT).show()
+                        showGameMessage(activity, "ترقية بطل", "تم ترقية ${h.name} للمستوى ${h.level}!", R.drawable.ic_menu_heroes)
+                    } else showGameMessage(activity, "عذراً", "تحتاج ${formatResourceNumber(cost)} ذهب للترقية!", R.drawable.ic_resource_gold)
                 }
             }
         }
@@ -457,8 +469,8 @@ object DialogManager {
                 p.trainingEndTime = System.currentTimeMillis() + p.trainingTotalTime; p.collectTimer = 0L 
                 
                 activity.updateHudUI(); GameState.saveGameData(activity); d.dismiss()
-                Toast.makeText(activity, "بدأ معسكر التدريب!", Toast.LENGTH_SHORT).show()
-            } else Toast.makeText(activity, "الموارد لا تكفي للتدريب!", Toast.LENGTH_SHORT).show()
+                showGameMessage(activity, "معسكر التدريب", "بدأ تدريب القوات بنجاح!", R.drawable.ic_settings_gear) // استخدمت الترس كرمز للعمل
+            } else showGameMessage(activity, "عذراً", "الموارد لا تكفي للتدريب!", R.drawable.ic_resource_wheat)
         }
         updateCosts()
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
@@ -504,7 +516,7 @@ object DialogManager {
                 GameState.totalWheat -= cW; GameState.totalIron -= cI; GameState.totalGold -= cG
                 p.isUpgrading = true; p.totalUpgradeTime = uSec * 1000; p.upgradeEndTime = System.currentTimeMillis() + p.totalUpgradeTime; p.collectTimer = 0L
                 activity.updateHudUI(); GameState.saveGameData(activity); d.dismiss()
-                Toast.makeText(activity, "بدأ التطوير بنجاح!", Toast.LENGTH_SHORT).show()
+                showGameMessage(activity, "أعمال البناء", "بدأ التطوير بنجاح!", R.drawable.ic_settings_gear) // استخدمت الترس كرمز للبناء
             }
         }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
@@ -560,19 +572,19 @@ object DialogManager {
         }
         handler.post(runnable)
 
-        fun applySpeedup(millis: Long, name: String) {
+        fun applySpeedup(millis: Long, name: String, iconId: Int) {
             if (p.isUpgrading) p.upgradeEndTime -= millis else p.trainingEndTime -= millis
             GameState.saveGameData(activity)
             refreshSpeedupUI()
-            Toast.makeText(activity, "تم خصم $name!", Toast.LENGTH_SHORT).show()
+            showGameMessage(activity, "تسريع الوقت", "تم خصم $name من الوقت المتبقي!", iconId)
         }
 
-        btnUse5m?.setOnClickListener { if (GameState.countSpeedup5m > 0) { GameState.countSpeedup5m--; applySpeedup(300000L, "5 دقائق") } else { d.dismiss(); showStoreDialog(activity) } }
-        btnUse15m?.setOnClickListener { if (GameState.countSpeedup15m > 0) { GameState.countSpeedup15m--; applySpeedup(900000L, "15 دقيقة") } else { d.dismiss(); showStoreDialog(activity) } }
-        btnUse30m?.setOnClickListener { if (GameState.countSpeedup30m > 0) { GameState.countSpeedup30m--; applySpeedup(1800000L, "30 دقيقة") } else { d.dismiss(); showStoreDialog(activity) } }
-        btnUse1h?.setOnClickListener { if (GameState.countSpeedup1Hour > 0) { GameState.countSpeedup1Hour--; applySpeedup(3600000L, "ساعة") } else { d.dismiss(); showStoreDialog(activity) } }
-        btnUse2h?.setOnClickListener { if (GameState.countSpeedup2h > 0) { GameState.countSpeedup2h--; applySpeedup(7200000L, "ساعتين") } else { d.dismiss(); showStoreDialog(activity) } }
-        btnUse8h?.setOnClickListener { if (GameState.countSpeedup8Hour > 0) { GameState.countSpeedup8Hour--; applySpeedup(28800000L, "8 ساعات") } else { d.dismiss(); showStoreDialog(activity) } }
+        btnUse5m?.setOnClickListener { if (GameState.countSpeedup5m > 0) { GameState.countSpeedup5m--; applySpeedup(300000L, "5 دقائق", R.drawable.ic_speedup_5m) } else { d.dismiss(); showStoreDialog(activity) } }
+        btnUse15m?.setOnClickListener { if (GameState.countSpeedup15m > 0) { GameState.countSpeedup15m--; applySpeedup(900000L, "15 دقيقة", R.drawable.ic_speedup_15m) } else { d.dismiss(); showStoreDialog(activity) } }
+        btnUse30m?.setOnClickListener { if (GameState.countSpeedup30m > 0) { GameState.countSpeedup30m--; applySpeedup(1800000L, "30 دقيقة", R.drawable.ic_speedup_30m) } else { d.dismiss(); showStoreDialog(activity) } }
+        btnUse1h?.setOnClickListener { if (GameState.countSpeedup1Hour > 0) { GameState.countSpeedup1Hour--; applySpeedup(3600000L, "ساعة", R.drawable.ic_speedup_1h) } else { d.dismiss(); showStoreDialog(activity) } }
+        btnUse2h?.setOnClickListener { if (GameState.countSpeedup2h > 0) { GameState.countSpeedup2h--; applySpeedup(7200000L, "ساعتين", R.drawable.ic_speedup_2h) } else { d.dismiss(); showStoreDialog(activity) } }
+        btnUse8h?.setOnClickListener { if (GameState.countSpeedup8Hour > 0) { GameState.countSpeedup8Hour--; applySpeedup(28800000L, "8 ساعات", R.drawable.ic_speedup_8h) } else { d.dismiss(); showStoreDialog(activity) } }
 
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
         d.setOnDismissListener { handler.removeCallbacks(runnable) }
@@ -591,22 +603,22 @@ object DialogManager {
         if (GameState.isPeacockUnlocked) { btnPeacock?.text = "مملوكة"; btnPeacock?.isEnabled = false }
         if (GameState.isDiamondUnlocked) { btnDiamond?.text = "مملوكة"; btnDiamond?.isEnabled = false }
 
-        btnPyramid?.setOnClickListener { if (GameState.totalGold >= 500000) { GameState.totalGold -= 500000; GameState.isPyramidUnlocked = true; btnPyramid.text = "مملوكة"; btnPyramid.isEnabled = false; activity.updateHudUI(); GameState.saveGameData(activity); activity.changeCitySkin(R.drawable.bg_city_pyramid); Toast.makeText(activity, "تم الشراء والتطبيق!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
-        btnPeacock?.setOnClickListener { if (GameState.totalGold >= 1500000) { GameState.totalGold -= 1500000; GameState.isPeacockUnlocked = true; btnPeacock.text = "مملوكة"; btnPeacock.isEnabled = false; activity.updateHudUI(); GameState.saveGameData(activity); activity.changeCitySkin(R.drawable.bg_city_peacock); Toast.makeText(activity, "تم الشراء والتطبيق!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
-        btnDiamond?.setOnClickListener { if (GameState.totalGold >= 3000000) { GameState.totalGold -= 3000000; GameState.isDiamondUnlocked = true; btnDiamond.text = "مملوكة"; btnDiamond.isEnabled = false; activity.updateHudUI(); GameState.saveGameData(activity); activity.changeCitySkin(R.drawable.bg_city_diamond); Toast.makeText(activity, "تم الشراء والتطبيق!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
+        btnPyramid?.setOnClickListener { if (GameState.totalGold >= 500000) { GameState.totalGold -= 500000; GameState.isPyramidUnlocked = true; btnPyramid.text = "مملوكة"; btnPyramid.isEnabled = false; activity.updateHudUI(); GameState.saveGameData(activity); activity.changeCitySkin(R.drawable.bg_city_pyramid); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        btnPeacock?.setOnClickListener { if (GameState.totalGold >= 1500000) { GameState.totalGold -= 1500000; GameState.isPeacockUnlocked = true; btnPeacock.text = "مملوكة"; btnPeacock.isEnabled = false; activity.updateHudUI(); GameState.saveGameData(activity); activity.changeCitySkin(R.drawable.bg_city_peacock); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        btnDiamond?.setOnClickListener { if (GameState.totalGold >= 3000000) { GameState.totalGold -= 3000000; GameState.isDiamondUnlocked = true; btnDiamond.text = "مملوكة"; btnDiamond.isEnabled = false; activity.updateHudUI(); GameState.saveGameData(activity); activity.changeCitySkin(R.drawable.bg_city_diamond); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
 
-        d.findViewById<Button>(R.id.btnBuySpeedup5m)?.setOnClickListener { if (GameState.totalGold >= 1000) { GameState.totalGold -= 1000; GameState.countSpeedup5m++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء بنجاح!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
-        d.findViewById<Button>(R.id.btnBuySpeedup15m)?.setOnClickListener { if (GameState.totalGold >= 3000) { GameState.totalGold -= 3000; GameState.countSpeedup15m++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء بنجاح!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
-        d.findViewById<Button>(R.id.btnBuySpeedup30m)?.setOnClickListener { if (GameState.totalGold >= 5000) { GameState.totalGold -= 5000; GameState.countSpeedup30m++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء بنجاح!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
-        d.findViewById<Button>(R.id.btnBuySpeedup1h)?.setOnClickListener { if (GameState.totalGold >= 15000) { GameState.totalGold -= 15000; GameState.countSpeedup1Hour++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء بنجاح!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
-        d.findViewById<Button>(R.id.btnBuySpeedup2h)?.setOnClickListener { if (GameState.totalGold >= 28000) { GameState.totalGold -= 28000; GameState.countSpeedup2h++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء بنجاح!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
-        d.findViewById<Button>(R.id.btnBuySpeedup8h)?.setOnClickListener { if (GameState.totalGold >= 100000) { GameState.totalGold -= 100000; GameState.countSpeedup8Hour++; activity.updateHudUI(); GameState.saveGameData(activity); Toast.makeText(activity, "تم الشراء بنجاح!", Toast.LENGTH_SHORT).show() } else Toast.makeText(activity, "الذهب غير كافٍ!", Toast.LENGTH_SHORT).show() }
+        d.findViewById<Button>(R.id.btnBuySpeedup5m)?.setOnClickListener { if (GameState.totalGold >= 1000) { GameState.totalGold -= 1000; GameState.countSpeedup5m++; activity.updateHudUI(); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_5m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnBuySpeedup15m)?.setOnClickListener { if (GameState.totalGold >= 3000) { GameState.totalGold -= 3000; GameState.countSpeedup15m++; activity.updateHudUI(); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_15m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnBuySpeedup30m)?.setOnClickListener { if (GameState.totalGold >= 5000) { GameState.totalGold -= 5000; GameState.countSpeedup30m++; activity.updateHudUI(); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_30m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnBuySpeedup1h)?.setOnClickListener { if (GameState.totalGold >= 15000) { GameState.totalGold -= 15000; GameState.countSpeedup1Hour++; activity.updateHudUI(); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_1h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnBuySpeedup2h)?.setOnClickListener { if (GameState.totalGold >= 28000) { GameState.totalGold -= 28000; GameState.countSpeedup2h++; activity.updateHudUI(); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_2h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnBuySpeedup8h)?.setOnClickListener { if (GameState.totalGold >= 100000) { GameState.totalGold -= 100000; GameState.countSpeedup8Hour++; activity.updateHudUI(); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_8h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
 
         d.findViewById<Button>(R.id.btnAdResources)?.setOnClickListener { 
             showAdConfirmDialog(activity) {
                 YandexAdsManager.showRewardedAd(activity, onRewarded = {
                     GameState.totalWheat += 50000; GameState.totalIron += 50000; activity.updateHudUI(); GameState.saveGameData(activity)
-                    Toast.makeText(activity, "حصلت على 50K قمح و 50K حديد!", Toast.LENGTH_LONG).show()
+                    showGameMessage(activity, "مكافأة الإعلان", "حصلت على 50K قمح و 50K حديد!", R.drawable.ic_resource_iron)
                 }, onAdClosed = {})
             }
         }
@@ -615,7 +627,7 @@ object DialogManager {
             showAdConfirmDialog(activity) {
                 YandexAdsManager.showRewardedAd(activity, onRewarded = {
                     GameState.totalGold += 10000; activity.updateHudUI(); GameState.saveGameData(activity)
-                    Toast.makeText(activity, "حصلت على 10K ذهب!", Toast.LENGTH_LONG).show()
+                    showGameMessage(activity, "مكافأة الإعلان", "حصلت على 10K ذهب!", R.drawable.ic_resource_gold)
                 }, onAdClosed = {})
             }
         }
@@ -624,7 +636,7 @@ object DialogManager {
             showAdConfirmDialog(activity) {
                 YandexAdsManager.showRewardedAd(activity, onRewarded = {
                     GameState.countSpeedup30m++; GameState.saveGameData(activity)
-                    Toast.makeText(activity, "حصلت على تسريع 30 دقيقة!", Toast.LENGTH_LONG).show()
+                    showGameMessage(activity, "مكافأة الإعلان", "حصلت على تسريع 30 دقيقة!", R.drawable.ic_speedup_30m)
                 }, onAdClosed = {})
             }
         }
@@ -650,27 +662,21 @@ object DialogManager {
             if (GameState.isPyramidUnlocked) { 
                 activity.changeCitySkin(R.drawable.bg_city_pyramid)
                 d.dismiss() 
-            } else {
-                Toast.makeText(activity, "مقفلة! اشتريها من المتجر أولاً", Toast.LENGTH_SHORT).show()
-            }
+            } else showGameMessage(activity, "عذراً", "مقفلة! اشتريها من المتجر أولاً", R.drawable.ic_settings_gear) // استخدمت الترس مؤقتا للخطأ
         }
         
         d.findViewById<View>(R.id.btnSkinDiamond)?.setOnClickListener { 
             if (GameState.isDiamondUnlocked) { 
                 activity.changeCitySkin(R.drawable.bg_city_diamond)
                 d.dismiss() 
-            } else {
-                Toast.makeText(activity, "مقفلة! اشتريها من المتجر أولاً", Toast.LENGTH_SHORT).show()
-            }
+            } else showGameMessage(activity, "عذراً", "مقفلة! اشتريها من المتجر أولاً", R.drawable.ic_settings_gear)
         }
         
         d.findViewById<View>(R.id.btnSkinPeacock)?.setOnClickListener { 
             if (GameState.isPeacockUnlocked) { 
                 activity.changeCitySkin(R.drawable.bg_city_peacock)
                 d.dismiss() 
-            } else {
-                Toast.makeText(activity, "مقفلة! اشتريها من المتجر أولاً", Toast.LENGTH_SHORT).show()
-            }
+            } else showGameMessage(activity, "عذراً", "مقفلة! اشتريها من المتجر أولاً", R.drawable.ic_settings_gear)
         }
 
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
@@ -681,50 +687,37 @@ object DialogManager {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_summoning_tavern) 
         val tvMedals = d.findViewById<TextView>(R.id.tvSummonMedals)
-        tvMedals?.text = "ميداليات الأبطال: ${GameState.summonMedals}"
+        tvMedals?.text = "دعوات ملكية: ${GameState.summonMedals}"
 
-        // 1. الاستدعاء المجاني بالإعلان (صعب جداً)
         d.findViewById<Button>(R.id.btnSummonAd)?.setOnClickListener {
             showAdConfirmDialog(activity) {
                 YandexAdsManager.showRewardedAd(activity, onRewarded = {
-                    // اختيار بطل من المستويات العادية (أول 4 أبطال فقط)
                     val luckyHero = GameState.myHeroes[Random.nextInt(0, 4)]
-                    
-                    // شظية واحدة فقط كضمان، وفرصة 10% لشظيتين
                     val shardsCount = if (Random.nextInt(100) < 10) 2 else 1
-                    
                     luckyHero.shardsOwned += shardsCount
                     GameState.saveGameData(activity)
-                    Toast.makeText(activity, "استدعاء ناجح! حصلت على $shardsCount شظية لـ ${luckyHero.name}", Toast.LENGTH_LONG).show()
+                    showGameMessage(activity, "استدعاء ناجح!", "حصلت على $shardsCount شظية لـ ${luckyHero.name}", R.drawable.ic_ui_tavern)
                 }, onAdClosed = {})
             }
         }
 
-        // 2. الاستدعاء الملكي بالميدالية النادرة (متوازن وصعب)
         d.findViewById<Button>(R.id.btnSummonPremium)?.setOnClickListener {
             if (GameState.summonMedals > 0) {
                 GameState.summonMedals--
-                
-                // فرصة للحصول على بطل من المستويات المتقدمة
                 val luckyHero = GameState.myHeroes[Random.nextInt(2, GameState.myHeroes.size)] 
-                
-                // يحصل على 2 إلى 4 شظايا كحد أقصى!
                 val shardsCount = Random.nextInt(2, 5)
                 luckyHero.shardsOwned += shardsCount
                 
-                // فرصة نادرة جداً 1% للحصول على بطاقة VIP 8 ساعات
                 if (Random.nextInt(100) < 1) {
                     GameState.countVip8h++
-                    Toast.makeText(activity, "استدعاء أسطوري! $shardsCount شظية لـ ${luckyHero.name} وبطاقة VIP!", Toast.LENGTH_LONG).show()
+                    showGameMessage(activity, "استدعاء أسطوري!", "حصلت على $shardsCount شظية لـ ${luckyHero.name}\nوبطاقة VIP 8 ساعات!", R.drawable.ic_item_legend_medal)
                 } else {
-                    Toast.makeText(activity, "استدعاء مبهر! حصلت على $shardsCount شظايا لـ ${luckyHero.name}", Toast.LENGTH_SHORT).show()
+                    showGameMessage(activity, "استدعاء مبهر!", "حصلت على $shardsCount شظايا لـ ${luckyHero.name}", R.drawable.ic_item_legend_medal)
                 }
                 
-                tvMedals?.text = "ميداليات الأبطال: ${GameState.summonMedals}"
+                tvMedals?.text = "دعوات ملكية: ${GameState.summonMedals}"
                 GameState.saveGameData(activity)
-            } else {
-                Toast.makeText(activity, "لا تملك دعوات ملكية (ميداليات)!", Toast.LENGTH_SHORT).show()
-            }
+            } else showGameMessage(activity, "عذراً", "لا تملك دعوات ملكية!", R.drawable.ic_item_legend_medal)
         }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
         d.show()
