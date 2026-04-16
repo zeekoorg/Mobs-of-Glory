@@ -630,23 +630,59 @@ object DialogManager {
         d.show()
     }
 
-    fun showSummoningTavernDialog(activity: MainActivity) {
+        fun showSummoningTavernDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
-        d.setContentView(R.layout.dialog_summoning_tavern)
+        d.setContentView(R.layout.dialog_summoning_tavern) // يجب أن تغير النصوص داخل هذا الملف لاحقاً لـ "قاعة الأساطير"
         val tvMedals = d.findViewById<TextView>(R.id.tvSummonMedals)
         tvMedals?.text = "ميداليات الأبطال: ${GameState.summonMedals}"
 
+        // 1. الاستدعاء المجاني بالإعلان (صعب جداً)
         d.findViewById<Button>(R.id.btnSummonAd)?.setOnClickListener {
             showAdConfirmDialog(activity) {
                 YandexAdsManager.showRewardedAd(activity, onRewarded = {
-                    val luckyHero = GameState.myHeroes[Random.nextInt(GameState.myHeroes.size)]
-                    val shardsCount = Random.nextInt(1, 5)
+                    // اختيار بطل من المستويات العادية (أول 4 أبطال فقط)
+                    val luckyHero = GameState.myHeroes[Random.nextInt(0, 4)]
+                    
+                    // شظية واحدة فقط كضمان، وفرصة 10% لشظيتين
+                    val shardsCount = if (Random.nextInt(100) < 10) 2 else 1
+                    
                     luckyHero.shardsOwned += shardsCount
                     GameState.saveGameData(activity)
-                    Toast.makeText(activity, "حصلت على $shardsCount شظية لـ ${luckyHero.name}!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(activity, "استدعاء ناجح! حصلت على $shardsCount شظية لـ ${luckyHero.name}", Toast.LENGTH_LONG).show()
                 }, onAdClosed = {})
             }
         }
+
+        // 2. الاستدعاء الملكي بالميدالية النادرة (متوازن وصعب)
+        d.findViewById<Button>(R.id.btnSummonPremium)?.setOnClickListener {
+            if (GameState.summonMedals > 0) {
+                GameState.summonMedals--
+                
+                // فرصة للحصول على بطل من المستويات المتقدمة
+                val luckyHero = GameState.myHeroes[Random.nextInt(2, GameState.myHeroes.size)] 
+                
+                // يحصل على 2 إلى 4 شظايا كحد أقصى!
+                val shardsCount = Random.nextInt(2, 5)
+                luckyHero.shardsOwned += shardsCount
+                
+                // فرصة نادرة جداً 1% للحصول على بطاقة VIP 8 ساعات
+                if (Random.nextInt(100) < 1) {
+                    GameState.countVip8h++
+                    Toast.makeText(activity, "استدعاء أسطوري! $shardsCount شظية لـ ${luckyHero.name} وبطاقة VIP!", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(activity, "استدعاء مبهر! حصلت على $shardsCount شظايا لـ ${luckyHero.name}", Toast.LENGTH_SHORT).show()
+                }
+                
+                tvMedals?.text = "ميداليات الأبطال: ${GameState.summonMedals}"
+                GameState.saveGameData(activity)
+            } else {
+                Toast.makeText(activity, "لا تملك دعوات ملكية (ميداليات)!", Toast.LENGTH_SHORT).show()
+            }
+        }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.show()
+    }
+
 
         d.findViewById<Button>(R.id.btnSummonPremium)?.setOnClickListener {
             if (GameState.summonMedals > 0) {
