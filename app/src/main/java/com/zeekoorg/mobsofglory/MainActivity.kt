@@ -17,7 +17,6 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import java.io.File
@@ -48,9 +47,10 @@ class MainActivity : AppCompatActivity() {
                 
                 GameState.saveGameData(this)
                 updateAvatarImages()
-                Toast.makeText(this, "تم حفظ الصورة الرمزية في خزائن اللعبة!", Toast.LENGTH_SHORT).show()
+                // 💡 استبدال التوست بنافذة ملكية
+                DialogManager.showGameMessage(this, "تغيير الصورة", "تم حفظ صورتك الملكية في خزائن اللعبة!", R.drawable.ic_vip_crown)
             } else {
-                Toast.makeText(this, "فشل في حفظ الصورة!", Toast.LENGTH_SHORT).show()
+                DialogManager.showGameMessage(this, "خطأ", "فشل في حفظ الصورة!", R.drawable.ic_settings_gear)
             }
         }
     }
@@ -127,11 +127,10 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { DialogManager.showBagDialog(this) }
         
         findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
-            Toast.makeText(this, "قريباً: سيتم فتح خريطة العالم!", Toast.LENGTH_SHORT).show()
+            DialogManager.showGameMessage(this, "قريباً", "سيتم فتح خريطة العالم في التحديث القادم!", R.drawable.ic_ui_castle_rewards)
         } 
     }
 
-    // 💡 دالة نافذة المعاينة الجديدة
     private fun showAvatarPreviewDialog(imgResId: Int, title: String) {
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_avatar_preview)
@@ -153,11 +152,10 @@ class MainActivity : AppCompatActivity() {
             getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit().putString("PLAYER_CUSTOM_AVATAR", defaultUri).apply()
             GameState.saveGameData(this)
             updateAvatarImages()
-            Toast.makeText(this, "تم تعيين الصورة الافتراضية!", Toast.LENGTH_SHORT).show()
+            DialogManager.showGameMessage(this, "تغيير الصورة", "تم تعيين الصورة الافتراضية!", R.drawable.ic_vip_crown)
             d.dismiss()
         }
 
-        // 💡 تم تحديث هذه الدالة لتستقبل معرّف الصورة للضغط عليها، واسم الصورة لعرضه في المعاينة
         fun setupPremiumAvatar(btnId: Int, imgId: Int, imgResId: Int, cost: Long, prefKey: String, avatarName: String) {
             val btn = d.findViewById<Button>(btnId)
             val img = d.findViewById<ImageView>(imgId)
@@ -169,7 +167,6 @@ class MainActivity : AppCompatActivity() {
                 btn?.setTextColor(android.graphics.Color.WHITE)
             }
 
-            // 💡 عند النقر على الصورة، تفتح نافذة المعاينة الكبيرة!
             img?.setOnClickListener {
                 showAvatarPreviewDialog(imgResId, avatarName)
             }
@@ -181,7 +178,7 @@ class MainActivity : AppCompatActivity() {
                     prefs.edit().putString("PLAYER_CUSTOM_AVATAR", premiumUri).apply()
                     GameState.saveGameData(this)
                     updateAvatarImages()
-                    Toast.makeText(this, "تم تعيين صورتك النادرة!", Toast.LENGTH_SHORT).show()
+                    DialogManager.showGameMessage(this, "تغيير الصورة", "تم تعيين صورتك النادرة!", R.drawable.ic_vip_crown)
                     d.dismiss()
                 } else {
                     if (GameState.totalGold >= cost) {
@@ -191,9 +188,9 @@ class MainActivity : AppCompatActivity() {
                         GameState.saveGameData(this)
                         btn.text = "استخدام"
                         btn.setTextColor(android.graphics.Color.WHITE)
-                        Toast.makeText(this, "تم شراء الصورة بنجاح!", Toast.LENGTH_SHORT).show()
+                        DialogManager.showGameMessage(this, "شراء ناجح", "تم شراء الصورة بنجاح!", R.drawable.ic_resource_gold)
                     } else {
-                        Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+                        DialogManager.showGameMessage(this, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold)
                     }
                 }
             }
@@ -210,7 +207,7 @@ class MainActivity : AppCompatActivity() {
                 pickImageLauncher.launch("image/*")
                 d.dismiss()
             } else {
-                Toast.makeText(this, "هذه الميزة تتطلب تفعيل الـ VIP!", Toast.LENGTH_SHORT).show()
+                DialogManager.showGameMessage(this, "ميزة حصرية", "هذه الميزة تتطلب تفعيل الـ VIP!", R.drawable.ic_vip_crown)
                 DialogManager.showVipDialog(this)
             }
         }
@@ -235,13 +232,13 @@ class MainActivity : AppCompatActivity() {
                     GameState.playerName = newName
                     GameState.saveGameData(this)
                     updateHudUI()
-                    Toast.makeText(this, "تم تغيير اسمك إلى $newName", Toast.LENGTH_SHORT).show()
+                    DialogManager.showGameMessage(this, "تغيير الاسم", "تم تغيير اسمك إلى $newName بنجاح!", R.drawable.ic_vip_crown)
                     d.dismiss()
                 } else {
-                    Toast.makeText(this, "رصيد الذهب غير كافٍ!", Toast.LENGTH_SHORT).show()
+                    DialogManager.showGameMessage(this, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold)
                 }
             } else {
-                Toast.makeText(this, "الاسم لا يمكن أن يكون فارغاً!", Toast.LENGTH_SHORT).show()
+                DialogManager.showGameMessage(this, "خطأ", "الاسم لا يمكن أن يكون فارغاً!", R.drawable.ic_settings_gear)
             }
         }
         
