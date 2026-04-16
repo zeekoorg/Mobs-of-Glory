@@ -143,6 +143,41 @@
             android:textStyle="bold" />
     </LinearLayout>
 
+    <LinearLayout
+        android:id="@+id/layoutVipClick"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="@id/layoutPlayerLevel"
+        app:layout_constraintEnd_toEndOf="@id/layoutPlayerLevel"
+        app:layout_constraintTop_toBottomOf="@id/layoutPlayerLevel"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:id="@+id/imgVipIcon"
+            android:layout_width="35dp"
+            android:layout_height="35dp"
+            android:src="@drawable/ic_item_speedup" 
+            android:background="@drawable/bg_inner_frame"
+            android:padding="5dp"/>
+
+        <TextView
+            android:id="@+id/tvVipTimerUI"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="VIP غير مفعل"
+            android:textColor="#FF5252"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            android:layout_marginTop="3dp"
+            android:background="#99000000"
+            android:paddingHorizontal="5dp"
+            android:paddingVertical="2dp"/>
+    </LinearLayout>
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/bottomNavBar"
         android:layout_width="match_parent"
