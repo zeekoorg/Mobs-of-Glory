@@ -8,6 +8,7 @@ import android.os.Looper
 import android.view.View
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import com.zeekoorg.mobsofglory.R 
@@ -26,6 +27,18 @@ object DialogManager {
             d.findViewById<TextView>(R.id.tvProfileInfantry)?.text = formatResourceNumber(GameState.totalInfantry)
             d.findViewById<TextView>(R.id.tvProfileCavalry)?.text = formatResourceNumber(GameState.totalCavalry)
             
+            // حساب قوة المباني
+            var buildingPower = 0L
+            GameState.myPlots.forEach { buildingPower += it.getPowerProvided() }
+            d.findViewById<TextView>(R.id.tvProfileBuildingPower)?.text = formatResourceNumber(buildingPower)
+
+            // شريط الخبرة
+            val maxExp = GameState.playerLevel * 1000
+            val currentExp = GameState.playerExp
+            val expPercent = ((currentExp.toFloat() / maxExp.toFloat()) * 100).toInt()
+            d.findViewById<ProgressBar>(R.id.pbProfileEXP)?.progress = expPercent
+            d.findViewById<TextView>(R.id.tvProfileEXP)?.text = "$currentExp/$maxExp"
+            
             val imgProfileAvatar = d.findViewById<ImageView>(R.id.imgProfileAvatar)
             if (GameState.selectedAvatarUri != null) {
                 imgProfileAvatar?.setImageURI(Uri.parse(GameState.selectedAvatarUri))
@@ -33,6 +46,9 @@ object DialogManager {
             d.findViewById<Button>(R.id.btnChangePic)?.setOnClickListener {
                 onPickImage()
                 d.dismiss()
+            }
+            d.findViewById<Button>(R.id.btnChangeName)?.setOnClickListener {
+                Toast.makeText(activity, "سيتم برمجة تغيير الاسم قريباً!", Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) { e.printStackTrace() }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
