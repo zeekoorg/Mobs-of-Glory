@@ -98,12 +98,23 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.layoutVipClick)?.setOnClickListener { 
             DialogManager.showVipDialog(this)
         }
+
+        findViewById<View>(R.id.layoutCastleRewardsClick)?.setOnClickListener {
+            val castleLvl = GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
+            DialogManager.showCastleRewardsDialog(this, castleLvl)
+        }
+
+        findViewById<View>(R.id.layoutTavernClick)?.setOnClickListener {
+            DialogManager.showSummoningTavernDialog(this)
+        }
         
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { DialogManager.showStoreDialog(this) }
-        findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { DialogManager.showHeroesDialog(this) }
         findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { DialogManager.showQuestsDialog(this) }
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { DialogManager.showBagDialog(this) }
-        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { DialogManager.showSummoningTavernDialog(this) } 
+        
+        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
+            // سيتم برمجته لاحقاً لفتح خريطة العالم
+        } 
     }
 
     private fun showAvatarSelectionDialog() {
@@ -237,7 +248,13 @@ class MainActivity : AppCompatActivity() {
         plot.pbUpgrade = view.findViewById(R.id.pbUpgrade)
         plot.tvUpgradeTimer = view.findViewById(R.id.tvUpgradeTimer)
 
-        if (plot.resourceType != ResourceType.NONE) plot.collectIcon?.setImageResource(plot.resourceType.iconResId)
+        if (plot.resourceType != ResourceType.NONE) {
+            plot.collectIcon?.setImageResource(plot.resourceType.iconResId)
+            // إظهار الأيقونة فوراً إذا كان المورد جاهزاً (يحل مشكلة الأوفلاين)
+            if (plot.isReady) {
+                plot.collectIcon?.visibility = View.VISIBLE
+            }
+        }
         
         img.setOnClickListener {
             if (plot.isReady && plot.resourceType != ResourceType.NONE) { collectResources(plot) } 
@@ -283,7 +300,6 @@ class MainActivity : AppCompatActivity() {
                             
                             GameState.addQuestProgress(QuestType.UPGRADE_BUILDING, 1)
 
-                            // 💡 إظهار نافذة المستوى عند اكتمال الخبرة
                             if(GameState.checkPlayerLevelUp()) {
                                 updateHudUI()
                                 DialogManager.showLevelUpDialog(this@MainActivity, GameState.playerLevel)
@@ -361,7 +377,7 @@ class MainActivity : AppCompatActivity() {
         tvTotalWheat.text = formatResourceNumber(GameState.totalWheat)
         tvPlayerLevel.text = "Lv. ${GameState.playerLevel}"
         pbPlayerMP.progress = ((GameState.playerExp.toFloat() / (GameState.playerLevel * 1000).toFloat()) * 100).toInt()
-        tvMainTotalPower.text = "القوة: ${formatResourceNumber(GameState.playerPower)}" 
+        tvMainTotalPower.text = "⚔️ ${formatResourceNumber(GameState.playerPower)}" 
     }
 
     fun changeCitySkin(skinResId: Int) {
