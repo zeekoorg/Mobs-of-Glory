@@ -59,6 +59,12 @@ class MainActivity : AppCompatActivity() {
         YandexAdsManager.initYandexAds(this)
         
         initViews()
+        
+        // 💡 التعديل هنا: تحميل زينة المدينة المحفوظة فور فتح اللعبة
+        val savedSkin = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
+            .getInt("SELECTED_SKIN", R.drawable.bg_mobs_city_isometric)
+        imgCityBackground.setImageResource(savedSkin)
+
         GameState.initializeDataLists()
         GameState.loadGameDataAndProcessOffline(this)
         GameState.calculatePower()
@@ -250,7 +256,6 @@ class MainActivity : AppCompatActivity() {
 
         if (plot.resourceType != ResourceType.NONE) {
             plot.collectIcon?.setImageResource(plot.resourceType.iconResId)
-            // إظهار الأيقونة فوراً إذا كان المورد جاهزاً (يحل مشكلة الأوفلاين)
             if (plot.isReady) {
                 plot.collectIcon?.visibility = View.VISIBLE
             }
