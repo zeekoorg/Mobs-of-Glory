@@ -3,7 +3,6 @@ package com.zeekoorg.mobsofglory
 import android.app.Activity
 import android.content.Context
 import android.util.Log
-import android.widget.Toast
 import com.yandex.mobile.ads.common.AdError
 import com.yandex.mobile.ads.common.AdRequestConfiguration
 import com.yandex.mobile.ads.common.AdRequestError
@@ -68,7 +67,11 @@ object YandexAdsManager {
                     Log.e("YandexAds", "فشل في عرض الإعلان المتاح: ${adError.description}")
                     rewardedAd = null
                     loadRewardedAd(activity) // محاولة تحميل إعلان جديد
-                    Toast.makeText(activity, "حدث خطأ أثناء عرض الإعلان، جرب مرة أخرى.", Toast.LENGTH_SHORT).show()
+                    
+                    // 💡 استبدال التوست بالنافذة الملكية مع التأكد من نوع الأكتيفيتي
+                    if (activity is MainActivity) {
+                        DialogManager.showGameMessage(activity, "خطأ في العرض", "حدث خطأ أثناء عرض الإعلان، جرب مرة أخرى.", R.drawable.ic_settings_gear)
+                    }
                 }
 
                 override fun onAdDismissed() {
@@ -98,7 +101,10 @@ object YandexAdsManager {
             
             rewardedAd?.show(activity)
         } else {
-            Toast.makeText(activity, "الإعلان غير جاهز بعد، جاري التحميل... ⏳", Toast.LENGTH_SHORT).show()
+            // 💡 استبدال التوست بالنافذة الملكية
+            if (activity is MainActivity) {
+                DialogManager.showGameMessage(activity, "جاري التحميل", "الإعلان غير جاهز بعد، جاري التحميل... ⏳", R.drawable.ic_ui_ad_video)
+            }
             loadRewardedAd(activity)
         }
     }
