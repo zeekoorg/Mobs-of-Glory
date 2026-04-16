@@ -33,11 +33,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var pbPlayerMP: ProgressBar
     private lateinit var imgCityBackground: ImageView
     private lateinit var imgMainPlayerAvatar: ImageView
-    private lateinit var tvVipTimerUI: TextView // 💡 متغير لعداد الـ VIP
+    private lateinit var tvVipTimerUI: TextView 
+    private lateinit var tvMainTotalPower: TextView // 💡 متغير القوة الإجمالية
     
     private val gameHandler = Handler(Looper.getMainLooper())
 
-    // 📸 مبرمج اختيار الصورة من المعرض (محدث بالنسخ الداخلي)
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
             val internalPath = copyImageToInternalStorage(it)
@@ -83,19 +83,18 @@ class MainActivity : AppCompatActivity() {
         pbPlayerMP = findViewById(R.id.pbPlayerMP)
         imgCityBackground = findViewById(R.id.imgCityBackground)
         imgMainPlayerAvatar = findViewById(R.id.imgMainPlayerAvatar)
-        tvVipTimerUI = findViewById(R.id.tvVipTimerUI) // 💡 ربط العداد
+        tvVipTimerUI = findViewById(R.id.tvVipTimerUI)
+        tvMainTotalPower = findViewById(R.id.tvMainTotalPower) // 💡 ربط عنصر القوة
     }
 
     private fun setupActionListeners() {
-        // 💡 النقر على الصورة يفتح ملف اللاعب
         findViewById<View>(R.id.layoutAvatarClick)?.setOnClickListener { 
             DialogManager.showPlayerProfileDialog(this, 
                 onPickImage = { showAvatarSelectionDialog() },
-                onChangeName = { showChangeNameDialog() } // 💡 تمرير دالة تغيير الاسم
+                onChangeName = { showChangeNameDialog() }
             ) 
         }
         
-        // 💡 النقر على الـ VIP
         findViewById<View>(R.id.layoutVipClick)?.setOnClickListener { 
             DialogManager.showVipDialog(this)
         }
@@ -107,15 +106,10 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnNavCity)?.setOnClickListener { DialogManager.showSummoningTavernDialog(this) } 
     }
 
-    // ==========================================
-    // 🎭 نظام الصور الرمزية وتغيير الاسم
-    // ==========================================
-    
     private fun showAvatarSelectionDialog() {
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_avatar_selection)
 
-        // 1. الصورة الافتراضية المجانية
         d.findViewById<Button>(R.id.btnUseDefaultAvatar)?.setOnClickListener {
             GameState.selectedAvatarUri = "android.resource://$packageName/${R.drawable.img_default_avatar}"
             GameState.saveGameData(this)
@@ -124,7 +118,6 @@ class MainActivity : AppCompatActivity() {
             d.dismiss()
         }
 
-        // 2. ربط الصور النادرة (شراء دائم بـ 50,000 ذهب)
         fun setupPremiumAvatar(btnId: Int, imgResId: Int, cost: Long, prefKey: String) {
             val btn = d.findViewById<Button>(btnId)
             val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
@@ -164,7 +157,6 @@ class MainActivity : AppCompatActivity() {
         setupPremiumAvatar(R.id.btnBuyAvatarAssassin, R.drawable.img_avatar_assassin, cost, "AV_ASSASSIN_UNLOCKED")
         setupPremiumAvatar(R.id.btnBuyAvatarEmperor, R.drawable.img_avatar_emperor, cost, "AV_EMPEROR_UNLOCKED")
 
-        // 3. زر المعرض (مربوط بنظام الـ VIP الحقيقي الآن)
         d.findViewById<Button>(R.id.btnChooseFromGallery)?.setOnClickListener {
             if (GameState.isVipActive()) {
                 pickImageLauncher.launch("image/*")
@@ -179,10 +171,9 @@ class MainActivity : AppCompatActivity() {
         d.show()
     }
 
-    // 💡 دالة تغيير الاسم
-        private fun showChangeNameDialog() {
+    private fun showChangeNameDialog() {
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
-        d.setContentView(R.layout.dialog_change_name) // نستخدم الملف الجديد النظيف!
+        d.setContentView(R.layout.dialog_change_name) 
         
         val input = d.findViewById<EditText>(R.id.etNewName)
         val btnConfirm = d.findViewById<Button>(R.id.btnConfirmChangeName)
@@ -210,7 +201,6 @@ class MainActivity : AppCompatActivity() {
         d.show()
     }
 
-
     private fun copyImageToInternalStorage(uri: Uri): String? {
         return try {
             val inputStream = contentResolver.openInputStream(uri) ?: return null
@@ -236,9 +226,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ==========================================
-    // ⚙️ منطق النقر الذكي على المباني ودورة اللعبة
-    // ==========================================
     private fun setupPlot(plot: MapPlot) {
         val container = findViewById<FrameLayout>(plot.slotId) ?: return
         val view = LayoutInflater.from(this).inflate(R.layout.item_map_building, container, false)
@@ -283,7 +270,6 @@ class MainActivity : AppCompatActivity() {
             override fun run() {
                 val now = System.currentTimeMillis()
                 
-                // 💡 تحديث واجهة الـ VIP كل ثانية
                 updateVipUI(now)
 
                 GameState.myPlots.forEach { p ->
@@ -313,7 +299,6 @@ class MainActivity : AppCompatActivity() {
                         p.pbUpgrade?.progress = ((p.collectTimer.toFloat() / 60000f) * 100).toInt()
                         p.tvUpgradeTimer?.text = "%02d:%02d".format(((60000L - p.collectTimer)/60000), ((60000L - p.collectTimer)%60000)/1000)
                         
-                        // 💡 تطبيق خصم وقت الجمع إذا كان الـ VIP مفعل
                         val targetTime = if(GameState.isVipActive()) 45000L else 60000L
                         if (p.collectTimer >= targetTime) { p.isReady = true; p.layoutUpgradeProgress?.visibility = View.GONE; p.collectIcon?.visibility = View.VISIBLE }
                     }
@@ -323,7 +308,6 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    // 💡 دالة تحديث عداد الـ VIP في الشاشة الرئيسية
     fun updateVipUI(now: Long) {
         if (GameState.isVipActive()) {
             val remaining = GameState.vipEndTime - now
@@ -336,10 +320,10 @@ class MainActivity : AppCompatActivity() {
             } else {
                 tvVipTimerUI.text = String.format(Locale.US, "%02d:%02d:%02d", hours, minutes, seconds)
             }
-            tvVipTimerUI.setTextColor(android.graphics.Color.parseColor("#2ECC71")) // أخضر
+            tvVipTimerUI.setTextColor(android.graphics.Color.parseColor("#2ECC71")) 
         } else {
             tvVipTimerUI.text = "VIP غير مفعل"
-            tvVipTimerUI.setTextColor(android.graphics.Color.parseColor("#FF5252")) // أحمر
+            tvVipTimerUI.setTextColor(android.graphics.Color.parseColor("#FF5252")) 
         }
     }
 
@@ -363,6 +347,7 @@ class MainActivity : AppCompatActivity() {
         tvTotalWheat.text = formatResourceNumber(GameState.totalWheat)
         tvPlayerLevel.text = "Lv. ${GameState.playerLevel}"
         pbPlayerMP.progress = ((GameState.playerExp.toFloat() / (GameState.playerLevel * 1000).toFloat()) * 100).toInt()
+        tvMainTotalPower.text = "القوة: ${formatResourceNumber(GameState.playerPower)}" // 💡 التحديث هنا
     }
 
     fun changeCitySkin(skinResId: Int) {
