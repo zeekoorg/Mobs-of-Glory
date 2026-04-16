@@ -43,6 +43,10 @@ class MainActivity : AppCompatActivity() {
             val internalPath = copyImageToInternalStorage(it)
             if (internalPath != null) {
                 GameState.selectedAvatarUri = internalPath
+                // 💡 الحل الجذري: حفظ المسار في الذاكرة الدائمة
+                getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
+                    .edit().putString("PLAYER_CUSTOM_AVATAR", internalPath).apply()
+                
                 GameState.saveGameData(this)
                 updateAvatarImages()
                 Toast.makeText(this, "تم حفظ الصورة الرمزية في خزائن اللعبة!", Toast.LENGTH_SHORT).show()
@@ -60,9 +64,15 @@ class MainActivity : AppCompatActivity() {
         
         initViews()
         
-        val savedSkin = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
-            .getInt("SELECTED_SKIN", R.drawable.bg_mobs_city_isometric)
+        val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
+        val savedSkin = prefs.getInt("SELECTED_SKIN", R.drawable.bg_mobs_city_isometric)
         imgCityBackground.setImageResource(savedSkin)
+
+        // 💡 قراءة الصورة المحفوظة عند فتح التطبيق
+        val savedAvatar = prefs.getString("PLAYER_CUSTOM_AVATAR", null)
+        if (savedAvatar != null) {
+            GameState.selectedAvatarUri = savedAvatar
+        }
 
         GameState.initializeDataLists()
         GameState.loadGameDataAndProcessOffline(this)
@@ -92,7 +102,6 @@ class MainActivity : AppCompatActivity() {
         tvMainTotalPower = findViewById(R.id.tvMainTotalPower) 
     }
 
-    // 💡 تم إصلاح وتحديث جميع الأزرار هنا
     private fun setupActionListeners() {
         findViewById<View>(R.id.layoutAvatarClick)?.setOnClickListener { 
             DialogManager.showPlayerProfileDialog(this, 
@@ -114,8 +123,7 @@ class MainActivity : AppCompatActivity() {
             DialogManager.showSummoningTavernDialog(this)
         }
         
-        // 💡 أزرار الشريط السفلي
-        findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { DialogManager.showHeroesDialog(this) } // تمت إعادة زر الأبطال بنجاح!
+        findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { DialogManager.showHeroesDialog(this) }
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { DialogManager.showStoreDialog(this) }
         findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { DialogManager.showQuestsDialog(this) }
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { DialogManager.showBagDialog(this) }
@@ -130,7 +138,9 @@ class MainActivity : AppCompatActivity() {
         d.setContentView(R.layout.dialog_avatar_selection)
 
         d.findViewById<Button>(R.id.btnUseDefaultAvatar)?.setOnClickListener {
-            GameState.selectedAvatarUri = "android.resource://$packageName/${R.drawable.img_default_avatar}"
+            val defaultUri = "android.resource://$packageName/${R.drawable.img_default_avatar}"
+            GameState.selectedAvatarUri = defaultUri
+            getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit().putString("PLAYER_CUSTOM_AVATAR", defaultUri).apply()
             GameState.saveGameData(this)
             updateAvatarImages()
             Toast.makeText(this, "تم تعيين الصورة الافتراضية!", Toast.LENGTH_SHORT).show()
@@ -149,7 +159,9 @@ class MainActivity : AppCompatActivity() {
 
             btn?.setOnClickListener {
                 if (prefs.getBoolean(prefKey, false)) {
-                    GameState.selectedAvatarUri = "android.resource://$packageName/$imgResId"
+                    val premiumUri = "android.resource://$packageName/$imgResId"
+                    GameState.selectedAvatarUri = premiumUri
+                    prefs.edit().putString("PLAYER_CUSTOM_AVATAR", premiumUri).apply()
                     GameState.saveGameData(this)
                     updateAvatarImages()
                     Toast.makeText(this, "تم تعيين صورتك النادرة!", Toast.LENGTH_SHORT).show()
@@ -333,11 +345,17 @@ class MainActivity : AppCompatActivity() {
                         }
                     } else if (p.resourceType != ResourceType.NONE && !p.isReady) {
                         p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectTimer += 1000
-                        p.pbUpgrade?.progress = ((p.collectTimer.toFloat() / 60000f) * 100).toInt()
-                        p.tvUpgradeTimer?.text = "%02d:%02d".format(((60000L - p.collectTimer)/60000), ((60000L - p.collectTimer)%60000)/1000)
                         
+                        // 💡 الحل الجذري للـ VIP في الموارد: تعديل الهدف وعرض الوقت الصحيح
                         val targetTime = if(GameState.isVipActive()) 45000L else 60000L
-                        if (p.collectTimer >= targetTime) { p.isReady = true; p.layoutUpgradeProgress?.visibility = View.GONE; p.collectIcon?.visibility = View.VISIBLE }
+                        
+                        if (p.collectTimer >= targetTime) { 
+                            p.isReady = true; p.layoutUpgradeProgress?.visibility = View.GONE; p.collectIcon?.visibility = View.VISIBLE 
+                        } else {
+                            p.pbUpgrade?.progress = ((p.collectTimer.toFloat() / targetTime.toFloat()) * 100).toInt()
+                            val rem = targetTime - p.collectTimer
+                            p.tvUpgradeTimer?.text = "%02d:%02d".format((rem/60000), (rem%60000)/1000)
+                        }
                     }
                 }
                 gameHandler.postDelayed(this, 1000)
