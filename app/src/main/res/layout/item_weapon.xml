@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_inner_frame"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="10dp"
+    android:layout_marginBottom="8dp">
+
+    <ImageView
+        android:id="@+id/imgWeaponIcon"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:src="@drawable/ic_ui_weapons"
+        android:background="#33000000"
+        android:padding="5dp"/>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="10dp">
+
+        <TextView
+            android:id="@+id/tvWeaponName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="سيف اللهب الملعون"
+            android:textColor="#F4D03F"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvWeaponPower"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="قوة الفيلق: +15%"
+            android:textColor="#2ECC71"
+            android:textSize="11sp"
+            android:layout_marginTop="2dp"/>
+
+        <TextView
+            android:id="@+id/tvWeaponCost"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="التكلفة: 50K حديد + 10K ذهب"
+            android:textColor="#BDC3C7"
+            android:textSize="10sp"
+            android:layout_marginTop="2dp"/>
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnUpgradeWeapon"
+        android:layout_width="75dp"
+        android:layout_height="35dp"
+        android:background="@drawable/bg_btn_gold_border"
+        android:text="صناعة"
+        android:textColor="#FFFFFF"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:padding="0dp"/>
+</LinearLayout>
