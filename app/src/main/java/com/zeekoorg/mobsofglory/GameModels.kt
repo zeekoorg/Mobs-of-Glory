@@ -4,6 +4,7 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import com.zeekoorg.mobsofglory.R
 import kotlin.math.pow
 
 enum class ResourceType(val iconResId: Int) { 
@@ -25,10 +26,9 @@ enum class Rarity(val powerMultiplier: Double, val costMultiplier: Double, val t
     LEGENDARY(3.0, 5.0, 3.0)
 }
 
-// 💡 تمت إضافة iconResId هنا لربط صورة البطل بملفه
 data class Hero(
     val id: Int, val name: String, var level: Int = 1, val basePower: Long, 
-    val iconResId: Int, // الأيقونة المضافة
+    val iconResId: Int, 
     var isUnlocked: Boolean, var shardsOwned: Int, val shardsRequired: Int,
     var isEquipped: Boolean = false,
     val rarity: Rarity = Rarity.COMMON,
@@ -80,3 +80,12 @@ data class MapPlot(
     fun getPowerProvided(): Long = (level * 250).toLong()
     fun getExpReward(): Int = level * 300
 }
+
+// 💡 كلاس جديد يمثل اللاعبين في ساحة الغزوات (الحقيقي والوهميين)
+data class ArenaPlayer(
+    val id: Int,
+    var name: String,
+    var score: Long,
+    val isRealPlayer: Boolean = false,
+    val avatarResId: Int = R.drawable.img_default_avatar
+)
