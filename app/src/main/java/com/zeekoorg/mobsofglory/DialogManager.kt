@@ -9,6 +9,7 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -582,68 +583,178 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 دالة لاختيار البطل من المتاحين (تستخدم كقائمة منسدلة فخمة)
+    private fun showHeroSelectorDialog(activity: MainActivity, onSelected: (Hero) -> Unit) {
+        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_quests) 
+        d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "اختر بطلاً للفيلق"
+        val container = d.findViewById<LinearLayout>(R.id.layoutQuestsContainer)
+        container?.removeAllViews()
+
+        val availableHeroes = GameState.myHeroes.filter { it.isUnlocked && !it.isEquipped }
+        if (availableHeroes.isEmpty()) {
+            val tv = TextView(activity).apply { text = "لا يوجد أبطال متاحين أو جميعهم في الفيلق!"; setTextColor(Color.GRAY); textSize = 14f; setPadding(20,20,20,20) }
+            container?.addView(tv)
+        } else {
+            availableHeroes.forEach { hero ->
+                val btn = Button(activity).apply {
+                    text = "${hero.name} (قوة: ${formatResourceNumber(hero.getCurrentPower())})"
+                    setTextColor(Color.WHITE)
+                    setBackgroundResource(R.drawable.bg_btn_gold_border)
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 10, 0, 10) }
+                    setOnClickListener {
+                        onSelected(hero)
+                        d.dismiss()
+                    }
+                }
+                container?.addView(btn)
+            }
+        }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.show()
+    }
+
+    // 💡 دالة لاختيار السلاح من المتاحين (تستخدم كقائمة منسدلة فخمة)
+    private fun showWeaponSelectorDialog(activity: MainActivity, onSelected: (Weapon) -> Unit) {
+        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_quests) 
+        d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "اختر سلاحاً للفيلق"
+        val container = d.findViewById<LinearLayout>(R.id.layoutQuestsContainer)
+        container?.removeAllViews()
+
+        val availableWeapons = GameState.arsenal.filter { it.isOwned && !it.isEquipped }
+        if (availableWeapons.isEmpty()) {
+            val tv = TextView(activity).apply { text = "لا يوجد أسلحة متاحة أو جميعها مجهزة!"; setTextColor(Color.GRAY); textSize = 14f; setPadding(20,20,20,20) }
+            container?.addView(tv)
+        } else {
+            availableWeapons.forEach { weapon ->
+                val btn = Button(activity).apply {
+                    text = "${weapon.name} (قوة: ${formatResourceNumber(weapon.getCurrentPower())})"
+                    setTextColor(Color.WHITE)
+                    setBackgroundResource(R.drawable.bg_btn_gold_border)
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 10, 0, 10) }
+                    setOnClickListener {
+                        onSelected(weapon)
+                        d.dismiss()
+                    }
+                }
+                container?.addView(btn)
+            }
+        }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.show()
+    }
+
+    // 💡 دالة تخصيص الفيلق المحدثة (تعمل مع الـ 8 مربعات والأقفال)
     fun showFormationDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_formation)
         
+        val castleLevel = GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
         val tvPower = d.findViewById<TextView>(R.id.tvFormationPower)
-        val heroesContainer = d.findViewById<LinearLayout>(R.id.layoutSelectedHeroes)
-        val weaponsContainer = d.findViewById<LinearLayout>(R.id.layoutSelectedWeapons)
-        
-        fun updateFormationUI() {
+
+        // مرجع الخانات من واجهة الـ XML
+        val heroSlots = listOf(
+            Triple(d.findViewById<FrameLayout>(R.id.slotHero1), d.findViewById<ImageView>(R.id.imgHero1), d.findViewById<ImageView>(R.id.imgAddHero1)),
+            Triple(d.findViewById<FrameLayout>(R.id.slotHero2), d.findViewById<ImageView>(R.id.imgHero2), d.findViewById<ImageView>(R.id.imgAddHero2)),
+            Triple(d.findViewById<FrameLayout>(R.id.slotHero3), d.findViewById<ImageView>(R.id.imgHero3), d.findViewById<ImageView>(R.id.imgAddHero3)),
+            Triple(d.findViewById<FrameLayout>(R.id.slotHero4), d.findViewById<ImageView>(R.id.imgHero4), d.findViewById<ImageView>(R.id.imgAddHero4))
+        )
+        val lockHeroes = listOf(null, d.findViewById<View>(R.id.layoutLockHero2), d.findViewById<View>(R.id.layoutLockHero3), d.findViewById<View>(R.id.layoutLockHero4))
+
+        val weaponSlots = listOf(
+            Triple(d.findViewById<FrameLayout>(R.id.slotWeapon1), d.findViewById<ImageView>(R.id.imgWeapon1), d.findViewById<ImageView>(R.id.imgAddWeapon1)),
+            Triple(d.findViewById<FrameLayout>(R.id.slotWeapon2), d.findViewById<ImageView>(R.id.imgWeapon2), d.findViewById<ImageView>(R.id.imgAddWeapon2)),
+            Triple(d.findViewById<FrameLayout>(R.id.slotWeapon3), d.findViewById<ImageView>(R.id.imgWeapon3), d.findViewById<ImageView>(R.id.imgAddWeapon3)),
+            Triple(d.findViewById<FrameLayout>(R.id.slotWeapon4), d.findViewById<ImageView>(R.id.imgWeapon4), d.findViewById<ImageView>(R.id.imgAddWeapon4))
+        )
+        val lockWeapons = listOf(null, d.findViewById<View>(R.id.layoutLockWeapon2), d.findViewById<View>(R.id.layoutLockWeapon3), d.findViewById<View>(R.id.layoutLockWeapon4))
+
+        val unlockLevels = listOf(1, 5, 10, 15) // مستويات القلعة المطلوبة لكل مربع
+
+        fun refreshFormationUI() {
             GameState.calculateLegionPower()
             tvPower?.text = "قوة الفيلق: ⚔️ ${formatResourceNumber(GameState.legionPower)}"
-            
-            heroesContainer?.removeAllViews()
-            weaponsContainer?.removeAllViews()
 
-            val availableHeroes = GameState.myHeroes.filter { it.isUnlocked }
-            if (availableHeroes.isEmpty()) {
-                val tv = TextView(activity).apply { text = "لا يوجد أبطال متاحين"; setTextColor(Color.GRAY) }
-                heroesContainer?.addView(tv)
-            } else {
-                availableHeroes.forEach { hero ->
-                    val btnHero = Button(activity).apply {
-                        text = hero.name
-                        textSize = 10f
-                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { setMargins(4, 0, 4, 0) }
-                        setBackgroundResource(if (hero.isEquipped) R.drawable.bg_btn_gold_border else R.drawable.bg_inner_frame)
-                        setTextColor(if (hero.isEquipped) Color.WHITE else Color.GRAY)
-                        setOnClickListener {
-                            hero.isEquipped = !hero.isEquipped
-                            GameState.saveGameData(activity)
-                            updateFormationUI()
+            val equippedHeroes = GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }
+            val equippedWeapons = GameState.arsenal.filter { it.isOwned && it.isEquipped }
+
+            // 1. رسم مربعات الأبطال وإدارتها
+            for (i in 0..3) {
+                val (slot, imgFull, imgAdd) = heroSlots[i]
+                val lock = lockHeroes[i]
+                val reqLevel = unlockLevels[i]
+
+                if (castleLevel < reqLevel) {
+                    lock?.visibility = View.VISIBLE
+                    imgFull?.visibility = View.GONE
+                    imgAdd?.visibility = View.GONE
+                    slot?.setOnClickListener { showGameMessage(activity, "خانة مقفلة", "تحتاج لترقية القلعة للمستوى $reqLevel لفتح هذه الخانة!", R.drawable.ic_settings_gear) }
+                } else {
+                    lock?.visibility = View.GONE
+                    if (i < equippedHeroes.size) {
+                        imgFull?.visibility = View.VISIBLE
+                        imgAdd?.visibility = View.GONE
+                        // يمكننا وضع صورة خاصة بالبطل لاحقاً، حالياً نستخدم الأفاتار الافتراضي
+                        imgFull?.setImageResource(R.drawable.img_default_avatar) 
+                        
+                        val hero = equippedHeroes[i]
+                        slot?.setOnClickListener { 
+                            hero.isEquipped = false; GameState.saveGameData(activity); refreshFormationUI() 
+                        }
+                    } else {
+                        imgFull?.visibility = View.GONE
+                        imgAdd?.visibility = View.VISIBLE
+                        slot?.setOnClickListener {
+                            showHeroSelectorDialog(activity) { selectedHero ->
+                                selectedHero.isEquipped = true
+                                GameState.saveGameData(activity)
+                                refreshFormationUI()
+                            }
                         }
                     }
-                    heroesContainer?.addView(btnHero)
                 }
             }
 
-            val ownedWeapons = GameState.arsenal.filter { it.isOwned }
-            if (ownedWeapons.isEmpty()) {
-                val tv = TextView(activity).apply { text = "قم بصناعة أسلحة في الحدادة"; setTextColor(Color.GRAY) }
-                weaponsContainer?.addView(tv)
-            } else {
-                ownedWeapons.forEach { weapon ->
-                    val btnWeapon = Button(activity).apply {
-                        text = weapon.name
-                        textSize = 10f
-                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { setMargins(4, 0, 4, 0) }
-                        setBackgroundResource(if (weapon.isEquipped) R.drawable.bg_btn_gold_border else R.drawable.bg_inner_frame)
-                        setTextColor(if (weapon.isEquipped) Color.WHITE else Color.GRAY)
-                        setOnClickListener {
-                            weapon.isEquipped = !weapon.isEquipped
-                            GameState.saveGameData(activity)
-                            updateFormationUI()
+            // 2. رسم مربعات الأسلحة وإدارتها
+            for (i in 0..3) {
+                val (slot, imgFull, imgAdd) = weaponSlots[i]
+                val lock = lockWeapons[i]
+                val reqLevel = unlockLevels[i]
+
+                if (castleLevel < reqLevel) {
+                    lock?.visibility = View.VISIBLE
+                    imgFull?.visibility = View.GONE
+                    imgAdd?.visibility = View.GONE
+                    slot?.setOnClickListener { showGameMessage(activity, "خانة مقفلة", "تحتاج لترقية القلعة للمستوى $reqLevel لفتح هذه الخانة!", R.drawable.ic_settings_gear) }
+                } else {
+                    lock?.visibility = View.GONE
+                    if (i < equippedWeapons.size) {
+                        imgFull?.visibility = View.VISIBLE
+                        imgAdd?.visibility = View.GONE
+                        
+                        val weapon = equippedWeapons[i]
+                        imgFull?.setImageResource(weapon.iconResId) 
+                        slot?.setOnClickListener { 
+                            weapon.isEquipped = false; GameState.saveGameData(activity); refreshFormationUI() 
+                        }
+                    } else {
+                        imgFull?.visibility = View.GONE
+                        imgAdd?.visibility = View.VISIBLE
+                        slot?.setOnClickListener {
+                            showWeaponSelectorDialog(activity) { selectedWeapon ->
+                                selectedWeapon.isEquipped = true
+                                GameState.saveGameData(activity)
+                                refreshFormationUI()
+                            }
                         }
                     }
-                    weaponsContainer?.addView(btnWeapon)
                 }
             }
         }
-        
-        updateFormationUI()
-        
+
+        refreshFormationUI()
+
         d.findViewById<Button>(R.id.btnSaveFormation)?.setOnClickListener { 
             showGameMessage(activity, "الفيلق جاهز", "تم حفظ التشكيلة بقوة ${formatResourceNumber(GameState.legionPower)}!", R.drawable.ic_ui_formation)
             d.dismiss() 
