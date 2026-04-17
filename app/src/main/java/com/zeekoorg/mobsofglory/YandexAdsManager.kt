@@ -20,7 +20,6 @@ object YandexAdsManager {
     private var rewardedAdLoader: RewardedAdLoader? = null
     private var isAdLoading = false
 
-    // 🛑 ضع هنا معرف الإعلان الحقيقي الخاص بك من لوحة تحكم ياندكس
     private const val REWARDED_AD_UNIT_ID = "demo-rewarded-yandex" 
 
     fun initYandexAds(context: Context) {
@@ -39,12 +38,10 @@ object YandexAdsManager {
                 override fun onAdLoaded(ad: RewardedAd) {
                     rewardedAd = ad
                     isAdLoading = false
-                    Log.d("YandexAds", "تم تحميل الإعلان بنجاح وجاهز للعرض!")
                 }
 
                 override fun onAdFailedToLoad(error: AdRequestError) {
                     isAdLoading = false
-                    Log.e("YandexAds", "فشل تحميل الإعلان: ${error.description}")
                 }
             })
         }
@@ -53,58 +50,34 @@ object YandexAdsManager {
         rewardedAdLoader?.loadAd(adRequestConfiguration)
     }
 
-    // دالة عرض الإعلان (تأخذ أمر التنفيذ عند النجاح، وعند الإغلاق)
     fun showRewardedAd(activity: Activity, onRewarded: () -> Unit, onAdClosed: () -> Unit) {
         if (rewardedAd != null) {
             var userEarnedReward = false
 
             rewardedAd?.setAdEventListener(object : RewardedAdEventListener {
-                override fun onAdShown() {
-                    Log.d("YandexAds", "يتم عرض الإعلان الآن")
-                }
+                override fun onAdShown() {}
 
                 override fun onAdFailedToShow(adError: AdError) {
-                    Log.e("YandexAds", "فشل في عرض الإعلان المتاح: ${adError.description}")
                     rewardedAd = null
-                    loadRewardedAd(activity) // محاولة تحميل إعلان جديد
-                    
-                    // 💡 استبدال التوست بالنافذة الملكية مع التأكد من نوع الأكتيفيتي
-                    if (activity is MainActivity) {
-                        DialogManager.showGameMessage(activity, "خطأ في العرض", "حدث خطأ أثناء عرض الإعلان، جرب مرة أخرى.", R.drawable.ic_settings_gear)
-                    }
+                    loadRewardedAd(activity)
+                    DialogManager.showGameMessage(activity, "خطأ في العرض", "حدث خطأ أثناء عرض الإعلان، جرب مرة أخرى.", R.drawable.ic_settings_gear)
                 }
 
                 override fun onAdDismissed() {
-                    Log.d("YandexAds", "تم إغلاق الإعلان")
                     rewardedAd = null
-                    loadRewardedAd(activity) // تحميل إعلان جديد فور إغلاق القديم
-                    
-                    // 🌟 هنا السر: لا نعطي الجائزة إلا بعد إغلاق نافذة الإعلان
-                    if (userEarnedReward) {
-                        onRewarded()
-                    }
+                    loadRewardedAd(activity)
+                    if (userEarnedReward) onRewarded()
                     onAdClosed()
                 }
 
-                override fun onAdClicked() {
-                    Log.d("YandexAds", "قام اللاعب بالضغط على الإعلان")
-                }
-
+                override fun onAdClicked() {}
                 override fun onAdImpression(impressionData: ImpressionData?) {}
-
-                override fun onRewarded(reward: Reward) {
-                    // اللاعب أكمل المشاهدة، نسجل ذلك لكن لا ننعشه إلا بعد إغلاق الإعلان
-                    userEarnedReward = true
-                    Log.d("YandexAds", "أكمل اللاعب مشاهدة الإعلان!")
-                }
+                override fun onRewarded(reward: Reward) { userEarnedReward = true }
             })
             
             rewardedAd?.show(activity)
         } else {
-            // 💡 استبدال التوست بالنافذة الملكية
-            if (activity is MainActivity) {
-                DialogManager.showGameMessage(activity, "جاري التحميل", "الإعلان غير جاهز بعد، جاري التحميل... ⏳", R.drawable.ic_ui_ad_video)
-            }
+            DialogManager.showGameMessage(activity, "جاري التحميل", "الإعلان غير جاهز بعد، جاري التحميل... ⏳", R.drawable.ic_ui_ad_video)
             loadRewardedAd(activity)
         }
     }
