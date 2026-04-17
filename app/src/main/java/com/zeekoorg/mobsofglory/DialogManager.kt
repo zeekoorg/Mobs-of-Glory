@@ -723,6 +723,67 @@ object DialogManager {
         d.show()
     }
 
+
+        fun showSettingsDialog(activity: MainActivity) {
+        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_settings)
+
+        // حفظ إعدادات الصوت في ملف منفصل عن ملف اللعبة الأساسي لسهولة الوصول
+        val prefs = activity.getSharedPreferences("MobsOfGlorySettings", Context.MODE_PRIVATE)
+        var isMusicOn = prefs.getBoolean("MUSIC", true)
+        var isSfxOn = prefs.getBoolean("SFX", true)
+
+        val btnMusic = d.findViewById<Button>(R.id.btnToggleMusic)
+        val btnSfx = d.findViewById<Button>(R.id.btnToggleSfx)
+
+        // دالة فرعية لتحديث شكل الزر
+        fun updateButtonState(btn: Button?, isOn: Boolean) {
+            if (isOn) {
+                btn?.text = "مفعل"
+                btn?.setTextColor(Color.parseColor("#2ECC71")) // أخضر
+            } else {
+                btn?.text = "معطل"
+                btn?.setTextColor(Color.parseColor("#FF5252")) // أحمر
+            }
+        }
+
+        // تهيئة الأزرار عند الفتح
+        updateButtonState(btnMusic, isMusicOn)
+        updateButtonState(btnSfx, isSfxOn)
+
+        // النقر على الموسيقى
+        btnMusic?.setOnClickListener {
+            isMusicOn = !isMusicOn
+            prefs.edit().putBoolean("MUSIC", isMusicOn).apply()
+            updateButtonState(btnMusic, isMusicOn)
+            // هنا يمكنك مستقبلاً استدعاء دالة إيقاف/تشغيل مشغل الموسيقى
+        }
+
+        // النقر على المؤثرات
+        btnSfx?.setOnClickListener {
+            isSfxOn = !isSfxOn
+            prefs.edit().putBoolean("SFX", isSfxOn).apply()
+            updateButtonState(btnSfx, isSfxOn)
+        }
+
+        // النقر على حفظ التقدم
+        d.findViewById<Button>(R.id.btnManualSave)?.setOnClickListener {
+            GameState.saveGameData(activity)
+            d.dismiss()
+            showGameMessage(activity, "حفظ التقدم", "تم حفظ تقدم الإمبراطورية في السجلات الملكية بنجاح!", R.drawable.ic_settings_gear) // يمكنك تغيير الأيقونة
+        }
+
+        // النقر على الدعم الفني
+        d.findViewById<Button>(R.id.btnContactSupport)?.setOnClickListener {
+            d.dismiss()
+            showGameMessage(activity, "رسالة للمطور", "قريباً: سيتم توجيهك لصفحة الدعم الفني أو مجتمع اللعبة!", R.drawable.ic_ui_ad_video)
+        }
+
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.show()
+    }
+
+
     private fun formatResourceNumber(num: Long): String = when { num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0); num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0); else -> num.toString() }
     private fun formatTimeSec(seconds: Long): String = String.format(Locale.US, "%02d:%02d:%02d", seconds / 3600, (seconds % 3600) / 60, seconds % 60)
     private fun formatTimeMillis(millis: Long): String = formatTimeSec(millis / 1000)
