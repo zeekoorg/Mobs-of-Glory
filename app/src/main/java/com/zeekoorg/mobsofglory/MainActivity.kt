@@ -72,6 +72,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         GameState.initializeDataLists()
+        // 💡 تحميل البيانات سيقوم بحساب ترقيات الأوفلاين وتعبئة قائمة pendingOfflineMessages
         GameState.loadGameDataAndProcessOffline(this)
         GameState.calculatePower()
         
@@ -80,6 +81,9 @@ class MainActivity : AppCompatActivity() {
         GameState.myPlots.forEach { setupPlot(it) }
         setupActionListeners()
         startGameLoop()
+        
+        // 💡 إظهار الإشعارات المؤجلة للترقيات التي تمت أثناء إغلاق اللعبة
+        showPendingOfflineMessages()
     }
 
     override fun onPause() {
@@ -124,7 +128,6 @@ class MainActivity : AppCompatActivity() {
             DialogManager.showSummoningTavernDialog(this)
         }
         
-        // 💡 ربط الأزرار الجديدة هنا
         findViewById<View>(R.id.layoutWeaponsClick)?.setOnClickListener {
             DialogManager.showWeaponsDialog(this)
         }
@@ -141,6 +144,26 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
             DialogManager.showGameMessage(this, "قريباً", "سيتم فتح خريطة العالم في التحديث القادم!", R.drawable.ic_ui_castle_rewards)
         } 
+    }
+
+    // 💡 الدالة المسؤولة عن عرض الإشعارات المؤجلة واحداً تلو الآخر
+    private fun showPendingOfflineMessages() {
+        if (GameState.pendingOfflineMessages.isNotEmpty()) {
+            val msg = GameState.pendingOfflineMessages.removeAt(0)
+            
+            // قمنا بكتابة دالة مخصصة مشابهة لـ showGameMessage ولكننا نمرر لها أمر التنفيذ عند الإغلاق
+            val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+            d.setContentView(R.layout.dialog_game_message)
+            d.findViewById<TextView>(R.id.tvMessageTitle)?.text = msg.title
+            d.findViewById<TextView>(R.id.tvMessageBody)?.text = msg.body
+            d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(msg.iconResId)
+            d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener { 
+                d.dismiss()
+                // استدعاء الدالة نفسها مجدداً لعرض الإشعار التالي (إن وجد)
+                showPendingOfflineMessages() 
+            }
+            d.show()
+        }
     }
 
     private fun showAvatarPreviewDialog(imgResId: Int, title: String) {
@@ -353,6 +376,9 @@ class MainActivity : AppCompatActivity() {
                             }
                             
                             GameState.calculatePower(); updateHudUI(); GameState.saveGameData(this@MainActivity); p.layoutUpgradeProgress?.visibility = View.GONE 
+                            
+                            // 💡 إظهار نافذة احتفال لأن الترقية اكتملت واللعبة مفتوحة
+                            DialogManager.showGameMessage(this@MainActivity, "أعمال البناء", "تم تطوير ${p.name} للمستوى ${p.level} بنجاح!", R.drawable.ic_settings_gear)
                         } else { 
                             p.pbUpgrade?.progress = (((p.totalUpgradeTime - rem).toFloat() / p.totalUpgradeTime) * 100).toInt()
                             p.tvUpgradeTimer?.text = "%02d:%02d".format((rem/60000), (rem%60000)/1000) 
@@ -367,6 +393,9 @@ class MainActivity : AppCompatActivity() {
                             GameState.addQuestProgress(QuestType.TRAIN_TROOPS, p.trainingAmount)
 
                             GameState.calculatePower(); updateHudUI(); GameState.saveGameData(this@MainActivity); p.layoutUpgradeProgress?.visibility = View.GONE 
+                            
+                            // 💡 إظهار نافذة احتفال لانتهاء التدريب
+                            DialogManager.showGameMessage(this@MainActivity, "معسكر التدريب", "تم تدريب ${p.trainingAmount} قوات بنجاح!", R.drawable.ic_settings_gear)
                         } else { 
                             p.pbUpgrade?.progress = (((p.trainingTotalTime - rem).toFloat() / p.trainingTotalTime) * 100).toInt()
                             p.tvUpgradeTimer?.text = "%02d:%02d".format((rem/60000), (rem%60000)/1000) 
