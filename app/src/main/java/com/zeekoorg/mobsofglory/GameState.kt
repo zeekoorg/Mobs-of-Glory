@@ -1,6 +1,18 @@
 package com.zeekoorg.mobsofglory
 
 import android.content.Context
+import android.view.View
+import android.widget.ImageView
+import android.widget.ProgressBar
+import android.widget.TextView
+import kotlin.math.pow
+
+enum class ResourceType(val iconResId: Int) { 
+    GOLD(R.drawable.ic_resource_gold), 
+    IRON(R.drawable.ic_resource_iron), 
+    WHEAT(R.drawable.ic_resource_wheat), 
+    NONE(0) 
+}
 
 enum class QuestType {
     COLLECT_RESOURCES,
@@ -8,16 +20,43 @@ enum class QuestType {
     UPGRADE_BUILDING
 }
 
+// 💡 تمت إضافة isEquipped للبطل لمعرفة هل تم ضمه للفيلق أم لا
+data class Hero(
+    val id: Int, val name: String, var level: Int, var powerBoost: Long, 
+    var isUnlocked: Boolean, var shardsOwned: Int, val shardsRequired: Int,
+    var isEquipped: Boolean = false 
+)
+
+// 💡 كلاس السلاح الجديد لورشة الحدادة
+data class Weapon(
+    val id: Int, val name: String, val powerBoost: Long, 
+    val costIron: Long, val costGold: Long,
+    var isOwned: Boolean = false, var isEquipped: Boolean = false
+)
+
 data class DynamicQuest(
-    val id: Int,
-    val title: String,
-    val type: QuestType,
-    val targetAmount: Int,
-    val rewardGold: Long,
-    var currentAmount: Int = 0,
-    var isCollected: Boolean = false
+    val id: Int, val title: String, val type: QuestType, val targetAmount: Int,
+    val rewardGold: Long, var currentAmount: Int = 0, var isCollected: Boolean = false
 ) {
     val isCompleted: Boolean get() = currentAmount >= targetAmount
+}
+
+data class MapPlot(
+    val idCode: String, val name: String, val slotId: Int, val resId: Int, val resourceType: ResourceType, var level: Int = 1,
+    var isReady: Boolean = false, var collectTimer: Long = 0L,
+    var isUpgrading: Boolean = false, var upgradeEndTime: Long = 0L, var totalUpgradeTime: Long = 0L,
+    var isTraining: Boolean = false, var trainingEndTime: Long = 0L, var trainingTotalTime: Long = 0L,
+    var trainingAmount: Int = 0, var trainingIsInfantry: Boolean = false,
+    var layoutUpgradeProgress: View? = null, var pbUpgrade: ProgressBar? = null, 
+    var tvUpgradeTimer: TextView? = null, var collectIcon: ImageView? = null
+) {
+    fun getCostWheat(): Long = (if (idCode == "CASTLE") 1200 else 800 * level.toDouble().pow(3)).toLong()
+    fun getCostIron(): Long = (if (idCode == "CASTLE") 1000 else 500 * level.toDouble().pow(3)).toLong()
+    fun getCostGold(): Long = (if (idCode == "CASTLE") 300 else 100 * level.toDouble().pow(2.5)).toLong()
+    fun getUpgradeTimeSeconds(): Long = (level * level * 45).toLong() 
+    fun getReward(): Long = (level * 150).toLong()
+    fun getPowerProvided(): Long = (level * 250).toLong()
+    fun getExpReward(): Int = level * 300
 }
 
 object GameState {
@@ -28,7 +67,9 @@ object GameState {
     var totalWheat: Long = 0
     var playerLevel: Int = 1
     var playerExp: Int = 0
-    var playerPower: Long = 0
+    
+    var playerPower: Long = 0 // قوة الإمبراطورية الكلية
+    var legionPower: Long = 0 // 💡 قوة الفيلق الجاهز للمعركة
     
     var totalInfantry: Long = 0
     var totalCavalry: Long = 0
@@ -55,10 +96,9 @@ object GameState {
     fun isVipActive(): Boolean = System.currentTimeMillis() < vipEndTime
 
     val myHeroes = mutableListOf<Hero>()
+    val arsenal = mutableListOf<Weapon>() // 💡 قائمة الأسلحة
     val myPlots = mutableListOf<MapPlot>()
     val dailyQuestsList = mutableListOf<DynamicQuest>()
-    
-    // 💡 سجل استلام جوائز القلعة (مستويات 5, 10, 15...)
     val claimedCastleRewards = mutableSetOf<Int>()
 
     fun addQuestProgress(type: QuestType, amount: Int) {
@@ -84,6 +124,14 @@ object GameState {
             myHeroes.add(Hero(8, "ساحرة المجد", 1, 70000, false, 0, 200))
         }
         
+        // 💡 تهيئة الأسلحة الملكية
+        if (arsenal.isEmpty()) {
+            arsenal.add(Weapon(1, "سيف اللهب الملعون", 15000, 50000, 10000))
+            arsenal.add(Weapon(2, "فأس الجليد", 30000, 120000, 25000))
+            arsenal.add(Weapon(3, "درع الجبابرة", 50000, 300000, 60000))
+            arsenal.add(Weapon(4, "رمح التنين الأسطوري", 100000, 800000, 150000))
+        }
+        
         if (dailyQuestsList.isEmpty()) {
             dailyQuestsList.add(DynamicQuest(1, "اجمع الموارد من الحقول", QuestType.COLLECT_RESOURCES, 5, 2000))
             dailyQuestsList.add(DynamicQuest(2, "درّب 500 جندي جديد", QuestType.TRAIN_TROOPS, 500, 5000))
@@ -107,6 +155,16 @@ object GameState {
         p += (totalInfantry * 5) + (totalCavalry * 10)
         myHeroes.filter { it.isUnlocked }.forEach { p += it.powerBoost }
         playerPower = p
+        
+        calculateLegionPower() // تحديث قوة الفيلق تلقائياً
+    }
+
+    // 💡 حساب القوة الخاصة بالفيلق (الأبطال المختارون + الأسلحة المجهزة)
+    fun calculateLegionPower() {
+        var lPower: Long = 0
+        myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { lPower += it.powerBoost }
+        arsenal.filter { it.isOwned && it.isEquipped }.forEach { lPower += it.powerBoost }
+        legionPower = lPower
     }
 
     fun checkPlayerLevelUp(): Boolean {
@@ -129,6 +187,7 @@ object GameState {
         prefs.putLong("TOTAL_INFANTRY", totalInfantry)
         prefs.putLong("TOTAL_CAVALRY", totalCavalry)
         prefs.putInt("SUMMON_MEDALS", summonMedals)
+        
         prefs.putBoolean("PYRAMID_UNLOCKED", isPyramidUnlocked)
         prefs.putBoolean("DIAMOND_UNLOCKED", isDiamondUnlocked)
         prefs.putBoolean("PEACOCK_UNLOCKED", isPeacockUnlocked)
@@ -154,13 +213,19 @@ object GameState {
             prefs.putBoolean("QUEST_${i}_COLL", q.isCollected)
         }
         
-        // 💡 حفظ سجل جوائز القلعة
         prefs.putString("CLAIMED_CASTLE_REWARDS", claimedCastleRewards.joinToString(","))
         
         myHeroes.forEachIndexed { i, h ->
             prefs.putBoolean("H_${i}_U", h.isUnlocked); prefs.putInt("H_${i}_L", h.level)
-            prefs.putInt("H_${i}_S", h.shardsOwned)
+            prefs.putInt("H_${i}_S", h.shardsOwned); prefs.putBoolean("H_${i}_EQ", h.isEquipped)
         }
+        
+        // 💡 حفظ حالة الأسلحة
+        arsenal.forEachIndexed { i, w ->
+            prefs.putBoolean("W_${i}_O", w.isOwned)
+            prefs.putBoolean("W_${i}_EQ", w.isEquipped)
+        }
+
         myPlots.forEach { 
             prefs.putInt("L_${it.idCode}", it.level); prefs.putBoolean("U_${it.idCode}", it.isUpgrading)
             prefs.putLong("UT_${it.idCode}", it.upgradeEndTime); prefs.putLong("CT_${it.idCode}", it.collectTimer)
@@ -203,7 +268,6 @@ object GameState {
             q.isCollected = prefs.getBoolean("QUEST_${i}_COLL", false)
         }
 
-        // 💡 تحميل سجل جوائز القلعة
         val claimedStr = prefs.getString("CLAIMED_CASTLE_REWARDS", "") ?: ""
         claimedCastleRewards.clear()
         if (claimedStr.isNotEmpty()) {
@@ -214,6 +278,13 @@ object GameState {
             h.isUnlocked = prefs.getBoolean("H_${i}_U", h.isUnlocked)
             h.level = prefs.getInt("H_${i}_L", h.level)
             h.shardsOwned = prefs.getInt("H_${i}_S", h.shardsOwned)
+            h.isEquipped = prefs.getBoolean("H_${i}_EQ", false)
+        }
+        
+        // 💡 استرجاع حالة الأسلحة
+        arsenal.forEachIndexed { i, w ->
+            w.isOwned = prefs.getBoolean("W_${i}_O", false)
+            w.isEquipped = prefs.getBoolean("W_${i}_EQ", false)
         }
 
         val currentTime = System.currentTimeMillis()
