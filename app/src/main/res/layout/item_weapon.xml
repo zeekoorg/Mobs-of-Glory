@@ -27,7 +27,7 @@
             android:id="@+id/tvWeaponName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="سيف اللهب الملعون"
+            android:text="اسم السلاح"
             android:textColor="#F4D03F"
             android:textSize="14sp"
             android:textStyle="bold" />
@@ -36,7 +36,7 @@
             android:id="@+id/tvWeaponPower"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="قوة الفيلق: +15%"
+            android:text="قوة الفيلق: +0"
             android:textColor="#2ECC71"
             android:textSize="11sp"
             android:layout_marginTop="2dp"/>
@@ -45,7 +45,7 @@
             android:id="@+id/tvWeaponCost"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="التكلفة: 50K حديد + 10K ذهب"
+            android:text="التكلفة: 0 حديد + 0 ذهب"
             android:textColor="#BDC3C7"
             android:textSize="10sp"
             android:layout_marginTop="2dp"/>
