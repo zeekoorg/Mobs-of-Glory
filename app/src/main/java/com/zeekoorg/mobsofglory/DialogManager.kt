@@ -583,7 +583,6 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 دالة لاختيار البطل من المتاحين (تستخدم كقائمة منسدلة فخمة)
     private fun showHeroSelectorDialog(activity: MainActivity, onSelected: (Hero) -> Unit) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_quests) 
@@ -614,7 +613,6 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 دالة لاختيار السلاح من المتاحين (تستخدم كقائمة منسدلة فخمة)
     private fun showWeaponSelectorDialog(activity: MainActivity, onSelected: (Weapon) -> Unit) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_quests) 
@@ -645,7 +643,6 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 دالة تخصيص الفيلق المحدثة (تعمل مع الـ 8 مربعات والأقفال)
     fun showFormationDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_formation)
@@ -653,7 +650,6 @@ object DialogManager {
         val castleLevel = GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
         val tvPower = d.findViewById<TextView>(R.id.tvFormationPower)
 
-        // مرجع الخانات من واجهة الـ XML
         val heroSlots = listOf(
             Triple(d.findViewById<FrameLayout>(R.id.slotHero1), d.findViewById<ImageView>(R.id.imgHero1), d.findViewById<ImageView>(R.id.imgAddHero1)),
             Triple(d.findViewById<FrameLayout>(R.id.slotHero2), d.findViewById<ImageView>(R.id.imgHero2), d.findViewById<ImageView>(R.id.imgAddHero2)),
@@ -670,7 +666,7 @@ object DialogManager {
         )
         val lockWeapons = listOf(null, d.findViewById<View>(R.id.layoutLockWeapon2), d.findViewById<View>(R.id.layoutLockWeapon3), d.findViewById<View>(R.id.layoutLockWeapon4))
 
-        val unlockLevels = listOf(1, 5, 10, 15) // مستويات القلعة المطلوبة لكل مربع
+        val unlockLevels = listOf(1, 5, 10, 15)
 
         fun refreshFormationUI() {
             GameState.calculateLegionPower()
@@ -679,7 +675,6 @@ object DialogManager {
             val equippedHeroes = GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }
             val equippedWeapons = GameState.arsenal.filter { it.isOwned && it.isEquipped }
 
-            // 1. رسم مربعات الأبطال وإدارتها
             for (i in 0..3) {
                 val (slot, imgFull, imgAdd) = heroSlots[i]
                 val lock = lockHeroes[i]
@@ -695,10 +690,11 @@ object DialogManager {
                     if (i < equippedHeroes.size) {
                         imgFull?.visibility = View.VISIBLE
                         imgAdd?.visibility = View.GONE
-                        // يمكننا وضع صورة خاصة بالبطل لاحقاً، حالياً نستخدم الأفاتار الافتراضي
-                        imgFull?.setImageResource(R.drawable.img_default_avatar) 
                         
                         val hero = equippedHeroes[i]
+                        // 💡 هنا التغيير المحوري: نضع صورة البطل الحقيقية بدلاً من الأفاتار الافتراضي
+                        imgFull?.setImageResource(hero.iconResId) 
+                        
                         slot?.setOnClickListener { 
                             hero.isEquipped = false; GameState.saveGameData(activity); refreshFormationUI() 
                         }
@@ -716,7 +712,6 @@ object DialogManager {
                 }
             }
 
-            // 2. رسم مربعات الأسلحة وإدارتها
             for (i in 0..3) {
                 val (slot, imgFull, imgAdd) = weaponSlots[i]
                 val lock = lockWeapons[i]
