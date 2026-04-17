@@ -11,8 +11,13 @@ object GameState {
     var playerLevel: Int = 1
     var playerExp: Int = 0
     
+    // 💡 تفصيل القوة لعرضها في ملف اللاعب لاحقاً
     var playerPower: Long = 0 
     var legionPower: Long = 0 
+    var totalBuildingsPower: Long = 0
+    var totalTroopsPower: Long = 0
+    var totalHeroesPower: Long = 0
+    var totalWeaponsPower: Long = 0
     
     var totalInfantry: Long = 0
     var totalCavalry: Long = 0
@@ -56,22 +61,24 @@ object GameState {
     }
 
     fun initializeDataLists() {
+        // 💡 تهيئة الأبطال مع نظام الندرة الجديد
         if (myHeroes.isEmpty()) {
-            myHeroes.add(Hero(1, "صقر البيداء", 1, 5000, true, 10, 10)) 
-            myHeroes.add(Hero(2, "ضرغام الليل", 1, 10000, false, 0, 20))
-            myHeroes.add(Hero(3, "غضب الجبال", 1, 15000, false, 0, 30))
-            myHeroes.add(Hero(4, "رعد الصحراء", 1, 20000, false, 0, 50))
-            myHeroes.add(Hero(5, "سيف العاصفة", 1, 30000, false, 0, 80))
-            myHeroes.add(Hero(6, "كاسر الأمواج", 1, 40000, false, 0, 100))
-            myHeroes.add(Hero(7, "أميرة الحرب", 1, 50000, false, 0, 150))
-            myHeroes.add(Hero(8, "ساحرة المجد", 1, 70000, false, 0, 200))
+            myHeroes.add(Hero(1, "صقر البيداء", 1, 5000, true, 10, 10, false, Rarity.COMMON)) 
+            myHeroes.add(Hero(2, "ضرغام الليل", 1, 10000, false, 0, 20, false, Rarity.COMMON))
+            myHeroes.add(Hero(3, "غضب الجبال", 1, 15000, false, 0, 30, false, Rarity.COMMON))
+            myHeroes.add(Hero(4, "رعد الصحراء", 1, 20000, false, 0, 50, false, Rarity.RARE))
+            myHeroes.add(Hero(5, "سيف العاصفة", 1, 30000, false, 0, 80, false, Rarity.RARE))
+            myHeroes.add(Hero(6, "كاسر الأمواج", 1, 40000, false, 0, 100, false, Rarity.RARE))
+            myHeroes.add(Hero(7, "أميرة الحرب", 1, 50000, false, 0, 150, false, Rarity.LEGENDARY))
+            myHeroes.add(Hero(8, "ساحرة المجد", 1, 70000, false, 0, 200, false, Rarity.LEGENDARY))
         }
         
+        // 💡 تهيئة الأسلحة مع الأيقونات والندرة
         if (arsenal.isEmpty()) {
-            arsenal.add(Weapon(1, "سيف اللهب الملعون", 15000, 50000, 10000))
-            arsenal.add(Weapon(2, "فأس الجليد", 30000, 120000, 25000))
-            arsenal.add(Weapon(3, "درع الجبابرة", 50000, 300000, 60000))
-            arsenal.add(Weapon(4, "رمح التنين الأسطوري", 100000, 800000, 150000))
+            arsenal.add(Weapon(1, "سيف اللهب الملعون", 15000, R.drawable.ic_weapon_flame_sword, 1, Rarity.RARE))
+            arsenal.add(Weapon(2, "فأس الجليد", 30000, R.drawable.ic_weapon_ice_axe, 1, Rarity.RARE))
+            arsenal.add(Weapon(3, "درع الجبابرة", 50000, R.drawable.ic_weapon_titan_shield, 1, Rarity.LEGENDARY))
+            arsenal.add(Weapon(4, "رمح التنين الأسطوري", 100000, R.drawable.ic_weapon_dragon_spear, 1, Rarity.LEGENDARY))
         }
         
         if (dailyQuestsList.isEmpty()) {
@@ -92,19 +99,19 @@ object GameState {
     }
 
     fun calculatePower() {
-        var p: Long = (playerLevel * 1500).toLong()
-        myPlots.forEach { p += it.getPowerProvided() }
-        p += (totalInfantry * 5) + (totalCavalry * 10)
-        myHeroes.filter { it.isUnlocked }.forEach { p += it.powerBoost }
-        playerPower = p
+        totalBuildingsPower = 0L; myPlots.forEach { totalBuildingsPower += it.getPowerProvided() }
+        totalTroopsPower = (totalInfantry * 5) + (totalCavalry * 10)
+        totalHeroesPower = 0L; myHeroes.filter { it.isUnlocked }.forEach { totalHeroesPower += it.getCurrentPower() } // 💡 نستخدم الدالة الجديدة
+        totalWeaponsPower = 0L; arsenal.filter { it.isOwned }.forEach { totalWeaponsPower += it.getCurrentPower() } // 💡 نستخدم الدالة الجديدة
         
+        playerPower = (playerLevel * 1500).toLong() + totalBuildingsPower + totalTroopsPower + totalHeroesPower + totalWeaponsPower
         calculateLegionPower()
     }
 
     fun calculateLegionPower() {
         var lPower: Long = 0
-        myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { lPower += it.powerBoost }
-        arsenal.filter { it.isOwned && it.isEquipped }.forEach { lPower += it.powerBoost }
+        myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { lPower += it.getCurrentPower() } // 💡 استخدام القوة الحالية المحدثة
+        arsenal.filter { it.isOwned && it.isEquipped }.forEach { lPower += it.getCurrentPower() } // 💡 استخدام القوة الحالية المحدثة
         legionPower = lPower
     }
 
@@ -156,14 +163,25 @@ object GameState {
         
         prefs.putString("CLAIMED_CASTLE_REWARDS", claimedCastleRewards.joinToString(","))
         
+        // 💡 حفظ حالة ترقيات الأبطال
         myHeroes.forEachIndexed { i, h ->
-            prefs.putBoolean("H_${i}_U", h.isUnlocked); prefs.putInt("H_${i}_L", h.level)
-            prefs.putInt("H_${i}_S", h.shardsOwned); prefs.putBoolean("H_${i}_EQ", h.isEquipped)
+            prefs.putBoolean("H_${i}_U", h.isUnlocked)
+            prefs.putInt("H_${i}_L", h.level)
+            prefs.putInt("H_${i}_S", h.shardsOwned)
+            prefs.putBoolean("H_${i}_EQ", h.isEquipped)
+            prefs.putBoolean("H_${i}_UPG", h.isUpgrading)
+            prefs.putLong("H_${i}_UEND", h.upgradeEndTime)
+            prefs.putLong("H_${i}_UTOT", h.totalUpgradeTime)
         }
         
+        // 💡 حفظ حالة ترقيات الأسلحة
         arsenal.forEachIndexed { i, w ->
             prefs.putBoolean("W_${i}_O", w.isOwned)
             prefs.putBoolean("W_${i}_EQ", w.isEquipped)
+            prefs.putInt("W_${i}_L", w.level)
+            prefs.putBoolean("W_${i}_UPG", w.isUpgrading)
+            prefs.putLong("W_${i}_UEND", w.upgradeEndTime)
+            prefs.putLong("W_${i}_UTOT", w.totalUpgradeTime)
         }
 
         myPlots.forEach { 
@@ -203,6 +221,9 @@ object GameState {
         countVip24h = prefs.getInt("VIP_24H", 0)
         countVip7d = prefs.getInt("VIP_7D", 0)
 
+        val currentTime = System.currentTimeMillis()
+        val offlineTime = currentTime - prefs.getLong("LAST_LOGIN_TIME", currentTime)
+
         dailyQuestsList.forEachIndexed { i, q ->
             q.currentAmount = prefs.getInt("QUEST_${i}_PROG", 0)
             q.isCollected = prefs.getBoolean("QUEST_${i}_COLL", false)
@@ -214,20 +235,36 @@ object GameState {
             claimedCastleRewards.addAll(claimedStr.split(",").mapNotNull { it.toIntOrNull() })
         }
 
+        // 💡 تحميل الأبطال وإنهاء الترقيات أثناء الغياب
         myHeroes.forEachIndexed { i, h ->
             h.isUnlocked = prefs.getBoolean("H_${i}_U", h.isUnlocked)
             h.level = prefs.getInt("H_${i}_L", h.level)
             h.shardsOwned = prefs.getInt("H_${i}_S", h.shardsOwned)
             h.isEquipped = prefs.getBoolean("H_${i}_EQ", false)
+            h.isUpgrading = prefs.getBoolean("H_${i}_UPG", false)
+            h.upgradeEndTime = prefs.getLong("H_${i}_UEND", 0L)
+            h.totalUpgradeTime = prefs.getLong("H_${i}_UTOT", 0L)
+            
+            if (h.isUpgrading && currentTime >= h.upgradeEndTime) {
+                h.isUpgrading = false
+                h.level++
+            }
         }
         
+        // 💡 تحميل الأسلحة وإنهاء الترقيات أثناء الغياب
         arsenal.forEachIndexed { i, w ->
             w.isOwned = prefs.getBoolean("W_${i}_O", false)
             w.isEquipped = prefs.getBoolean("W_${i}_EQ", false)
+            w.level = prefs.getInt("W_${i}_L", 1)
+            w.isUpgrading = prefs.getBoolean("W_${i}_UPG", false)
+            w.upgradeEndTime = prefs.getLong("W_${i}_UEND", 0L)
+            w.totalUpgradeTime = prefs.getLong("W_${i}_UTOT", 0L)
+            
+            if (w.isUpgrading && currentTime >= w.upgradeEndTime) {
+                w.isUpgrading = false
+                w.level++
+            }
         }
-
-        val currentTime = System.currentTimeMillis()
-        val offlineTime = currentTime - prefs.getLong("LAST_LOGIN_TIME", currentTime)
 
         myPlots.forEach { 
             it.level = prefs.getInt("L_${it.idCode}", 1) 
