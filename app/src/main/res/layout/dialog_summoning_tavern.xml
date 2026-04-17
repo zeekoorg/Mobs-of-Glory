@@ -41,7 +41,7 @@
             android:layout_height="wrap_content"
             android:text="دعوات ملكية: 0"
             android:textColor="#2ECC71"
-            android:textSize="14sp"
+            android:textSize="15sp"
             android:textStyle="bold"
             android:layout_marginTop="5dp"
             app:layout_constraintTop_toBottomOf="@id/tvDialogTitle"
@@ -60,47 +60,116 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center"
                 android:orientation="vertical"
                 android:paddingBottom="10dp">
-                
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btnSummonPremium"
-                    android:layout_width="220dp"
-                    android:layout_height="55dp"
-                    android:layout_marginTop="30dp"
-                    android:background="@drawable/bg_btn_gold_border"
-                    android:text="استدعاء أسطوري"
-                    android:textColor="#FFFFFF"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:drawableStart="@drawable/ic_item_legend_medal"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp"
-                    android:gravity="center"
-                    android:minHeight="0dp"
-                    android:minWidth="0dp"
-                    android:includeFontPadding="false"
-                    android:stateListAnimator="@null" />
 
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btnSummonAd"
-                    android:layout_width="220dp"
-                    android:layout_height="55dp"
-                    android:layout_marginTop="20dp"
-                    android:background="@drawable/bg_btn_gold_border"
-                    android:text="استدعاء مجاني"
-                    android:textColor="#FFFFFF"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:drawableStart="@drawable/ic_ui_ad_video"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp"
-                    android:gravity="center"
-                    android:minHeight="0dp"
-                    android:minWidth="0dp"
-                    android:includeFontPadding="false"
-                    android:stateListAnimator="@null" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="@drawable/bg_inner_frame"
+                    android:padding="10dp"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="10dp">
+
+                    <ImageView
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:src="@drawable/ic_item_legend_medal" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginHorizontal="10dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="استدعاء أسطوري"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="يستهلك 1 دعوة ملكية"
+                            android:textColor="#BDC3C7"
+                            android:textSize="11sp"
+                            android:layout_marginTop="4dp"/>
+                    </LinearLayout>
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btnSummonPremium"
+                        android:layout_width="80dp"
+                        android:layout_height="35dp"
+                        android:background="@drawable/bg_btn_gold_border"
+                        android:text="استدعاء"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:padding="0dp"
+                        android:minHeight="0dp"
+                        android:minWidth="0dp"
+                        android:includeFontPadding="false"
+                        android:stateListAnimator="@null"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="@drawable/bg_inner_frame"
+                    android:padding="10dp"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="10dp">
+
+                    <ImageView
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:src="@drawable/ic_ui_ad_video" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginHorizontal="10dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="استدعاء مجاني"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="شاهد إعلان لجمع الشظايا"
+                            android:textColor="#BDC3C7"
+                            android:textSize="11sp"
+                            android:layout_marginTop="4dp"/>
+                    </LinearLayout>
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btnSummonAd"
+                        android:layout_width="80dp"
+                        android:layout_height="35dp"
+                        android:background="@drawable/bg_btn_gold_border"
+                        android:text="مشاهدة"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:padding="0dp"
+                        android:minHeight="0dp"
+                        android:minWidth="0dp"
+                        android:includeFontPadding="false"
+                        android:stateListAnimator="@null"/>
+                </LinearLayout>
 
             </LinearLayout>
 
@@ -117,7 +186,6 @@
             android:textSize="14sp"
             android:textStyle="bold"
             android:padding="0dp"
-            android:gravity="center"
             android:minHeight="0dp"
             android:minWidth="0dp"
             android:includeFontPadding="false"
