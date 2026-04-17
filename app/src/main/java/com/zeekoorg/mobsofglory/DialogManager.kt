@@ -768,6 +768,7 @@ object DialogManager {
 
         d.findViewById<Button>(R.id.btnSaveFormation)?.setOnClickListener { 
             showGameMessage(activity, "الفيلق جاهز", "تم حفظ التشكيلة بقوة ${formatResourceNumber(GameState.legionPower)}!", R.drawable.ic_ui_formation)
+            updateUI(activity)
             d.dismiss() 
         }
         d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
