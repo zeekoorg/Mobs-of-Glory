@@ -1,4 +1,4 @@
-herepackage com.zeekoorg.mobsofglory
+package com.zeekoorg.mobsofglory
 
 import android.view.View
 import android.widget.ImageView
