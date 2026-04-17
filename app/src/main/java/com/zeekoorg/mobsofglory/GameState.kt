@@ -1,63 +1,6 @@
 package com.zeekoorg.mobsofglory
 
 import android.content.Context
-import android.view.View
-import android.widget.ImageView
-import android.widget.ProgressBar
-import android.widget.TextView
-import kotlin.math.pow
-
-enum class ResourceType(val iconResId: Int) { 
-    GOLD(R.drawable.ic_resource_gold), 
-    IRON(R.drawable.ic_resource_iron), 
-    WHEAT(R.drawable.ic_resource_wheat), 
-    NONE(0) 
-}
-
-enum class QuestType {
-    COLLECT_RESOURCES,
-    TRAIN_TROOPS,
-    UPGRADE_BUILDING
-}
-
-// 💡 تمت إضافة isEquipped للبطل لمعرفة هل تم ضمه للفيلق أم لا
-data class Hero(
-    val id: Int, val name: String, var level: Int, var powerBoost: Long, 
-    var isUnlocked: Boolean, var shardsOwned: Int, val shardsRequired: Int,
-    var isEquipped: Boolean = false 
-)
-
-// 💡 كلاس السلاح الجديد لورشة الحدادة
-data class Weapon(
-    val id: Int, val name: String, val powerBoost: Long, 
-    val costIron: Long, val costGold: Long,
-    var isOwned: Boolean = false, var isEquipped: Boolean = false
-)
-
-data class DynamicQuest(
-    val id: Int, val title: String, val type: QuestType, val targetAmount: Int,
-    val rewardGold: Long, var currentAmount: Int = 0, var isCollected: Boolean = false
-) {
-    val isCompleted: Boolean get() = currentAmount >= targetAmount
-}
-
-data class MapPlot(
-    val idCode: String, val name: String, val slotId: Int, val resId: Int, val resourceType: ResourceType, var level: Int = 1,
-    var isReady: Boolean = false, var collectTimer: Long = 0L,
-    var isUpgrading: Boolean = false, var upgradeEndTime: Long = 0L, var totalUpgradeTime: Long = 0L,
-    var isTraining: Boolean = false, var trainingEndTime: Long = 0L, var trainingTotalTime: Long = 0L,
-    var trainingAmount: Int = 0, var trainingIsInfantry: Boolean = false,
-    var layoutUpgradeProgress: View? = null, var pbUpgrade: ProgressBar? = null, 
-    var tvUpgradeTimer: TextView? = null, var collectIcon: ImageView? = null
-) {
-    fun getCostWheat(): Long = (if (idCode == "CASTLE") 1200 else 800 * level.toDouble().pow(3)).toLong()
-    fun getCostIron(): Long = (if (idCode == "CASTLE") 1000 else 500 * level.toDouble().pow(3)).toLong()
-    fun getCostGold(): Long = (if (idCode == "CASTLE") 300 else 100 * level.toDouble().pow(2.5)).toLong()
-    fun getUpgradeTimeSeconds(): Long = (level * level * 45).toLong() 
-    fun getReward(): Long = (level * 150).toLong()
-    fun getPowerProvided(): Long = (level * 250).toLong()
-    fun getExpReward(): Int = level * 300
-}
 
 object GameState {
     var playerName: String = "المهيب زيكو"
@@ -68,8 +11,8 @@ object GameState {
     var playerLevel: Int = 1
     var playerExp: Int = 0
     
-    var playerPower: Long = 0 // قوة الإمبراطورية الكلية
-    var legionPower: Long = 0 // 💡 قوة الفيلق الجاهز للمعركة
+    var playerPower: Long = 0 
+    var legionPower: Long = 0 
     
     var totalInfantry: Long = 0
     var totalCavalry: Long = 0
@@ -96,7 +39,7 @@ object GameState {
     fun isVipActive(): Boolean = System.currentTimeMillis() < vipEndTime
 
     val myHeroes = mutableListOf<Hero>()
-    val arsenal = mutableListOf<Weapon>() // 💡 قائمة الأسلحة
+    val arsenal = mutableListOf<Weapon>() 
     val myPlots = mutableListOf<MapPlot>()
     val dailyQuestsList = mutableListOf<DynamicQuest>()
     val claimedCastleRewards = mutableSetOf<Int>()
@@ -124,7 +67,6 @@ object GameState {
             myHeroes.add(Hero(8, "ساحرة المجد", 1, 70000, false, 0, 200))
         }
         
-        // 💡 تهيئة الأسلحة الملكية
         if (arsenal.isEmpty()) {
             arsenal.add(Weapon(1, "سيف اللهب الملعون", 15000, 50000, 10000))
             arsenal.add(Weapon(2, "فأس الجليد", 30000, 120000, 25000))
@@ -156,10 +98,9 @@ object GameState {
         myHeroes.filter { it.isUnlocked }.forEach { p += it.powerBoost }
         playerPower = p
         
-        calculateLegionPower() // تحديث قوة الفيلق تلقائياً
+        calculateLegionPower()
     }
 
-    // 💡 حساب القوة الخاصة بالفيلق (الأبطال المختارون + الأسلحة المجهزة)
     fun calculateLegionPower() {
         var lPower: Long = 0
         myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { lPower += it.powerBoost }
@@ -220,7 +161,6 @@ object GameState {
             prefs.putInt("H_${i}_S", h.shardsOwned); prefs.putBoolean("H_${i}_EQ", h.isEquipped)
         }
         
-        // 💡 حفظ حالة الأسلحة
         arsenal.forEachIndexed { i, w ->
             prefs.putBoolean("W_${i}_O", w.isOwned)
             prefs.putBoolean("W_${i}_EQ", w.isEquipped)
@@ -281,7 +221,6 @@ object GameState {
             h.isEquipped = prefs.getBoolean("H_${i}_EQ", false)
         }
         
-        // 💡 استرجاع حالة الأسلحة
         arsenal.forEachIndexed { i, w ->
             w.isOwned = prefs.getBoolean("W_${i}_O", false)
             w.isEquipped = prefs.getBoolean("W_${i}_EQ", false)
