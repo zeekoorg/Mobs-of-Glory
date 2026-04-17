@@ -100,7 +100,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupActionListeners() {
-        // 💡 تم إضافة ربط زر الإعدادات هنا
         findViewById<View>(R.id.btnSettings)?.setOnClickListener {
             DialogManager.showSettingsDialog(this)
         }
@@ -123,6 +122,15 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<View>(R.id.layoutTavernClick)?.setOnClickListener {
             DialogManager.showSummoningTavernDialog(this)
+        }
+        
+        // 💡 ربط الأزرار الجديدة هنا
+        findViewById<View>(R.id.layoutWeaponsClick)?.setOnClickListener {
+            DialogManager.showWeaponsDialog(this)
+        }
+        
+        findViewById<View>(R.id.layoutFormationClick)?.setOnClickListener {
+            DialogManager.showFormationDialog(this)
         }
         
         findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { DialogManager.showHeroesDialog(this) }
