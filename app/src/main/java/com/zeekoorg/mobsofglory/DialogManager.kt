@@ -78,8 +78,7 @@ object DialogManager {
             d.findViewById<TextView>(R.id.tvProfileInfantry)?.text = formatResourceNumber(GameState.totalInfantry)
             d.findViewById<TextView>(R.id.tvProfileCavalry)?.text = formatResourceNumber(GameState.totalCavalry)
             
-            var buildingPower = 0L; GameState.myPlots.forEach { buildingPower += it.getPowerProvided() }
-            d.findViewById<TextView>(R.id.tvProfileBuildingPower)?.text = formatResourceNumber(buildingPower)
+            d.findViewById<TextView>(R.id.tvProfileBuildingPower)?.text = formatResourceNumber(GameState.totalBuildingsPower)
 
             val maxExp = GameState.playerLevel * 1000
             val expPercent = ((GameState.playerExp.toFloat() / maxExp.toFloat()) * 100).toInt()
@@ -144,7 +143,7 @@ object DialogManager {
         }
         refreshBagUI()
 
-        val speedupMsg = "استخدم التسريع من المبنى قيد التطوير/التدريب مباشرة!"
+        val speedupMsg = "استخدم التسريع من المبنى أو السلاح قيد التطوير مباشرة!"
         d.findViewById<Button>(R.id.btnUseBagSpeedup5m)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_5m) }
         d.findViewById<Button>(R.id.btnUseBagSpeedup15m)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_15m) }
         d.findViewById<Button>(R.id.btnUseBagSpeedup30m)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_30m) }
@@ -233,26 +232,57 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 تحديث نافذة الأبطال لدعم استراتيجية الندرة والترقية الزمنية
     fun showHeroesDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_heroes)
+        val handler = Handler(Looper.getMainLooper())
 
         fun updateHeroUI(i: Int, tvL: Int, tvB: Int, btn: Int) {
             val h = GameState.myHeroes[i]; val tvLevel = d.findViewById<TextView>(tvL); val tvBoost = d.findViewById<TextView>(tvB); val btnAct = d.findViewById<Button>(btn)
-            if (h.isUnlocked) { tvLevel?.text = "مستوى: ${h.level}"; tvLevel?.setTextColor(Color.parseColor("#F4D03F")); btnAct?.text = "ترقية" } 
-            else { tvLevel?.text = "شظايا: ${h.shardsOwned}/${h.shardsRequired}"; tvLevel?.setTextColor(Color.parseColor("#FF5252")); btnAct?.text = "تجنيد" }
+            
+            // عرض الندرة بجانب المستوى
+            val rarityColor = when(h.rarity) { Rarity.COMMON -> "#BDC3C7"; Rarity.RARE -> "#3498DB"; Rarity.LEGENDARY -> "#9B59B6" }
+            val rarityName = when(h.rarity) { Rarity.COMMON -> "شائع"; Rarity.RARE -> "نادر"; Rarity.LEGENDARY -> "أسطوري" }
+            
+            tvBoost?.text = "قوة: ${formatResourceNumber(h.getCurrentPower())}"
+            
+            if (h.isUnlocked) { 
+                if (h.isUpgrading) {
+                    val remaining = h.upgradeEndTime - System.currentTimeMillis()
+                    if (remaining > 0) {
+                        tvLevel?.text = "مستوى ${h.level} ($rarityName)"; tvLevel?.setTextColor(Color.parseColor(rarityColor))
+                        btnAct?.text = formatTimeMillis(remaining); btnAct?.setTextColor(Color.parseColor("#F4D03F")); btnAct?.isEnabled = false
+                        handler.postDelayed({ updateHeroUI(i, tvL, tvB, btn) }, 1000)
+                    } else {
+                        h.isUpgrading = false; h.level++; GameState.calculatePower(); GameState.saveGameData(activity)
+                        updateHeroUI(i, tvL, tvB, btn)
+                    }
+                } else {
+                    tvLevel?.text = "مستوى ${h.level} ($rarityName)"; tvLevel?.setTextColor(Color.parseColor(rarityColor))
+                    val cost = h.getUpgradeCostGold()
+                    btnAct?.text = "ترقية (${formatResourceNumber(cost)})"; btnAct?.setTextColor(Color.WHITE); btnAct?.isEnabled = true
+                }
+            } 
+            else { 
+                tvLevel?.text = "شظايا: ${h.shardsOwned}/${h.shardsRequired} ($rarityName)"; tvLevel?.setTextColor(Color.parseColor("#FF5252"))
+                btnAct?.text = "تجنيد"; btnAct?.setTextColor(Color.WHITE); btnAct?.isEnabled = true
+            }
             
             btnAct?.setOnClickListener {
                 if (!h.isUnlocked && h.shardsOwned >= h.shardsRequired) { 
-                    h.isUnlocked = true; h.shardsOwned -= h.shardsRequired; GameState.saveGameData(activity); updateHeroUI(i, tvL, tvB, btn)
+                    h.isUnlocked = true; h.shardsOwned -= h.shardsRequired; GameState.calculatePower(); GameState.saveGameData(activity); updateHeroUI(i, tvL, tvB, btn)
                     showGameMessage(activity, "تجنيد بطل", "تم تجنيد ${h.name} بنجاح!", R.drawable.ic_menu_heroes)
-                } else if (!h.isUnlocked) { showGameMessage(activity, "عذراً", "اجمع المزيد من الشظايا من قاعة الأساطير!", R.drawable.ic_menu_heroes)
-                } else {
-                    val cost = h.level * 50000L 
+                } else if (!h.isUnlocked) { 
+                    showGameMessage(activity, "عذراً", "اجمع المزيد من الشظايا من قاعة الأساطير!", R.drawable.ic_menu_heroes)
+                } else if (!h.isUpgrading) {
+                    val cost = h.getUpgradeCostGold() 
                     if (GameState.totalGold >= cost) {
-                        GameState.totalGold -= cost; h.level++; h.powerBoost += (h.powerBoost * 0.2).toLong()
-                        GameState.calculatePower(); activity.updateHudUI(); GameState.saveGameData(activity); updateHeroUI(i, tvL, tvB, btn)
-                        showGameMessage(activity, "ترقية بطل", "تم ترقية ${h.name} للمستوى ${h.level}!", R.drawable.ic_menu_heroes)
+                        GameState.totalGold -= cost
+                        h.isUpgrading = true
+                        h.totalUpgradeTime = h.getUpgradeTimeSeconds() * 1000
+                        h.upgradeEndTime = System.currentTimeMillis() + h.totalUpgradeTime
+                        activity.updateHudUI(); GameState.saveGameData(activity); updateHeroUI(i, tvL, tvB, btn)
                     } else showGameMessage(activity, "عذراً", "تحتاج ${formatResourceNumber(cost)} ذهب للترقية!", R.drawable.ic_resource_gold)
                 }
             }
@@ -261,7 +291,9 @@ object DialogManager {
         updateHeroUI(0, R.id.tvHero1Level, R.id.tvHero1Boost, R.id.btnHero1); updateHeroUI(1, R.id.tvHero2Level, R.id.tvHero2Boost, R.id.btnHero2); updateHeroUI(2, R.id.tvHero3Level, R.id.tvHero3Boost, R.id.btnHero3)
         updateHeroUI(3, R.id.tvHero4Level, R.id.tvHero4Boost, R.id.btnHero4); updateHeroUI(4, R.id.tvHero5Level, R.id.tvHero5Boost, R.id.btnHero5); updateHeroUI(5, R.id.tvHero6Level, R.id.tvHero6Boost, R.id.btnHero6)
         updateHeroUI(6, R.id.tvHero7Level, R.id.tvHero7Boost, R.id.btnHero7); updateHeroUI(7, R.id.tvHero8Level, R.id.tvHero8Boost, R.id.btnHero8)
+        
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.setOnDismissListener { handler.removeCallbacksAndMessages(null) }
         d.show()
     }
 
@@ -345,7 +377,8 @@ object DialogManager {
         d.show()
     }
 
-    fun showSpeedupDialog(activity: MainActivity, p: MapPlot) {
+    // 💡 تحديث دالة التسريع لتدعم الأسلحة والمباني
+    fun showSpeedupDialog(activity: MainActivity, p: MapPlot?, w: Weapon? = null) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_speedup)
 
@@ -364,10 +397,25 @@ object DialogManager {
         }
         refreshSpeedupUI()
 
-        val handler = Handler(Looper.getMainLooper()); val runnable = object : Runnable { override fun run() { val remaining = if (p.isUpgrading) p.upgradeEndTime - System.currentTimeMillis() else p.trainingEndTime - System.currentTimeMillis(); if (remaining > 0) { tvRemaining?.text = "الوقت المتبقي: ${formatTimeMillis(remaining)}"; handler.postDelayed(this, 1000) } else d.dismiss() } }
+        val handler = Handler(Looper.getMainLooper()); val runnable = object : Runnable { 
+            override fun run() { 
+                val remaining = if (p != null) {
+                    if (p.isUpgrading) p.upgradeEndTime - System.currentTimeMillis() else p.trainingEndTime - System.currentTimeMillis()
+                } else if (w != null) {
+                    w.upgradeEndTime - System.currentTimeMillis()
+                } else 0L
+
+                if (remaining > 0) { tvRemaining?.text = "الوقت المتبقي: ${formatTimeMillis(remaining)}"; handler.postDelayed(this, 1000) } 
+                else d.dismiss() 
+            } 
+        }
         handler.post(runnable)
 
-        fun applySpeedup(millis: Long, name: String, iconId: Int) { if (p.isUpgrading) p.upgradeEndTime -= millis else p.trainingEndTime -= millis; GameState.saveGameData(activity); refreshSpeedupUI(); showGameMessage(activity, "تسريع الوقت", "تم خصم $name من الوقت المتبقي!", iconId) }
+        fun applySpeedup(millis: Long, name: String, iconId: Int) { 
+            if (p != null) { if (p.isUpgrading) p.upgradeEndTime -= millis else p.trainingEndTime -= millis }
+            if (w != null) { w.upgradeEndTime -= millis }
+            GameState.saveGameData(activity); refreshSpeedupUI(); showGameMessage(activity, "تسريع الوقت", "تم خصم $name من الوقت المتبقي!", iconId) 
+        }
 
         btnUse5m?.setOnClickListener { if (GameState.countSpeedup5m > 0) { GameState.countSpeedup5m--; applySpeedup(300000L, "5 دقائق", R.drawable.ic_speedup_5m) } else { d.dismiss(); showStoreDialog(activity) } }
         btnUse15m?.setOnClickListener { if (GameState.countSpeedup15m > 0) { GameState.countSpeedup15m--; applySpeedup(900000L, "15 دقيقة", R.drawable.ic_speedup_15m) } else { d.dismiss(); showStoreDialog(activity) } }
@@ -471,51 +519,75 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 دالة نافذة الحدادة (الأسلحة) الجديدة
+    // 💡 تحديث دالة الحدادة لدعم الترقية المستمرة
     fun showWeaponsDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_weapons)
         val container = d.findViewById<LinearLayout>(R.id.layoutWeaponsContainer)
-        container?.removeAllViews()
         val inflater = LayoutInflater.from(activity)
+        val handler = Handler(Looper.getMainLooper())
 
         fun refreshWeaponsList() {
             container?.removeAllViews()
             GameState.arsenal.forEach { weapon ->
                 val view = inflater.inflate(R.layout.item_weapon, container, false)
-                view.findViewById<TextView>(R.id.tvWeaponName).text = weapon.name
-                view.findViewById<TextView>(R.id.tvWeaponPower).text = "قوة الفيلق: +${formatResourceNumber(weapon.powerBoost)}"
-                view.findViewById<TextView>(R.id.tvWeaponCost).text = "التكلفة: ${formatResourceNumber(weapon.costIron)} حديد + ${formatResourceNumber(weapon.costGold)} ذهب"
+                val imgIcon = view.findViewById<ImageView>(R.id.imgWeaponIcon)
+                imgIcon.setImageResource(weapon.iconResId)
+                
+                val rarityName = when(weapon.rarity) { Rarity.COMMON -> "شائع"; Rarity.RARE -> "نادر"; Rarity.LEGENDARY -> "أسطوري" }
+                val rarityColor = when(weapon.rarity) { Rarity.COMMON -> "#BDC3C7"; Rarity.RARE -> "#3498DB"; Rarity.LEGENDARY -> "#9B59B6" }
+                
+                view.findViewById<TextView>(R.id.tvWeaponName).apply {
+                    text = "${weapon.name} (مستوى ${weapon.level})"
+                    setTextColor(Color.parseColor(rarityColor))
+                }
+                
+                view.findViewById<TextView>(R.id.tvWeaponPower).text = "قوة الفيلق: +${formatResourceNumber(weapon.getCurrentPower())}"
+                view.findViewById<TextView>(R.id.tvWeaponCost).text = "التكلفة: ${formatResourceNumber(weapon.getCostIron())} حديد + ${formatResourceNumber(weapon.getCostGold())} ذهب"
                 
                 val btnAction = view.findViewById<Button>(R.id.btnUpgradeWeapon)
-                if (weapon.isOwned) {
-                    btnAction.text = "مملوك"
-                    btnAction.setTextColor(Color.parseColor("#2ECC71"))
-                    btnAction.isEnabled = false
+                
+                if (weapon.isUpgrading) {
+                    val remaining = weapon.upgradeEndTime - System.currentTimeMillis()
+                    if (remaining > 0) {
+                        btnAction.text = formatTimeMillis(remaining)
+                        btnAction.setTextColor(Color.parseColor("#F4D03F"))
+                        btnAction.setOnClickListener { d.dismiss(); showSpeedupDialog(activity, null, weapon) } // يمكن تسريع السلاح
+                        handler.postDelayed({ refreshWeaponsList() }, 1000)
+                    } else {
+                        weapon.isUpgrading = false; weapon.level++; GameState.calculatePower(); GameState.saveGameData(activity)
+                        refreshWeaponsList()
+                    }
                 } else {
+                    btnAction.text = if (weapon.isOwned) "ترقية" else "صناعة"
+                    btnAction.setTextColor(Color.WHITE)
                     btnAction.setOnClickListener {
-                        if (GameState.totalIron >= weapon.costIron && GameState.totalGold >= weapon.costGold) {
-                            GameState.totalIron -= weapon.costIron
-                            GameState.totalGold -= weapon.costGold
+                        if (GameState.totalIron >= weapon.getCostIron() && GameState.totalGold >= weapon.getCostGold()) {
+                            GameState.totalIron -= weapon.getCostIron()
+                            GameState.totalGold -= weapon.getCostGold()
                             weapon.isOwned = true
+                            weapon.isUpgrading = true
+                            weapon.totalUpgradeTime = weapon.getUpgradeTimeSeconds() * 1000
+                            weapon.upgradeEndTime = System.currentTimeMillis() + weapon.totalUpgradeTime
+                            
                             activity.updateHudUI()
                             GameState.saveGameData(activity)
                             refreshWeaponsList()
-                            showGameMessage(activity, "صناعة السلاح", "تم صقل ${weapon.name} بنجاح!", R.drawable.ic_ui_weapons)
                         } else {
-                            showGameMessage(activity, "موارد غير كافية", "تنقصك الموارد لصناعة هذا السلاح!", R.drawable.ic_resource_iron)
+                            showGameMessage(activity, "موارد غير كافية", "تنقصك الموارد لصناعة/ترقية السلاح!", R.drawable.ic_resource_iron)
                         }
                     }
                 }
                 container?.addView(view)
             }
         }
+        
         refreshWeaponsList()
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.setOnDismissListener { handler.removeCallbacksAndMessages(null) }
         d.show()
     }
 
-    // 💡 دالة نافذة تخصيص الفيلق الجديدة
     fun showFormationDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_formation)
@@ -531,7 +603,6 @@ object DialogManager {
             heroesContainer?.removeAllViews()
             weaponsContainer?.removeAllViews()
 
-            // عرض الأبطال
             val availableHeroes = GameState.myHeroes.filter { it.isUnlocked }
             if (availableHeroes.isEmpty()) {
                 val tv = TextView(activity).apply { text = "لا يوجد أبطال متاحين"; setTextColor(Color.GRAY) }
@@ -554,7 +625,6 @@ object DialogManager {
                 }
             }
 
-            // عرض الأسلحة
             val ownedWeapons = GameState.arsenal.filter { it.isOwned }
             if (ownedWeapons.isEmpty()) {
                 val tv = TextView(activity).apply { text = "قم بصناعة أسلحة في الحدادة"; setTextColor(Color.GRAY) }
