@@ -69,17 +69,20 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 تحديث دالة ملف اللاعب لتعرض تفاصيل القوة الاستراتيجية الجديدة وأيقونة القلم
     fun showPlayerProfileDialog(activity: MainActivity, onPickImage: () -> Unit, onChangeName: () -> Unit) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_player_profile)
         try {
             d.findViewById<TextView>(R.id.tvProfileName)?.text = GameState.playerName
             d.findViewById<TextView>(R.id.tvProfileLevel)?.text = "المستوى: ${GameState.playerLevel}"
-            d.findViewById<TextView>(R.id.tvProfilePower)?.text = formatResourceNumber(GameState.playerPower)
-            d.findViewById<TextView>(R.id.tvProfileInfantry)?.text = formatResourceNumber(GameState.totalInfantry)
-            d.findViewById<TextView>(R.id.tvProfileCavalry)?.text = formatResourceNumber(GameState.totalCavalry)
             
+            // 💡 ربط تفاصيل القوة بالواجهة الجديدة
+            d.findViewById<TextView>(R.id.tvProfilePower)?.text = formatResourceNumber(GameState.playerPower)
             d.findViewById<TextView>(R.id.tvProfileBuildingPower)?.text = formatResourceNumber(GameState.totalBuildingsPower)
+            d.findViewById<TextView>(R.id.tvProfileTroopsPower)?.text = formatResourceNumber(GameState.totalTroopsPower)
+            d.findViewById<TextView>(R.id.tvProfileHeroesPower)?.text = formatResourceNumber(GameState.totalHeroesPower)
+            d.findViewById<TextView>(R.id.tvProfileWeaponsPower)?.text = formatResourceNumber(GameState.totalWeaponsPower)
 
             val maxExp = GameState.playerLevel * 1000
             val expPercent = ((GameState.playerExp.toFloat() / maxExp.toFloat()) * 100).toInt()
@@ -89,9 +92,11 @@ object DialogManager {
             val imgProfileAvatar = d.findViewById<ImageView>(R.id.imgProfileAvatar)
             if (GameState.selectedAvatarUri != null) imgProfileAvatar?.setImageURI(Uri.parse(GameState.selectedAvatarUri))
             d.findViewById<Button>(R.id.btnChangePic)?.setOnClickListener { onPickImage(); d.dismiss() }
-            d.findViewById<Button>(R.id.btnChangeName)?.setOnClickListener { onChangeName(); d.dismiss() }
+            
+            // 💡 ربط أيقونة القلم الجديدة
+            d.findViewById<ImageView>(R.id.btnChangeName)?.setOnClickListener { onChangeName(); d.dismiss() }
         } catch (e: Exception) { e.printStackTrace() }
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
         d.show()
     }
 
@@ -692,7 +697,6 @@ object DialogManager {
                         imgAdd?.visibility = View.GONE
                         
                         val hero = equippedHeroes[i]
-                        // 💡 هنا التغيير المحوري: نضع صورة البطل الحقيقية بدلاً من الأفاتار الافتراضي
                         imgFull?.setImageResource(hero.iconResId) 
                         
                         slot?.setOnClickListener { 
