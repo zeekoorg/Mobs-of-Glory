@@ -2,6 +2,9 @@ package com.zeekoorg.mobsofglory
 
 import android.content.Context
 
+// 💡 كلاس جديد لحفظ الإشعارات المؤجلة التي تكتمل أوفلاين
+data class PendingMessage(val title: String, val body: String, val iconResId: Int)
+
 object GameState {
     var playerName: String = "المهيب زيكو"
     var selectedAvatarUri: String? = null
@@ -48,6 +51,9 @@ object GameState {
     val dailyQuestsList = mutableListOf<DynamicQuest>()
     val claimedCastleRewards = mutableSetOf<Int>()
 
+    // 💡 قائمة لتخزين الإشعارات التي يجب أن تظهر فور فتح اللعبة
+    val pendingOfflineMessages = mutableListOf<PendingMessage>()
+
     fun addQuestProgress(type: QuestType, amount: Int) {
         dailyQuestsList.filter { it.type == type }.forEach { quest ->
             if (!quest.isCollected && !quest.isCompleted) {
@@ -60,7 +66,6 @@ object GameState {
     }
 
     fun initializeDataLists() {
-        // 💡 تم دمج صور الأبطال المخصصة هنا
         if (myHeroes.isEmpty()) {
             myHeroes.add(Hero(1, "صقر البيداء", 1, 5000, R.drawable.img_hero_1, true, 10, 10, false, Rarity.COMMON)) 
             myHeroes.add(Hero(2, "ضرغام الليل", 1, 10000, R.drawable.img_hero_2, false, 0, 20, false, Rarity.COMMON))
@@ -231,6 +236,9 @@ object GameState {
             claimedCastleRewards.addAll(claimedStr.split(",").mapNotNull { it.toIntOrNull() })
         }
 
+        pendingOfflineMessages.clear() // تصفير القائمة قبل التحميل
+
+        // 💡 تحميل الأبطال وإنهاء الترقيات أثناء الغياب مع الإشعار
         myHeroes.forEachIndexed { i, h ->
             h.isUnlocked = prefs.getBoolean("H_${i}_U", h.isUnlocked)
             h.level = prefs.getInt("H_${i}_L", h.level)
@@ -243,9 +251,11 @@ object GameState {
             if (h.isUpgrading && currentTime >= h.upgradeEndTime) {
                 h.isUpgrading = false
                 h.level++
+                pendingOfflineMessages.add(PendingMessage("ترقية بطل", "تمت ترقية البطل ${h.name} للمستوى ${h.level} أثناء غيابك!", h.iconResId))
             }
         }
         
+        // 💡 تحميل الأسلحة وإنهاء الترقيات أثناء الغياب مع الإشعار
         arsenal.forEachIndexed { i, w ->
             w.isOwned = prefs.getBoolean("W_${i}_O", false)
             w.isEquipped = prefs.getBoolean("W_${i}_EQ", false)
@@ -257,9 +267,11 @@ object GameState {
             if (w.isUpgrading && currentTime >= w.upgradeEndTime) {
                 w.isUpgrading = false
                 w.level++
+                pendingOfflineMessages.add(PendingMessage("ترقية سلاح", "تمت ترقية السلاح ${w.name} للمستوى ${w.level} بنجاح!", w.iconResId))
             }
         }
 
+        // 💡 تحميل المباني وإنهاء التطوير أثناء الغياب مع الإشعار
         myPlots.forEach { 
             it.level = prefs.getInt("L_${it.idCode}", 1) 
             it.isUpgrading = prefs.getBoolean("U_${it.idCode}", false)
@@ -270,10 +282,14 @@ object GameState {
             it.collectTimer = prefs.getLong("CT_${it.idCode}", 0L)
             it.isReady = prefs.getBoolean("IR_${it.idCode}", false)
             
-            if (it.isUpgrading && currentTime >= it.upgradeEndTime) { it.isUpgrading = false; it.level++; playerExp += it.getExpReward() }
+            if (it.isUpgrading && currentTime >= it.upgradeEndTime) { 
+                it.isUpgrading = false; it.level++; playerExp += it.getExpReward()
+                pendingOfflineMessages.add(PendingMessage("أعمال البناء", "تم تطوير ${it.name} للمستوى ${it.level} بنجاح!", R.drawable.ic_settings_gear))
+            }
             if (it.isTraining && currentTime >= it.trainingEndTime) { 
                 it.isTraining = false
                 if (it.idCode == "BARRACKS_1") totalInfantry += it.trainingAmount else totalCavalry += it.trainingAmount
+                pendingOfflineMessages.add(PendingMessage("معسكر التدريب", "تم تدريب ${it.trainingAmount} قوات بنجاح أثناء غيابك!", R.drawable.ic_settings_gear))
             }
             if (!it.isUpgrading && !it.isTraining && it.resourceType != ResourceType.NONE && !it.isReady) {
                 it.collectTimer += offlineTime
@@ -281,6 +297,6 @@ object GameState {
                 if (it.collectTimer >= targetTime) { it.isReady = true; it.collectTimer = targetTime }
             }
         }
-        checkPlayerLevelUp()
+        checkPlayerLevelUp() // 💡 إذا اكتسب اللاعب خبرة أثناء الأوفلاين وارتفع مستواه، سيتم حساب القوة الجديدة فوراً
     }
 }
