@@ -1,8 +1,8 @@
 package com.zeekoorg.mobsofglory
 
 import android.content.Context
+import kotlin.random.Random
 
-// 💡 كلاس جديد لحفظ الإشعارات المؤجلة التي تكتمل أوفلاين
 data class PendingMessage(val title: String, val body: String, val iconResId: Int)
 
 object GameState {
@@ -43,6 +43,13 @@ object GameState {
     var countVip24h: Int = 0
     var countVip7d: Int = 0
 
+    // 💡 متغيرات ساحة الغزوات (Arena)
+    var arenaScore: Long = 0L
+    var arenaStamina: Int = 5 // الحد الأقصى للمحاولات
+    var arenaStaminaLastRegenTime: Long = 0L
+    var arenaSeasonEndTime: Long = 0L
+    val arenaLeaderboard = mutableListOf<ArenaPlayer>()
+
     fun isVipActive(): Boolean = System.currentTimeMillis() < vipEndTime
 
     val myHeroes = mutableListOf<Hero>()
@@ -51,7 +58,6 @@ object GameState {
     val dailyQuestsList = mutableListOf<DynamicQuest>()
     val claimedCastleRewards = mutableSetOf<Int>()
 
-    // 💡 قائمة لتخزين الإشعارات التي يجب أن تظهر فور فتح اللعبة
     val pendingOfflineMessages = mutableListOf<PendingMessage>()
 
     fun addQuestProgress(type: QuestType, amount: Int) {
@@ -98,6 +104,25 @@ object GameState {
             myPlots.add(MapPlot("BARRACKS_1", "ثكنة المشاة", R.id.plotBarracksL1, 0, ResourceType.NONE, 1))
             myPlots.add(MapPlot("BARRACKS_2", "ثكنة الفرسان", R.id.plotBarracksL2, 0, ResourceType.NONE, 1))
             myPlots.add(MapPlot("HOSPITAL", "دار الشفاء", R.id.plotHospitalM2, 0, ResourceType.NONE, 1))
+        }
+
+        // 💡 تهيئة المتصدرين الوهميين لساحة الغزوات
+        if (arenaLeaderboard.isEmpty()) {
+            val fakeNames = listOf("جلاد السلاطين", "فارس الظلام", "الإمبراطور الأحمر", "شبح الصحراء", "قاهر الجيوش", "ملك الشمال", "سيد العواصف", "الموت الزؤام", "ذئب الليل", "صياد التنانين", "مخلب النمر", "سفاح الممالك", "عين الصقر", "أمير الانتقام", "طاحن العظام", "غضب السماء", "روح الجحيم", "كابوس الأعداء", "ظل الموت")
+            
+            fakeNames.forEachIndexed { index, fName ->
+                arenaLeaderboard.add(ArenaPlayer(index + 1, fName, 0L, false))
+            }
+            // إضافة اللاعب الحقيقي
+            arenaLeaderboard.add(ArenaPlayer(0, playerName, arenaScore, true))
+        }
+
+        if (arenaSeasonEndTime == 0L) {
+            // مدة الموسم 7 أيام
+            arenaSeasonEndTime = System.currentTimeMillis() + (7L * 24 * 60 * 60 * 1000)
+        }
+        if (arenaStaminaLastRegenTime == 0L) {
+            arenaStaminaLastRegenTime = System.currentTimeMillis()
         }
     }
 
@@ -156,6 +181,16 @@ object GameState {
         prefs.putInt("VIP_8H", countVip8h)
         prefs.putInt("VIP_24H", countVip24h)
         prefs.putInt("VIP_7D", countVip7d)
+        
+        // 💡 حفظ بيانات الساحة
+        prefs.putLong("ARENA_SCORE", arenaScore)
+        prefs.putInt("ARENA_STAMINA", arenaStamina)
+        prefs.putLong("ARENA_STAMINA_REGEN", arenaStaminaLastRegenTime)
+        prefs.putLong("ARENA_SEASON_END", arenaSeasonEndTime)
+
+        arenaLeaderboard.filter { !it.isRealPlayer }.forEach {
+            prefs.putLong("ARENA_FAKE_SCORE_${it.id}", it.score)
+        }
         
         prefs.putLong("LAST_LOGIN_TIME", System.currentTimeMillis())
         
@@ -225,6 +260,43 @@ object GameState {
         val currentTime = System.currentTimeMillis()
         val offlineTime = currentTime - prefs.getLong("LAST_LOGIN_TIME", currentTime)
 
+        // 💡 تحميل بيانات الساحة وتحديث الأوفلاين
+        arenaScore = prefs.getLong("ARENA_SCORE", 0)
+        arenaStamina = prefs.getInt("ARENA_STAMINA", 5)
+        arenaStaminaLastRegenTime = prefs.getLong("ARENA_STAMINA_REGEN", currentTime)
+        arenaSeasonEndTime = prefs.getLong("ARENA_SEASON_END", 0L)
+
+        // تجديد طاقة الهجوم في الساحة (1 طاقة لكل ساعة)
+        val regenTimeMs = 3600000L 
+        if (arenaStamina < 5) {
+            val timePassedForStamina = currentTime - arenaStaminaLastRegenTime
+            val staminaToRecover = (timePassedForStamina / regenTimeMs).toInt()
+            if (staminaToRecover > 0) {
+                arenaStamina += staminaToRecover
+                if (arenaStamina > 5) arenaStamina = 5
+                arenaStaminaLastRegenTime += (staminaToRecover * regenTimeMs)
+            }
+        } else {
+            arenaStaminaLastRegenTime = currentTime
+        }
+
+        // تحميل نقاط المتصدرين الوهميين وزيادتها بناءً على الوقت المنقضي
+        val hoursOffline = (offlineTime / 3600000L).toInt()
+        arenaLeaderboard.filter { !it.isRealPlayer }.forEach {
+            var savedScore = prefs.getLong("ARENA_FAKE_SCORE_${it.id}", 0L)
+            if (hoursOffline > 0) {
+                // الأعداء الوهميين يلعبون أيضاً!
+                savedScore += (hoursOffline * Random.nextLong(20, 80)) 
+            }
+            it.score = savedScore
+        }
+        
+        // تحديث اللاعب الحقيقي
+        arenaLeaderboard.find { it.isRealPlayer }?.let {
+            it.score = arenaScore
+            it.name = playerName
+        }
+
         dailyQuestsList.forEachIndexed { i, q ->
             q.currentAmount = prefs.getInt("QUEST_${i}_PROG", 0)
             q.isCollected = prefs.getBoolean("QUEST_${i}_COLL", false)
@@ -236,9 +308,8 @@ object GameState {
             claimedCastleRewards.addAll(claimedStr.split(",").mapNotNull { it.toIntOrNull() })
         }
 
-        pendingOfflineMessages.clear() // تصفير القائمة قبل التحميل
+        pendingOfflineMessages.clear()
 
-        // 💡 تحميل الأبطال وإنهاء الترقيات أثناء الغياب مع الإشعار
         myHeroes.forEachIndexed { i, h ->
             h.isUnlocked = prefs.getBoolean("H_${i}_U", h.isUnlocked)
             h.level = prefs.getInt("H_${i}_L", h.level)
@@ -255,7 +326,6 @@ object GameState {
             }
         }
         
-        // 💡 تحميل الأسلحة وإنهاء الترقيات أثناء الغياب مع الإشعار
         arsenal.forEachIndexed { i, w ->
             w.isOwned = prefs.getBoolean("W_${i}_O", false)
             w.isEquipped = prefs.getBoolean("W_${i}_EQ", false)
@@ -271,7 +341,6 @@ object GameState {
             }
         }
 
-        // 💡 تحميل المباني وإنهاء التطوير أثناء الغياب مع الإشعار
         myPlots.forEach { 
             it.level = prefs.getInt("L_${it.idCode}", 1) 
             it.isUpgrading = prefs.getBoolean("U_${it.idCode}", false)
@@ -297,6 +366,6 @@ object GameState {
                 if (it.collectTimer >= targetTime) { it.isReady = true; it.collectTimer = targetTime }
             }
         }
-        checkPlayerLevelUp() // 💡 إذا اكتسب اللاعب خبرة أثناء الأوفلاين وارتفع مستواه، سيتم حساب القوة الجديدة فوراً
+        checkPlayerLevelUp() 
     }
 }
