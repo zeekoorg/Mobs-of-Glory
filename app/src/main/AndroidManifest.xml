@@ -37,6 +37,12 @@
             android:theme="@style/Theme.MobsOfGlory.Fullscreen" />
 
         <activity
+            android:name=".ArenaActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.MobsOfGlory.Fullscreen" />
+
+        <activity
             android:name=".GameActivity"
             android:exported="false"
             android:screenOrientation="portrait"
