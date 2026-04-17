@@ -13,11 +13,34 @@ enum class ResourceType(val iconResId: Int) {
     NONE(0) 
 }
 
+enum class QuestType {
+    COLLECT_RESOURCES,
+    TRAIN_TROOPS,
+    UPGRADE_BUILDING
+}
+
+// 💡 تم تحديث البطل هنا
 data class Hero(
     val id: Int, val name: String, var level: Int, var powerBoost: Long, 
-    var isUnlocked: Boolean, var shardsOwned: Int, val shardsRequired: Int
+    var isUnlocked: Boolean, var shardsOwned: Int, val shardsRequired: Int,
+    var isEquipped: Boolean = false 
 )
 
+// 💡 إضافة كلاس السلاح هنا
+data class Weapon(
+    val id: Int, val name: String, val powerBoost: Long, 
+    val costIron: Long, val costGold: Long,
+    var isOwned: Boolean = false, var isEquipped: Boolean = false
+)
+
+data class DynamicQuest(
+    val id: Int, val title: String, val type: QuestType, val targetAmount: Int,
+    val rewardGold: Long, var currentAmount: Int = 0, var isCollected: Boolean = false
+) {
+    val isCompleted: Boolean get() = currentAmount >= targetAmount
+}
+
+// أبقيت كلاس Quest القديم احتياطاً إذا كنت تستخدمه في مكان آخر
 data class Quest(
     val id: Int, val title: String, val rewardGold: Long, 
     var isCompleted: Boolean, var isCollected: Boolean
@@ -30,11 +53,8 @@ data class MapPlot(
     var isTraining: Boolean = false, var trainingEndTime: Long = 0L, var trainingTotalTime: Long = 0L,
     var trainingAmount: Int = 0, var trainingIsInfantry: Boolean = false,
     
-    // عناصر الواجهة المرتبطة بالمبنى
-    var layoutUpgradeProgress: View? = null, 
-    var pbUpgrade: ProgressBar? = null, 
-    var tvUpgradeTimer: TextView? = null, 
-    var collectIcon: ImageView? = null
+    var layoutUpgradeProgress: View? = null, var pbUpgrade: ProgressBar? = null, 
+    var tvUpgradeTimer: TextView? = null, var collectIcon: ImageView? = null
 ) {
     fun getCostWheat(): Long = (if (idCode == "CASTLE") 1200 else 800 * level.toDouble().pow(3)).toLong()
     fun getCostIron(): Long = (if (idCode == "CASTLE") 1000 else 500 * level.toDouble().pow(3)).toLong()
