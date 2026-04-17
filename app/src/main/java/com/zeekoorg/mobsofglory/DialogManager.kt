@@ -1,6 +1,7 @@
 package com.zeekoorg.mobsofglory
 
 import android.app.Dialog
+import android.content.Context // 💡 تم إضافة هذا السطر لحل المشكلة
 import android.graphics.Color
 import android.net.Uri
 import android.os.Handler
@@ -724,7 +725,7 @@ object DialogManager {
     }
 
 
-        fun showSettingsDialog(activity: MainActivity) {
+    fun showSettingsDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_settings)
 
