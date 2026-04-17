@@ -100,6 +100,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupActionListeners() {
+        // 💡 تم إضافة ربط زر الإعدادات هنا
+        findViewById<View>(R.id.btnSettings)?.setOnClickListener {
+            DialogManager.showSettingsDialog(this)
+        }
+
         findViewById<View>(R.id.layoutAvatarClick)?.setOnClickListener { 
             DialogManager.showPlayerProfileDialog(this, 
                 onPickImage = { showAvatarSelectionDialog() },
@@ -155,12 +160,10 @@ class MainActivity : AppCompatActivity() {
             d.dismiss()
         }
 
-        // 💡 التعديل هنا: استخدام FrameLayout أو الحاوية المحيطة بالصورة لتفعيل النقر بدلاً من الصورة نفسها 
-        // نظراً لأن التصميم لا يحتوي على id للـ ImageView المباشر
         fun setupPremiumAvatar(btnId: Int, imgResId: Int, cost: Long, prefKey: String, avatarName: String) {
             val btn = d.findViewById<Button>(btnId)
             val parentLayout = btn?.parent as? ViewGroup
-            val imageContainer = parentLayout?.getChildAt(0) as? FrameLayout // الحاوية الأولى هي الـ FrameLayout للصور
+            val imageContainer = parentLayout?.getChildAt(0) as? FrameLayout
 
             val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
             val isUnlocked = prefs.getBoolean(prefKey, false)
@@ -170,7 +173,6 @@ class MainActivity : AppCompatActivity() {
                 btn?.setTextColor(android.graphics.Color.WHITE)
             }
 
-            // تفعيل المعاينة عند النقر على إطار الصورة
             imageContainer?.setOnClickListener {
                 showAvatarPreviewDialog(imgResId, avatarName)
             }
@@ -201,7 +203,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         val cost = 50000L
-        // نمرر الـ IDs للأزرار والصور المعنية
         setupPremiumAvatar(R.id.btnBuyAvatarKing, R.drawable.img_avatar_king, cost, "AV_KING_UNLOCKED", "صورة الملك")
         setupPremiumAvatar(R.id.btnBuyAvatarKnight, R.drawable.img_avatar_knight, cost, "AV_KNIGHT_UNLOCKED", "صورة الفارس")
         setupPremiumAvatar(R.id.btnBuyAvatarAssassin, R.drawable.img_avatar_assassin, cost, "AV_ASSASSIN_UNLOCKED", "شبح الليل")
