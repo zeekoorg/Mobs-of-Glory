@@ -1,5 +1,6 @@
 package com.zeekoorg.mobsofglory
 
+import android.app.Activity
 import android.app.Dialog
 import android.content.Context
 import android.graphics.Color
@@ -20,8 +21,17 @@ import kotlin.random.Random
 
 object DialogManager {
 
-    fun showGameMessage(activity: MainActivity, title: String, message: String, iconResId: Int) {
-        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+    // 💡 دالة ذكية لمعرفة الشاشة الحالية وتحديثها
+    private fun updateUI(activity: Activity) {
+        if (activity is MainActivity) {
+            activity.updateHudUI()
+        } else if (activity is ArenaActivity) {
+            activity.refreshArenaUI()
+        }
+    }
+
+    fun showGameMessage(context: Context, title: String, message: String, iconResId: Int) {
+        val d = Dialog(context, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_game_message)
         d.findViewById<TextView>(R.id.tvMessageTitle)?.text = title
         d.findViewById<TextView>(R.id.tvMessageBody)?.text = message
@@ -30,15 +40,15 @@ object DialogManager {
         d.show()
     }
 
-    private fun showAdConfirmDialog(activity: MainActivity, onConfirm: () -> Unit) {
-        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+    private fun showAdConfirmDialog(context: Context, onConfirm: () -> Unit) {
+        val d = Dialog(context, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_ad_confirm)
         d.findViewById<Button>(R.id.btnConfirmAd)?.setOnClickListener { d.dismiss(); onConfirm() }
         d.findViewById<Button>(R.id.btnCancelAd)?.setOnClickListener { d.dismiss() }
         d.show()
     }
 
-    fun showLevelUpDialog(activity: MainActivity, newLevel: Int) {
+    fun showLevelUpDialog(activity: Activity, newLevel: Int) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_level_up)
         d.setCancelable(false) 
@@ -63,21 +73,21 @@ object DialogManager {
 
         d.findViewById<Button>(R.id.btnCollectLevelReward)?.setOnClickListener {
             GameState.totalGold += goldReward; GameState.totalIron += ironReward; GameState.totalWheat += wheatReward; GameState.summonMedals += medalReward
-            GameState.saveGameData(activity); activity.updateHudUI(); d.dismiss()
+            GameState.saveGameData(activity)
+            updateUI(activity)
+            d.dismiss()
             showGameMessage(activity, "غنائم ملكية", "تمت إضافة المكافآت لخزانتك بنجاح!", R.drawable.ic_resource_gold)
         }
         d.show()
     }
 
-    // 💡 تحديث دالة ملف اللاعب لتعرض تفاصيل القوة الاستراتيجية الجديدة وأيقونة القلم
-    fun showPlayerProfileDialog(activity: MainActivity, onPickImage: () -> Unit, onChangeName: () -> Unit) {
+    fun showPlayerProfileDialog(activity: Activity, onPickImage: () -> Unit, onChangeName: () -> Unit) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_player_profile)
         try {
             d.findViewById<TextView>(R.id.tvProfileName)?.text = GameState.playerName
             d.findViewById<TextView>(R.id.tvProfileLevel)?.text = "المستوى: ${GameState.playerLevel}"
             
-            // 💡 ربط تفاصيل القوة بالواجهة الجديدة
             d.findViewById<TextView>(R.id.tvProfilePower)?.text = formatResourceNumber(GameState.playerPower)
             d.findViewById<TextView>(R.id.tvProfileBuildingPower)?.text = formatResourceNumber(GameState.totalBuildingsPower)
             d.findViewById<TextView>(R.id.tvProfileTroopsPower)?.text = formatResourceNumber(GameState.totalTroopsPower)
@@ -93,14 +103,13 @@ object DialogManager {
             if (GameState.selectedAvatarUri != null) imgProfileAvatar?.setImageURI(Uri.parse(GameState.selectedAvatarUri))
             d.findViewById<Button>(R.id.btnChangePic)?.setOnClickListener { onPickImage(); d.dismiss() }
             
-            // 💡 ربط أيقونة القلم الجديدة
             d.findViewById<ImageView>(R.id.btnChangeName)?.setOnClickListener { onChangeName(); d.dismiss() }
         } catch (e: Exception) { e.printStackTrace() }
         d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
         d.show()
     }
 
-    fun showVipDialog(activity: MainActivity) {
+    fun showVipDialog(activity: Activity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_vip)
         val tvStatus = d.findViewById<TextView>(R.id.tvVipStatusDialog)
@@ -119,21 +128,24 @@ object DialogManager {
         }
 
         fun addVipTime(millis: Long) {
-            val now = System.currentTimeMillis(); if (GameState.vipEndTime < now) GameState.vipEndTime = now + millis else GameState.vipEndTime += millis
-            GameState.saveGameData(activity); refreshVipUI(); activity.updateVipUI(System.currentTimeMillis())
+            val now = System.currentTimeMillis()
+            if (GameState.vipEndTime < now) GameState.vipEndTime = now + millis else GameState.vipEndTime += millis
+            GameState.saveGameData(activity)
+            refreshVipUI()
+            if (activity is MainActivity) activity.updateVipUI(System.currentTimeMillis())
             showGameMessage(activity, "تفعيل ناجح", "تم تفعيل الامتيازات الملكية بنجاح!", R.drawable.ic_vip_crown)
         }
 
         refreshVipUI()
 
-        d.findViewById<Button>(R.id.btnUseVip8h)?.setOnClickListener { if (GameState.countVip8h > 0) { GameState.countVip8h--; addVipTime(28800000L) } else if (GameState.totalGold >= 200000) { GameState.totalGold -= 200000; activity.updateHudUI(); addVipTime(28800000L) } else showGameMessage(activity, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        d.findViewById<Button>(R.id.btnUseVip24h)?.setOnClickListener { if (GameState.countVip24h > 0) { GameState.countVip24h--; addVipTime(86400000L) } else if (GameState.totalGold >= 500000) { GameState.totalGold -= 500000; activity.updateHudUI(); addVipTime(86400000L) } else showGameMessage(activity, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        d.findViewById<Button>(R.id.btnUseVip7d)?.setOnClickListener { if (GameState.countVip7d > 0) { GameState.countVip7d--; addVipTime(604800000L) } else if (GameState.totalGold >= 3000000) { GameState.totalGold -= 3000000; activity.updateHudUI(); addVipTime(604800000L) } else showGameMessage(activity, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnUseVip8h)?.setOnClickListener { if (GameState.countVip8h > 0) { GameState.countVip8h--; addVipTime(28800000L) } else if (GameState.totalGold >= 200000) { GameState.totalGold -= 200000; updateUI(activity); addVipTime(28800000L) } else showGameMessage(activity, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnUseVip24h)?.setOnClickListener { if (GameState.countVip24h > 0) { GameState.countVip24h--; addVipTime(86400000L) } else if (GameState.totalGold >= 500000) { GameState.totalGold -= 500000; updateUI(activity); addVipTime(86400000L) } else showGameMessage(activity, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnUseVip7d)?.setOnClickListener { if (GameState.countVip7d > 0) { GameState.countVip7d--; addVipTime(604800000L) } else if (GameState.totalGold >= 3000000) { GameState.totalGold -= 3000000; updateUI(activity); addVipTime(604800000L) } else showGameMessage(activity, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
         d.show()
     }
 
-    fun showBagDialog(activity: MainActivity) {
+    fun showBagDialog(activity: Activity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_bag)
 
@@ -162,14 +174,14 @@ object DialogManager {
                 GameState.countResourceBox--; GameState.totalWheat += 50000; GameState.totalIron += 50000
                 if(Random.nextInt(100) == 0) { GameState.countVip8h++; showGameMessage(activity, "صندوق أسطوري!", "حصلت على 50K قمح وحديد\nومبروك! وجدت بطاقة VIP 8 ساعات!", R.drawable.ic_vip_crown) } 
                 else { showGameMessage(activity, "مكافأة الموارد", "حصلت على 50K قمح و 50K حديد!", R.drawable.ic_resource_wheat) }
-                activity.updateHudUI(); GameState.saveGameData(activity); refreshBagUI()
+                updateUI(activity); GameState.saveGameData(activity); refreshBagUI()
             } else showGameMessage(activity, "حقيبة فارغة", "لا تملك صناديق موارد!", R.drawable.ic_menu_bag)
         }
 
         d.findViewById<Button>(R.id.btnUseBagGoldBox)?.setOnClickListener {
             if (GameState.countGoldBox > 0) {
                 GameState.countGoldBox--; GameState.totalGold += 25000
-                activity.updateHudUI(); GameState.saveGameData(activity); refreshBagUI()
+                updateUI(activity); GameState.saveGameData(activity); refreshBagUI()
                 showGameMessage(activity, "مكافأة الذهب", "حصلت على 25K ذهب!", R.drawable.ic_resource_gold)
             } else showGameMessage(activity, "حقيبة فارغة", "لا تملك صناديق ذهب!", R.drawable.ic_menu_bag)
         }
@@ -177,7 +189,7 @@ object DialogManager {
         d.show()
     }
 
-    fun showQuestsDialog(activity: MainActivity) {
+    fun showQuestsDialog(activity: Activity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_quests)
         val container = d.findViewById<LinearLayout>(R.id.layoutQuestsContainer); container?.removeAllViews() 
@@ -195,7 +207,7 @@ object DialogManager {
             else if (quest.isCompleted) {
                 btnClaim.text = "استلام"; btnClaim.setTextColor(Color.WHITE)
                 btnClaim.setOnClickListener {
-                    GameState.totalGold += quest.rewardGold; quest.isCollected = true; activity.updateHudUI(); GameState.saveGameData(activity)
+                    GameState.totalGold += quest.rewardGold; quest.isCollected = true; updateUI(activity); GameState.saveGameData(activity)
                     btnClaim.text = "مستلمة"; btnClaim.setTextColor(Color.parseColor("#2ECC71")); btnClaim.isEnabled = false
                     showGameMessage(activity, "إنجاز المهمة", "تم استلام مكافأة المهمة بنجاح!", R.drawable.ic_resource_gold)
                 }
@@ -206,7 +218,7 @@ object DialogManager {
         d.show()
     }
 
-    fun showCastleRewardsDialog(activity: MainActivity, castleLevel: Int) {
+    fun showCastleRewardsDialog(activity: Activity, castleLevel: Int) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_castle_rewards)
         val container = d.findViewById<LinearLayout>(R.id.layoutCastleRewardsContainer); container?.removeAllViews() 
@@ -228,7 +240,7 @@ object DialogManager {
                 btnClaim.setOnClickListener {
                     GameState.claimedCastleRewards.add(reqLevel)
                     when (reqLevel) { 5 -> { GameState.countResourceBox += 1; GameState.totalGold += 10000 }; 10 -> { GameState.countSpeedup8Hour += 1; GameState.countGoldBox += 1 }; 15 -> { GameState.countVip8h += 1; GameState.countResourceBox += 2 }; 20 -> { GameState.summonMedals += 5; GameState.totalGold += 50000 } }
-                    activity.updateHudUI(); GameState.saveGameData(activity); btnClaim.text = "مستلمة"; btnClaim.setTextColor(Color.parseColor("#2ECC71")); btnClaim.isEnabled = false
+                    updateUI(activity); GameState.saveGameData(activity); btnClaim.text = "مستلمة"; btnClaim.setTextColor(Color.parseColor("#2ECC71")); btnClaim.isEnabled = false
                     showGameMessage(activity, "غنائم القلعة", "تم استلام المكافآت الأسطورية!", R.drawable.ic_ui_castle_rewards)
                 }
             } else { btnClaim.text = "مقفلة"; btnClaim.setTextColor(Color.parseColor("#7F8C8D")); btnClaim.isEnabled = false }
@@ -238,7 +250,7 @@ object DialogManager {
         d.show()
     }
 
-    fun showHeroesDialog(activity: MainActivity) {
+    fun showHeroesDialog(activity: Activity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_heroes)
         val handler = Handler(Looper.getMainLooper())
@@ -284,7 +296,7 @@ object DialogManager {
                         h.isUpgrading = true
                         h.totalUpgradeTime = h.getUpgradeTimeSeconds() * 1000
                         h.upgradeEndTime = System.currentTimeMillis() + h.totalUpgradeTime
-                        activity.updateHudUI(); GameState.saveGameData(activity); updateHeroUI(i, tvL, tvB, btn)
+                        updateUI(activity); GameState.saveGameData(activity); updateHeroUI(i, tvL, tvB, btn)
                     } else showGameMessage(activity, "عذراً", "تحتاج ${formatResourceNumber(cost)} ذهب للترقية!", R.drawable.ic_resource_gold)
                 }
             }
@@ -299,7 +311,7 @@ object DialogManager {
         d.show()
     }
 
-    fun showCastleMainDialog(activity: MainActivity, p: MapPlot) {
+    fun showCastleMainDialog(activity: Activity, p: MapPlot) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_castle_main)
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = p.name
@@ -310,7 +322,7 @@ object DialogManager {
         d.show()
     }
 
-    fun showBarracksMenuDialog(activity: MainActivity, p: MapPlot) {
+    fun showBarracksMenuDialog(activity: Activity, p: MapPlot) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_castle_main) 
         val isInfantry = p.idCode == "BARRACKS_1"
@@ -321,7 +333,7 @@ object DialogManager {
         d.show()
     }
 
-    fun showTrainTroopsDialog(activity: MainActivity, p: MapPlot) {
+    fun showTrainTroopsDialog(activity: Activity, p: MapPlot) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_train_troops)
 
@@ -339,7 +351,7 @@ object DialogManager {
                 GameState.totalWheat -= totalW; GameState.totalIron -= totalI; p.isTraining = true; p.trainingAmount = currentAmt
                 var tTime = currentAmt * 2000L; if(GameState.isVipActive()) tTime = (tTime * 0.8).toLong()
                 p.trainingTotalTime = tTime; p.trainingEndTime = System.currentTimeMillis() + p.trainingTotalTime; p.collectTimer = 0L 
-                activity.updateHudUI(); GameState.saveGameData(activity); d.dismiss()
+                updateUI(activity); GameState.saveGameData(activity); d.dismiss()
                 showGameMessage(activity, "معسكر التدريب", "بدأ تدريب القوات بنجاح!", R.drawable.ic_settings_gear) 
             } else showGameMessage(activity, "عذراً", "الموارد لا تكفي للتدريب!", R.drawable.ic_resource_wheat)
         }
@@ -348,7 +360,7 @@ object DialogManager {
         d.show()
     }
 
-    fun showUpgradeDialog(activity: MainActivity, p: MapPlot) {
+    fun showUpgradeDialog(activity: Activity, p: MapPlot) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_upgrade_building)
         val cW = p.getCostWheat(); val cI = p.getCostIron(); val cG = p.getCostGold(); var uSec = p.getUpgradeTimeSeconds()
@@ -371,7 +383,7 @@ object DialogManager {
             btnUpgrade?.setOnClickListener {
                 GameState.totalWheat -= cW; GameState.totalIron -= cI; GameState.totalGold -= cG
                 p.isUpgrading = true; p.totalUpgradeTime = uSec * 1000; p.upgradeEndTime = System.currentTimeMillis() + p.totalUpgradeTime; p.collectTimer = 0L
-                activity.updateHudUI(); GameState.saveGameData(activity); d.dismiss()
+                updateUI(activity); GameState.saveGameData(activity); d.dismiss()
                 showGameMessage(activity, "أعمال البناء", "بدأ التطوير بنجاح!", R.drawable.ic_settings_gear) 
             }
         }
@@ -379,7 +391,7 @@ object DialogManager {
         d.show()
     }
 
-    fun showSpeedupDialog(activity: MainActivity, p: MapPlot?, w: Weapon? = null) {
+    fun showSpeedupDialog(activity: Activity, p: MapPlot?, w: Weapon? = null) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_speedup)
 
@@ -430,7 +442,7 @@ object DialogManager {
         d.show()
     }
 
-    fun showStoreDialog(activity: MainActivity) {
+    fun showStoreDialog(activity: Activity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_store)
 
@@ -439,25 +451,25 @@ object DialogManager {
         if (GameState.isPeacockUnlocked) { btnPeacock?.text = "مملوكة"; btnPeacock?.isEnabled = false }
         if (GameState.isDiamondUnlocked) { btnDiamond?.text = "مملوكة"; btnDiamond?.isEnabled = false }
 
-        btnPyramid?.setOnClickListener { if (GameState.totalGold >= 500000) { GameState.totalGold -= 500000; GameState.isPyramidUnlocked = true; btnPyramid.text = "مملوكة"; btnPyramid.isEnabled = false; activity.updateHudUI(); GameState.saveGameData(activity); activity.changeCitySkin(R.drawable.bg_city_pyramid); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        btnPeacock?.setOnClickListener { if (GameState.totalGold >= 1500000) { GameState.totalGold -= 1500000; GameState.isPeacockUnlocked = true; btnPeacock.text = "مملوكة"; btnPeacock.isEnabled = false; activity.updateHudUI(); GameState.saveGameData(activity); activity.changeCitySkin(R.drawable.bg_city_peacock); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        btnDiamond?.setOnClickListener { if (GameState.totalGold >= 3000000) { GameState.totalGold -= 3000000; GameState.isDiamondUnlocked = true; btnDiamond.text = "مملوكة"; btnDiamond.isEnabled = false; activity.updateHudUI(); GameState.saveGameData(activity); activity.changeCitySkin(R.drawable.bg_city_diamond); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        btnPyramid?.setOnClickListener { if (GameState.totalGold >= 500000) { GameState.totalGold -= 500000; GameState.isPyramidUnlocked = true; btnPyramid.text = "مملوكة"; btnPyramid.isEnabled = false; updateUI(activity); GameState.saveGameData(activity); if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_pyramid); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        btnPeacock?.setOnClickListener { if (GameState.totalGold >= 1500000) { GameState.totalGold -= 1500000; GameState.isPeacockUnlocked = true; btnPeacock.text = "مملوكة"; btnPeacock.isEnabled = false; updateUI(activity); GameState.saveGameData(activity); if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_peacock); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        btnDiamond?.setOnClickListener { if (GameState.totalGold >= 3000000) { GameState.totalGold -= 3000000; GameState.isDiamondUnlocked = true; btnDiamond.text = "مملوكة"; btnDiamond.isEnabled = false; updateUI(activity); GameState.saveGameData(activity); if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_diamond); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
 
-        d.findViewById<Button>(R.id.btnBuySpeedup5m)?.setOnClickListener { if (GameState.totalGold >= 1000) { GameState.totalGold -= 1000; GameState.countSpeedup5m++; activity.updateHudUI(); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_5m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        d.findViewById<Button>(R.id.btnBuySpeedup15m)?.setOnClickListener { if (GameState.totalGold >= 3000) { GameState.totalGold -= 3000; GameState.countSpeedup15m++; activity.updateHudUI(); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_15m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        d.findViewById<Button>(R.id.btnBuySpeedup30m)?.setOnClickListener { if (GameState.totalGold >= 5000) { GameState.totalGold -= 5000; GameState.countSpeedup30m++; activity.updateHudUI(); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_30m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        d.findViewById<Button>(R.id.btnBuySpeedup1h)?.setOnClickListener { if (GameState.totalGold >= 15000) { GameState.totalGold -= 15000; GameState.countSpeedup1Hour++; activity.updateHudUI(); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_1h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        d.findViewById<Button>(R.id.btnBuySpeedup2h)?.setOnClickListener { if (GameState.totalGold >= 28000) { GameState.totalGold -= 28000; GameState.countSpeedup2h++; activity.updateHudUI(); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_2h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        d.findViewById<Button>(R.id.btnBuySpeedup8h)?.setOnClickListener { if (GameState.totalGold >= 100000) { GameState.totalGold -= 100000; GameState.countSpeedup8Hour++; activity.updateHudUI(); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_8h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnBuySpeedup5m)?.setOnClickListener { if (GameState.totalGold >= 1000) { GameState.totalGold -= 1000; GameState.countSpeedup5m++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_5m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnBuySpeedup15m)?.setOnClickListener { if (GameState.totalGold >= 3000) { GameState.totalGold -= 3000; GameState.countSpeedup15m++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_15m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnBuySpeedup30m)?.setOnClickListener { if (GameState.totalGold >= 5000) { GameState.totalGold -= 5000; GameState.countSpeedup30m++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_30m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnBuySpeedup1h)?.setOnClickListener { if (GameState.totalGold >= 15000) { GameState.totalGold -= 15000; GameState.countSpeedup1Hour++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_1h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnBuySpeedup2h)?.setOnClickListener { if (GameState.totalGold >= 28000) { GameState.totalGold -= 28000; GameState.countSpeedup2h++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_2h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnBuySpeedup8h)?.setOnClickListener { if (GameState.totalGold >= 100000) { GameState.totalGold -= 100000; GameState.countSpeedup8Hour++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_8h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
 
-        d.findViewById<Button>(R.id.btnAdResources)?.setOnClickListener { showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.totalWheat += 50000; GameState.totalIron += 50000; activity.updateHudUI(); GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على 50K قمح و 50K حديد!", R.drawable.ic_resource_iron) }, onAdClosed = {}) } }
-        d.findViewById<Button>(R.id.btnAdGold)?.setOnClickListener { showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.totalGold += 10000; activity.updateHudUI(); GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على 10K ذهب!", R.drawable.ic_resource_gold) }, onAdClosed = {}) } }
+        d.findViewById<Button>(R.id.btnAdResources)?.setOnClickListener { showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.totalWheat += 50000; GameState.totalIron += 50000; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على 50K قمح و 50K حديد!", R.drawable.ic_resource_iron) }, onAdClosed = {}) } }
+        d.findViewById<Button>(R.id.btnAdGold)?.setOnClickListener { showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.totalGold += 10000; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على 10K ذهب!", R.drawable.ic_resource_gold) }, onAdClosed = {}) } }
         d.findViewById<Button>(R.id.btnAdSpeedup)?.setOnClickListener { showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.countSpeedup30m++; GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على تسريع 30 دقيقة!", R.drawable.ic_speedup_30m) }, onAdClosed = {}) } }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
         d.show()
     }
 
-    fun showDecorationsDialog(activity: MainActivity) {
+    fun showDecorationsDialog(activity: Activity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_decorations)
         
@@ -465,15 +477,15 @@ object DialogManager {
         d.findViewById<TextView>(R.id.tvSkinDiamond)?.text = if (GameState.isDiamondUnlocked) "متاح للتطبيق" else "مقفلة"
         d.findViewById<TextView>(R.id.tvSkinPeacock)?.text = if (GameState.isPeacockUnlocked) "متاح للتطبيق" else "مقفلة"
 
-        d.findViewById<View>(R.id.btnSkinDefault)?.setOnClickListener { activity.changeCitySkin(R.drawable.bg_mobs_city_isometric); d.dismiss() }
-        d.findViewById<View>(R.id.btnSkinSnake)?.setOnClickListener { if (GameState.isPyramidUnlocked) { activity.changeCitySkin(R.drawable.bg_city_pyramid); d.dismiss() } else showGameMessage(activity, "عذراً", "مقفلة! اشتريها من المتجر أولاً", R.drawable.ic_settings_gear) }
-        d.findViewById<View>(R.id.btnSkinDiamond)?.setOnClickListener { if (GameState.isDiamondUnlocked) { activity.changeCitySkin(R.drawable.bg_city_diamond); d.dismiss() } else showGameMessage(activity, "عذراً", "مقفلة! اشتريها من المتجر أولاً", R.drawable.ic_settings_gear) }
-        d.findViewById<View>(R.id.btnSkinPeacock)?.setOnClickListener { if (GameState.isPeacockUnlocked) { activity.changeCitySkin(R.drawable.bg_city_peacock); d.dismiss() } else showGameMessage(activity, "عذراً", "مقفلة! اشتريها من المتجر أولاً", R.drawable.ic_settings_gear) }
+        d.findViewById<View>(R.id.btnSkinDefault)?.setOnClickListener { if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_mobs_city_isometric); d.dismiss() }
+        d.findViewById<View>(R.id.btnSkinSnake)?.setOnClickListener { if (GameState.isPyramidUnlocked) { if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_pyramid); d.dismiss() } else showGameMessage(activity, "عذراً", "مقفلة! اشتريها من المتجر أولاً", R.drawable.ic_settings_gear) }
+        d.findViewById<View>(R.id.btnSkinDiamond)?.setOnClickListener { if (GameState.isDiamondUnlocked) { if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_diamond); d.dismiss() } else showGameMessage(activity, "عذراً", "مقفلة! اشتريها من المتجر أولاً", R.drawable.ic_settings_gear) }
+        d.findViewById<View>(R.id.btnSkinPeacock)?.setOnClickListener { if (GameState.isPeacockUnlocked) { if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_peacock); d.dismiss() } else showGameMessage(activity, "عذراً", "مقفلة! اشتريها من المتجر أولاً", R.drawable.ic_settings_gear) }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
         d.show()
     }
 
-    fun showSummoningTavernDialog(activity: MainActivity) {
+    fun showSummoningTavernDialog(activity: Activity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_summoning_tavern) 
         val tvMedals = d.findViewById<TextView>(R.id.tvSummonMedals); tvMedals?.text = "دعوات ملكية: ${GameState.summonMedals}"
@@ -501,7 +513,7 @@ object DialogManager {
         d.show()
     }
 
-    fun showSettingsDialog(activity: MainActivity) {
+    fun showSettingsDialog(activity: Activity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_settings)
 
@@ -520,7 +532,7 @@ object DialogManager {
         d.show()
     }
 
-    fun showWeaponsDialog(activity: MainActivity) {
+    fun showWeaponsDialog(activity: Activity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_weapons)
         val container = d.findViewById<LinearLayout>(R.id.layoutWeaponsContainer)
@@ -570,7 +582,7 @@ object DialogManager {
                             weapon.totalUpgradeTime = weapon.getUpgradeTimeSeconds() * 1000
                             weapon.upgradeEndTime = System.currentTimeMillis() + weapon.totalUpgradeTime
                             
-                            activity.updateHudUI()
+                            updateUI(activity)
                             GameState.saveGameData(activity)
                             refreshWeaponsList()
                         } else {
@@ -588,7 +600,7 @@ object DialogManager {
         d.show()
     }
 
-    private fun showHeroSelectorDialog(activity: MainActivity, onSelected: (Hero) -> Unit) {
+    private fun showHeroSelectorDialog(activity: Activity, onSelected: (Hero) -> Unit) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_quests) 
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "اختر بطلاً للفيلق"
@@ -618,7 +630,7 @@ object DialogManager {
         d.show()
     }
 
-    private fun showWeaponSelectorDialog(activity: MainActivity, onSelected: (Weapon) -> Unit) {
+    private fun showWeaponSelectorDialog(activity: Activity, onSelected: (Weapon) -> Unit) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_quests) 
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "اختر سلاحاً للفيلق"
@@ -648,7 +660,7 @@ object DialogManager {
         d.show()
     }
 
-    fun showFormationDialog(activity: MainActivity) {
+    fun showFormationDialog(activity: Activity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_formation)
         
