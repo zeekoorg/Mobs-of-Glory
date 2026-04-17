@@ -1,4 +1,4 @@
-package com.zeekoorg.mobsofglory
+herepackage com.zeekoorg.mobsofglory
 
 import android.view.View
 import android.widget.ImageView
@@ -19,48 +19,35 @@ enum class QuestType {
     UPGRADE_BUILDING
 }
 
-// 💡 نظام الندرة الجديد لتعميق الاستراتيجية
 enum class Rarity(val powerMultiplier: Double, val costMultiplier: Double, val timeMultiplier: Double) {
     COMMON(1.0, 1.0, 1.0),
     RARE(1.5, 2.0, 1.5),
     LEGENDARY(3.0, 5.0, 3.0)
 }
 
-// 💡 تحديث كلاس البطل ليصبح استراتيجياً
+// 💡 تمت إضافة iconResId هنا لربط صورة البطل بملفه
 data class Hero(
     val id: Int, val name: String, var level: Int = 1, val basePower: Long, 
+    val iconResId: Int, // الأيقونة المضافة
     var isUnlocked: Boolean, var shardsOwned: Int, val shardsRequired: Int,
     var isEquipped: Boolean = false,
-    val rarity: Rarity = Rarity.COMMON, // ندرة البطل
-    // متغيرات وقت ترقية البطل (بدون تسريعات)
+    val rarity: Rarity = Rarity.COMMON,
     var isUpgrading: Boolean = false, var upgradeEndTime: Long = 0L, var totalUpgradeTime: Long = 0L
 ) {
-    // قوة البطل = القوة الأساسية + (المستوى * 1000 * مضاعف الندرة)
     fun getCurrentPower(): Long = (basePower + (level * 1000 * rarity.powerMultiplier)).toLong()
-    
-    // تكلفة الترقية (ذهب) تزداد بشكل أسّي وتتأثر بالندرة
     fun getUpgradeCostGold(): Long = (level.toDouble().pow(2) * 10000 * rarity.costMultiplier).toLong()
-    
-    // وقت الترقية (ثواني) - الأبطال يأخذون وقتاً طويلاً جداً
-    fun getUpgradeTimeSeconds(): Long = (level * 300 * rarity.timeMultiplier).toLong() // يبدأ بـ 5 دقائق ويتضاعف
+    fun getUpgradeTimeSeconds(): Long = (level * 300 * rarity.timeMultiplier).toLong()
 }
 
-// 💡 تحديث كلاس السلاح ليدعم الترقية والندرة
 data class Weapon(
     val id: Int, val name: String, val basePower: Long, val iconResId: Int,
     var level: Int = 1, val rarity: Rarity = Rarity.COMMON,
     var isOwned: Boolean = false, var isEquipped: Boolean = false,
-    // متغيرات الترقية للأسلحة (تقبل التسريعات)
     var isUpgrading: Boolean = false, var upgradeEndTime: Long = 0L, var totalUpgradeTime: Long = 0L
 ) {
-    // قوة السلاح تزداد مع المستوى والندرة
     fun getCurrentPower(): Long = (basePower + (level.toDouble().pow(1.5) * 5000 * rarity.powerMultiplier)).toLong()
-    
-    // تكلفة تصنيع/ترقية السلاح المتصاعدة
     fun getCostIron(): Long = (level.toDouble().pow(2) * 50000 * rarity.costMultiplier).toLong()
     fun getCostGold(): Long = (level.toDouble().pow(1.8) * 10000 * rarity.costMultiplier).toLong()
-    
-    // وقت الترقية (ثواني)
     fun getUpgradeTimeSeconds(): Long = (level * level * 120 * rarity.timeMultiplier).toLong()
 }
 
@@ -82,7 +69,6 @@ data class MapPlot(
     var isUpgrading: Boolean = false, var upgradeEndTime: Long = 0L, var totalUpgradeTime: Long = 0L,
     var isTraining: Boolean = false, var trainingEndTime: Long = 0L, var trainingTotalTime: Long = 0L,
     var trainingAmount: Int = 0, var trainingIsInfantry: Boolean = false,
-    
     var layoutUpgradeProgress: View? = null, var pbUpgrade: ProgressBar? = null, 
     var tvUpgradeTimer: TextView? = null, var collectIcon: ImageView? = null
 ) {
