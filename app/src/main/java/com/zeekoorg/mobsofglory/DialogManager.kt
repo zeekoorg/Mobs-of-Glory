@@ -232,7 +232,6 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 تحديث نافذة الأبطال لدعم استراتيجية الندرة والترقية الزمنية
     fun showHeroesDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_heroes)
@@ -240,11 +239,8 @@ object DialogManager {
 
         fun updateHeroUI(i: Int, tvL: Int, tvB: Int, btn: Int) {
             val h = GameState.myHeroes[i]; val tvLevel = d.findViewById<TextView>(tvL); val tvBoost = d.findViewById<TextView>(tvB); val btnAct = d.findViewById<Button>(btn)
-            
-            // عرض الندرة بجانب المستوى
             val rarityColor = when(h.rarity) { Rarity.COMMON -> "#BDC3C7"; Rarity.RARE -> "#3498DB"; Rarity.LEGENDARY -> "#9B59B6" }
             val rarityName = when(h.rarity) { Rarity.COMMON -> "شائع"; Rarity.RARE -> "نادر"; Rarity.LEGENDARY -> "أسطوري" }
-            
             tvBoost?.text = "قوة: ${formatResourceNumber(h.getCurrentPower())}"
             
             if (h.isUnlocked) { 
@@ -377,7 +373,6 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 تحديث دالة التسريع لتدعم الأسلحة والمباني
     fun showSpeedupDialog(activity: MainActivity, p: MapPlot?, w: Weapon? = null) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_speedup)
@@ -519,7 +514,6 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 تحديث دالة الحدادة لدعم الترقية المستمرة
     fun showWeaponsDialog(activity: MainActivity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_weapons)
@@ -552,7 +546,7 @@ object DialogManager {
                     if (remaining > 0) {
                         btnAction.text = formatTimeMillis(remaining)
                         btnAction.setTextColor(Color.parseColor("#F4D03F"))
-                        btnAction.setOnClickListener { d.dismiss(); showSpeedupDialog(activity, null, weapon) } // يمكن تسريع السلاح
+                        btnAction.setOnClickListener { d.dismiss(); showSpeedupDialog(activity, null, weapon) }
                         handler.postDelayed({ refreshWeaponsList() }, 1000)
                     } else {
                         weapon.isUpgrading = false; weapon.level++; GameState.calculatePower(); GameState.saveGameData(activity)
