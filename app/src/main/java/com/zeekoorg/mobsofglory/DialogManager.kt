@@ -21,7 +21,6 @@ import kotlin.random.Random
 
 object DialogManager {
 
-    // 💡 دالة ذكية لمعرفة الشاشة الحالية وتحديثها
     private fun updateUI(activity: Activity) {
         if (activity is MainActivity) {
             activity.updateHudUI()
@@ -161,7 +160,7 @@ object DialogManager {
         }
         refreshBagUI()
 
-        val speedupMsg = "استخدم التسريع من المبنى أو السلاح قيد التطوير مباشرة!"
+        val speedupMsg = "استخدم التسريع من المبنى أو السلاح أو دار الشفاء مباشرة!"
         d.findViewById<Button>(R.id.btnUseBagSpeedup5m)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_5m) }
         d.findViewById<Button>(R.id.btnUseBagSpeedup15m)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_15m) }
         d.findViewById<Button>(R.id.btnUseBagSpeedup30m)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_30m) }
@@ -333,6 +332,104 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 الدالة الجديدة: نافذة دار الشفاء
+    fun showHospitalDialog(activity: Activity, p: MapPlot) {
+        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_hospital)
+
+        val handler = Handler(Looper.getMainLooper())
+        
+        fun refreshHospitalUI() {
+            d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "دار الشفاء (مستوى ${p.level})"
+            
+            val tvWoundedInfantry = d.findViewById<TextView>(R.id.tvWoundedInfantry)
+            val tvWoundedCavalry = d.findViewById<TextView>(R.id.tvWoundedCavalry)
+            val tvHealCostWheat = d.findViewById<TextView>(R.id.tvHealCostWheat)
+            val tvHealCostIron = d.findViewById<TextView>(R.id.tvHealCostIron)
+            val tvHealTime = d.findViewById<TextView>(R.id.tvHealTime)
+            val btnAction = d.findViewById<Button>(R.id.btnHealAction)
+
+            tvWoundedInfantry?.text = "المشاة الجرحى: ${formatResourceNumber(GameState.woundedInfantry)}"
+            tvWoundedCavalry?.text = "الفرسان الجرحى: ${formatResourceNumber(GameState.woundedCavalry)}"
+
+            if (GameState.isHealing) {
+                val remaining = GameState.healingEndTime - System.currentTimeMillis()
+                if (remaining > 0) {
+                    tvHealCostWheat?.text = "-"
+                    tvHealCostIron?.text = "-"
+                    tvHealTime?.text = "جاري العلاج..."
+                    
+                    btnAction?.text = "تسريع (${formatTimeMillis(remaining)})"
+                    btnAction?.setBackgroundResource(R.drawable.bg_btn_gold_border)
+                    btnAction?.setOnClickListener { 
+                        d.dismiss()
+                        // استدعاء نافذة التسريع مع تفعيل وضع العلاج
+                        showSpeedupDialog(activity, null, null, true) 
+                    }
+                    handler.postDelayed({ refreshHospitalUI() }, 1000)
+                } else {
+                    GameState.isHealing = false
+                    GameState.totalInfantry += GameState.healingInfantryAmount
+                    GameState.totalCavalry += GameState.healingCavalryAmount
+                    GameState.woundedInfantry -= GameState.healingInfantryAmount
+                    GameState.woundedCavalry -= GameState.healingCavalryAmount
+                    GameState.healingInfantryAmount = 0
+                    GameState.healingCavalryAmount = 0
+                    GameState.saveGameData(activity)
+                    updateUI(activity)
+                    refreshHospitalUI()
+                }
+            } else {
+                val totalWounded = GameState.woundedInfantry + GameState.woundedCavalry
+                if (totalWounded == 0L) {
+                    tvHealCostWheat?.text = "0"
+                    tvHealCostIron?.text = "0"
+                    tvHealTime?.text = "00:00"
+                    btnAction?.text = "لا يوجد جرحى"
+                    btnAction?.isEnabled = false
+                    btnAction?.setBackgroundColor(Color.GRAY)
+                } else {
+                    // حساب تكلفة علاج الجميع
+                    val costWheat = (GameState.woundedInfantry * 10) + (GameState.woundedCavalry * 25)
+                    val costIron = (GameState.woundedInfantry * 5) + (GameState.woundedCavalry * 15)
+                    var healTimeSec = totalWounded * 2 
+                    if (GameState.isVipActive()) healTimeSec = (healTimeSec * 0.8).toLong()
+
+                    tvHealCostWheat?.text = formatResourceNumber(costWheat)
+                    tvHealCostIron?.text = formatResourceNumber(costIron)
+                    tvHealTime?.text = formatTimeSec(healTimeSec)
+
+                    btnAction?.text = "علاج الجميع"
+                    btnAction?.isEnabled = true
+                    btnAction?.setBackgroundResource(R.drawable.bg_btn_gold_border)
+                    btnAction?.setOnClickListener {
+                        if (GameState.totalWheat >= costWheat && GameState.totalIron >= costIron) {
+                            GameState.totalWheat -= costWheat
+                            GameState.totalIron -= costIron
+                            GameState.isHealing = true
+                            GameState.healingInfantryAmount = GameState.woundedInfantry
+                            GameState.healingCavalryAmount = GameState.woundedCavalry
+                            GameState.healingTotalTime = healTimeSec * 1000L
+                            GameState.healingEndTime = System.currentTimeMillis() + GameState.healingTotalTime
+                            GameState.saveGameData(activity)
+                            updateUI(activity)
+                            showGameMessage(activity, "دار الشفاء", "بدأ علاج الجرحى. ستعود قواتك لصفوف الجيش قريباً!", R.drawable.ic_settings_gear)
+                            refreshHospitalUI()
+                        } else {
+                            showGameMessage(activity, "عذراً", "الموارد لا تكفي لعلاج الجرحى!", R.drawable.ic_resource_wheat)
+                        }
+                    }
+                }
+            }
+        }
+
+        refreshHospitalUI()
+        
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.setOnDismissListener { handler.removeCallbacksAndMessages(null) }
+        d.show()
+    }
+
     fun showTrainTroopsDialog(activity: Activity, p: MapPlot) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_train_troops)
@@ -391,7 +488,8 @@ object DialogManager {
         d.show()
     }
 
-    fun showSpeedupDialog(activity: Activity, p: MapPlot?, w: Weapon? = null) {
+    // 💡 تعديل دالة التسريع لتدعم تسريع دار الشفاء
+    fun showSpeedupDialog(activity: Activity, p: MapPlot?, w: Weapon? = null, isHealingSpeedup: Boolean = false) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_speedup)
 
@@ -412,7 +510,9 @@ object DialogManager {
 
         val handler = Handler(Looper.getMainLooper()); val runnable = object : Runnable { 
             override fun run() { 
-                val remaining = if (p != null) {
+                val remaining = if (isHealingSpeedup) {
+                    GameState.healingEndTime - System.currentTimeMillis()
+                } else if (p != null) {
                     if (p.isUpgrading) p.upgradeEndTime - System.currentTimeMillis() else p.trainingEndTime - System.currentTimeMillis()
                 } else if (w != null) {
                     w.upgradeEndTime - System.currentTimeMillis()
@@ -425,7 +525,8 @@ object DialogManager {
         handler.post(runnable)
 
         fun applySpeedup(millis: Long, name: String, iconId: Int) { 
-            if (p != null) { if (p.isUpgrading) p.upgradeEndTime -= millis else p.trainingEndTime -= millis }
+            if (isHealingSpeedup) { GameState.healingEndTime -= millis }
+            else if (p != null) { if (p.isUpgrading) p.upgradeEndTime -= millis else p.trainingEndTime -= millis }
             if (w != null) { w.upgradeEndTime -= millis }
             GameState.saveGameData(activity); refreshSpeedupUI(); showGameMessage(activity, "تسريع الوقت", "تم خصم $name من الوقت المتبقي!", iconId) 
         }
