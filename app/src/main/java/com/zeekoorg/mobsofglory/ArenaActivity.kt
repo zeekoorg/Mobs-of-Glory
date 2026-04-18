@@ -1,10 +1,11 @@
-package com.zeekoorg.mobsofglory
+herepackage com.zeekoorg.mobsofglory
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.app.Dialog
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -28,6 +29,7 @@ class ArenaActivity : AppCompatActivity() {
     private lateinit var tvTotalWheat: TextView
     private lateinit var tvPlayerLevel: TextView
     private lateinit var tvMainTotalPower: TextView
+    private lateinit var imgMainPlayerAvatar: ImageView
     
     private lateinit var tvSeasonTimer: TextView
     private lateinit var tvArenaRank: TextView
@@ -52,15 +54,15 @@ class ArenaActivity : AppCompatActivity() {
         imgMarchingLegion.visibility = View.INVISIBLE
         
         val floatAnim = TranslateAnimation(0f, 0f, -10f, 10f)
-        floatAnim.duration = 800
-        floatAnim.repeatMode = Animation.REVERSE
-        floatAnim.repeatCount = Animation.INFINITE
+        floatAnim.duration = 800; floatAnim.repeatMode = Animation.REVERSE; floatAnim.repeatCount = Animation.INFINITE
         layoutAttackPrompt.startAnimation(floatAnim)
     }
 
     override fun onResume() {
         super.onResume()
         GameState.calculatePower()
+        // 💡 تحديث اسم اللاعب في الساحة فوراً عند العودة
+        GameState.arenaLeaderboard.find { it.isRealPlayer }?.name = GameState.playerName
         refreshArenaUI()
     }
 
@@ -70,39 +72,27 @@ class ArenaActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
-        tvTotalGold = findViewById(R.id.tvTotalGold)
-        tvTotalIron = findViewById(R.id.tvTotalIron)
-        tvTotalWheat = findViewById(R.id.tvTotalWheat)
-        tvPlayerLevel = findViewById(R.id.tvPlayerLevel)
+        tvTotalGold = findViewById(R.id.tvTotalGold); tvTotalIron = findViewById(R.id.tvTotalIron)
+        tvTotalWheat = findViewById(R.id.tvTotalWheat); tvPlayerLevel = findViewById(R.id.tvPlayerLevel)
         tvMainTotalPower = findViewById(R.id.tvMainTotalPower)
+        imgMainPlayerAvatar = findViewById(R.id.imgMainPlayerAvatar) // 💡 للتحكم بالصورة
         
-        tvSeasonTimer = findViewById(R.id.tvSeasonTimer)
-        tvArenaRank = findViewById(R.id.tvArenaRank)
+        tvSeasonTimer = findViewById(R.id.tvSeasonTimer); tvArenaRank = findViewById(R.id.tvArenaRank)
         tvArenaScore = findViewById(R.id.tvArenaScore)
 
-        layoutGhostCastle = findViewById(R.id.layoutGhostCastle)
-        imgMarchingLegion = findViewById(R.id.imgMarchingLegion)
-        imgArenaBackground = findViewById(R.id.imgArenaBackground)
-        layoutAttackPrompt = findViewById(R.id.layoutAttackPrompt)
+        layoutGhostCastle = findViewById(R.id.layoutGhostCastle); imgMarchingLegion = findViewById(R.id.imgMarchingLegion)
+        imgArenaBackground = findViewById(R.id.imgArenaBackground); layoutAttackPrompt = findViewById(R.id.layoutAttackPrompt)
     }
 
     private fun setupActionListeners() {
         layoutGhostCastle.setOnClickListener {
             if (GameState.arenaStamina > 0) {
-                ArenaDialogManager.showPreparationDialog(this) { sentInfantry, sentCavalry ->
-                    startMarchAnimation(sentInfantry, sentCavalry)
-                }
-            } else {
-                DialogManager.showGameMessage(this, "نفاد الطاقة", "لا تمتلك طاقة هجوم! انتظر قليلاً أو اشحن طاقتك.", R.drawable.ic_settings_gear)
-            }
+                ArenaDialogManager.showPreparationDialog(this) { sentInfantry, sentCavalry -> startMarchAnimation(sentInfantry, sentCavalry) }
+            } else DialogManager.showGameMessage(this, "نفاد الطاقة", "لا تمتلك طاقة هجوم! انتظر قليلاً أو اشحن طاقتك.", R.drawable.ic_settings_gear)
         }
 
         findViewById<View>(R.id.btnRechargeStamina)?.setOnClickListener {
-            if (GameState.arenaStamina < 5) {
-                showStaminaAdDialog()
-            } else {
-                DialogManager.showGameMessage(this, "طاقة ممتلئة", "طاقتك ممتلئة بالفعل أيها المهيب!", R.drawable.ic_settings_gear)
-            }
+            if (GameState.arenaStamina < 5) showStaminaAdDialog() else DialogManager.showGameMessage(this, "طاقة ممتلئة", "طاقتك ممتلئة بالفعل أيها المهيب!", R.drawable.ic_settings_gear)
         }
 
         findViewById<View>(R.id.btnLeaderboard)?.setOnClickListener { ArenaDialogManager.showLeaderboardDialog(this) }
@@ -121,11 +111,8 @@ class ArenaActivity : AppCompatActivity() {
         d.findViewById<Button>(R.id.btnConfirmAd)?.setOnClickListener {
             d.dismiss()
             YandexAdsManager.showRewardedAd(this, onRewarded = {
-                GameState.arenaStamina = 5
-                GameState.arenaStaminaLastRegenTime = System.currentTimeMillis()
-                GameState.saveGameData(this)
-                refreshArenaUI()
-                DialogManager.showGameMessage(this, "طاقة كاملة", "تم شحن طاقة الهجوم بالكامل! سحقاً للأعداء!", R.drawable.ic_settings_gear)
+                GameState.arenaStamina = 5; GameState.arenaStaminaLastRegenTime = System.currentTimeMillis(); GameState.saveGameData(this)
+                refreshArenaUI(); DialogManager.showGameMessage(this, "طاقة كاملة", "تم شحن طاقة الهجوم بالكامل! سحقاً للأعداء!", R.drawable.ic_settings_gear)
             }, onAdClosed = {})
         }
         d.findViewById<Button>(R.id.btnCancelAd)?.setOnClickListener { d.dismiss() }
@@ -133,89 +120,53 @@ class ArenaActivity : AppCompatActivity() {
     }
 
     private fun startMarchAnimation(sentInfantry: Long, sentCavalry: Long) {
-        GameState.arenaStamina--
-        if (GameState.arenaStamina == 4) GameState.arenaStaminaLastRegenTime = System.currentTimeMillis()
-        refreshArenaUI()
-
-        layoutAttackPrompt.visibility = View.INVISIBLE
+        GameState.arenaStamina--; if (GameState.arenaStamina == 4) GameState.arenaStaminaLastRegenTime = System.currentTimeMillis()
+        refreshArenaUI(); layoutAttackPrompt.visibility = View.INVISIBLE
         
-        imgMarchingLegion.clearAnimation()
-        imgMarchingLegion.animate().cancel()
-        imgMarchingLegion.scaleX = 1.0f
-        imgMarchingLegion.scaleY = 1.0f
-        imgMarchingLegion.translationX = 0f
-        imgMarchingLegion.translationY = 0f
-        imgMarchingLegion.alpha = 1.0f
-        imgMarchingLegion.visibility = View.VISIBLE
+        imgMarchingLegion.clearAnimation(); imgMarchingLegion.animate().cancel()
+        imgMarchingLegion.scaleX = 1.0f; imgMarchingLegion.scaleY = 1.0f; imgMarchingLegion.translationX = 0f; imgMarchingLegion.translationY = 0f
+        imgMarchingLegion.alpha = 1.0f; imgMarchingLegion.visibility = View.VISIBLE
 
         imgMarchingLegion.post {
-            val startY = imgMarchingLegion.y
-            val targetY = layoutGhostCastle.y + (layoutGhostCastle.height / 2)
-
-            imgMarchingLegion.animate()
-                .translationY(targetY - startY)
-                .scaleX(0.4f)
-                .scaleY(0.4f)
-                .setDuration(2200)
-                .setInterpolator(AccelerateInterpolator())
-                .setListener(object : AnimatorListenerAdapter() {
+            val startY = imgMarchingLegion.y; val targetY = layoutGhostCastle.y + (layoutGhostCastle.height / 2)
+            imgMarchingLegion.animate().translationY(targetY - startY).scaleX(0.4f).scaleY(0.4f).setDuration(2200)
+                .setInterpolator(AccelerateInterpolator()).setListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: Animator) {
-                        imgMarchingLegion.visibility = View.INVISIBLE
-                        triggerHitEffects() 
-                        executeBattleCalculations(sentInfantry, sentCavalry)
+                        imgMarchingLegion.visibility = View.INVISIBLE; triggerHitEffects(); executeBattleCalculations(sentInfantry, sentCavalry)
                     }
                 }).start()
         }
     }
 
-    // 💡 الأنميشن الدموي الدقيق واهتزاز الخلفية مرتين
+    // 💡 الألعاب النارية الدموية المذهلة والاهتزاز الخفيف
     private fun triggerHitEffects() {
-        // هزتين خفيفتين (4 تحركات ذهاباً وإياباً)
-        val shake = TranslateAnimation(-5f, 5f, -2f, 2f)
-        shake.duration = 40
-        shake.repeatMode = Animation.REVERSE
-        shake.repeatCount = 3 
+        val shake = TranslateAnimation(-5f, 5f, 0f, 0f)
+        shake.duration = 40; shake.repeatMode = Animation.REVERSE; shake.repeatCount = 1
         imgArenaBackground.startAnimation(shake)
         
-        // جلب الإحداثيات للقلعة
         val container = findViewById<ViewGroup>(android.R.id.content)
-        val loc = IntArray(2)
-        layoutGhostCastle.getLocationInWindow(loc)
+        val loc = IntArray(2); layoutGhostCastle.getLocationInWindow(loc)
         val castleCenterX = loc[0] + layoutGhostCastle.width / 2f
         val castleCenterY = loc[1] + layoutGhostCastle.height / 2f
 
-        // توليد 25 قطرة دم دائرية تتطاير كالألعاب النارية
-        for (i in 0..24) {
+        for (i in 0..39) {
             val drop = View(this).apply {
-                layoutParams = FrameLayout.LayoutParams(16, 16)
-                background = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(Color.parseColor("#E74C3C")) // لون الدم
-                }
-                x = castleCenterX
-                y = castleCenterY
-                elevation = 15f
+                layoutParams = FrameLayout.LayoutParams(Random.nextInt(15, 30), Random.nextInt(15, 30))
+                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#E74C3C")) }
+                x = castleCenterX; y = castleCenterY; elevation = 20f
             }
             container.addView(drop)
             
-            // حساب زاوية عشوائية ومسافة عشوائية حول القلعة فقط
-            val angle = Random.nextDouble(0.0, 2 * Math.PI)
-            val distance = Random.nextDouble(80.0, 250.0) // المسافة محدودة بمنطقة القلعة
+            // انتشار كالألعاب النارية للأعلى والجوانب بمدى ضخم
+            val angle = Math.toRadians(Random.nextDouble(180.0, 360.0))
+            val distance = Random.nextDouble(100.0, 350.0) 
             val targetX = castleCenterX + (distance * Math.cos(angle)).toFloat()
             val targetY = castleCenterY + (distance * Math.sin(angle)).toFloat()
 
-            drop.animate()
-                .x(targetX)
-                .y(targetY)
-                .alpha(0f)
-                .scaleX(0.5f)
-                .scaleY(0.5f)
-                .setDuration(Random.nextLong(400, 700))
-                .setInterpolator(android.view.animation.DecelerateInterpolator())
-                .withEndAction { container.removeView(drop) }
-                .start()
+            drop.animate().x(targetX).y(targetY).alpha(0f).scaleX(0.3f).scaleY(0.3f)
+                .setDuration(Random.nextLong(400, 800)).setInterpolator(android.view.animation.DecelerateInterpolator())
+                .withEndAction { container.removeView(drop) }.start()
         }
-        
         layoutAttackPrompt.visibility = View.VISIBLE 
     }
 
@@ -224,50 +175,42 @@ class ArenaActivity : AppCompatActivity() {
         var equippedPower: Long = 0
         GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { equippedPower += it.getCurrentPower() }
         GameState.arsenal.filter { it.isOwned && it.isEquipped }.forEach { equippedPower += it.getCurrentPower() }
-        val totalAttackPower = troopsPower + equippedPower
-
+        
         val damageMultiplier = Random.nextDouble(0.9, 1.1)
-        val damageDealt = (totalAttackPower * damageMultiplier).toLong()
+        val damageDealt = ((troopsPower + equippedPower) * damageMultiplier).toLong()
 
         val earnedScore = maxOf(10L, damageDealt / 150)
         GameState.arenaScore += earnedScore
         GameState.arenaLeaderboard.find { it.isRealPlayer }?.score = GameState.arenaScore
 
-        val deadRatio = 0.10
-        val woundedRatio = 0.10
+        val deadInfantry = (sentInfantry * 0.10).toLong(); val woundedInf = (sentInfantry * 0.10).toLong()
+        val deadCavalry = (sentCavalry * 0.10).toLong(); val woundedCav = (sentCavalry * 0.10).toLong()
 
-        val deadInfantry = (sentInfantry * deadRatio).toLong()
-        val woundedInf = (sentInfantry * woundedRatio).toLong()
-        val deadCavalry = (sentCavalry * deadRatio).toLong()
-        val woundedCav = (sentCavalry * woundedRatio).toLong()
+        GameState.totalInfantry -= (deadInfantry + woundedInf); GameState.totalCavalry -= (deadCavalry + woundedCav)
+        GameState.woundedInfantry += woundedInf; GameState.woundedCavalry += woundedCav
 
-        GameState.totalInfantry -= (deadInfantry + woundedInf)
-        GameState.totalCavalry -= (deadCavalry + woundedCav)
-        GameState.woundedInfantry += woundedInf
-        GameState.woundedCavalry += woundedCav
-
+        // 💡 التحديث الفوري للقوة الشاملة بعد خسارة الجنود!
+        GameState.calculatePower()
         GameState.saveGameData(this)
         refreshArenaUI()
 
         Handler(Looper.getMainLooper()).postDelayed({
-            ArenaDialogManager.showBattleReportDialog(
-                activity = this,
-                damageDealt = damageDealt,
-                earnedScore = earnedScore,
-                deadTroops = deadInfantry + deadCavalry,
-                woundedTroops = woundedInf + woundedCav
-            )
+            ArenaDialogManager.showBattleReportDialog(this, damageDealt, earnedScore, deadInfantry + deadCavalry, woundedInf + woundedCav)
         }, 800)
     }
 
     fun refreshArenaUI() {
-        tvTotalGold.text = formatResourceNumber(GameState.totalGold)
-        tvTotalIron.text = formatResourceNumber(GameState.totalIron)
-        tvTotalWheat.text = formatResourceNumber(GameState.totalWheat)
-        tvPlayerLevel.text = "Lv. ${GameState.playerLevel}"
+        tvTotalGold.text = formatResourceNumber(GameState.totalGold); tvTotalIron.text = formatResourceNumber(GameState.totalIron)
+        tvTotalWheat.text = formatResourceNumber(GameState.totalWheat); tvPlayerLevel.text = "Lv. ${GameState.playerLevel}"
         tvMainTotalPower.text = "⚔️ قوة الفيلق: ${formatResourceNumber(GameState.legionPower)}"
         tvArenaScore.text = "النقاط: ${formatResourceNumber(GameState.arenaScore)}"
         
+        // 💡 تحديث صورة اللاعب في الساحة لتطابق الشاشة الرئيسية
+        if (GameState.selectedAvatarUri != null) {
+            try { imgMainPlayerAvatar.setImageURI(Uri.parse(GameState.selectedAvatarUri)) }
+            catch (e: Exception) { imgMainPlayerAvatar.setImageResource(R.drawable.img_default_avatar) }
+        } else imgMainPlayerAvatar.setImageResource(R.drawable.img_default_avatar)
+
         GameState.arenaLeaderboard.sortByDescending { it.score }
         val playerRank = GameState.arenaLeaderboard.indexOfFirst { it.isRealPlayer } + 1
         tvArenaRank.text = "المركز: $playerRank"
@@ -278,28 +221,18 @@ class ArenaActivity : AppCompatActivity() {
             override fun run() {
                 try {
                     val now = System.currentTimeMillis()
-
                     val seasonRemaining = GameState.arenaSeasonEndTime - now
                     if (seasonRemaining > 0) {
-                        val days = seasonRemaining / (24 * 3600000L)
-                        val hours = (seasonRemaining % (24 * 3600000L)) / 3600000L
-                        val minutes = (seasonRemaining % 3600000L) / 60000L
-                        val seconds = (seasonRemaining % 60000L) / 1000L
-                        
-                        if (days > 0) {
-                            tvSeasonTimer.text = "ينتهي الموسم خلال: $days أيام و %02d:%02d:%02d".format(hours, minutes, seconds)
-                        } else {
-                            tvSeasonTimer.text = "ينتهي الموسم خلال: %02d:%02d:%02d".format(hours, minutes, seconds)
-                        }
-                    } else {
-                        GameState.checkArenaSeason()
-                        refreshArenaUI()
-                    }
+                        val days = seasonRemaining / (24 * 3600000L); val hours = (seasonRemaining % (24 * 3600000L)) / 3600000L
+                        val minutes = (seasonRemaining % 3600000L) / 60000L; val seconds = (seasonRemaining % 60000L) / 1000L
+                        tvSeasonTimer.text = if (days > 0) "ينتهي الموسم خلال: $days أيام و %02d:%02d:%02d".format(hours, minutes, seconds) 
+                                             else "ينتهي الموسم خلال: %02d:%02d:%02d".format(hours, minutes, seconds)
+                    } else { GameState.checkArenaSeason(); refreshArenaUI() }
 
-                    // 💡 تحريك نقاط الخصوم الوهميين بشكل حي ومباشر أثناء اللعب
-                    if (Random.nextInt(100) < 15) { // فرصة 15% كل ثانية لتحديث خصم
+                    // 💡 تحريك نقاط الخصوم الوهميين بشكل حي 
+                    if (Random.nextInt(100) < 25) { 
                         val fakePlayer = GameState.arenaLeaderboard.filter { !it.isRealPlayer }.random()
-                        fakePlayer.score += Random.nextLong(5, 30)
+                        fakePlayer.score += Random.nextLong(10, 50)
                         refreshArenaUI()
                     }
 
@@ -307,23 +240,16 @@ class ArenaActivity : AppCompatActivity() {
                         val timePassed = now - GameState.arenaStaminaLastRegenTime
                         if (timePassed >= REGEN_TIME_MS) {
                             val staminaEarned = (timePassed / REGEN_TIME_MS).toInt()
-                            GameState.arenaStamina += staminaEarned
-                            if (GameState.arenaStamina > 5) GameState.arenaStamina = 5
+                            GameState.arenaStamina += staminaEarned; if (GameState.arenaStamina > 5) GameState.arenaStamina = 5
                             GameState.arenaStaminaLastRegenTime += (staminaEarned * REGEN_TIME_MS)
                             refreshArenaUI()
                         }
                     }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                } catch (e: Exception) { e.printStackTrace() }
                 arenaHandler.postDelayed(this, 1000)
             }
         })
     }
 
-    private fun formatResourceNumber(num: Long): String = when { 
-        num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0)
-        num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0)
-        else -> num.toString() 
-    }
+    private fun formatResourceNumber(num: Long): String = when { num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0); num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0); else -> num.toString() }
 }
