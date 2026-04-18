@@ -1,4 +1,4 @@
-herepackage com.zeekoorg.mobsofglory
+package com.zeekoorg.mobsofglory
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
