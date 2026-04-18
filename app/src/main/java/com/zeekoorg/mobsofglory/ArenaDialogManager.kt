@@ -3,9 +3,10 @@ package com.zeekoorg.mobsofglory
 import android.app.Activity
 import android.app.Dialog
 import android.graphics.Color
-import android.net.Uri
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.SeekBar
@@ -29,9 +30,10 @@ object ArenaDialogManager {
             val view = inflater.inflate(R.layout.item_arena_player, container, false)
             
             val tvRank = view.findViewById<TextView>(R.id.tvPlayerRank)
-            val imgAvatar = view.findViewById<ImageView>(R.id.imgPlayerAvatar)
             val tvName = view.findViewById<TextView>(R.id.tvPlayerName)
             val tvScore = view.findViewById<TextView>(R.id.tvPlayerScore)
+            
+            // 💡 تم حذف استدعاء صورة اللاعب (Avatar) بناءً على طلبك
 
             tvRank.text = "#${index + 1}"
             tvName.text = player.name
@@ -39,13 +41,7 @@ object ArenaDialogManager {
 
             if (player.isRealPlayer) {
                 view.setBackgroundResource(R.drawable.bg_btn_gold_border) 
-                if (GameState.selectedAvatarUri != null) {
-                    try { imgAvatar.setImageURI(Uri.parse(GameState.selectedAvatarUri)) }
-                    catch (e: Exception) { imgAvatar.setImageResource(R.drawable.img_default_avatar) }
-                }
-            } else {
-                imgAvatar.setImageResource(player.avatarResId)
-            }
+            } 
 
             when (index) {
                 0 -> tvRank.setTextColor(Color.parseColor("#FFD700"))
@@ -109,7 +105,7 @@ object ArenaDialogManager {
         d.show()
     }
 
-    // 💡 نافذة تجهيز الفيلق قبل المعركة
+    // 💡 نافذة تجهيز الفيلق المحدثة (تشمل الأبطال والأسلحة والجنود)
     fun showPreparationDialog(activity: Activity, onConfirm: (Long, Long) -> Unit) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_arena_prepare)
@@ -121,13 +117,15 @@ object ArenaDialogManager {
         val tvCavalryMax = d.findViewById<TextView>(R.id.tvPrepCavalryMax)
         val tvCavalrySelected = d.findViewById<TextView>(R.id.tvPrepCavalrySelected)
         val seekCavalry = d.findViewById<SeekBar>(R.id.seekPrepCavalry)
+        
+        val tvFormationPower = d.findViewById<TextView>(R.id.tvFormationPower)
 
         var selectedInfantry = 0L
         var selectedCavalry = 0L
 
+        // تجهيز الجنود
         val maxInf = GameState.totalInfantry
         tvInfantryMax?.text = "متاح: ${formatResourceNumber(maxInf)}"
-        // SeekBar لا يقبل أرقاماً ضخمة جداً في الإصدارات القديمة، نؤمنه هنا
         seekInfantry?.max = if (maxInf > Int.MAX_VALUE) Int.MAX_VALUE else maxInf.toInt()
         seekInfantry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -150,9 +148,95 @@ object ArenaDialogManager {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
+        // 💡 تجهيز خانات الأبطال والأسلحة (مطابق للتشكيلة)
+        val castleLevel = GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
+        val heroSlots = listOf(
+            Triple(d.findViewById<FrameLayout>(R.id.slotHero1), d.findViewById<ImageView>(R.id.imgHero1), d.findViewById<ImageView>(R.id.imgAddHero1)),
+            Triple(d.findViewById<FrameLayout>(R.id.slotHero2), d.findViewById<ImageView>(R.id.imgHero2), d.findViewById<ImageView>(R.id.imgAddHero2)),
+            Triple(d.findViewById<FrameLayout>(R.id.slotHero3), d.findViewById<ImageView>(R.id.imgHero3), d.findViewById<ImageView>(R.id.imgAddHero3)),
+            Triple(d.findViewById<FrameLayout>(R.id.slotHero4), d.findViewById<ImageView>(R.id.imgHero4), d.findViewById<ImageView>(R.id.imgAddHero4))
+        )
+        val lockHeroes = listOf(null, d.findViewById<View>(R.id.layoutLockHero2), d.findViewById<View>(R.id.layoutLockHero3), d.findViewById<View>(R.id.layoutLockHero4))
+
+        val weaponSlots = listOf(
+            Triple(d.findViewById<FrameLayout>(R.id.slotWeapon1), d.findViewById<ImageView>(R.id.imgWeapon1), d.findViewById<ImageView>(R.id.imgAddWeapon1)),
+            Triple(d.findViewById<FrameLayout>(R.id.slotWeapon2), d.findViewById<ImageView>(R.id.imgWeapon2), d.findViewById<ImageView>(R.id.imgAddWeapon2)),
+            Triple(d.findViewById<FrameLayout>(R.id.slotWeapon3), d.findViewById<ImageView>(R.id.imgWeapon3), d.findViewById<ImageView>(R.id.imgAddWeapon3)),
+            Triple(d.findViewById<FrameLayout>(R.id.slotWeapon4), d.findViewById<ImageView>(R.id.imgWeapon4), d.findViewById<ImageView>(R.id.imgAddWeapon4))
+        )
+        val lockWeapons = listOf(null, d.findViewById<View>(R.id.layoutLockWeapon2), d.findViewById<View>(R.id.layoutLockWeapon3), d.findViewById<View>(R.id.layoutLockWeapon4))
+        val unlockLevels = listOf(1, 5, 10, 15)
+
+        fun refreshFormationUI() {
+            GameState.calculateLegionPower()
+            tvFormationPower?.text = "قوة الفيلق: ⚔️ ${formatResourceNumber(GameState.legionPower)}"
+
+            val equippedHeroes = GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }
+            val equippedWeapons = GameState.arsenal.filter { it.isOwned && it.isEquipped }
+
+            for (i in 0..3) {
+                val (slot, imgFull, imgAdd) = heroSlots[i]
+                val lock = lockHeroes[i]
+                val reqLevel = unlockLevels[i]
+
+                if (castleLevel < reqLevel) {
+                    lock?.visibility = View.VISIBLE
+                    imgFull?.visibility = View.GONE
+                    imgAdd?.visibility = View.GONE
+                    slot?.setOnClickListener { DialogManager.showGameMessage(activity, "خانة مقفلة", "تحتاج لترقية القلعة للمستوى $reqLevel لفتح هذه الخانة!", R.drawable.ic_settings_gear) }
+                } else {
+                    lock?.visibility = View.GONE
+                    if (i < equippedHeroes.size) {
+                        imgFull?.visibility = View.VISIBLE; imgAdd?.visibility = View.GONE
+                        val hero = equippedHeroes[i]
+                        imgFull?.setImageResource(hero.iconResId) 
+                        slot?.setOnClickListener { hero.isEquipped = false; GameState.saveGameData(activity); refreshFormationUI() }
+                    } else {
+                        imgFull?.visibility = View.GONE; imgAdd?.visibility = View.VISIBLE
+                        slot?.setOnClickListener {
+                            DialogManager.showHeroSelectorDialog(activity) { selectedHero ->
+                                selectedHero.isEquipped = true; GameState.saveGameData(activity); refreshFormationUI()
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (i in 0..3) {
+                val (slot, imgFull, imgAdd) = weaponSlots[i]
+                val lock = lockWeapons[i]
+                val reqLevel = unlockLevels[i]
+
+                if (castleLevel < reqLevel) {
+                    lock?.visibility = View.VISIBLE
+                    imgFull?.visibility = View.GONE
+                    imgAdd?.visibility = View.GONE
+                    slot?.setOnClickListener { DialogManager.showGameMessage(activity, "خانة مقفلة", "تحتاج لترقية القلعة للمستوى $reqLevel لفتح هذه الخانة!", R.drawable.ic_settings_gear) }
+                } else {
+                    lock?.visibility = View.GONE
+                    if (i < equippedWeapons.size) {
+                        imgFull?.visibility = View.VISIBLE; imgAdd?.visibility = View.GONE
+                        val weapon = equippedWeapons[i]
+                        imgFull?.setImageResource(weapon.iconResId) 
+                        slot?.setOnClickListener { weapon.isEquipped = false; GameState.saveGameData(activity); refreshFormationUI() }
+                    } else {
+                        imgFull?.visibility = View.GONE; imgAdd?.visibility = View.VISIBLE
+                        slot?.setOnClickListener {
+                            DialogManager.showWeaponSelectorDialog(activity) { selectedWeapon ->
+                                selectedWeapon.isEquipped = true; GameState.saveGameData(activity); refreshFormationUI()
+                            }
+                        }
+                    }
+                }
+            }
+            if(activity is ArenaActivity) activity.refreshArenaUI()
+        }
+
+        refreshFormationUI()
+
         d.findViewById<Button>(R.id.btnConfirmAttack)?.setOnClickListener {
             if (selectedInfantry == 0L && selectedCavalry == 0L) {
-                DialogManager.showGameMessage(activity, "تنبيه عسكري", "لا يمكنك إرسال جيش فارغ! اختر عدد الجنود أولاً.", R.drawable.ic_settings_gear)
+                DialogManager.showGameMessage(activity, "تنبيه عسكري", "لا يمكنك إرسال جيش فارغ! حدد عدد الجنود من الشريط.", R.drawable.ic_settings_gear)
             } else {
                 d.dismiss()
                 onConfirm(selectedInfantry, selectedCavalry)
@@ -163,11 +247,10 @@ object ArenaDialogManager {
         d.show()
     }
 
-    // 💡 نافذة التقرير العسكري بعد الاصطدام
     fun showBattleReportDialog(activity: Activity, damageDealt: Long, earnedScore: Long, deadTroops: Long, woundedTroops: Long) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_arena_report)
-        d.setCancelable(false) // تمنع إغلاق النافذة بالنقر خارجها لضمان قراءة التقرير
+        d.setCancelable(false) 
 
         d.findViewById<TextView>(R.id.tvReportDamage)?.text = formatResourceNumber(damageDealt)
         d.findViewById<TextView>(R.id.tvReportScore)?.text = "+${formatResourceNumber(earnedScore)}"
