@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.SeekBar
 import android.widget.TextView
 import java.util.Locale
 
@@ -22,7 +23,6 @@ object ArenaDialogManager {
 
         val inflater = LayoutInflater.from(activity)
 
-        // 💡 فرز قائمة المتصدرين تنازلياً حسب النقاط
         val sortedLeaderboard = GameState.arenaLeaderboard.sortedByDescending { it.score }
 
         sortedLeaderboard.forEachIndexed { index, player ->
@@ -37,9 +37,8 @@ object ArenaDialogManager {
             tvName.text = player.name
             tvScore.text = formatResourceNumber(player.score)
 
-            // 💡 تخصيص مظهر اللاعب الحقيقي وتمييزه
             if (player.isRealPlayer) {
-                view.setBackgroundResource(R.drawable.bg_btn_gold_border) // إطار ذهبي لك
+                view.setBackgroundResource(R.drawable.bg_btn_gold_border) 
                 if (GameState.selectedAvatarUri != null) {
                     try { imgAvatar.setImageURI(Uri.parse(GameState.selectedAvatarUri)) }
                     catch (e: Exception) { imgAvatar.setImageResource(R.drawable.img_default_avatar) }
@@ -48,7 +47,6 @@ object ArenaDialogManager {
                 imgAvatar.setImageResource(player.avatarResId)
             }
 
-            // 💡 تلوين أرقام المراكز الأولى (ذهبي، فضي، برونزي)
             when (index) {
                 0 -> tvRank.setTextColor(Color.parseColor("#FFD700"))
                 1 -> tvRank.setTextColor(Color.parseColor("#C0C0C0"))
@@ -70,7 +68,6 @@ object ArenaDialogManager {
         val container = d.findViewById<LinearLayout>(R.id.layoutRewardsContainer)
         container?.removeAllViews()
 
-        // 💡 قائمة الجوائز الأسبوعية (يمكنك تعديلها لاحقاً)
         val rewards = listOf(
             Triple("المركز الأول 🥇", "100K ذهب + 5 دعوات ملكية + 3 صناديق موارد", "#FFD700"),
             Triple("المركز 2 - 3 🥈", "50K ذهب + 2 دعوات ملكية + صندوق موارد", "#C0C0C0"),
@@ -79,7 +76,6 @@ object ArenaDialogManager {
         )
 
         rewards.forEach { reward ->
-            // بناء التصميم برمجياً لكل جائزة
             val itemLayout = LinearLayout(activity).apply {
                 orientation = LinearLayout.VERTICAL
                 setPadding(20, 20, 20, 20)
@@ -110,6 +106,75 @@ object ArenaDialogManager {
         }
 
         d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.show()
+    }
+
+    // 💡 نافذة تجهيز الفيلق قبل المعركة
+    fun showPreparationDialog(activity: Activity, onConfirm: (Long, Long) -> Unit) {
+        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_arena_prepare)
+
+        val tvInfantryMax = d.findViewById<TextView>(R.id.tvPrepInfantryMax)
+        val tvInfantrySelected = d.findViewById<TextView>(R.id.tvPrepInfantrySelected)
+        val seekInfantry = d.findViewById<SeekBar>(R.id.seekPrepInfantry)
+
+        val tvCavalryMax = d.findViewById<TextView>(R.id.tvPrepCavalryMax)
+        val tvCavalrySelected = d.findViewById<TextView>(R.id.tvPrepCavalrySelected)
+        val seekCavalry = d.findViewById<SeekBar>(R.id.seekPrepCavalry)
+
+        var selectedInfantry = 0L
+        var selectedCavalry = 0L
+
+        val maxInf = GameState.totalInfantry
+        tvInfantryMax?.text = "متاح: ${formatResourceNumber(maxInf)}"
+        // SeekBar لا يقبل أرقاماً ضخمة جداً في الإصدارات القديمة، نؤمنه هنا
+        seekInfantry?.max = if (maxInf > Int.MAX_VALUE) Int.MAX_VALUE else maxInf.toInt()
+        seekInfantry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                selectedInfantry = progress.toLong()
+                tvInfantrySelected?.text = formatResourceNumber(selectedInfantry)
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        val maxCav = GameState.totalCavalry
+        tvCavalryMax?.text = "متاح: ${formatResourceNumber(maxCav)}"
+        seekCavalry?.max = if (maxCav > Int.MAX_VALUE) Int.MAX_VALUE else maxCav.toInt()
+        seekCavalry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                selectedCavalry = progress.toLong()
+                tvCavalrySelected?.text = formatResourceNumber(selectedCavalry)
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        d.findViewById<Button>(R.id.btnConfirmAttack)?.setOnClickListener {
+            if (selectedInfantry == 0L && selectedCavalry == 0L) {
+                DialogManager.showGameMessage(activity, "تنبيه عسكري", "لا يمكنك إرسال جيش فارغ! اختر عدد الجنود أولاً.", R.drawable.ic_settings_gear)
+            } else {
+                d.dismiss()
+                onConfirm(selectedInfantry, selectedCavalry)
+            }
+        }
+
+        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.show()
+    }
+
+    // 💡 نافذة التقرير العسكري بعد الاصطدام
+    fun showBattleReportDialog(activity: Activity, damageDealt: Long, earnedScore: Long, deadTroops: Long, woundedTroops: Long) {
+        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_arena_report)
+        d.setCancelable(false) // تمنع إغلاق النافذة بالنقر خارجها لضمان قراءة التقرير
+
+        d.findViewById<TextView>(R.id.tvReportDamage)?.text = formatResourceNumber(damageDealt)
+        d.findViewById<TextView>(R.id.tvReportScore)?.text = "+${formatResourceNumber(earnedScore)}"
+        d.findViewById<TextView>(R.id.tvReportDead)?.text = formatResourceNumber(deadTroops)
+        d.findViewById<TextView>(R.id.tvReportWounded)?.text = formatResourceNumber(woundedTroops)
+
+        d.findViewById<Button>(R.id.btnCloseReport)?.setOnClickListener { d.dismiss() }
         d.show()
     }
 
