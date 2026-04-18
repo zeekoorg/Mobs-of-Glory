@@ -12,11 +12,33 @@
         android:layout_height="match_parent"
         android:scaleType="centerCrop"
         android:src="@drawable/bg_arena_battlefield" />
-        
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#4D000000"/>
+
+    <FrameLayout
+        android:id="@+id/layoutGhostCastle"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipChildren="false"
+        app:layout_constraintWidth_percent="0.60"
+        app:layout_constraintHeight_percent="0.30"
+        app:layout_constraintHorizontal_bias="0.50"
+        app:layout_constraintVertical_bias="0.47"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:clickable="true"
+        android:focusable="true"/>
+
+    <ImageView
+        android:id="@+id/imgMarchingLegion"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:src="@drawable/img_marching_legion"
+        android:scaleType="fitCenter"
+        android:layout_marginBottom="10dp"
+        app:layout_constraintBottom_toTopOf="@+id/bottomNavBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/topHudContainer"
@@ -130,6 +152,72 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/btnLeaderboard"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="@id/layoutPlayerLevel"
+        app:layout_constraintEnd_toEndOf="@id/layoutPlayerLevel"
+        app:layout_constraintTop_toBottomOf="@id/layoutPlayerLevel"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:src="@drawable/ic_arena_leaderboard" 
+            android:background="@drawable/bg_inner_frame"
+            android:padding="6dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="أسياد الغزوات"
+            android:textColor="#F4D03F"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            android:layout_marginTop="3dp"
+            android:background="#99000000"
+            android:paddingHorizontal="5dp"
+            android:paddingVertical="2dp"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/btnArenaRewards"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="@id/btnLeaderboard"
+        app:layout_constraintEnd_toEndOf="@id/btnLeaderboard"
+        app:layout_constraintTop_toBottomOf="@id/btnLeaderboard"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:src="@drawable/ic_arena_rewards" 
+            android:background="@drawable/bg_inner_frame"
+            android:padding="6dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="غنائم الموسم"
+            android:textColor="#FFFFFF"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            android:layout_marginTop="3dp"
+            android:background="#99000000"
+            android:paddingHorizontal="5dp"
+            android:paddingVertical="2dp"/>
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/layoutTotalPower"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -138,53 +226,30 @@
         android:orientation="horizontal"
         android:paddingHorizontal="18dp"
         android:paddingVertical="4dp"
+        android:layout_marginEnd="14dp"
+        android:layout_marginTop="2dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@id/layoutPlayerLevel"
-        app:layout_constraintBottom_toBottomOf="@id/layoutPlayerLevel">
-        <TextView android:id="@+id/tvMainTotalPower" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⚔️ قوة الفيلق: 0" android:textColor="#F4D03F" android:textSize="13sp" android:textStyle="bold" />
+        app:layout_constraintTop_toBottomOf="@id/topHudContainer">
+        <TextView android:id="@+id/tvMainTotalPower" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⚔️ 0" android:textColor="#F4D03F" android:textSize="13sp" android:textStyle="bold" />
     </LinearLayout>
 
     <LinearLayout
-        android:id="@+id/layoutSeasonInfo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:gravity="center"
-        android:layout_marginTop="20dp"
-        app:layout_constraintTop_toBottomOf="@id/layoutTotalPower"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        android:gravity="end"
+        android:layout_marginTop="8dp"
+        app:layout_constraintEnd_toEndOf="@id/layoutTotalPower"
+        app:layout_constraintTop_toBottomOf="@id/layoutTotalPower">
         
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="ساحة الغزوات الملحمية"
-            android:textColor="#F4D03F"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:shadowColor="#000000"
-            android:shadowDx="2"
-            android:shadowDy="2"
-            android:shadowRadius="3"/>
-            
-        <TextView
-            android:id="@+id/tvSeasonTimer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="ينتهي الموسم خلال: 00:00:00"
-            android:textColor="#BDC3C7"
-            android:textSize="14sp"
-            android:layout_marginTop="5dp"/>
-            
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:background="@drawable/bg_inner_frame"
-            android:paddingHorizontal="15dp"
-            android:paddingVertical="8dp"
-            android:layout_marginTop="10dp">
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="5dp"
+            android:gravity="center_vertical">
             
             <TextView
                 android:id="@+id/tvArenaRank"
@@ -192,11 +257,11 @@
                 android:layout_height="wrap_content"
                 android:text="المركز: --"
                 android:textColor="#FFFFFF"
-                android:textSize="16sp"
+                android:textSize="11sp"
                 android:textStyle="bold"
-                android:layout_marginEnd="15dp"/>
+                android:layout_marginEnd="10dp"/>
                 
-            <View android:layout_width="1dp" android:layout_height="match_parent" android:background="#555555"/>
+            <View android:layout_width="1dp" android:layout_height="15dp" android:background="#555555"/>
             
             <TextView
                 android:id="@+id/tvArenaScore"
@@ -204,94 +269,22 @@
                 android:layout_height="wrap_content"
                 android:text="النقاط: 0"
                 android:textColor="#2ECC71"
-                android:textSize="16sp"
+                android:textSize="11sp"
                 android:textStyle="bold"
-                android:layout_marginStart="15dp"/>
+                android:layout_marginStart="10dp"/>
         </LinearLayout>
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/layoutArenaButtons"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintTop_toBottomOf="@id/layoutSeasonInfo"
-        app:layout_constraintBottom_toTopOf="@id/layoutAttackSection"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <Button
-            android:id="@+id/btnLeaderboard"
-            android:layout_width="140dp"
-            android:layout_height="45dp"
-            android:background="@drawable/bg_btn_gold_border"
-            android:text="قائمة المتصدرين"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:layout_marginEnd="10dp"/>
-
-        <Button
-            android:id="@+id/btnArenaRewards"
-            android:layout_width="140dp"
-            android:layout_height="45dp"
-            android:background="@drawable/bg_inner_frame"
-            android:text="جوائز الموسم"
-            android:textColor="#F4D03F"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/layoutAttackSection"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:layout_marginBottom="20dp"
-        app:layout_constraintBottom_toTopOf="@id/bottomNavBar"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
 
         <TextView
-            android:id="@+id/tvArenaStamina"
+            android:id="@+id/tvSeasonTimer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="طاقة الهجوم: 5/5"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="2dp"/>
-            
-        <TextView
-            android:id="@+id/tvStaminaRegen"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="تتجدد المحاولة القادمة خلال: 00:00"
+            android:text="ينتهي الموسم خلال: 00:00:00"
             android:textColor="#BDC3C7"
-            android:textSize="12sp"
-            android:layout_marginBottom="10dp"/>
-
-        <Button
-            android:id="@+id/btnAttack"
-            android:layout_width="200dp"
-            android:layout_height="60dp"
-            android:background="@drawable/bg_btn_gold_border"
-            android:text="ابحث عن خصم ⚔️"
-            android:textColor="#FFFFFF"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-            
-        <Button
-            android:id="@+id/btnAddStamina"
-            android:layout_width="wrap_content"
-            android:layout_height="35dp"
-            android:background="#00000000"
-            android:text="شحن الطاقة (إعلان 🎥)"
-            android:textColor="#3498DB"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:layout_marginTop="5dp"/>
+            android:textSize="10sp"
+            android:layout_marginTop="3dp"
+            android:background="#99000000"
+            android:paddingHorizontal="5dp"
+            android:paddingVertical="2dp"/>
     </LinearLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
