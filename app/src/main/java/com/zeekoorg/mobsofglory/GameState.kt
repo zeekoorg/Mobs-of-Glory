@@ -23,10 +23,8 @@ object GameState {
     
     var totalInfantry: Long = 0
     var totalCavalry: Long = 0
-    
     var woundedInfantry: Long = 0
     var woundedCavalry: Long = 0
-    
     var summonMedals: Int = 0
     
     var isPyramidUnlocked = false
@@ -62,7 +60,6 @@ object GameState {
     val claimedCastleRewards = mutableSetOf<Int>()
 
     val pendingOfflineMessages = mutableListOf<PendingMessage>()
-    
     var pendingLevelUpCount = 0
 
     var isHealing: Boolean = false
@@ -119,10 +116,7 @@ object GameState {
 
         if (arenaLeaderboard.isEmpty()) {
             val fakeNames = listOf("جلاد السلاطين", "فارس الظلام", "الإمبراطور الأحمر", "شبح الصحراء", "قاهر الجيوش", "ملك الشمال", "سيد العواصف", "الموت الزؤام", "ذئب الليل", "صياد التنانين", "مخلب النمر", "سفاح الممالك", "عين الصقر", "أمير الانتقام", "طاحن العظام", "غضب السماء", "روح الجحيم", "كابوس الأعداء", "ظل الموت")
-            
-            fakeNames.forEachIndexed { index, fName ->
-                arenaLeaderboard.add(ArenaPlayer(index + 1, fName, 0L, false))
-            }
+            fakeNames.forEachIndexed { index, fName -> arenaLeaderboard.add(ArenaPlayer(index + 1, fName, 0L, false)) }
             arenaLeaderboard.add(ArenaPlayer(0, playerName, arenaScore, true))
         }
         
@@ -168,10 +162,11 @@ object GameState {
             
             var rewardMsg = "انتهى موسم الساحة! مركزك النهائي: $finalRank\n\n"
             when (finalRank) {
-                1 -> { totalGold += 100000; summonMedals += 5; countResourceBox += 3; rewardMsg += "الغنائم: 100K ذهب، 5 دعوات، 3 صناديق موارد" }
-                2, 3 -> { totalGold += 50000; summonMedals += 2; countResourceBox += 1; rewardMsg += "الغنائم: 50K ذهب، دعمتان، صندوق موارد" }
-                in 4..10 -> { totalGold += 20000; countSpeedup8Hour += 1; rewardMsg += "الغنائم: 20K ذهب، تسريع 8 ساعات" }
-                in 11..20 -> { totalGold += 10000; countSpeedup1Hour += 1; rewardMsg += "الغنائم: 10K ذهب، تسريع ساعة" }
+                1 -> { totalGold += 300000; totalIron += 500000; totalWheat += 1000000; summonMedals += 5; countSpeedup1Hour += 3; rewardMsg += "المركز الأول! غنائم أسطورية بانتظارك." }
+                2 -> { totalGold += 150000; totalIron += 250000; totalWheat += 500000; summonMedals += 2; countSpeedup1Hour += 1; rewardMsg += "المركز الثاني! أداء مذهل." }
+                3 -> { totalGold += 100000; totalIron += 165000; totalWheat += 333000; summonMedals += 1; countSpeedup1Hour += 1; rewardMsg += "المركز الثالث! غنائم ممتازة." }
+                in 4..10 -> { totalGold += 50000; totalIron += 50000; totalWheat += 100000; rewardMsg += "ضمن العشرة الأوائل! غنائم جيدة." }
+                in 11..20 -> { totalGold += 20000; totalIron += 20000; totalWheat += 50000; rewardMsg += "منافس شرس! هذه مكافأتك." }
                 else -> { rewardMsg += "حظاً أوفر في الموسم القادم أيها المهيب!" }
             }
             
@@ -283,29 +278,21 @@ object GameState {
         totalGold = prefs.getLong("TOTAL_GOLD", 100000); totalIron = prefs.getLong("TOTAL_IRON", 100000); totalWheat = prefs.getLong("TOTAL_WHEAT", 100000)
         playerLevel = prefs.getInt("PLAYER_LEVEL", 1); playerExp = prefs.getInt("PLAYER_EXP", 0)
         totalInfantry = prefs.getLong("TOTAL_INFANTRY", 0); totalCavalry = prefs.getLong("TOTAL_CAVALRY", 0)
-        
         woundedInfantry = prefs.getLong("WOUNDED_INFANTRY", 0)
         woundedCavalry = prefs.getLong("WOUNDED_CAVALRY", 0)
-        
         summonMedals = prefs.getInt("SUMMON_MEDALS", 2)
         
         isPyramidUnlocked = prefs.getBoolean("PYRAMID_UNLOCKED", false)
         isDiamondUnlocked = prefs.getBoolean("DIAMOND_UNLOCKED", false)
         isPeacockUnlocked = prefs.getBoolean("PEACOCK_UNLOCKED", false)
 
-        countSpeedup5m = prefs.getInt("SPEEDUP_5M", 0)
-        countSpeedup15m = prefs.getInt("SPEEDUP_15M", 0)
-        countSpeedup30m = prefs.getInt("SPEEDUP_30M", 0)
-        countSpeedup1Hour = prefs.getInt("SPEEDUP_1H", 5)
-        countSpeedup2h = prefs.getInt("SPEEDUP_2H", 0)
-        countSpeedup8Hour = prefs.getInt("SPEEDUP_8H", 2)
-        countResourceBox = prefs.getInt("RESOURCE_BOX", 5)
-        countGoldBox = prefs.getInt("GOLD_BOX", 3)
+        countSpeedup5m = prefs.getInt("SPEEDUP_5M", 0); countSpeedup15m = prefs.getInt("SPEEDUP_15M", 0)
+        countSpeedup30m = prefs.getInt("SPEEDUP_30M", 0); countSpeedup1Hour = prefs.getInt("SPEEDUP_1H", 5)
+        countSpeedup2h = prefs.getInt("SPEEDUP_2H", 0); countSpeedup8Hour = prefs.getInt("SPEEDUP_8H", 2)
+        countResourceBox = prefs.getInt("RESOURCE_BOX", 5); countGoldBox = prefs.getInt("GOLD_BOX", 3)
 
         vipEndTime = prefs.getLong("VIP_END_TIME", 0L)
-        countVip8h = prefs.getInt("VIP_8H", 0)
-        countVip24h = prefs.getInt("VIP_24H", 0)
-        countVip7d = prefs.getInt("VIP_7D", 0)
+        countVip8h = prefs.getInt("VIP_8H", 0); countVip24h = prefs.getInt("VIP_24H", 0); countVip7d = prefs.getInt("VIP_7D", 0)
 
         pendingLevelUpCount = prefs.getInt("PENDING_LEVEL_UP", 0)
 
@@ -322,7 +309,6 @@ object GameState {
         arenaStamina = prefs.getInt("ARENA_STAMINA", 5)
         arenaStaminaLastRegenTime = prefs.getLong("ARENA_STAMINA_REGEN", currentTime)
         
-        // 💡 هنا حل مشكلة العداد: إذا كانت اللعبة تفتح لأول مرة نعطيه 7 أيام، ثم نفحص الانتهاء
         arenaSeasonEndTime = prefs.getLong("ARENA_SEASON_END", 0L)
         if (arenaSeasonEndTime == 0L) {
             arenaSeasonEndTime = currentTime + (7L * 24 * 3600000L)
@@ -344,7 +330,6 @@ object GameState {
 
         val hoursOffline = (offlineTime / 3600000L).toInt()
         arenaLeaderboard.filter { !it.isRealPlayer }.forEach {
-            // 💡 هنا حل مشكلة الأصفار للأعداء: إذا كان الحفظ صفراً نعطيه نقاط عشوائية فوراً
             var savedScore = prefs.getLong("ARENA_FAKE_SCORE_${it.id}", 0L)
             if (savedScore == 0L) {
                 savedScore = Random.nextLong(100, 15000)
@@ -360,8 +345,7 @@ object GameState {
         }
 
         dailyQuestsList.forEachIndexed { i, q ->
-            q.currentAmount = prefs.getInt("QUEST_${i}_PROG", 0)
-            q.isCollected = prefs.getBoolean("QUEST_${i}_COLL", false)
+            q.currentAmount = prefs.getInt("QUEST_${i}_PROG", 0); q.isCollected = prefs.getBoolean("QUEST_${i}_COLL", false)
         }
 
         val claimedStr = prefs.getString("CLAIMED_CASTLE_REWARDS", "") ?: ""
@@ -374,55 +358,37 @@ object GameState {
 
         if (isHealing && currentTime >= healingEndTime) {
             isHealing = false
-            totalInfantry += healingInfantryAmount
-            totalCavalry += healingCavalryAmount
-            woundedInfantry -= healingInfantryAmount
-            woundedCavalry -= healingCavalryAmount
-            healingInfantryAmount = 0
-            healingCavalryAmount = 0
+            totalInfantry += healingInfantryAmount; totalCavalry += healingCavalryAmount
+            woundedInfantry -= healingInfantryAmount; woundedCavalry -= healingCavalryAmount
+            healingInfantryAmount = 0; healingCavalryAmount = 0
             pendingOfflineMessages.add(PendingMessage("دار الشفاء", "تم تعافي الجنود بنجاح وعادوا لصفوف الجيش!", R.drawable.ic_settings_gear))
         }
 
         myHeroes.forEachIndexed { i, h ->
-            h.isUnlocked = prefs.getBoolean("H_${i}_U", h.isUnlocked)
-            h.level = prefs.getInt("H_${i}_L", h.level)
-            h.shardsOwned = prefs.getInt("H_${i}_S", h.shardsOwned)
-            h.isEquipped = prefs.getBoolean("H_${i}_EQ", false)
-            h.isUpgrading = prefs.getBoolean("H_${i}_UPG", false)
-            h.upgradeEndTime = prefs.getLong("H_${i}_UEND", 0L)
-            h.totalUpgradeTime = prefs.getLong("H_${i}_UTOT", 0L)
-            
+            h.isUnlocked = prefs.getBoolean("H_${i}_U", h.isUnlocked); h.level = prefs.getInt("H_${i}_L", h.level)
+            h.shardsOwned = prefs.getInt("H_${i}_S", h.shardsOwned); h.isEquipped = prefs.getBoolean("H_${i}_EQ", false)
+            h.isUpgrading = prefs.getBoolean("H_${i}_UPG", false); h.upgradeEndTime = prefs.getLong("H_${i}_UEND", 0L); h.totalUpgradeTime = prefs.getLong("H_${i}_UTOT", 0L)
             if (h.isUpgrading && currentTime >= h.upgradeEndTime) {
-                h.isUpgrading = false
-                h.level++
+                h.isUpgrading = false; h.level++
                 pendingOfflineMessages.add(PendingMessage("ترقية بطل", "تمت ترقية البطل ${h.name} للمستوى ${h.level} أثناء غيابك!", h.iconResId))
             }
         }
         
         arsenal.forEachIndexed { i, w ->
-            w.isOwned = prefs.getBoolean("W_${i}_O", false)
-            w.isEquipped = prefs.getBoolean("W_${i}_EQ", false)
-            w.level = prefs.getInt("W_${i}_L", 1)
-            w.isUpgrading = prefs.getBoolean("W_${i}_UPG", false)
-            w.upgradeEndTime = prefs.getLong("W_${i}_UEND", 0L)
-            w.totalUpgradeTime = prefs.getLong("W_${i}_UTOT", 0L)
-            
+            w.isOwned = prefs.getBoolean("W_${i}_O", false); w.isEquipped = prefs.getBoolean("W_${i}_EQ", false)
+            w.level = prefs.getInt("W_${i}_L", 1); w.isUpgrading = prefs.getBoolean("W_${i}_UPG", false)
+            w.upgradeEndTime = prefs.getLong("W_${i}_UEND", 0L); w.totalUpgradeTime = prefs.getLong("W_${i}_UTOT", 0L)
             if (w.isUpgrading && currentTime >= w.upgradeEndTime) {
-                w.isUpgrading = false
-                w.level++
+                w.isUpgrading = false; w.level++
                 pendingOfflineMessages.add(PendingMessage("ترقية سلاح", "تمت ترقية السلاح ${w.name} للمستوى ${w.level} بنجاح!", w.iconResId))
             }
         }
 
         myPlots.forEach { 
-            it.level = prefs.getInt("L_${it.idCode}", 1) 
-            it.isUpgrading = prefs.getBoolean("U_${it.idCode}", false)
-            it.upgradeEndTime = prefs.getLong("UT_${it.idCode}", 0L)
-            it.isTraining = prefs.getBoolean("TR_${it.idCode}", false)
-            it.trainingEndTime = prefs.getLong("TT_${it.idCode}", 0L)
-            it.trainingAmount = prefs.getInt("TA_${it.idCode}", 0)
-            it.collectTimer = prefs.getLong("CT_${it.idCode}", 0L)
-            it.isReady = prefs.getBoolean("IR_${it.idCode}", false)
+            it.level = prefs.getInt("L_${it.idCode}", 1); it.isUpgrading = prefs.getBoolean("U_${it.idCode}", false)
+            it.upgradeEndTime = prefs.getLong("UT_${it.idCode}", 0L); it.isTraining = prefs.getBoolean("TR_${it.idCode}", false)
+            it.trainingEndTime = prefs.getLong("TT_${it.idCode}", 0L); it.trainingAmount = prefs.getInt("TA_${it.idCode}", 0)
+            it.collectTimer = prefs.getLong("CT_${it.idCode}", 0L); it.isReady = prefs.getBoolean("IR_${it.idCode}", false)
             
             if (it.isUpgrading && currentTime >= it.upgradeEndTime) { 
                 it.isUpgrading = false; it.level++; playerExp += it.getExpReward()
