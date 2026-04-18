@@ -246,15 +246,48 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/btnNavArena"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="@id/layoutCastleRewardsClick"
+        app:layout_constraintEnd_toEndOf="@id/layoutCastleRewardsClick"
+        app:layout_constraintTop_toBottomOf="@id/layoutCastleRewardsClick"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:src="@drawable/ic_ui_arena" 
+            android:background="@drawable/bg_inner_frame"
+            android:padding="6dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ساحة الغزوات"
+            android:textColor="#FFFFFF"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            android:layout_marginTop="3dp"
+            android:background="#99000000"
+            android:paddingHorizontal="5dp"
+            android:paddingVertical="2dp"/>
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/layoutTavernClick"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="center"
         android:layout_marginEnd="14dp"
+        android:layout_marginTop="8dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/layoutVipClick"
-        app:layout_constraintBottom_toBottomOf="@id/layoutVipClick"
+        app:layout_constraintTop_toBottomOf="@id/topHudContainer"
         android:clickable="true"
         android:focusable="true">
 
