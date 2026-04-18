@@ -3,14 +3,18 @@ package com.zeekoorg.mobsofglory
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.app.Dialog
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.Animation
 import android.view.animation.TranslateAnimation
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -32,9 +36,7 @@ class ArenaActivity : AppCompatActivity() {
     private lateinit var layoutGhostCastle: View
     private lateinit var imgMarchingLegion: ImageView
     private lateinit var imgArenaBackground: ImageView
-    
     private lateinit var layoutAttackPrompt: View
-    private lateinit var tvHitEffect: TextView
 
     private val arenaHandler = Handler(Looper.getMainLooper())
     private val REGEN_TIME_MS = 3600000L 
@@ -48,9 +50,7 @@ class ArenaActivity : AppCompatActivity() {
         startArenaLoop()
         
         imgMarchingLegion.visibility = View.INVISIBLE
-        tvHitEffect.visibility = View.INVISIBLE
         
-        // تشغيل أنميشن السهم الطافي باستمرار
         val floatAnim = TranslateAnimation(0f, 0f, -10f, 10f)
         floatAnim.duration = 800
         floatAnim.repeatMode = Animation.REVERSE
@@ -84,7 +84,6 @@ class ArenaActivity : AppCompatActivity() {
         imgMarchingLegion = findViewById(R.id.imgMarchingLegion)
         imgArenaBackground = findViewById(R.id.imgArenaBackground)
         layoutAttackPrompt = findViewById(R.id.layoutAttackPrompt)
-        tvHitEffect = findViewById(R.id.tvHitEffect)
     }
 
     private fun setupActionListeners() {
@@ -138,10 +137,8 @@ class ArenaActivity : AppCompatActivity() {
         if (GameState.arenaStamina == 4) GameState.arenaStaminaLastRegenTime = System.currentTimeMillis()
         refreshArenaUI()
 
-        // إخفاء السهم أثناء الهجوم
         layoutAttackPrompt.visibility = View.INVISIBLE
         
-        // 💡 تفريغ أي أنميشن قديم لضمان عدم حدوث خلل التقليص
         imgMarchingLegion.clearAnimation()
         imgMarchingLegion.animate().cancel()
         imgMarchingLegion.scaleX = 1.0f
@@ -151,7 +148,6 @@ class ArenaActivity : AppCompatActivity() {
         imgMarchingLegion.alpha = 1.0f
         imgMarchingLegion.visibility = View.VISIBLE
 
-        // 💡 استخدام post لضمان أن النظام رسم الأبعاد الجديدة قبل الانطلاق
         imgMarchingLegion.post {
             val startY = imgMarchingLegion.y
             val targetY = layoutGhostCastle.y + (layoutGhostCastle.height / 2)
@@ -165,47 +161,69 @@ class ArenaActivity : AppCompatActivity() {
                 .setListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: Animator) {
                         imgMarchingLegion.visibility = View.INVISIBLE
-                        triggerHitEffects() // 💡 استدعاء تأثير الاصطدام الدموي والاهتزاز
+                        triggerHitEffects() 
                         executeBattleCalculations(sentInfantry, sentCavalry)
                     }
                 }).start()
         }
     }
 
-    // 💡 الأنميشن الدموي واهتزاز الخلفية
+    // 💡 الأنميشن الدموي الدقيق واهتزاز الخلفية مرتين
     private fun triggerHitEffects() {
-        // هزة واحدة للخلفية فقط
-        val shake = TranslateAnimation(-10f, 10f, 0f, 0f)
-        shake.duration = 80
+        // هزتين خفيفتين (4 تحركات ذهاباً وإياباً)
+        val shake = TranslateAnimation(-5f, 5f, -2f, 2f)
+        shake.duration = 40
         shake.repeatMode = Animation.REVERSE
-        shake.repeatCount = 1
+        shake.repeatCount = 3 
         imgArenaBackground.startAnimation(shake)
         
-        // إظهار وتكبير شظايا الدم
-        tvHitEffect.scaleX = 0.5f
-        tvHitEffect.scaleY = 0.5f
-        tvHitEffect.alpha = 1.0f
-        tvHitEffect.visibility = View.VISIBLE
-        tvHitEffect.animate()
-            .scaleX(4f)
-            .scaleY(4f)
-            .alpha(0f)
-            .setDuration(600)
-            .setListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: Animator) {
-                    tvHitEffect.visibility = View.INVISIBLE
-                    layoutAttackPrompt.visibility = View.VISIBLE // إعادة السهم الطافي
+        // جلب الإحداثيات للقلعة
+        val container = findViewById<ViewGroup>(android.R.id.content)
+        val loc = IntArray(2)
+        layoutGhostCastle.getLocationInWindow(loc)
+        val castleCenterX = loc[0] + layoutGhostCastle.width / 2f
+        val castleCenterY = loc[1] + layoutGhostCastle.height / 2f
+
+        // توليد 25 قطرة دم دائرية تتطاير كالألعاب النارية
+        for (i in 0..24) {
+            val drop = View(this).apply {
+                layoutParams = FrameLayout.LayoutParams(16, 16)
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(Color.parseColor("#E74C3C")) // لون الدم
                 }
-            }).start()
+                x = castleCenterX
+                y = castleCenterY
+                elevation = 15f
+            }
+            container.addView(drop)
+            
+            // حساب زاوية عشوائية ومسافة عشوائية حول القلعة فقط
+            val angle = Random.nextDouble(0.0, 2 * Math.PI)
+            val distance = Random.nextDouble(80.0, 250.0) // المسافة محدودة بمنطقة القلعة
+            val targetX = castleCenterX + (distance * Math.cos(angle)).toFloat()
+            val targetY = castleCenterY + (distance * Math.sin(angle)).toFloat()
+
+            drop.animate()
+                .x(targetX)
+                .y(targetY)
+                .alpha(0f)
+                .scaleX(0.5f)
+                .scaleY(0.5f)
+                .setDuration(Random.nextLong(400, 700))
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .withEndAction { container.removeView(drop) }
+                .start()
+        }
+        
+        layoutAttackPrompt.visibility = View.VISIBLE 
     }
 
     private fun executeBattleCalculations(sentInfantry: Long, sentCavalry: Long) {
         val troopsPower = (sentInfantry * 5) + (sentCavalry * 10)
-        
         var equippedPower: Long = 0
         GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { equippedPower += it.getCurrentPower() }
         GameState.arsenal.filter { it.isOwned && it.isEquipped }.forEach { equippedPower += it.getCurrentPower() }
-
         val totalAttackPower = troopsPower + equippedPower
 
         val damageMultiplier = Random.nextDouble(0.9, 1.1)
@@ -220,13 +238,11 @@ class ArenaActivity : AppCompatActivity() {
 
         val deadInfantry = (sentInfantry * deadRatio).toLong()
         val woundedInf = (sentInfantry * woundedRatio).toLong()
-
         val deadCavalry = (sentCavalry * deadRatio).toLong()
         val woundedCav = (sentCavalry * woundedRatio).toLong()
 
         GameState.totalInfantry -= (deadInfantry + woundedInf)
         GameState.totalCavalry -= (deadCavalry + woundedCav)
-
         GameState.woundedInfantry += woundedInf
         GameState.woundedCavalry += woundedCav
 
@@ -250,7 +266,6 @@ class ArenaActivity : AppCompatActivity() {
         tvTotalWheat.text = formatResourceNumber(GameState.totalWheat)
         tvPlayerLevel.text = "Lv. ${GameState.playerLevel}"
         tvMainTotalPower.text = "⚔️ قوة الفيلق: ${formatResourceNumber(GameState.legionPower)}"
-
         tvArenaScore.text = "النقاط: ${formatResourceNumber(GameState.arenaScore)}"
         
         GameState.arenaLeaderboard.sortByDescending { it.score }
@@ -261,34 +276,45 @@ class ArenaActivity : AppCompatActivity() {
     private fun startArenaLoop() {
         arenaHandler.post(object : Runnable {
             override fun run() {
-                val now = System.currentTimeMillis()
+                try {
+                    val now = System.currentTimeMillis()
 
-                val seasonRemaining = GameState.arenaSeasonEndTime - now
-                if (seasonRemaining > 0) {
-                    val days = seasonRemaining / (24 * 3600000L)
-                    val hours = (seasonRemaining % (24 * 3600000L)) / 3600000L
-                    val minutes = (seasonRemaining % 3600000L) / 60000L
-                    val seconds = (seasonRemaining % 60000L) / 1000L
-                    
-                    if (days > 0) {
-                        tvSeasonTimer.text = "ينتهي الموسم خلال: $days أيام و %02d:%02d".format(hours, minutes)
+                    val seasonRemaining = GameState.arenaSeasonEndTime - now
+                    if (seasonRemaining > 0) {
+                        val days = seasonRemaining / (24 * 3600000L)
+                        val hours = (seasonRemaining % (24 * 3600000L)) / 3600000L
+                        val minutes = (seasonRemaining % 3600000L) / 60000L
+                        val seconds = (seasonRemaining % 60000L) / 1000L
+                        
+                        if (days > 0) {
+                            tvSeasonTimer.text = "ينتهي الموسم خلال: $days أيام و %02d:%02d:%02d".format(hours, minutes, seconds)
+                        } else {
+                            tvSeasonTimer.text = "ينتهي الموسم خلال: %02d:%02d:%02d".format(hours, minutes, seconds)
+                        }
                     } else {
-                        tvSeasonTimer.text = "ينتهي الموسم خلال: %02d:%02d:%02d".format(hours, minutes, seconds)
-                    }
-                } else {
-                    GameState.checkArenaSeason()
-                    refreshArenaUI()
-                }
-
-                if (GameState.arenaStamina < 5) {
-                    val timePassed = now - GameState.arenaStaminaLastRegenTime
-                    if (timePassed >= REGEN_TIME_MS) {
-                        val staminaEarned = (timePassed / REGEN_TIME_MS).toInt()
-                        GameState.arenaStamina += staminaEarned
-                        if (GameState.arenaStamina > 5) GameState.arenaStamina = 5
-                        GameState.arenaStaminaLastRegenTime += (staminaEarned * REGEN_TIME_MS)
+                        GameState.checkArenaSeason()
                         refreshArenaUI()
                     }
+
+                    // 💡 تحريك نقاط الخصوم الوهميين بشكل حي ومباشر أثناء اللعب
+                    if (Random.nextInt(100) < 15) { // فرصة 15% كل ثانية لتحديث خصم
+                        val fakePlayer = GameState.arenaLeaderboard.filter { !it.isRealPlayer }.random()
+                        fakePlayer.score += Random.nextLong(5, 30)
+                        refreshArenaUI()
+                    }
+
+                    if (GameState.arenaStamina < 5) {
+                        val timePassed = now - GameState.arenaStaminaLastRegenTime
+                        if (timePassed >= REGEN_TIME_MS) {
+                            val staminaEarned = (timePassed / REGEN_TIME_MS).toInt()
+                            GameState.arenaStamina += staminaEarned
+                            if (GameState.arenaStamina > 5) GameState.arenaStamina = 5
+                            GameState.arenaStaminaLastRegenTime += (staminaEarned * REGEN_TIME_MS)
+                            refreshArenaUI()
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
                 arenaHandler.postDelayed(this, 1000)
             }
