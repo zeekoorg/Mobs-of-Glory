@@ -9,7 +9,6 @@ import android.view.View
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.Animation
 import android.view.animation.TranslateAnimation
-import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -27,10 +26,8 @@ class ArenaActivity : AppCompatActivity() {
     private lateinit var tvSeasonTimer: TextView
     private lateinit var tvArenaRank: TextView
     private lateinit var tvArenaScore: TextView
-    private lateinit var tvArenaStamina: TextView
-    private lateinit var tvStaminaRegen: TextView
     
-    // 💡 عناصر القلعة والفيلق
+    // عناصر القلعة والفيلق
     private lateinit var layoutGhostCastle: View
     private lateinit var imgMarchingLegion: ImageView
 
@@ -70,8 +67,6 @@ class ArenaActivity : AppCompatActivity() {
         tvSeasonTimer = findViewById(R.id.tvSeasonTimer)
         tvArenaRank = findViewById(R.id.tvArenaRank)
         tvArenaScore = findViewById(R.id.tvArenaScore)
-        tvArenaStamina = findViewById(R.id.tvArenaStamina) // ملاحظة: هذا العنصر أزلناه من التصميم، يمكنك إبقاءه إن أردت إرجاعه لاحقاً، أو إزالته هنا
-        tvStaminaRegen = findViewById(R.id.tvStaminaRegen) // كذلك هذا
 
         layoutGhostCastle = findViewById(R.id.layoutGhostCastle)
         imgMarchingLegion = findViewById(R.id.imgMarchingLegion)
@@ -79,16 +74,14 @@ class ArenaActivity : AppCompatActivity() {
 
     private fun setupActionListeners() {
         
-        // 💡 1. النقر على القلعة لفتح نافذة التجهيز بدلاً من الهجوم الفوري
+        // النقر على القلعة لفتح نافذة التجهيز
         layoutGhostCastle.setOnClickListener {
             if (GameState.arenaStamina > 0) {
-                // استدعاء نافذة التجهيز من ArenaDialogManager (سنصنعها في الملف القادم)
                 ArenaDialogManager.showPreparationDialog(this) { sentInfantry, sentCavalry ->
-                    // عند تأكيد الهجوم من النافذة، تبدأ المعركة المرئية
                     startMarchAnimation(sentInfantry, sentCavalry)
                 }
             } else {
-                DialogManager.showGameMessage(this, "نفاد الطاقة", "لا تمتلك طاقة هجوم! انتظر قليلاً أو شاهد إعلاناً لشحنها.", R.drawable.ic_settings_gear)
+                DialogManager.showGameMessage(this, "نفاد الطاقة", "لا تمتلك طاقة هجوم! انتظر قليلاً حتى تتجدد.", R.drawable.ic_settings_gear)
             }
         }
 
@@ -100,94 +93,83 @@ class ArenaActivity : AppCompatActivity() {
             ArenaDialogManager.showArenaRewardsDialog(this)
         }
 
-        // 💡 تفعيل أزرار الشريط العلوي
+        // تفعيل أزرار الشريط العلوي
         findViewById<View>(R.id.btnSettings)?.setOnClickListener {
             DialogManager.showSettingsDialog(this)
         }
         findViewById<View>(R.id.layoutAvatarClick)?.setOnClickListener { 
-            // سنعرض رسالة هنا لتجنب تكرار كود تغيير الصورة، أو يمكنك استدعاؤه لاحقاً
             DialogManager.showGameMessage(this, "ملف الإمبراطور", "يمكنك تغيير اسمك وصورتك من داخل المدينة الرئيسية.", R.drawable.ic_user_frame)
         }
 
         // أزرار الشريط السفلي
-        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
-            finish() 
-        }
+        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { finish() }
         findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { DialogManager.showHeroesDialog(this) }
         findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { DialogManager.showQuestsDialog(this) }
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { DialogManager.showBagDialog(this) }
     }
 
-    // 🎬 2. أنميشن الزحف والاهتزاز
+    // أنميشن الزحف والاهتزاز
     private fun startMarchAnimation(sentInfantry: Long, sentCavalry: Long) {
         // خصم طاقة المعركة
         GameState.arenaStamina--
         if (GameState.arenaStamina == 4) GameState.arenaStaminaLastRegenTime = System.currentTimeMillis()
         refreshArenaUI()
 
-        // حساب المسافة (من أسفل الشاشة إلى القلعة)
+        // حساب المسافة
         val startY = imgMarchingLegion.y
         val targetY = layoutGhostCastle.y + (layoutGhostCastle.height / 2)
 
-        // إظهار الفيلق في نقطة البداية بحجمه الطبيعي
+        // إظهار الفيلق في نقطة البداية
         imgMarchingLegion.visibility = View.VISIBLE
         imgMarchingLegion.scaleX = 1.0f
         imgMarchingLegion.scaleY = 1.0f
         imgMarchingLegion.translationY = 0f
 
-        // تحريك الفيلق وتقليص حجمه (المنظور)
+        // تحريك الفيلق وتقليص حجمه
         imgMarchingLegion.animate()
             .translationY(targetY - startY)
-            .scaleX(0.5f) // يتقلص للنصف
+            .scaleX(0.5f)
             .scaleY(0.5f)
-            .setDuration(2500) // ثانيتين ونصف
+            .setDuration(2500)
             .setInterpolator(AccelerateInterpolator())
             .setListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
-                    // عند الاصطدام: إخفاء الفيلق وهز الشاشة
                     imgMarchingLegion.visibility = View.INVISIBLE
                     shakeScreen()
-                    
-                    // حسابات المعركة وإظهار التقرير
                     executeBattleCalculations(sentInfantry, sentCavalry)
                 }
             }).start()
     }
 
-    // 💥 تأثير الاهتزاز
+    // تأثير الاهتزاز
     private fun shakeScreen() {
         val rootView = findViewById<View>(android.R.id.content)
         val shake = TranslateAnimation(-20f, 20f, -20f, 20f)
         shake.duration = 50
         shake.repeatMode = Animation.REVERSE
-        shake.repeatCount = 10 // يهتز 10 مرات
+        shake.repeatCount = 10
         rootView.startAnimation(shake)
     }
 
-    // 🧮 3. رياضيات المعركة والتقرير
+    // رياضيات المعركة والتقرير
     private fun executeBattleCalculations(sentInfantry: Long, sentCavalry: Long) {
-        val totalSentTroops = sentInfantry + sentCavalry
         val troopsPower = (sentInfantry * 5) + (sentCavalry * 10)
         
-        // حساب قوة الأبطال والأسلحة المجهزة فقط
         var equippedPower: Long = 0
         GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { equippedPower += it.getCurrentPower() }
         GameState.arsenal.filter { it.isOwned && it.isEquipped }.forEach { equippedPower += it.getCurrentPower() }
 
         val totalAttackPower = troopsPower + equippedPower
 
-        // الضرر الملحق (بين 90% و 110%)
         val damageMultiplier = Random.nextDouble(0.9, 1.1)
         val damageDealt = (totalAttackPower * damageMultiplier).toLong()
 
-        // النقاط المكتسبة (كل 150 ضرر = 1 نقطة، بحد أدنى 10)
         val earnedScore = maxOf(10L, damageDealt / 150)
         GameState.arenaScore += earnedScore
         GameState.arenaLeaderboard.find { it.isRealPlayer }?.score = GameState.arenaScore
 
-        // الخسائر الواقعية (الرد القاسي من القلعة)
-        val deadRatio = 0.10 // 10% شهداء
-        val woundedRatio = 0.10 // 10% جرحى
+        val deadRatio = 0.10
+        val woundedRatio = 0.10
 
         val deadInfantry = (sentInfantry * deadRatio).toLong()
         val woundedInf = (sentInfantry * woundedRatio).toLong()
@@ -195,18 +177,15 @@ class ArenaActivity : AppCompatActivity() {
         val deadCavalry = (sentCavalry * deadRatio).toLong()
         val woundedCav = (sentCavalry * woundedRatio).toLong()
 
-        // خصم القوات من المخزون
         GameState.totalInfantry -= (deadInfantry + woundedInf)
         GameState.totalCavalry -= (deadCavalry + woundedCav)
 
-        // إضافة الجرحى للشفاء
         GameState.woundedInfantry += woundedInf
         GameState.woundedCavalry += woundedCav
 
         GameState.saveGameData(this)
         refreshArenaUI()
 
-        // استدعاء نافذة التقرير العسكري بعد ثانية من الاصطدام
         Handler(Looper.getMainLooper()).postDelayed({
             ArenaDialogManager.showBattleReportDialog(
                 activity = this,
@@ -226,7 +205,6 @@ class ArenaActivity : AppCompatActivity() {
         tvMainTotalPower.text = "⚔️ قوة الفيلق: ${formatResourceNumber(GameState.legionPower)}"
 
         tvArenaScore.text = "النقاط: ${formatResourceNumber(GameState.arenaScore)}"
-        // tvArenaStamina.text = "طاقة الهجوم: ${GameState.arenaStamina}/5" // مخفية حالياً
         
         GameState.arenaLeaderboard.sortByDescending { it.score }
         val playerRank = GameState.arenaLeaderboard.indexOfFirst { it.isRealPlayer } + 1
