@@ -124,14 +124,6 @@ object GameState {
                 arenaLeaderboard.add(ArenaPlayer(index + 1, fName, 0L, false))
             }
             arenaLeaderboard.add(ArenaPlayer(0, playerName, arenaScore, true))
-            
-            arenaLeaderboard.filter { !it.isRealPlayer }.forEach {
-                it.score = Random.nextLong(100, 15000)
-            }
-        }
-        
-        if (arenaSeasonEndTime == 0L) {
-            arenaSeasonEndTime = System.currentTimeMillis() + (7L * 24 * 3600000L)
         }
         
         if (arenaStaminaLastRegenTime == 0L) {
@@ -162,59 +154,37 @@ object GameState {
             playerLevel++
             playerExp -= expNeeded
             calculatePower()
-            if (isOffline) {
-                pendingLevelUpCount++
-            }
+            if (isOffline) pendingLevelUpCount++
             return true 
         }
         return false
     }
 
-    // 💡 الدالة الجديدة لإدارة انتهاء وتصفير الموسم الأسبوعي
     fun checkArenaSeason() {
         val now = System.currentTimeMillis()
         if (now >= arenaSeasonEndTime && arenaSeasonEndTime > 0L) {
-            // فرز الترتيب لمعرفة المركز النهائي للاعب
             arenaLeaderboard.sortByDescending { it.score }
             val finalRank = arenaLeaderboard.indexOfFirst { it.isRealPlayer } + 1
             
             var rewardMsg = "انتهى موسم الساحة! مركزك النهائي: $finalRank\n\n"
-            
-            // توزيع الجوائز حسب المركز
             when (finalRank) {
-                1 -> {
-                    totalGold += 100000; summonMedals += 5; countResourceBox += 3
-                    rewardMsg += "الغنائم: 100K ذهب، 5 دعوات، 3 صناديق موارد"
-                }
-                2, 3 -> {
-                    totalGold += 50000; summonMedals += 2; countResourceBox += 1
-                    rewardMsg += "الغنائم: 50K ذهب، دعمتان، صندوق موارد"
-                }
-                in 4..10 -> {
-                    totalGold += 20000; countSpeedup8Hour += 1
-                    rewardMsg += "الغنائم: 20K ذهب، تسريع 8 ساعات"
-                }
-                in 11..20 -> {
-                    totalGold += 10000; countSpeedup1Hour += 1
-                    rewardMsg += "الغنائم: 10K ذهب، تسريع ساعة"
-                }
-                else -> {
-                    rewardMsg += "حظاً أوفر في الموسم القادم أيها المهيب!"
-                }
+                1 -> { totalGold += 100000; summonMedals += 5; countResourceBox += 3; rewardMsg += "الغنائم: 100K ذهب، 5 دعوات، 3 صناديق موارد" }
+                2, 3 -> { totalGold += 50000; summonMedals += 2; countResourceBox += 1; rewardMsg += "الغنائم: 50K ذهب، دعمتان، صندوق موارد" }
+                in 4..10 -> { totalGold += 20000; countSpeedup8Hour += 1; rewardMsg += "الغنائم: 20K ذهب، تسريع 8 ساعات" }
+                in 11..20 -> { totalGold += 10000; countSpeedup1Hour += 1; rewardMsg += "الغنائم: 10K ذهب، تسريع ساعة" }
+                else -> { rewardMsg += "حظاً أوفر في الموسم القادم أيها المهيب!" }
             }
             
             pendingOfflineMessages.add(PendingMessage("غنائم الموسم", rewardMsg, R.drawable.ic_arena_rewards))
             
-            // تصفير النقاط وبدء موسم جديد
             arenaScore = 0L
             arenaLeaderboard.forEach {
                 if (it.isRealPlayer) {
                     it.score = 0L
                 } else {
-                    it.score = Random.nextLong(100, 15000) // توزيع نقاط عشوائية للأعداء الوهميين
+                    it.score = Random.nextLong(100, 15000) 
                 }
             }
-            // إعادة ضبط العداد لـ 7 أيام
             arenaSeasonEndTime = now + (7L * 24 * 3600000L)
         }
     }
@@ -230,10 +200,8 @@ object GameState {
         prefs.putInt("PLAYER_EXP", playerExp)
         prefs.putLong("TOTAL_INFANTRY", totalInfantry)
         prefs.putLong("TOTAL_CAVALRY", totalCavalry)
-        
         prefs.putLong("WOUNDED_INFANTRY", woundedInfantry)
         prefs.putLong("WOUNDED_CAVALRY", woundedCavalry)
-        
         prefs.putInt("SUMMON_MEDALS", summonMedals)
         
         prefs.putBoolean("PYRAMID_UNLOCKED", isPyramidUnlocked)
@@ -353,9 +321,12 @@ object GameState {
         arenaScore = prefs.getLong("ARENA_SCORE", 0)
         arenaStamina = prefs.getInt("ARENA_STAMINA", 5)
         arenaStaminaLastRegenTime = prefs.getLong("ARENA_STAMINA_REGEN", currentTime)
+        
+        // 💡 هنا حل مشكلة العداد: إذا كانت اللعبة تفتح لأول مرة نعطيه 7 أيام، ثم نفحص الانتهاء
         arenaSeasonEndTime = prefs.getLong("ARENA_SEASON_END", 0L)
-
-        // 💡 فحص الموسم عند كل دخول
+        if (arenaSeasonEndTime == 0L) {
+            arenaSeasonEndTime = currentTime + (7L * 24 * 3600000L)
+        }
         checkArenaSeason()
 
         val regenTimeMs = 3600000L 
@@ -373,8 +344,11 @@ object GameState {
 
         val hoursOffline = (offlineTime / 3600000L).toInt()
         arenaLeaderboard.filter { !it.isRealPlayer }.forEach {
+            // 💡 هنا حل مشكلة الأصفار للأعداء: إذا كان الحفظ صفراً نعطيه نقاط عشوائية فوراً
             var savedScore = prefs.getLong("ARENA_FAKE_SCORE_${it.id}", 0L)
-            if (hoursOffline > 0) {
+            if (savedScore == 0L) {
+                savedScore = Random.nextLong(100, 15000)
+            } else if (hoursOffline > 0) {
                 savedScore += (hoursOffline * Random.nextLong(20, 80)) 
             }
             it.score = savedScore
