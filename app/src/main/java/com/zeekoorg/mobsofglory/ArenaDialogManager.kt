@@ -32,8 +32,6 @@ object ArenaDialogManager {
             val tvRank = view.findViewById<TextView>(R.id.tvPlayerRank)
             val tvName = view.findViewById<TextView>(R.id.tvPlayerName)
             val tvScore = view.findViewById<TextView>(R.id.tvPlayerScore)
-            
-            // 💡 تم حذف استدعاء صورة اللاعب (Avatar) بناءً على طلبك
 
             tvRank.text = "#${index + 1}"
             tvName.text = player.name
@@ -64,14 +62,15 @@ object ArenaDialogManager {
         val container = d.findViewById<LinearLayout>(R.id.layoutRewardsContainer)
         container?.removeAllViews()
 
+        // 💡 استخدام الأيقونات بدلاً من النصوص للجوائز
         val rewards = listOf(
-            Triple("المركز الأول 🥇", "100K ذهب + 5 دعوات ملكية + 3 صناديق موارد", "#FFD700"),
-            Triple("المركز 2 - 3 🥈", "50K ذهب + 2 دعوات ملكية + صندوق موارد", "#C0C0C0"),
-            Triple("المركز 4 - 10 🥉", "20K ذهب + تسريع 8 ساعات", "#CD7F32"),
-            Triple("المركز 11 - 20", "10K ذهب + تسريع ساعة", "#BDC3C7")
+            Pair("المركز الأول 🥇", listOf(Triple(R.drawable.ic_resource_gold, "100K", "#F4D03F"), Triple(R.drawable.ic_item_legend_medal, "5", "#FFFFFF"), Triple(R.drawable.ic_menu_bag, "3", "#FFFFFF"))),
+            Pair("المركز 2 - 3 🥈", listOf(Triple(R.drawable.ic_resource_gold, "50K", "#F4D03F"), Triple(R.drawable.ic_item_legend_medal, "2", "#FFFFFF"), Triple(R.drawable.ic_menu_bag, "1", "#FFFFFF"))),
+            Pair("المركز 4 - 10 🥉", listOf(Triple(R.drawable.ic_resource_gold, "20K", "#F4D03F"), Triple(R.drawable.ic_speedup_8h, "1", "#FFFFFF"))),
+            Pair("المركز 11 - 20", listOf(Triple(R.drawable.ic_resource_gold, "10K", "#F4D03F"), Triple(R.drawable.ic_speedup_1h, "1", "#FFFFFF")))
         )
 
-        rewards.forEach { reward ->
+        rewards.forEach { rewardGroup ->
             val itemLayout = LinearLayout(activity).apply {
                 orientation = LinearLayout.VERTICAL
                 setPadding(20, 20, 20, 20)
@@ -83,21 +82,46 @@ object ArenaDialogManager {
             }
 
             val title = TextView(activity).apply {
-                text = reward.first
-                setTextColor(Color.parseColor(reward.third))
+                text = rewardGroup.first
+                setTextColor(Color.WHITE)
                 textSize = 16f
                 setTypeface(null, android.graphics.Typeface.BOLD)
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 0, 0, 10) }
             }
-
-            val desc = TextView(activity).apply {
-                text = reward.second
-                setTextColor(Color.WHITE)
-                textSize = 13f
-                setPadding(0, 8, 0, 0)
-            }
-
             itemLayout.addView(title)
-            itemLayout.addView(desc)
+
+            // بناء صفوف الأيقونات + الأرقام
+            val iconsRow = LinearLayout(activity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.START
+            }
+
+            rewardGroup.second.forEach { rewardData ->
+                val singleRewardLayout = LinearLayout(activity).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 0, 25, 0) }
+                }
+
+                val img = ImageView(activity).apply {
+                    setImageResource(rewardData.first)
+                    layoutParams = LinearLayout.LayoutParams(40, 40)
+                }
+
+                val txt = TextView(activity).apply {
+                    text = rewardData.second
+                    setTextColor(Color.parseColor(rewardData.third))
+                    textSize = 14f
+                    setTypeface(null, android.graphics.Typeface.BOLD)
+                    setPadding(10, 0, 0, 0)
+                }
+
+                singleRewardLayout.addView(img)
+                singleRewardLayout.addView(txt)
+                iconsRow.addView(singleRewardLayout)
+            }
+
+            itemLayout.addView(iconsRow)
             container?.addView(itemLayout)
         }
 
@@ -105,7 +129,6 @@ object ArenaDialogManager {
         d.show()
     }
 
-    // 💡 نافذة تجهيز الفيلق المحدثة (تشمل الأبطال والأسلحة والجنود)
     fun showPreparationDialog(activity: Activity, onConfirm: (Long, Long) -> Unit) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_arena_prepare)
@@ -123,7 +146,6 @@ object ArenaDialogManager {
         var selectedInfantry = 0L
         var selectedCavalry = 0L
 
-        // تجهيز الجنود
         val maxInf = GameState.totalInfantry
         tvInfantryMax?.text = "متاح: ${formatResourceNumber(maxInf)}"
         seekInfantry?.max = if (maxInf > Int.MAX_VALUE) Int.MAX_VALUE else maxInf.toInt()
@@ -148,7 +170,6 @@ object ArenaDialogManager {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // 💡 تجهيز خانات الأبطال والأسلحة (مطابق للتشكيلة)
         val castleLevel = GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
         val heroSlots = listOf(
             Triple(d.findViewById<FrameLayout>(R.id.slotHero1), d.findViewById<ImageView>(R.id.imgHero1), d.findViewById<ImageView>(R.id.imgAddHero1)),
@@ -180,24 +201,17 @@ object ArenaDialogManager {
                 val reqLevel = unlockLevels[i]
 
                 if (castleLevel < reqLevel) {
-                    lock?.visibility = View.VISIBLE
-                    imgFull?.visibility = View.GONE
-                    imgAdd?.visibility = View.GONE
+                    lock?.visibility = View.VISIBLE; imgFull?.visibility = View.GONE; imgAdd?.visibility = View.GONE
                     slot?.setOnClickListener { DialogManager.showGameMessage(activity, "خانة مقفلة", "تحتاج لترقية القلعة للمستوى $reqLevel لفتح هذه الخانة!", R.drawable.ic_settings_gear) }
                 } else {
                     lock?.visibility = View.GONE
                     if (i < equippedHeroes.size) {
                         imgFull?.visibility = View.VISIBLE; imgAdd?.visibility = View.GONE
-                        val hero = equippedHeroes[i]
-                        imgFull?.setImageResource(hero.iconResId) 
+                        val hero = equippedHeroes[i]; imgFull?.setImageResource(hero.iconResId) 
                         slot?.setOnClickListener { hero.isEquipped = false; GameState.saveGameData(activity); refreshFormationUI() }
                     } else {
                         imgFull?.visibility = View.GONE; imgAdd?.visibility = View.VISIBLE
-                        slot?.setOnClickListener {
-                            DialogManager.showHeroSelectorDialog(activity) { selectedHero ->
-                                selectedHero.isEquipped = true; GameState.saveGameData(activity); refreshFormationUI()
-                            }
-                        }
+                        slot?.setOnClickListener { DialogManager.showHeroSelectorDialog(activity) { selectedHero -> selectedHero.isEquipped = true; GameState.saveGameData(activity); refreshFormationUI() } }
                     }
                 }
             }
@@ -208,24 +222,17 @@ object ArenaDialogManager {
                 val reqLevel = unlockLevels[i]
 
                 if (castleLevel < reqLevel) {
-                    lock?.visibility = View.VISIBLE
-                    imgFull?.visibility = View.GONE
-                    imgAdd?.visibility = View.GONE
+                    lock?.visibility = View.VISIBLE; imgFull?.visibility = View.GONE; imgAdd?.visibility = View.GONE
                     slot?.setOnClickListener { DialogManager.showGameMessage(activity, "خانة مقفلة", "تحتاج لترقية القلعة للمستوى $reqLevel لفتح هذه الخانة!", R.drawable.ic_settings_gear) }
                 } else {
                     lock?.visibility = View.GONE
                     if (i < equippedWeapons.size) {
                         imgFull?.visibility = View.VISIBLE; imgAdd?.visibility = View.GONE
-                        val weapon = equippedWeapons[i]
-                        imgFull?.setImageResource(weapon.iconResId) 
+                        val weapon = equippedWeapons[i]; imgFull?.setImageResource(weapon.iconResId) 
                         slot?.setOnClickListener { weapon.isEquipped = false; GameState.saveGameData(activity); refreshFormationUI() }
                     } else {
                         imgFull?.visibility = View.GONE; imgAdd?.visibility = View.VISIBLE
-                        slot?.setOnClickListener {
-                            DialogManager.showWeaponSelectorDialog(activity) { selectedWeapon ->
-                                selectedWeapon.isEquipped = true; GameState.saveGameData(activity); refreshFormationUI()
-                            }
-                        }
+                        slot?.setOnClickListener { DialogManager.showWeaponSelectorDialog(activity) { selectedWeapon -> selectedWeapon.isEquipped = true; GameState.saveGameData(activity); refreshFormationUI() } }
                     }
                 }
             }
