@@ -3,7 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#B3000000">
+    android:background="#B3000000"
+    android:layoutDirection="ltr">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
@@ -26,7 +27,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="35dp"
-            android:text="أسياد ساحة المعركة"
+            android:text="أسياد الغزوات"
             android:textColor="#F4D03F"
             android:textSize="22sp"
             android:textStyle="bold"
@@ -34,25 +35,13 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <TextView
-            android:id="@+id/tvLeaderboardInfo"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="صراع العروش على أشده! قاتل لتصل إلى القمة."
-            android:textColor="#BDC3C7"
-            android:textSize="13sp"
-            android:layout_marginTop="5dp"
-            app:layout_constraintTop_toBottomOf="@id/tvDialogTitle"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
-
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_marginHorizontal="15dp"
-            android:layout_marginTop="15dp"
+            android:layout_marginTop="20dp"
             android:layout_marginBottom="15dp"
-            app:layout_constraintTop_toBottomOf="@id/tvLeaderboardInfo"
+            app:layout_constraintTop_toBottomOf="@id/tvDialogTitle"
             app:layout_constraintBottom_toTopOf="@id/btnClose">
 
             <LinearLayout
@@ -61,22 +50,18 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:paddingBottom="10dp" />
-
         </ScrollView>
 
         <Button
             android:id="@+id/btnClose"
             android:layout_width="160dp"
             android:layout_height="40dp"
-            android:layout_marginBottom="20dp"
+            android:layout_marginBottom="25dp"
             android:background="@drawable/bg_btn_gold_border"
-            android:text="إغلاق السجل"
+            android:text="إغلاق"
             android:textColor="#FFFFFF"
-            android:textSize="14sp"
+            android:textSize="16sp"
             android:textStyle="bold"
-            android:padding="0dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
