@@ -347,24 +347,19 @@ class MainActivity : AppCompatActivity() {
             }
         }
         
-        // 💡 إضافة أيقونة تنبيه الجرحى فوق دار الشفاء (بنفس حجم أيقونة الجمع)
         val alertIconId = View.generateViewId()
         if (plot.idCode == "HOSPITAL") {
             val alertIcon = ImageView(this).apply {
                 id = alertIconId
                 setImageResource(R.drawable.ic_hospital_wounded)
                 layoutParams = FrameLayout.LayoutParams(60, 60).apply {
-                    // وضعها في منتصف أعلى المبنى
                     gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL
                     topMargin = -20
                 }
                 visibility = View.GONE
             }
-            // إضافتها إلى حاوية المبنى
             (view as FrameLayout).addView(alertIcon)
-            
-            // حفظ المرجع لاستخدامه في دالة التحديث
-            plot.collectIcon = alertIcon // سنستخدم نفس متغير collectIcon مؤقتاً لحفظ المرجع
+            plot.collectIcon = alertIcon 
         }
         
         img.setOnClickListener {
@@ -374,8 +369,13 @@ class MainActivity : AppCompatActivity() {
                 when (plot.idCode) {
                     "CASTLE" -> DialogManager.showCastleMainDialog(this, plot)
                     "BARRACKS_1", "BARRACKS_2" -> DialogManager.showBarracksMenuDialog(this, plot)
-                    // 💡 ربط دار الشفاء
-                    "HOSPITAL" -> DialogManager.showHospitalDialog(this, plot)
+                    "HOSPITAL" -> {
+                        if (GameState.woundedInfantry > 0 || GameState.woundedCavalry > 0 || GameState.isHealing) {
+                            DialogManager.showHospitalDialog(this, plot)
+                        } else {
+                            DialogManager.showUpgradeDialog(this, plot)
+                        }
+                    }
                     else -> DialogManager.showUpgradeDialog(this, plot)
                 }
             }
@@ -384,7 +384,6 @@ class MainActivity : AppCompatActivity() {
         if (plot.idCode != "HOSPITAL") {
             plot.collectIcon?.setOnClickListener { collectResources(plot) }
         } else {
-            // النقر على الأيقونة الحمراء يفتح المستشفى
             plot.collectIcon?.setOnClickListener { DialogManager.showHospitalDialog(this, plot) }
         }
     }
@@ -411,7 +410,6 @@ class MainActivity : AppCompatActivity() {
                 updateVipUI(now)
 
                 GameState.myPlots.forEach { p ->
-                    // 💡 تحديث أيقونة دار الشفاء ديناميكياً
                     if (p.idCode == "HOSPITAL") {
                         if (GameState.woundedInfantry > 0 || GameState.woundedCavalry > 0 || GameState.isHealing) {
                             p.collectIcon?.visibility = View.VISIBLE
