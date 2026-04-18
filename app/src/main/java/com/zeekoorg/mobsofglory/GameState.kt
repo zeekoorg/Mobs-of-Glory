@@ -24,7 +24,6 @@ object GameState {
     var totalInfantry: Long = 0
     var totalCavalry: Long = 0
     
-    // 💡 إضافة متغيرات الجرحى
     var woundedInfantry: Long = 0
     var woundedCavalry: Long = 0
     
@@ -66,7 +65,6 @@ object GameState {
     
     var pendingLevelUpCount = 0
 
-    // 💡 إضافة متغيرات العلاج (Healing)
     var isHealing: Boolean = false
     var healingEndTime: Long = 0L
     var healingTotalTime: Long = 0L
@@ -127,15 +125,15 @@ object GameState {
             }
             arenaLeaderboard.add(ArenaPlayer(0, playerName, arenaScore, true))
             
-            // 💡 تعيين نقاط ابتدائية للأعداء الوهميين ليكون التحدي واقعياً
             arenaLeaderboard.filter { !it.isRealPlayer }.forEach {
-                it.score = Random.nextLong(100, 10000)
+                it.score = Random.nextLong(100, 15000)
             }
         }
-
-        if (arenaSeasonEndTime == 0L || System.currentTimeMillis() > arenaSeasonEndTime) {
-            arenaSeasonEndTime = System.currentTimeMillis() + (7L * 24 * 60 * 60 * 1000)
+        
+        if (arenaSeasonEndTime == 0L) {
+            arenaSeasonEndTime = System.currentTimeMillis() + (7L * 24 * 3600000L)
         }
+        
         if (arenaStaminaLastRegenTime == 0L) {
             arenaStaminaLastRegenTime = System.currentTimeMillis()
         }
@@ -172,6 +170,55 @@ object GameState {
         return false
     }
 
+    // 💡 الدالة الجديدة لإدارة انتهاء وتصفير الموسم الأسبوعي
+    fun checkArenaSeason() {
+        val now = System.currentTimeMillis()
+        if (now >= arenaSeasonEndTime && arenaSeasonEndTime > 0L) {
+            // فرز الترتيب لمعرفة المركز النهائي للاعب
+            arenaLeaderboard.sortByDescending { it.score }
+            val finalRank = arenaLeaderboard.indexOfFirst { it.isRealPlayer } + 1
+            
+            var rewardMsg = "انتهى موسم الساحة! مركزك النهائي: $finalRank\n\n"
+            
+            // توزيع الجوائز حسب المركز
+            when (finalRank) {
+                1 -> {
+                    totalGold += 100000; summonMedals += 5; countResourceBox += 3
+                    rewardMsg += "الغنائم: 100K ذهب، 5 دعوات، 3 صناديق موارد"
+                }
+                2, 3 -> {
+                    totalGold += 50000; summonMedals += 2; countResourceBox += 1
+                    rewardMsg += "الغنائم: 50K ذهب، دعمتان، صندوق موارد"
+                }
+                in 4..10 -> {
+                    totalGold += 20000; countSpeedup8Hour += 1
+                    rewardMsg += "الغنائم: 20K ذهب، تسريع 8 ساعات"
+                }
+                in 11..20 -> {
+                    totalGold += 10000; countSpeedup1Hour += 1
+                    rewardMsg += "الغنائم: 10K ذهب، تسريع ساعة"
+                }
+                else -> {
+                    rewardMsg += "حظاً أوفر في الموسم القادم أيها المهيب!"
+                }
+            }
+            
+            pendingOfflineMessages.add(PendingMessage("غنائم الموسم", rewardMsg, R.drawable.ic_arena_rewards))
+            
+            // تصفير النقاط وبدء موسم جديد
+            arenaScore = 0L
+            arenaLeaderboard.forEach {
+                if (it.isRealPlayer) {
+                    it.score = 0L
+                } else {
+                    it.score = Random.nextLong(100, 15000) // توزيع نقاط عشوائية للأعداء الوهميين
+                }
+            }
+            // إعادة ضبط العداد لـ 7 أيام
+            arenaSeasonEndTime = now + (7L * 24 * 3600000L)
+        }
+    }
+
     fun saveGameData(context: Context) {
         val prefs = context.getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit()
         prefs.putString("PLAYER_NAME", playerName)
@@ -184,7 +231,6 @@ object GameState {
         prefs.putLong("TOTAL_INFANTRY", totalInfantry)
         prefs.putLong("TOTAL_CAVALRY", totalCavalry)
         
-        // 💡 حفظ الجرحى
         prefs.putLong("WOUNDED_INFANTRY", woundedInfantry)
         prefs.putLong("WOUNDED_CAVALRY", woundedCavalry)
         
@@ -220,7 +266,6 @@ object GameState {
         prefs.putLong("LAST_LOGIN_TIME", System.currentTimeMillis())
         prefs.putInt("PENDING_LEVEL_UP", pendingLevelUpCount)
         
-        // 💡 حفظ حالة العلاج
         prefs.putBoolean("IS_HEALING", isHealing)
         prefs.putLong("HEALING_END_TIME", healingEndTime)
         prefs.putLong("HEALING_TOTAL_TIME", healingTotalTime)
@@ -271,7 +316,6 @@ object GameState {
         playerLevel = prefs.getInt("PLAYER_LEVEL", 1); playerExp = prefs.getInt("PLAYER_EXP", 0)
         totalInfantry = prefs.getLong("TOTAL_INFANTRY", 0); totalCavalry = prefs.getLong("TOTAL_CAVALRY", 0)
         
-        // 💡 تحميل الجرحى
         woundedInfantry = prefs.getLong("WOUNDED_INFANTRY", 0)
         woundedCavalry = prefs.getLong("WOUNDED_CAVALRY", 0)
         
@@ -297,7 +341,6 @@ object GameState {
 
         pendingLevelUpCount = prefs.getInt("PENDING_LEVEL_UP", 0)
 
-        // 💡 تحميل حالة العلاج
         isHealing = prefs.getBoolean("IS_HEALING", false)
         healingEndTime = prefs.getLong("HEALING_END_TIME", 0L)
         healingTotalTime = prefs.getLong("HEALING_TOTAL_TIME", 0L)
@@ -311,6 +354,9 @@ object GameState {
         arenaStamina = prefs.getInt("ARENA_STAMINA", 5)
         arenaStaminaLastRegenTime = prefs.getLong("ARENA_STAMINA_REGEN", currentTime)
         arenaSeasonEndTime = prefs.getLong("ARENA_SEASON_END", 0L)
+
+        // 💡 فحص الموسم عند كل دخول
+        checkArenaSeason()
 
         val regenTimeMs = 3600000L 
         if (arenaStamina < 5) {
@@ -352,7 +398,6 @@ object GameState {
 
         pendingOfflineMessages.clear()
 
-        // 💡 معالجة العلاج الأوفلاين
         if (isHealing && currentTime >= healingEndTime) {
             isHealing = false
             totalInfantry += healingInfantryAmount
