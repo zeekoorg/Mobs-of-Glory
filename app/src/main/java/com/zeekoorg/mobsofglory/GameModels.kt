@@ -81,7 +81,6 @@ data class MapPlot(
     fun getExpReward(): Int = level * 300
 }
 
-// 💡 كلاس جديد يمثل اللاعبين في ساحة الغزوات (الحقيقي والوهميين)
 data class ArenaPlayer(
     val id: Int,
     var name: String,
