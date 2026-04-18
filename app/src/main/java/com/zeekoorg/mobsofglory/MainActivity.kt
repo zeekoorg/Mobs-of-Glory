@@ -82,7 +82,6 @@ class MainActivity : AppCompatActivity() {
         setupActionListeners()
         startGameLoop()
         
-        // 💡 إظهار إشعارات الترقية المؤجلة
         checkPendingLevelUps()
         showPendingOfflineMessages()
     }
@@ -154,20 +153,17 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { DialogManager.showStoreDialog(this) }
         
-        // 💡 إصلاح زر المدينة (الآن يُظهر رسالة توضح أنك فيها بالفعل)
         findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
             DialogManager.showGameMessage(this, "المدينة الرئيسية", "أنت بالفعل داخل أسوار مدينتك أيها المهيب!", R.drawable.ic_ui_castle_rewards)
         } 
     }
 
-    // 💡 دالة لإظهار نوافذ الترقية المؤجلة وتوزيع الجوائز
     private fun checkPendingLevelUps() {
         if (GameState.pendingLevelUpCount > 0) {
             GameState.pendingLevelUpCount--
             GameState.saveGameData(this)
             DialogManager.showLevelUpDialog(this, GameState.playerLevel - GameState.pendingLevelUpCount)
             
-            // إذا كان هناك أكثر من ترقية، نطلب الدالة مجدداً بعد إغلاق النافذة الحالية
             if (GameState.pendingLevelUpCount > 0) {
                 gameHandler.postDelayed({ checkPendingLevelUps() }, 500)
             }
@@ -351,6 +347,26 @@ class MainActivity : AppCompatActivity() {
             }
         }
         
+        // 💡 إضافة أيقونة تنبيه الجرحى فوق دار الشفاء (بنفس حجم أيقونة الجمع)
+        val alertIconId = View.generateViewId()
+        if (plot.idCode == "HOSPITAL") {
+            val alertIcon = ImageView(this).apply {
+                id = alertIconId
+                setImageResource(R.drawable.ic_hospital_wounded)
+                layoutParams = FrameLayout.LayoutParams(60, 60).apply {
+                    // وضعها في منتصف أعلى المبنى
+                    gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL
+                    topMargin = -20
+                }
+                visibility = View.GONE
+            }
+            // إضافتها إلى حاوية المبنى
+            (view as FrameLayout).addView(alertIcon)
+            
+            // حفظ المرجع لاستخدامه في دالة التحديث
+            plot.collectIcon = alertIcon // سنستخدم نفس متغير collectIcon مؤقتاً لحفظ المرجع
+        }
+        
         img.setOnClickListener {
             if (plot.isReady && plot.resourceType != ResourceType.NONE) { collectResources(plot) } 
             else if (plot.isUpgrading || plot.isTraining) { DialogManager.showSpeedupDialog(this, plot) } 
@@ -358,11 +374,19 @@ class MainActivity : AppCompatActivity() {
                 when (plot.idCode) {
                     "CASTLE" -> DialogManager.showCastleMainDialog(this, plot)
                     "BARRACKS_1", "BARRACKS_2" -> DialogManager.showBarracksMenuDialog(this, plot)
+                    // 💡 ربط دار الشفاء
+                    "HOSPITAL" -> DialogManager.showHospitalDialog(this, plot)
                     else -> DialogManager.showUpgradeDialog(this, plot)
                 }
             }
         }
-        plot.collectIcon?.setOnClickListener { collectResources(plot) }
+        
+        if (plot.idCode != "HOSPITAL") {
+            plot.collectIcon?.setOnClickListener { collectResources(plot) }
+        } else {
+            // النقر على الأيقونة الحمراء يفتح المستشفى
+            plot.collectIcon?.setOnClickListener { DialogManager.showHospitalDialog(this, plot) }
+        }
     }
 
     private fun collectResources(plot: MapPlot) {
@@ -387,15 +411,24 @@ class MainActivity : AppCompatActivity() {
                 updateVipUI(now)
 
                 GameState.myPlots.forEach { p ->
+                    // 💡 تحديث أيقونة دار الشفاء ديناميكياً
+                    if (p.idCode == "HOSPITAL") {
+                        if (GameState.woundedInfantry > 0 || GameState.woundedCavalry > 0 || GameState.isHealing) {
+                            p.collectIcon?.visibility = View.VISIBLE
+                        } else {
+                            p.collectIcon?.visibility = View.GONE
+                        }
+                    }
+
                     if (p.isUpgrading) {
-                        p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectIcon?.visibility = View.GONE
+                        p.layoutUpgradeProgress?.visibility = View.VISIBLE
+                        if (p.idCode != "HOSPITAL") p.collectIcon?.visibility = View.GONE
                         val rem = p.upgradeEndTime - now
                         if (rem <= 0) { 
                             p.isUpgrading = false; p.level++; GameState.playerExp += p.getExpReward()
                             
                             GameState.addQuestProgress(QuestType.UPGRADE_BUILDING, 1)
 
-                            // 💡 إذا تمت الترقية واللعبة مفتوحة
                             if(GameState.checkPlayerLevelUp(false)) {
                                 updateHudUI()
                                 DialogManager.showLevelUpDialog(this@MainActivity, GameState.playerLevel)
@@ -424,7 +457,7 @@ class MainActivity : AppCompatActivity() {
                             p.pbUpgrade?.progress = (((p.trainingTotalTime - rem).toFloat() / p.trainingTotalTime) * 100).toInt()
                             p.tvUpgradeTimer?.text = "%02d:%02d".format((rem/60000), (rem%60000)/1000) 
                         }
-                    } else if (p.resourceType != ResourceType.NONE && !p.isReady) {
+                    } else if (p.resourceType != ResourceType.NONE && !p.isReady && p.idCode != "HOSPITAL") {
                         p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectTimer += 1000
                         
                         val targetTime = if(GameState.isVipActive()) 45000L else 60000L
