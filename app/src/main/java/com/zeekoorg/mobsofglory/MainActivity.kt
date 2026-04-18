@@ -82,12 +82,13 @@ class MainActivity : AppCompatActivity() {
         setupActionListeners()
         startGameLoop()
         
+        // 💡 إظهار إشعارات الترقية المؤجلة
+        checkPendingLevelUps()
         showPendingOfflineMessages()
     }
 
     override fun onResume() {
         super.onResume()
-        // 💡 تحديث الواجهة فور العودة من الساحة للتأكد من تحديث الغنائم والنقاط
         GameState.calculatePower()
         updateHudUI()
     }
@@ -146,14 +147,31 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { DialogManager.showQuestsDialog(this) }
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { DialogManager.showBagDialog(this) }
         
-        // 💡 الانتقال إلى الساحة الملحمية
         findViewById<View>(R.id.btnNavArena)?.setOnClickListener { 
             val intent = Intent(this, ArenaActivity::class.java)
             startActivity(intent)
         } 
 
-        // 💡 إضافة زر المتجر لأننا أزلناه من مكان الساحة
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { DialogManager.showStoreDialog(this) }
+        
+        // 💡 إصلاح زر المدينة (الآن يُظهر رسالة توضح أنك فيها بالفعل)
+        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
+            DialogManager.showGameMessage(this, "المدينة الرئيسية", "أنت بالفعل داخل أسوار مدينتك أيها المهيب!", R.drawable.ic_ui_castle_rewards)
+        } 
+    }
+
+    // 💡 دالة لإظهار نوافذ الترقية المؤجلة وتوزيع الجوائز
+    private fun checkPendingLevelUps() {
+        if (GameState.pendingLevelUpCount > 0) {
+            GameState.pendingLevelUpCount--
+            GameState.saveGameData(this)
+            DialogManager.showLevelUpDialog(this, GameState.playerLevel - GameState.pendingLevelUpCount)
+            
+            // إذا كان هناك أكثر من ترقية، نطلب الدالة مجدداً بعد إغلاق النافذة الحالية
+            if (GameState.pendingLevelUpCount > 0) {
+                gameHandler.postDelayed({ checkPendingLevelUps() }, 500)
+            }
+        }
     }
 
     private fun showPendingOfflineMessages() {
@@ -377,7 +395,8 @@ class MainActivity : AppCompatActivity() {
                             
                             GameState.addQuestProgress(QuestType.UPGRADE_BUILDING, 1)
 
-                            if(GameState.checkPlayerLevelUp()) {
+                            // 💡 إذا تمت الترقية واللعبة مفتوحة
+                            if(GameState.checkPlayerLevelUp(false)) {
                                 updateHudUI()
                                 DialogManager.showLevelUpDialog(this@MainActivity, GameState.playerLevel)
                             }
