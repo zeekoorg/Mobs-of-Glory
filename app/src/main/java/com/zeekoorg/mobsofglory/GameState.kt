@@ -43,9 +43,8 @@ object GameState {
     var countVip24h: Int = 0
     var countVip7d: Int = 0
 
-    // 💡 متغيرات ساحة الغزوات (Arena)
     var arenaScore: Long = 0L
-    var arenaStamina: Int = 5 // الحد الأقصى للمحاولات
+    var arenaStamina: Int = 5 
     var arenaStaminaLastRegenTime: Long = 0L
     var arenaSeasonEndTime: Long = 0L
     val arenaLeaderboard = mutableListOf<ArenaPlayer>()
@@ -59,6 +58,9 @@ object GameState {
     val claimedCastleRewards = mutableSetOf<Int>()
 
     val pendingOfflineMessages = mutableListOf<PendingMessage>()
+    
+    // 💡 متغير جديد لمراقبة الترقية أثناء الأوفلاين
+    var pendingLevelUpCount = 0
 
     fun addQuestProgress(type: QuestType, amount: Int) {
         dailyQuestsList.filter { it.type == type }.forEach { quest ->
@@ -106,19 +108,16 @@ object GameState {
             myPlots.add(MapPlot("HOSPITAL", "دار الشفاء", R.id.plotHospitalM2, 0, ResourceType.NONE, 1))
         }
 
-        // 💡 تهيئة المتصدرين الوهميين لساحة الغزوات
         if (arenaLeaderboard.isEmpty()) {
             val fakeNames = listOf("جلاد السلاطين", "فارس الظلام", "الإمبراطور الأحمر", "شبح الصحراء", "قاهر الجيوش", "ملك الشمال", "سيد العواصف", "الموت الزؤام", "ذئب الليل", "صياد التنانين", "مخلب النمر", "سفاح الممالك", "عين الصقر", "أمير الانتقام", "طاحن العظام", "غضب السماء", "روح الجحيم", "كابوس الأعداء", "ظل الموت")
             
             fakeNames.forEachIndexed { index, fName ->
                 arenaLeaderboard.add(ArenaPlayer(index + 1, fName, 0L, false))
             }
-            // إضافة اللاعب الحقيقي
             arenaLeaderboard.add(ArenaPlayer(0, playerName, arenaScore, true))
         }
 
         if (arenaSeasonEndTime == 0L) {
-            // مدة الموسم 7 أيام
             arenaSeasonEndTime = System.currentTimeMillis() + (7L * 24 * 60 * 60 * 1000)
         }
         if (arenaStaminaLastRegenTime == 0L) {
@@ -143,10 +142,16 @@ object GameState {
         legionPower = lPower
     }
 
-    fun checkPlayerLevelUp(): Boolean {
+    fun checkPlayerLevelUp(isOffline: Boolean = false): Boolean {
         val expNeeded = playerLevel * 1000
         if (playerExp >= expNeeded) { 
-            playerLevel++; playerExp -= expNeeded; calculatePower(); return true 
+            playerLevel++
+            playerExp -= expNeeded
+            calculatePower()
+            if (isOffline) {
+                pendingLevelUpCount++ // 💡 تسجيل أن اللاعب ارتفع مستواه أثناء الغياب
+            }
+            return true 
         }
         return false
     }
@@ -182,7 +187,6 @@ object GameState {
         prefs.putInt("VIP_24H", countVip24h)
         prefs.putInt("VIP_7D", countVip7d)
         
-        // 💡 حفظ بيانات الساحة
         prefs.putLong("ARENA_SCORE", arenaScore)
         prefs.putInt("ARENA_STAMINA", arenaStamina)
         prefs.putLong("ARENA_STAMINA_REGEN", arenaStaminaLastRegenTime)
@@ -193,6 +197,9 @@ object GameState {
         }
         
         prefs.putLong("LAST_LOGIN_TIME", System.currentTimeMillis())
+        
+        // 💡 حفظ المستويات المؤجلة
+        prefs.putInt("PENDING_LEVEL_UP", pendingLevelUpCount)
         
         dailyQuestsList.forEachIndexed { i, q ->
             prefs.putInt("QUEST_${i}_PROG", q.currentAmount)
@@ -257,16 +264,17 @@ object GameState {
         countVip24h = prefs.getInt("VIP_24H", 0)
         countVip7d = prefs.getInt("VIP_7D", 0)
 
+        // 💡 استرجاع المستويات المؤجلة
+        pendingLevelUpCount = prefs.getInt("PENDING_LEVEL_UP", 0)
+
         val currentTime = System.currentTimeMillis()
         val offlineTime = currentTime - prefs.getLong("LAST_LOGIN_TIME", currentTime)
 
-        // 💡 تحميل بيانات الساحة وتحديث الأوفلاين
         arenaScore = prefs.getLong("ARENA_SCORE", 0)
         arenaStamina = prefs.getInt("ARENA_STAMINA", 5)
         arenaStaminaLastRegenTime = prefs.getLong("ARENA_STAMINA_REGEN", currentTime)
         arenaSeasonEndTime = prefs.getLong("ARENA_SEASON_END", 0L)
 
-        // تجديد طاقة الهجوم في الساحة (1 طاقة لكل ساعة)
         val regenTimeMs = 3600000L 
         if (arenaStamina < 5) {
             val timePassedForStamina = currentTime - arenaStaminaLastRegenTime
@@ -280,18 +288,15 @@ object GameState {
             arenaStaminaLastRegenTime = currentTime
         }
 
-        // تحميل نقاط المتصدرين الوهميين وزيادتها بناءً على الوقت المنقضي
         val hoursOffline = (offlineTime / 3600000L).toInt()
         arenaLeaderboard.filter { !it.isRealPlayer }.forEach {
             var savedScore = prefs.getLong("ARENA_FAKE_SCORE_${it.id}", 0L)
             if (hoursOffline > 0) {
-                // الأعداء الوهميين يلعبون أيضاً!
                 savedScore += (hoursOffline * Random.nextLong(20, 80)) 
             }
             it.score = savedScore
         }
         
-        // تحديث اللاعب الحقيقي
         arenaLeaderboard.find { it.isRealPlayer }?.let {
             it.score = arenaScore
             it.name = playerName
@@ -366,6 +371,9 @@ object GameState {
                 if (it.collectTimer >= targetTime) { it.isReady = true; it.collectTimer = targetTime }
             }
         }
-        checkPlayerLevelUp() 
+        // 💡 إرسال true ليتم احتساب أي ترقية كمؤجلة أثناء الأوفلاين
+        while (checkPlayerLevelUp(true)) {
+            // كرر الفحص في حال ارتقى اللاعب أكثر من مستوى
+        }
     }
 }
