@@ -1,10 +1,16 @@
 package com.zeekoorg.mobsofglory
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.Animation
+import android.view.animation.TranslateAnimation
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import java.util.Locale
@@ -23,9 +29,13 @@ class ArenaActivity : AppCompatActivity() {
     private lateinit var tvArenaScore: TextView
     private lateinit var tvArenaStamina: TextView
     private lateinit var tvStaminaRegen: TextView
+    
+    // 💡 عناصر القلعة والفيلق
+    private lateinit var layoutGhostCastle: View
+    private lateinit var imgMarchingLegion: ImageView
 
     private val arenaHandler = Handler(Looper.getMainLooper())
-    private val REGEN_TIME_MS = 3600000L // ساعة واحدة لكل محاولة هجوم
+    private val REGEN_TIME_MS = 3600000L 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,11 +44,13 @@ class ArenaActivity : AppCompatActivity() {
         initViews()
         setupActionListeners()
         startArenaLoop()
+        
+        // إخفاء الفيلق في البداية
+        imgMarchingLegion.visibility = View.INVISIBLE
     }
 
     override fun onResume() {
         super.onResume()
-        // حساب القوة وتحديث الواجهة عند العودة للشاشة
         GameState.calculatePower()
         refreshArenaUI()
     }
@@ -49,114 +61,173 @@ class ArenaActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
-        // موارد الشريط العلوي
         tvTotalGold = findViewById(R.id.tvTotalGold)
         tvTotalIron = findViewById(R.id.tvTotalIron)
         tvTotalWheat = findViewById(R.id.tvTotalWheat)
         tvPlayerLevel = findViewById(R.id.tvPlayerLevel)
         tvMainTotalPower = findViewById(R.id.tvMainTotalPower)
         
-        // عناصر الساحة
         tvSeasonTimer = findViewById(R.id.tvSeasonTimer)
         tvArenaRank = findViewById(R.id.tvArenaRank)
         tvArenaScore = findViewById(R.id.tvArenaScore)
-        tvArenaStamina = findViewById(R.id.tvArenaStamina)
-        tvStaminaRegen = findViewById(R.id.tvStaminaRegen)
+        tvArenaStamina = findViewById(R.id.tvArenaStamina) // ملاحظة: هذا العنصر أزلناه من التصميم، يمكنك إبقاءه إن أردت إرجاعه لاحقاً، أو إزالته هنا
+        tvStaminaRegen = findViewById(R.id.tvStaminaRegen) // كذلك هذا
+
+        layoutGhostCastle = findViewById(R.id.layoutGhostCastle)
+        imgMarchingLegion = findViewById(R.id.imgMarchingLegion)
     }
 
     private fun setupActionListeners() {
-        // أزرار الساحة المركزية
-        findViewById<Button>(R.id.btnAttack)?.setOnClickListener { performAttack() }
         
-        findViewById<Button>(R.id.btnAddStamina)?.setOnClickListener {
-            if (GameState.arenaStamina < 5) {
-                // 💡 استدعاء الإعلان لشحن الطاقة
-                YandexAdsManager.showRewardedAd(this, onRewarded = {
-                    GameState.arenaStamina = 5
-                    GameState.saveGameData(this)
-                    refreshArenaUI()
-                    DialogManager.showGameMessage(this, "طاقة كاملة", "تم شحن طاقة الهجوم بالكامل! سحقاً للأعداء!", R.drawable.ic_vip_crown)
-                }, onAdClosed = {})
+        // 💡 1. النقر على القلعة لفتح نافذة التجهيز بدلاً من الهجوم الفوري
+        layoutGhostCastle.setOnClickListener {
+            if (GameState.arenaStamina > 0) {
+                // استدعاء نافذة التجهيز من ArenaDialogManager (سنصنعها في الملف القادم)
+                ArenaDialogManager.showPreparationDialog(this) { sentInfantry, sentCavalry ->
+                    // عند تأكيد الهجوم من النافذة، تبدأ المعركة المرئية
+                    startMarchAnimation(sentInfantry, sentCavalry)
+                }
             } else {
-                DialogManager.showGameMessage(this, "الطاقة ممتلئة", "طاقتك ممتلئة بالفعل أيها المهيب!", R.drawable.ic_settings_gear)
+                DialogManager.showGameMessage(this, "نفاد الطاقة", "لا تمتلك طاقة هجوم! انتظر قليلاً أو شاهد إعلاناً لشحنها.", R.drawable.ic_settings_gear)
             }
         }
 
-        // 💡 النوافذ الجديدة لقائمة المتصدرين والجوائز
-        findViewById<Button>(R.id.btnLeaderboard)?.setOnClickListener {
+        // أزرار النوافذ
+        findViewById<View>(R.id.btnLeaderboard)?.setOnClickListener {
             ArenaDialogManager.showLeaderboardDialog(this)
         }
-
-        findViewById<Button>(R.id.btnArenaRewards)?.setOnClickListener {
+        findViewById<View>(R.id.btnArenaRewards)?.setOnClickListener {
             ArenaDialogManager.showArenaRewardsDialog(this)
+        }
+
+        // 💡 تفعيل أزرار الشريط العلوي
+        findViewById<View>(R.id.btnSettings)?.setOnClickListener {
+            DialogManager.showSettingsDialog(this)
+        }
+        findViewById<View>(R.id.layoutAvatarClick)?.setOnClickListener { 
+            // سنعرض رسالة هنا لتجنب تكرار كود تغيير الصورة، أو يمكنك استدعاؤه لاحقاً
+            DialogManager.showGameMessage(this, "ملف الإمبراطور", "يمكنك تغيير اسمك وصورتك من داخل المدينة الرئيسية.", R.drawable.ic_user_frame)
         }
 
         // أزرار الشريط السفلي
         findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
-            finish() // إغلاق هذه الشاشة والعودة للمدينة
+            finish() 
         }
-        
         findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { DialogManager.showHeroesDialog(this) }
         findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { DialogManager.showQuestsDialog(this) }
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { DialogManager.showBagDialog(this) }
     }
 
-    private fun performAttack() {
-        if (GameState.arenaStamina > 0) {
-            GameState.arenaStamina--
-            if (GameState.arenaStamina == 4) {
-                // بدأ استهلاك الطاقة، نبدأ حساب وقت التجديد من الآن
-                GameState.arenaStaminaLastRegenTime = System.currentTimeMillis()
-            }
-            
-            // 💡 فيزياء المعركة الاستراتيجية
-            val myPower = GameState.legionPower
-            // توليد قوة خصم عشوائية تتراوح بين 80% و 120% من قوة فيلقك
-            val enemyPowerMultiplier = Random.nextDouble(0.8, 1.2)
-            val enemyPower = (myPower * enemyPowerMultiplier).toLong()
+    // 🎬 2. أنميشن الزحف والاهتزاز
+    private fun startMarchAnimation(sentInfantry: Long, sentCavalry: Long) {
+        // خصم طاقة المعركة
+        GameState.arenaStamina--
+        if (GameState.arenaStamina == 4) GameState.arenaStaminaLastRegenTime = System.currentTimeMillis()
+        refreshArenaUI()
 
-            if (myPower >= enemyPower) {
-                // انتصار!
-                val earnedScore = Random.nextLong(150, 350)
-                GameState.arenaScore += earnedScore
-                
-                // غنائم فورية
-                val lootGold = Random.nextLong(5000, 15000)
-                GameState.totalGold += lootGold
-                
-                DialogManager.showGameMessage(this, "انتصار ساحق! ⚔️", "لقد سحقت خصمك بقوة $myPower مقابل ${enemyPower}.\n\n+ $earnedScore نقطة ساحة\n+ ${formatResourceNumber(lootGold)} ذهب غنائم", R.drawable.ic_ui_formation)
-            } else {
-                // هزيمة
-                val earnedScore = Random.nextLong(10, 30) // نقاط ترضية بسيطة
-                GameState.arenaScore += earnedScore
-                
-                DialogManager.showGameMessage(this, "هزيمة مريرة", "كان خصمك أقوى منك (${enemyPower} مقابل $myPower).\nطور أسلحتك وأبطالك وعد للانتقام!\n\n+ $earnedScore نقطة ساحة كترضية.", R.drawable.ic_settings_gear)
-            }
+        // حساب المسافة (من أسفل الشاشة إلى القلعة)
+        val startY = imgMarchingLegion.y
+        val targetY = layoutGhostCastle.y + (layoutGhostCastle.height / 2)
 
-            // تحديث بيانات اللاعب الحقيقي في قائمة المتصدرين
-            GameState.arenaLeaderboard.find { it.isRealPlayer }?.score = GameState.arenaScore
-            
-            GameState.saveGameData(this)
-            refreshArenaUI()
-        } else {
-            DialogManager.showGameMessage(this, "نفاد الطاقة", "لا تمتلك طاقة هجوم! انتظر قليلاً أو شاهد إعلاناً لشحنها.", R.drawable.ic_settings_gear)
-        }
+        // إظهار الفيلق في نقطة البداية بحجمه الطبيعي
+        imgMarchingLegion.visibility = View.VISIBLE
+        imgMarchingLegion.scaleX = 1.0f
+        imgMarchingLegion.scaleY = 1.0f
+        imgMarchingLegion.translationY = 0f
+
+        // تحريك الفيلق وتقليص حجمه (المنظور)
+        imgMarchingLegion.animate()
+            .translationY(targetY - startY)
+            .scaleX(0.5f) // يتقلص للنصف
+            .scaleY(0.5f)
+            .setDuration(2500) // ثانيتين ونصف
+            .setInterpolator(AccelerateInterpolator())
+            .setListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    // عند الاصطدام: إخفاء الفيلق وهز الشاشة
+                    imgMarchingLegion.visibility = View.INVISIBLE
+                    shakeScreen()
+                    
+                    // حسابات المعركة وإظهار التقرير
+                    executeBattleCalculations(sentInfantry, sentCavalry)
+                }
+            }).start()
     }
 
-    // 💡 دالة تحديث الواجهة (مرئية للـ DialogManager)
+    // 💥 تأثير الاهتزاز
+    private fun shakeScreen() {
+        val rootView = findViewById<View>(android.R.id.content)
+        val shake = TranslateAnimation(-20f, 20f, -20f, 20f)
+        shake.duration = 50
+        shake.repeatMode = Animation.REVERSE
+        shake.repeatCount = 10 // يهتز 10 مرات
+        rootView.startAnimation(shake)
+    }
+
+    // 🧮 3. رياضيات المعركة والتقرير
+    private fun executeBattleCalculations(sentInfantry: Long, sentCavalry: Long) {
+        val totalSentTroops = sentInfantry + sentCavalry
+        val troopsPower = (sentInfantry * 5) + (sentCavalry * 10)
+        
+        // حساب قوة الأبطال والأسلحة المجهزة فقط
+        var equippedPower: Long = 0
+        GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { equippedPower += it.getCurrentPower() }
+        GameState.arsenal.filter { it.isOwned && it.isEquipped }.forEach { equippedPower += it.getCurrentPower() }
+
+        val totalAttackPower = troopsPower + equippedPower
+
+        // الضرر الملحق (بين 90% و 110%)
+        val damageMultiplier = Random.nextDouble(0.9, 1.1)
+        val damageDealt = (totalAttackPower * damageMultiplier).toLong()
+
+        // النقاط المكتسبة (كل 150 ضرر = 1 نقطة، بحد أدنى 10)
+        val earnedScore = maxOf(10L, damageDealt / 150)
+        GameState.arenaScore += earnedScore
+        GameState.arenaLeaderboard.find { it.isRealPlayer }?.score = GameState.arenaScore
+
+        // الخسائر الواقعية (الرد القاسي من القلعة)
+        val deadRatio = 0.10 // 10% شهداء
+        val woundedRatio = 0.10 // 10% جرحى
+
+        val deadInfantry = (sentInfantry * deadRatio).toLong()
+        val woundedInf = (sentInfantry * woundedRatio).toLong()
+
+        val deadCavalry = (sentCavalry * deadRatio).toLong()
+        val woundedCav = (sentCavalry * woundedRatio).toLong()
+
+        // خصم القوات من المخزون
+        GameState.totalInfantry -= (deadInfantry + woundedInf)
+        GameState.totalCavalry -= (deadCavalry + woundedCav)
+
+        // إضافة الجرحى للشفاء
+        GameState.woundedInfantry += woundedInf
+        GameState.woundedCavalry += woundedCav
+
+        GameState.saveGameData(this)
+        refreshArenaUI()
+
+        // استدعاء نافذة التقرير العسكري بعد ثانية من الاصطدام
+        Handler(Looper.getMainLooper()).postDelayed({
+            ArenaDialogManager.showBattleReportDialog(
+                activity = this,
+                damageDealt = damageDealt,
+                earnedScore = earnedScore,
+                deadTroops = deadInfantry + deadCavalry,
+                woundedTroops = woundedInf + woundedCav
+            )
+        }, 1000)
+    }
+
     fun refreshArenaUI() {
-        // تحديث موارد الشريط العلوي
         tvTotalGold.text = formatResourceNumber(GameState.totalGold)
         tvTotalIron.text = formatResourceNumber(GameState.totalIron)
         tvTotalWheat.text = formatResourceNumber(GameState.totalWheat)
         tvPlayerLevel.text = "Lv. ${GameState.playerLevel}"
         tvMainTotalPower.text = "⚔️ قوة الفيلق: ${formatResourceNumber(GameState.legionPower)}"
 
-        // تحديث النقاط والطاقة
         tvArenaScore.text = "النقاط: ${formatResourceNumber(GameState.arenaScore)}"
-        tvArenaStamina.text = "طاقة الهجوم: ${GameState.arenaStamina}/5"
-
-        // تحديث الترتيب (فرز القائمة تنازلياً حسب النقاط ومعرفة مركز اللاعب)
+        // tvArenaStamina.text = "طاقة الهجوم: ${GameState.arenaStamina}/5" // مخفية حالياً
+        
         GameState.arenaLeaderboard.sortByDescending { it.score }
         val playerRank = GameState.arenaLeaderboard.indexOfFirst { it.isRealPlayer } + 1
         tvArenaRank.text = "المركز: $playerRank"
@@ -167,7 +238,6 @@ class ArenaActivity : AppCompatActivity() {
             override fun run() {
                 val now = System.currentTimeMillis()
 
-                // 1. تحديث وقت نهاية الموسم الأسبوعي
                 val seasonRemaining = GameState.arenaSeasonEndTime - now
                 if (seasonRemaining > 0) {
                     val days = seasonRemaining / (24 * 3600000L)
@@ -181,32 +251,19 @@ class ArenaActivity : AppCompatActivity() {
                         tvSeasonTimer.text = "ينتهي الموسم خلال: %02d:%02d:%02d".format(hours, minutes, seconds)
                     }
                 } else {
-                    tvSeasonTimer.text = "انتهى الموسم! جاري حساب الجوائز..."
-                    // سيتم برمجة منطق انتهاء الموسم لاحقاً
+                    tvSeasonTimer.text = "انتهى الموسم! جاري التوزيع..."
                 }
 
-                // 2. تحديث عداد شحن الطاقة
                 if (GameState.arenaStamina < 5) {
                     val timePassed = now - GameState.arenaStaminaLastRegenTime
                     if (timePassed >= REGEN_TIME_MS) {
-                        // كسب محاولة جديدة
                         val staminaEarned = (timePassed / REGEN_TIME_MS).toInt()
                         GameState.arenaStamina += staminaEarned
                         if (GameState.arenaStamina > 5) GameState.arenaStamina = 5
-                        
                         GameState.arenaStaminaLastRegenTime += (staminaEarned * REGEN_TIME_MS)
                         refreshArenaUI()
-                    } else {
-                        val staminaRemainingTime = REGEN_TIME_MS - timePassed
-                        val m = staminaRemainingTime / 60000L
-                        val s = (staminaRemainingTime % 60000L) / 1000L
-                        tvStaminaRegen.text = "تتجدد المحاولة القادمة خلال: %02d:%02d".format(m, s)
-                        tvStaminaRegen.visibility = View.VISIBLE
                     }
-                } else {
-                    tvStaminaRegen.visibility = View.INVISIBLE
                 }
-
                 arenaHandler.postDelayed(this, 1000)
             }
         })
