@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#CC000000"
+    android:layoutDirection="ltr"
+    android:gravity="center">
+
+    <LinearLayout
+        android:layout_width="320dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_inner_frame"
+        android:padding="20dp"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="تجهيز الفيلق للغزو"
+            android:textColor="#F4D03F"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="5dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="حدد عدد القوات التي سترسلها لتدمير قلعة الأشباح (تذكر: سيكون هناك خسائر في الأرواح!)"
+            android:textColor="#BDC3C7"
+            android:textSize="12sp"
+            android:textAlignment="center"
+            android:layout_marginBottom="20dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="5dp">
+            
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="المشاة 🛡️"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"/>
+                
+            <TextView
+                android:id="@+id/tvPrepInfantryMax"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="متاح: 0"
+                android:textColor="#BDC3C7"
+                android:textSize="12sp"
+                android:layout_marginEnd="10dp"/>
+                
+            <TextView
+                android:id="@+id/tvPrepInfantrySelected"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="#2ECC71"
+                android:textSize="14sp"
+                android:textStyle="bold"/>
+        </LinearLayout>
+
+        <SeekBar
+            android:id="@+id/seekPrepInfantry"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:progressTint="#2ECC71"
+            android:thumbTint="#FFFFFF"
+            android:layout_marginBottom="20dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="5dp">
+            
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="الفرسان 🐎"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"/>
+                
+            <TextView
+                android:id="@+id/tvPrepCavalryMax"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="متاح: 0"
+                android:textColor="#BDC3C7"
+                android:textSize="12sp"
+                android:layout_marginEnd="10dp"/>
+                
+            <TextView
+                android:id="@+id/tvPrepCavalrySelected"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="#2ECC71"
+                android:textSize="14sp"
+                android:textStyle="bold"/>
+        </LinearLayout>
+
+        <SeekBar
+            android:id="@+id/seekPrepCavalry"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:progressTint="#2ECC71"
+            android:thumbTint="#FFFFFF"
+            android:layout_marginBottom="25dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            
+            <Button
+                android:id="@+id/btnConfirmAttack"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_btn_gold_border"
+                android:text="بدء الزحف ⚔️"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginEnd="10dp"/>
+                
+            <Button
+                android:id="@+id/btnClose"
+                android:layout_width="100dp"
+                android:layout_height="50dp"
+                android:background="#444444"
+                android:text="تراجع"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"/>
+        </LinearLayout>
+    </LinearLayout>
+</RelativeLayout>
