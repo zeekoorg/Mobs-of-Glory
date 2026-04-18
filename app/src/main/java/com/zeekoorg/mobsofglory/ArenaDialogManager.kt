@@ -1,4 +1,4 @@
-herepackage com.zeekoorg.mobsofglory
+package com.zeekoorg.mobsofglory
 
 import android.app.Activity
 import android.app.Dialog
