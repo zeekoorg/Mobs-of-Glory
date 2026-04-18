@@ -701,7 +701,7 @@ object DialogManager {
         d.show()
     }
 
-    private fun showHeroSelectorDialog(activity: Activity, onSelected: (Hero) -> Unit) {
+    fun showHeroSelectorDialog(activity: Activity, onSelected: (Hero) -> Unit) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_quests) 
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "اختر بطلاً للفيلق"
@@ -731,7 +731,7 @@ object DialogManager {
         d.show()
     }
 
-    private fun showWeaponSelectorDialog(activity: Activity, onSelected: (Weapon) -> Unit) {
+    fun showWeaponSelectorDialog(activity: Activity, onSelected: (Weapon) -> Unit) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_quests) 
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "اختر سلاحاً للفيلق"
