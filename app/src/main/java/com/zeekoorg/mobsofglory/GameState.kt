@@ -23,6 +23,11 @@ object GameState {
     
     var totalInfantry: Long = 0
     var totalCavalry: Long = 0
+    
+    // 💡 إضافة متغيرات الجرحى
+    var woundedInfantry: Long = 0
+    var woundedCavalry: Long = 0
+    
     var summonMedals: Int = 0
     
     var isPyramidUnlocked = false
@@ -59,8 +64,14 @@ object GameState {
 
     val pendingOfflineMessages = mutableListOf<PendingMessage>()
     
-    // 💡 متغير جديد لمراقبة الترقية أثناء الأوفلاين
     var pendingLevelUpCount = 0
+
+    // 💡 إضافة متغيرات العلاج (Healing)
+    var isHealing: Boolean = false
+    var healingEndTime: Long = 0L
+    var healingTotalTime: Long = 0L
+    var healingInfantryAmount: Long = 0
+    var healingCavalryAmount: Long = 0
 
     fun addQuestProgress(type: QuestType, amount: Int) {
         dailyQuestsList.filter { it.type == type }.forEach { quest ->
@@ -115,9 +126,14 @@ object GameState {
                 arenaLeaderboard.add(ArenaPlayer(index + 1, fName, 0L, false))
             }
             arenaLeaderboard.add(ArenaPlayer(0, playerName, arenaScore, true))
+            
+            // 💡 تعيين نقاط ابتدائية للأعداء الوهميين ليكون التحدي واقعياً
+            arenaLeaderboard.filter { !it.isRealPlayer }.forEach {
+                it.score = Random.nextLong(100, 10000)
+            }
         }
 
-        if (arenaSeasonEndTime == 0L) {
+        if (arenaSeasonEndTime == 0L || System.currentTimeMillis() > arenaSeasonEndTime) {
             arenaSeasonEndTime = System.currentTimeMillis() + (7L * 24 * 60 * 60 * 1000)
         }
         if (arenaStaminaLastRegenTime == 0L) {
@@ -149,7 +165,7 @@ object GameState {
             playerExp -= expNeeded
             calculatePower()
             if (isOffline) {
-                pendingLevelUpCount++ // 💡 تسجيل أن اللاعب ارتفع مستواه أثناء الغياب
+                pendingLevelUpCount++
             }
             return true 
         }
@@ -167,6 +183,11 @@ object GameState {
         prefs.putInt("PLAYER_EXP", playerExp)
         prefs.putLong("TOTAL_INFANTRY", totalInfantry)
         prefs.putLong("TOTAL_CAVALRY", totalCavalry)
+        
+        // 💡 حفظ الجرحى
+        prefs.putLong("WOUNDED_INFANTRY", woundedInfantry)
+        prefs.putLong("WOUNDED_CAVALRY", woundedCavalry)
+        
         prefs.putInt("SUMMON_MEDALS", summonMedals)
         
         prefs.putBoolean("PYRAMID_UNLOCKED", isPyramidUnlocked)
@@ -197,9 +218,14 @@ object GameState {
         }
         
         prefs.putLong("LAST_LOGIN_TIME", System.currentTimeMillis())
-        
-        // 💡 حفظ المستويات المؤجلة
         prefs.putInt("PENDING_LEVEL_UP", pendingLevelUpCount)
+        
+        // 💡 حفظ حالة العلاج
+        prefs.putBoolean("IS_HEALING", isHealing)
+        prefs.putLong("HEALING_END_TIME", healingEndTime)
+        prefs.putLong("HEALING_TOTAL_TIME", healingTotalTime)
+        prefs.putLong("HEALING_INF_AMOUNT", healingInfantryAmount)
+        prefs.putLong("HEALING_CAV_AMOUNT", healingCavalryAmount)
         
         dailyQuestsList.forEachIndexed { i, q ->
             prefs.putInt("QUEST_${i}_PROG", q.currentAmount)
@@ -244,6 +270,11 @@ object GameState {
         totalGold = prefs.getLong("TOTAL_GOLD", 100000); totalIron = prefs.getLong("TOTAL_IRON", 100000); totalWheat = prefs.getLong("TOTAL_WHEAT", 100000)
         playerLevel = prefs.getInt("PLAYER_LEVEL", 1); playerExp = prefs.getInt("PLAYER_EXP", 0)
         totalInfantry = prefs.getLong("TOTAL_INFANTRY", 0); totalCavalry = prefs.getLong("TOTAL_CAVALRY", 0)
+        
+        // 💡 تحميل الجرحى
+        woundedInfantry = prefs.getLong("WOUNDED_INFANTRY", 0)
+        woundedCavalry = prefs.getLong("WOUNDED_CAVALRY", 0)
+        
         summonMedals = prefs.getInt("SUMMON_MEDALS", 2)
         
         isPyramidUnlocked = prefs.getBoolean("PYRAMID_UNLOCKED", false)
@@ -264,8 +295,14 @@ object GameState {
         countVip24h = prefs.getInt("VIP_24H", 0)
         countVip7d = prefs.getInt("VIP_7D", 0)
 
-        // 💡 استرجاع المستويات المؤجلة
         pendingLevelUpCount = prefs.getInt("PENDING_LEVEL_UP", 0)
+
+        // 💡 تحميل حالة العلاج
+        isHealing = prefs.getBoolean("IS_HEALING", false)
+        healingEndTime = prefs.getLong("HEALING_END_TIME", 0L)
+        healingTotalTime = prefs.getLong("HEALING_TOTAL_TIME", 0L)
+        healingInfantryAmount = prefs.getLong("HEALING_INF_AMOUNT", 0)
+        healingCavalryAmount = prefs.getLong("HEALING_CAV_AMOUNT", 0)
 
         val currentTime = System.currentTimeMillis()
         val offlineTime = currentTime - prefs.getLong("LAST_LOGIN_TIME", currentTime)
@@ -314,6 +351,18 @@ object GameState {
         }
 
         pendingOfflineMessages.clear()
+
+        // 💡 معالجة العلاج الأوفلاين
+        if (isHealing && currentTime >= healingEndTime) {
+            isHealing = false
+            totalInfantry += healingInfantryAmount
+            totalCavalry += healingCavalryAmount
+            woundedInfantry -= healingInfantryAmount
+            woundedCavalry -= healingCavalryAmount
+            healingInfantryAmount = 0
+            healingCavalryAmount = 0
+            pendingOfflineMessages.add(PendingMessage("دار الشفاء", "تم تعافي الجنود بنجاح وعادوا لصفوف الجيش!", R.drawable.ic_settings_gear))
+        }
 
         myHeroes.forEachIndexed { i, h ->
             h.isUnlocked = prefs.getBoolean("H_${i}_U", h.isUnlocked)
@@ -371,9 +420,6 @@ object GameState {
                 if (it.collectTimer >= targetTime) { it.isReady = true; it.collectTimer = targetTime }
             }
         }
-        // 💡 إرسال true ليتم احتساب أي ترقية كمؤجلة أثناء الأوفلاين
-        while (checkPlayerLevelUp(true)) {
-            // كرر الفحص في حال ارتقى اللاعب أكثر من مستوى
-        }
+        while (checkPlayerLevelUp(true)) { }
     }
 }
