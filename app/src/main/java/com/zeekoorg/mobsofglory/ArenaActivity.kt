@@ -2,6 +2,7 @@ package com.zeekoorg.mobsofglory
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
+import android.app.Dialog
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -9,6 +10,7 @@ import android.view.View
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.Animation
 import android.view.animation.TranslateAnimation
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -27,9 +29,10 @@ class ArenaActivity : AppCompatActivity() {
     private lateinit var tvArenaRank: TextView
     private lateinit var tvArenaScore: TextView
     
-    // عناصر القلعة والفيلق
+    // عناصر القلعة والفيلق والخلفية للاهتزاز
     private lateinit var layoutGhostCastle: View
     private lateinit var imgMarchingLegion: ImageView
+    private lateinit var imgArenaBackground: ImageView
 
     private val arenaHandler = Handler(Looper.getMainLooper())
     private val REGEN_TIME_MS = 3600000L 
@@ -70,6 +73,7 @@ class ArenaActivity : AppCompatActivity() {
 
         layoutGhostCastle = findViewById(R.id.layoutGhostCastle)
         imgMarchingLegion = findViewById(R.id.imgMarchingLegion)
+        imgArenaBackground = findViewById(R.id.imgArenaBackground) // تم الربط لتهتز الخلفية فقط
     }
 
     private fun setupActionListeners() {
@@ -81,7 +85,16 @@ class ArenaActivity : AppCompatActivity() {
                     startMarchAnimation(sentInfantry, sentCavalry)
                 }
             } else {
-                DialogManager.showGameMessage(this, "نفاد الطاقة", "لا تمتلك طاقة هجوم! انتظر قليلاً حتى تتجدد.", R.drawable.ic_settings_gear)
+                DialogManager.showGameMessage(this, "نفاد الطاقة", "لا تمتلك طاقة هجوم! انتظر قليلاً أو اشحن طاقتك.", R.drawable.ic_settings_gear)
+            }
+        }
+
+        // 💡 زر شحن الطاقة بالإعلان (تأكد من إضافته في ملف التصميم XML باسم btnRechargeStamina)
+        findViewById<View>(R.id.btnRechargeStamina)?.setOnClickListener {
+            if (GameState.arenaStamina < 5) {
+                showStaminaAdDialog()
+            } else {
+                DialogManager.showGameMessage(this, "طاقة ممتلئة", "طاقتك ممتلئة بالفعل أيها المهيب!", R.drawable.ic_settings_gear)
             }
         }
 
@@ -108,6 +121,24 @@ class ArenaActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { DialogManager.showBagDialog(this) }
     }
 
+    // 💡 نافذة تأكيد الإعلان لشحن الطاقة
+    private fun showStaminaAdDialog() {
+        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_ad_confirm)
+        d.findViewById<Button>(R.id.btnConfirmAd)?.setOnClickListener {
+            d.dismiss()
+            YandexAdsManager.showRewardedAd(this, onRewarded = {
+                GameState.arenaStamina = 5
+                GameState.arenaStaminaLastRegenTime = System.currentTimeMillis()
+                GameState.saveGameData(this)
+                refreshArenaUI()
+                DialogManager.showGameMessage(this, "طاقة كاملة", "تم شحن طاقة الهجوم بالكامل! سحقاً للأعداء!", R.drawable.ic_settings_gear)
+            }, onAdClosed = {})
+        }
+        d.findViewById<Button>(R.id.btnCancelAd)?.setOnClickListener { d.dismiss() }
+        d.show()
+    }
+
     // أنميشن الزحف والاهتزاز
     private fun startMarchAnimation(sentInfantry: Long, sentCavalry: Long) {
         // خصم طاقة المعركة
@@ -115,15 +146,16 @@ class ArenaActivity : AppCompatActivity() {
         if (GameState.arenaStamina == 4) GameState.arenaStaminaLastRegenTime = System.currentTimeMillis()
         refreshArenaUI()
 
-        // حساب المسافة
         val startY = imgMarchingLegion.y
         val targetY = layoutGhostCastle.y + (layoutGhostCastle.height / 2)
 
-        // إظهار الفيلق في نقطة البداية
-        imgMarchingLegion.visibility = View.VISIBLE
+        // 💡 إصلاح خلل الفيلق بإعادة التعيين الكاملة قبل البدء
+        imgMarchingLegion.animate().cancel()
         imgMarchingLegion.scaleX = 1.0f
         imgMarchingLegion.scaleY = 1.0f
+        imgMarchingLegion.translationX = 0f
         imgMarchingLegion.translationY = 0f
+        imgMarchingLegion.visibility = View.VISIBLE
 
         // تحريك الفيلق وتقليص حجمه
         imgMarchingLegion.animate()
@@ -141,14 +173,13 @@ class ArenaActivity : AppCompatActivity() {
             }).start()
     }
 
-    // تأثير الاهتزاز
+    // 💡 تأثير الاهتزاز للخلفية فقط وليس الشاشة كاملة
     private fun shakeScreen() {
-        val rootView = findViewById<View>(android.R.id.content)
         val shake = TranslateAnimation(-20f, 20f, -20f, 20f)
         shake.duration = 50
         shake.repeatMode = Animation.REVERSE
         shake.repeatCount = 10
-        rootView.startAnimation(shake)
+        imgArenaBackground.startAnimation(shake)
     }
 
     // رياضيات المعركة والتقرير
@@ -229,7 +260,9 @@ class ArenaActivity : AppCompatActivity() {
                         tvSeasonTimer.text = "ينتهي الموسم خلال: %02d:%02d:%02d".format(hours, minutes, seconds)
                     }
                 } else {
-                    tvSeasonTimer.text = "انتهى الموسم! جاري التوزيع..."
+                    // 💡 استدعاء منطق توزيع الجوائز وتجديد الموسم تلقائياً
+                    GameState.checkArenaSeason()
+                    refreshArenaUI()
                 }
 
                 if (GameState.arenaStamina < 5) {
