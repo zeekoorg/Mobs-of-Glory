@@ -6,7 +6,7 @@ import kotlin.random.Random
 data class PendingMessage(val title: String, val body: String, val iconResId: Int)
 
 object GameState {
-    var playerName: String = "you"
+    var playerName: String = "المهيب زيكو"
     var selectedAvatarUri: String? = null
     var totalGold: Long = 0; var totalIron: Long = 0; var totalWheat: Long = 0
     var playerLevel: Int = 1; var playerExp: Int = 0
@@ -91,12 +91,11 @@ object GameState {
         if (arenaStaminaLastRegenTime == 0L) arenaStaminaLastRegenTime = System.currentTimeMillis()
     }
 
-    // 💡 ذكاء توزيع النقاط: المركز الأول مستحيل إلا بجيش أسطوري
     private fun generateAITiers() {
         arenaLeaderboard.filter { !it.isRealPlayer }.forEach {
             val tier = Random.nextInt(100)
             it.score = when {
-                tier < 5 -> Random.nextLong(150000, 350000) // المتصدرين الأوائل
+                tier < 5 -> Random.nextLong(150000, 350000) 
                 tier < 20 -> Random.nextLong(70000, 150000)
                 tier < 50 -> Random.nextLong(20000, 70000)
                 else -> Random.nextLong(1000, 20000)
@@ -106,7 +105,7 @@ object GameState {
 
     fun calculatePower() {
         totalBuildingsPower = 0L; myPlots.forEach { totalBuildingsPower += it.getPowerProvided() }
-        totalTroopsPower = (totalInfantry * 5) + (totalCavalry * 10) // 💡 الجرحى لا يُحسبون هنا! لذا ستنقص القوة تلقائياً
+        totalTroopsPower = (totalInfantry * 5) + (totalCavalry * 10)
         totalHeroesPower = 0L; myHeroes.filter { it.isUnlocked }.forEach { totalHeroesPower += it.getCurrentPower() }
         totalWeaponsPower = 0L; arsenal.filter { it.isOwned }.forEach { totalWeaponsPower += it.getCurrentPower() }
         
@@ -114,11 +113,12 @@ object GameState {
         calculateLegionPower()
     }
 
+    // 💡 تم دمج قوة الجنود (totalTroopsPower) داخل قوة الفيلق ليكون الرقم شاملاً وحقيقياً
     fun calculateLegionPower() {
         var lPower: Long = 0
         myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { lPower += it.getCurrentPower() }
         arsenal.filter { it.isOwned && it.isEquipped }.forEach { lPower += it.getCurrentPower() }
-        legionPower = lPower
+        legionPower = lPower + totalTroopsPower 
     }
 
     fun checkPlayerLevelUp(isOffline: Boolean = false): Boolean {
@@ -150,7 +150,7 @@ object GameState {
             pendingOfflineMessages.add(PendingMessage("غنائم الموسم", rewardMsg, R.drawable.ic_arena_rewards))
             arenaScore = 0L
             arenaLeaderboard.forEach { if (it.isRealPlayer) it.score = 0L }
-            generateAITiers() // إعادة توزيع نقاط عالية للأعداء
+            generateAITiers()
             arenaSeasonEndTime = now + (7L * 24 * 3600000L)
         }
     }
@@ -246,7 +246,7 @@ object GameState {
         arenaLeaderboard.filter { !it.isRealPlayer }.forEach {
             var savedScore = prefs.getLong("ARENA_FAKE_SCORE_${it.id}", 0L)
             if (savedScore == 0L) savedScore = Random.nextLong(150000, 300000) 
-            else if (hoursOffline > 0) savedScore += (hoursOffline * Random.nextLong(1000, 4000)) // الخصوم يكتسبون نقاطاً ضخمة أثناء نومك
+            else if (hoursOffline > 0) savedScore += (hoursOffline * Random.nextLong(1000, 4000))
             it.score = savedScore
         }
         
