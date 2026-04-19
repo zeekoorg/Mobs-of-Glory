@@ -12,12 +12,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AnimationUtils
+import android.view.animation.TranslateAnimation
 import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import java.io.File
@@ -35,8 +37,21 @@ class MainActivity : AppCompatActivity() {
     private lateinit var imgMainPlayerAvatar: ImageView
     private lateinit var tvVipTimerUI: TextView 
     private lateinit var tvMainTotalPower: TextView 
+    private lateinit var tvWeeklyTimerUI: TextView
+    private lateinit var imgFloatingCastleEvent: ImageView
     
     private val gameHandler = Handler(Looper.getMainLooper())
+    private var doubleBackToExitPressedOnce = false
+
+    // 💡 متغيرات العداد السلس (Rolling Numbers)
+    private var displayedGold = -1L
+    private var displayedIron = -1L
+    private var displayedWheat = -1L
+    private var displayedPower = -1L
+    private var goldAnimator: android.animation.ValueAnimator? = null
+    private var ironAnimator: android.animation.ValueAnimator? = null
+    private var wheatAnimator: android.animation.ValueAnimator? = null
+    private var powerAnimator: android.animation.ValueAnimator? = null
 
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
@@ -60,9 +75,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // 💡 تهيئة محرك الصوت في بداية اللعبة
         SoundManager.init(this)
-
         YandexAdsManager.initYandexAds(this)
         
         initViews()
@@ -80,6 +93,9 @@ class MainActivity : AppCompatActivity() {
         GameState.loadGameDataAndProcessOffline(this)
         GameState.calculatePower()
         
+        // 💡 تهيئة الأيقونة الطافية للقلعة
+        setupFloatingEventIcon()
+
         updateHudUI()
         updateAvatarImages()
         GameState.myPlots.forEach { setupPlot(it) }
@@ -94,14 +110,12 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         GameState.calculatePower()
         updateHudUI()
-        // 💡 تشغيل أو استئناف موسيقى المدينة
         SoundManager.playBGM(this, R.raw.bgm_city)
     }
 
     override fun onPause() {
         super.onPause()
         GameState.saveGameData(this)
-        // 💡 إيقاف الموسيقى مؤقتاً عند الخروج من اللعبة
         SoundManager.pauseBGM()
     }
     
@@ -110,282 +124,138 @@ class MainActivity : AppCompatActivity() {
         SoundManager.onDestroy()
     }
 
+    // 💡 زر الرجوع (نقر مرتين للخروج)
+    override fun onBackPressed() {
+        if (doubleBackToExitPressedOnce) {
+            super.onBackPressed()
+            return
+        }
+        this.doubleBackToExitPressedOnce = true
+        Toast.makeText(this, "اضغط مرة أخرى للخروج من الإمبراطورية", Toast.LENGTH_SHORT).show()
+        Handler(Looper.getMainLooper()).postDelayed({ doubleBackToExitPressedOnce = false }, 2000)
+    }
+
     private fun initViews() {
-        tvTotalGold = findViewById(R.id.tvTotalGold)
-        tvTotalIron = findViewById(R.id.tvTotalIron)
-        tvTotalWheat = findViewById(R.id.tvTotalWheat)
-        tvPlayerLevel = findViewById(R.id.tvPlayerLevel)
-        pbPlayerMP = findViewById(R.id.pbPlayerMP)
-        imgCityBackground = findViewById(R.id.imgCityBackground)
-        imgMainPlayerAvatar = findViewById(R.id.imgMainPlayerAvatar)
-        tvVipTimerUI = findViewById(R.id.tvVipTimerUI)
-        tvMainTotalPower = findViewById(R.id.tvMainTotalPower) 
+        tvTotalGold = findViewById(R.id.tvTotalGold); tvTotalIron = findViewById(R.id.tvTotalIron)
+        tvTotalWheat = findViewById(R.id.tvTotalWheat); tvPlayerLevel = findViewById(R.id.tvPlayerLevel)
+        pbPlayerMP = findViewById(R.id.pbPlayerMP); imgCityBackground = findViewById(R.id.imgCityBackground)
+        imgMainPlayerAvatar = findViewById(R.id.imgMainPlayerAvatar); tvVipTimerUI = findViewById(R.id.tvVipTimerUI)
+        tvMainTotalPower = findViewById(R.id.tvMainTotalPower); tvWeeklyTimerUI = findViewById(R.id.tvWeeklyTimerUI)
+        imgFloatingCastleEvent = findViewById(R.id.imgFloatingCastleEvent)
+    }
+
+    private fun setupFloatingEventIcon() {
+        val floatAnim = TranslateAnimation(0f, 0f, -10f, 15f)
+        floatAnim.duration = 1500; floatAnim.repeatMode = android.view.animation.Animation.REVERSE
+        floatAnim.repeatCount = android.view.animation.Animation.INFINITE
+        imgFloatingCastleEvent.startAnimation(floatAnim)
+        
+        imgFloatingCastleEvent.setOnClickListener {
+            SoundManager.playWindowOpen()
+            DialogManager.showGameMessage(this, "حدث القلعة", "أيها المهيب، قريباً سيتم تفعيل الأحداث الأسطورية هنا!", R.drawable.ic_ui_castle_rewards)
+        }
     }
 
     private fun setupActionListeners() {
-        findViewById<View>(R.id.btnSettings)?.setOnClickListener { 
-            SoundManager.playClick()
-            DialogManager.showSettingsDialog(this) 
+        findViewById<View>(R.id.btnSettings)?.setOnClickListener { SoundManager.playClick(); DialogManager.showSettingsDialog(this) }
+        findViewById<View>(R.id.layoutAvatarClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showPlayerProfileDialog(this, onPickImage = { showAvatarSelectionDialog() }, onChangeName = { showChangeNameDialog() }) }
+        findViewById<View>(R.id.layoutVipClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showVipDialog(this) }
+        findViewById<View>(R.id.layoutCastleRewardsClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showCastleRewardsDialog(this, GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1) }
+        findViewById<View>(R.id.btnNavArena)?.setOnClickListener { SoundManager.playClick(); startActivity(Intent(this, ArenaActivity::class.java)) }
+        
+        // 💡 المهام الأسبوعية الجديدة
+        findViewById<View>(R.id.layoutWeeklyQuestsClick)?.setOnClickListener { 
+            SoundManager.playWindowOpen()
+            // سنستدعي دالة showWeeklyQuestsDialog التي سنصنعها في DialogManager
+            DialogManager.showGameMessage(this, "المهام الأسبوعية", "المهام الأسبوعية الملحمية قادمة في التحديث القادم لملف DialogManager!", R.drawable.ic_menu_quests)
         }
 
-        findViewById<View>(R.id.layoutAvatarClick)?.setOnClickListener { 
-            SoundManager.playWindowOpen()
-            DialogManager.showPlayerProfileDialog(this, 
-                onPickImage = { showAvatarSelectionDialog() },
-                onChangeName = { showChangeNameDialog() }
-            ) 
-        }
-        
-        findViewById<View>(R.id.layoutVipClick)?.setOnClickListener { 
-            SoundManager.playWindowOpen()
-            DialogManager.showVipDialog(this) 
-        }
-        
-        findViewById<View>(R.id.layoutCastleRewardsClick)?.setOnClickListener {
-            SoundManager.playWindowOpen()
-            val castleLvl = GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
-            DialogManager.showCastleRewardsDialog(this, castleLvl)
-        }
-        
-        findViewById<View>(R.id.layoutTavernClick)?.setOnClickListener { 
-            SoundManager.playWindowOpen()
-            DialogManager.showSummoningTavernDialog(this) 
-        }
-        
-        findViewById<View>(R.id.layoutWeaponsClick)?.setOnClickListener { 
-            SoundManager.playBlacksmith() // 💡 صوت الحدادة الخاص بالأسلحة
-            DialogManager.showWeaponsDialog(this) 
-        }
-        
-        findViewById<View>(R.id.layoutFormationClick)?.setOnClickListener { 
-            SoundManager.playWindowOpen()
-            DialogManager.showFormationDialog(this) 
-        }
-        
+        findViewById<View>(R.id.layoutTavernClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showSummoningTavernDialog(this) }
+        findViewById<View>(R.id.layoutWeaponsClick)?.setOnClickListener { SoundManager.playBlacksmith(); DialogManager.showWeaponsDialog(this) }
+        findViewById<View>(R.id.layoutFormationClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showFormationDialog(this) }
         findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showHeroesDialog(this) }
         findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showQuestsDialog(this) }
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showBagDialog(this) }
-        
-        findViewById<View>(R.id.btnNavArena)?.setOnClickListener { 
-            SoundManager.playClick()
-            val intent = Intent(this, ArenaActivity::class.java)
-            startActivity(intent)
-        } 
-
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showStoreDialog(this) }
-        
-        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
-            SoundManager.playClick()
-            DialogManager.showGameMessage(this, "المدينة الرئيسية", "أنت بالفعل داخل أسوار مدينتك أيها المهيب!", R.drawable.ic_ui_castle_rewards)
-        } 
+        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { SoundManager.playClick(); DialogManager.showGameMessage(this, "المدينة الرئيسية", "أنت بالفعل داخل أسوار مدينتك أيها المهيب!", R.drawable.ic_ui_castle_rewards) } 
     }
 
     private fun checkPendingLevelUps() {
         if (GameState.pendingLevelUpCount > 0) {
-            GameState.pendingLevelUpCount--
-            GameState.saveGameData(this)
+            GameState.pendingLevelUpCount--; GameState.saveGameData(this)
             DialogManager.showLevelUpDialog(this, GameState.playerLevel - GameState.pendingLevelUpCount)
-            if (GameState.pendingLevelUpCount > 0) {
-                gameHandler.postDelayed({ checkPendingLevelUps() }, 500)
-            }
+            if (GameState.pendingLevelUpCount > 0) gameHandler.postDelayed({ checkPendingLevelUps() }, 500)
         }
     }
 
     private fun showPendingOfflineMessages() {
         if (GameState.pendingOfflineMessages.isNotEmpty()) {
             val msg = GameState.pendingOfflineMessages.removeAt(0)
-            val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
-            d.setContentView(R.layout.dialog_game_message)
-            d.findViewById<TextView>(R.id.tvMessageTitle)?.text = msg.title
-            d.findViewById<TextView>(R.id.tvMessageBody)?.text = msg.body
-            d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(msg.iconResId)
-            d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener { SoundManager.playClick(); d.dismiss(); showPendingOfflineMessages() }
-            d.show()
+            val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar); d.setContentView(R.layout.dialog_game_message)
+            d.findViewById<TextView>(R.id.tvMessageTitle)?.text = msg.title; d.findViewById<TextView>(R.id.tvMessageBody)?.text = msg.body; d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(msg.iconResId)
+            d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener { SoundManager.playClick(); d.dismiss(); showPendingOfflineMessages() }; d.show()
         }
     }
 
     private fun showAvatarPreviewDialog(imgResId: Int, title: String) {
-        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
-        d.setContentView(R.layout.dialog_avatar_preview)
-        d.findViewById<TextView>(R.id.tvPreviewTitle)?.text = title
-        d.findViewById<ImageView>(R.id.imgPreviewAvatar)?.setImageResource(imgResId)
-        d.findViewById<Button>(R.id.btnClosePreview)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
-        d.show()
+        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar); d.setContentView(R.layout.dialog_avatar_preview)
+        d.findViewById<TextView>(R.id.tvPreviewTitle)?.text = title; d.findViewById<ImageView>(R.id.imgPreviewAvatar)?.setImageResource(imgResId)
+        d.findViewById<Button>(R.id.btnClosePreview)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }; d.show()
     }
 
     private fun showAvatarSelectionDialog() {
-        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
-        d.setContentView(R.layout.dialog_avatar_selection)
-
-        d.findViewById<Button>(R.id.btnUseDefaultAvatar)?.setOnClickListener {
-            SoundManager.playClick()
-            val defaultUri = "android.resource://$packageName/${R.drawable.img_default_avatar}"
-            GameState.selectedAvatarUri = defaultUri
-            getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit().putString("PLAYER_CUSTOM_AVATAR", defaultUri).apply()
-            GameState.saveGameData(this); updateAvatarImages()
-            DialogManager.showGameMessage(this, "تغيير الصورة", "تم تعيين الصورة الافتراضية!", R.drawable.ic_vip_crown); d.dismiss()
-        }
-
+        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar); d.setContentView(R.layout.dialog_avatar_selection)
+        d.findViewById<Button>(R.id.btnUseDefaultAvatar)?.setOnClickListener { SoundManager.playClick(); val defaultUri = "android.resource://$packageName/${R.drawable.img_default_avatar}"; GameState.selectedAvatarUri = defaultUri; getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit().putString("PLAYER_CUSTOM_AVATAR", defaultUri).apply(); GameState.saveGameData(this); updateAvatarImages(); DialogManager.showGameMessage(this, "تغيير الصورة", "تم تعيين الصورة الافتراضية!", R.drawable.ic_vip_crown); d.dismiss() }
         fun setupPremiumAvatar(btnId: Int, imgResId: Int, cost: Long, prefKey: String, avatarName: String) {
-            val btn = d.findViewById<Button>(btnId)
-            val parentLayout = btn?.parent as? ViewGroup
-            val imageContainer = parentLayout?.getChildAt(0) as? FrameLayout
-            val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
-            val isUnlocked = prefs.getBoolean(prefKey, false)
-
+            val btn = d.findViewById<Button>(btnId); val imageContainer = (btn?.parent as? ViewGroup)?.getChildAt(0) as? FrameLayout
+            val prefs = getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE); val isUnlocked = prefs.getBoolean(prefKey, false)
             if (isUnlocked) { btn?.text = "استخدام"; btn?.setTextColor(android.graphics.Color.WHITE) }
-
             imageContainer?.setOnClickListener { SoundManager.playClick(); showAvatarPreviewDialog(imgResId, avatarName) }
-
-            btn?.setOnClickListener {
-                SoundManager.playClick()
-                if (prefs.getBoolean(prefKey, false)) {
-                    val premiumUri = "android.resource://$packageName/$imgResId"
-                    GameState.selectedAvatarUri = premiumUri
-                    prefs.edit().putString("PLAYER_CUSTOM_AVATAR", premiumUri).apply()
-                    GameState.saveGameData(this); updateAvatarImages()
-                    DialogManager.showGameMessage(this, "تغيير الصورة", "تم تعيين صورتك النادرة!", R.drawable.ic_vip_crown); d.dismiss()
-                } else {
-                    if (GameState.totalGold >= cost) {
-                        GameState.totalGold -= cost
-                        prefs.edit().putBoolean(prefKey, true).apply()
-                        updateHudUI(); GameState.saveGameData(this)
-                        btn.text = "استخدام"; btn.setTextColor(android.graphics.Color.WHITE)
-                        DialogManager.showGameMessage(this, "شراء ناجح", "تم شراء الصورة بنجاح!", R.drawable.ic_resource_gold)
-                    } else DialogManager.showGameMessage(this, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold)
-                }
-            }
+            btn?.setOnClickListener { SoundManager.playClick(); if (prefs.getBoolean(prefKey, false)) { val premiumUri = "android.resource://$packageName/$imgResId"; GameState.selectedAvatarUri = premiumUri; prefs.edit().putString("PLAYER_CUSTOM_AVATAR", premiumUri).apply(); GameState.saveGameData(this); updateAvatarImages(); DialogManager.showGameMessage(this, "تغيير الصورة", "تم تعيين صورتك النادرة!", R.drawable.ic_vip_crown); d.dismiss() } else { if (GameState.totalGold >= cost) { GameState.totalGold -= cost; prefs.edit().putBoolean(prefKey, true).apply(); updateHudUI(); GameState.saveGameData(this); btn.text = "استخدام"; btn.setTextColor(android.graphics.Color.WHITE); DialogManager.showGameMessage(this, "شراء ناجح", "تم شراء الصورة بنجاح!", R.drawable.ic_resource_gold) } else DialogManager.showGameMessage(this, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold) } }
         }
-
         val cost = 50000L
-        setupPremiumAvatar(R.id.btnBuyAvatarKing, R.drawable.img_avatar_king, cost, "AV_KING_UNLOCKED", "صورة الملك")
-        setupPremiumAvatar(R.id.btnBuyAvatarKnight, R.drawable.img_avatar_knight, cost, "AV_KNIGHT_UNLOCKED", "صورة الفارس")
-        setupPremiumAvatar(R.id.btnBuyAvatarAssassin, R.drawable.img_avatar_assassin, cost, "AV_ASSASSIN_UNLOCKED", "شبح الليل")
-        setupPremiumAvatar(R.id.btnBuyAvatarEmperor, R.drawable.img_avatar_emperor, cost, "AV_EMPEROR_UNLOCKED", "صورة الإمبراطور")
-
-        d.findViewById<Button>(R.id.btnChooseFromGallery)?.setOnClickListener {
-            SoundManager.playClick()
-            if (GameState.isVipActive()) { pickImageLauncher.launch("image/*"); d.dismiss() } 
-            else { DialogManager.showGameMessage(this, "ميزة حصرية", "هذه الميزة تتطلب تفعيل الـ VIP!", R.drawable.ic_vip_crown); DialogManager.showVipDialog(this) }
-        }
-        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
-        d.show()
+        setupPremiumAvatar(R.id.btnBuyAvatarKing, R.drawable.img_avatar_king, cost, "AV_KING_UNLOCKED", "صورة الملك"); setupPremiumAvatar(R.id.btnBuyAvatarKnight, R.drawable.img_avatar_knight, cost, "AV_KNIGHT_UNLOCKED", "صورة الفارس"); setupPremiumAvatar(R.id.btnBuyAvatarAssassin, R.drawable.img_avatar_assassin, cost, "AV_ASSASSIN_UNLOCKED", "شبح الليل"); setupPremiumAvatar(R.id.btnBuyAvatarEmperor, R.drawable.img_avatar_emperor, cost, "AV_EMPEROR_UNLOCKED", "صورة الإمبراطور")
+        d.findViewById<Button>(R.id.btnChooseFromGallery)?.setOnClickListener { SoundManager.playClick(); if (GameState.isVipActive()) { pickImageLauncher.launch("image/*"); d.dismiss() } else { DialogManager.showGameMessage(this, "ميزة حصرية", "هذه الميزة تتطلب تفعيل الـ VIP!", R.drawable.ic_vip_crown); DialogManager.showVipDialog(this) } }
+        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }; d.show()
     }
 
     private fun showChangeNameDialog() {
-        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
-        d.setContentView(R.layout.dialog_change_name) 
-        val input = d.findViewById<EditText>(R.id.etNewName)
-        
-        d.findViewById<Button>(R.id.btnConfirmChangeName)?.setOnClickListener {
-            SoundManager.playClick()
-            val newName = input?.text.toString().trim()
-            if (newName.isNotEmpty()) {
-                if (GameState.totalGold >= 500) {
-                    GameState.totalGold -= 500; GameState.playerName = newName; GameState.saveGameData(this); updateHudUI()
-                    DialogManager.showGameMessage(this, "تغيير الاسم", "تم تغيير اسمك إلى $newName بنجاح!", R.drawable.ic_vip_crown); d.dismiss()
-                } else DialogManager.showGameMessage(this, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold)
-            } else DialogManager.showGameMessage(this, "خطأ", "الاسم لا يمكن أن يكون فارغاً!", R.drawable.ic_settings_gear)
-        }
-        d.findViewById<Button>(R.id.btnCancelChangeName)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
-        d.show()
+        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar); d.setContentView(R.layout.dialog_change_name); val input = d.findViewById<EditText>(R.id.etNewName)
+        d.findViewById<Button>(R.id.btnConfirmChangeName)?.setOnClickListener { SoundManager.playClick(); val newName = input?.text.toString().trim(); if (newName.isNotEmpty()) { if (GameState.totalGold >= 500) { GameState.totalGold -= 500; GameState.playerName = newName; GameState.saveGameData(this); updateHudUI(); DialogManager.showGameMessage(this, "تغيير الاسم", "تم تغيير اسمك إلى $newName بنجاح!", R.drawable.ic_vip_crown); d.dismiss() } else DialogManager.showGameMessage(this, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold) } else DialogManager.showGameMessage(this, "خطأ", "الاسم لا يمكن أن يكون فارغاً!", R.drawable.ic_settings_gear) }
+        d.findViewById<Button>(R.id.btnCancelChangeName)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }; d.show()
     }
 
     private fun copyImageToInternalStorage(uri: Uri): String? {
-        return try {
-            val inputStream = contentResolver.openInputStream(uri) ?: return null
-            val fileName = "royal_avatar_${System.currentTimeMillis()}.jpg"
-            val file = File(filesDir, fileName)
-            val outputStream = FileOutputStream(file)
-            inputStream.copyTo(outputStream)
-            inputStream.close(); outputStream.close()
-            Uri.fromFile(file).toString() 
-        } catch (e: Exception) { e.printStackTrace(); null }
+        return try { val inputStream = contentResolver.openInputStream(uri) ?: return null; val fileName = "royal_avatar_${System.currentTimeMillis()}.jpg"; val file = File(filesDir, fileName); val outputStream = FileOutputStream(file); inputStream.copyTo(outputStream); inputStream.close(); outputStream.close(); Uri.fromFile(file).toString() } catch (e: Exception) { e.printStackTrace(); null }
     }
 
     private fun updateAvatarImages() {
-        if (GameState.selectedAvatarUri != null) {
-            try { imgMainPlayerAvatar.setImageURI(Uri.parse(GameState.selectedAvatarUri)) } 
-            catch (e: Exception) { imgMainPlayerAvatar.setImageResource(R.drawable.img_default_avatar) }
-        }
+        if (GameState.selectedAvatarUri != null) { try { imgMainPlayerAvatar.setImageURI(Uri.parse(GameState.selectedAvatarUri)) } catch (e: Exception) { imgMainPlayerAvatar.setImageResource(R.drawable.img_default_avatar) } }
     }
 
     private fun setupPlot(plot: MapPlot) {
         val container = findViewById<FrameLayout>(plot.slotId) ?: return
-        val view = LayoutInflater.from(this).inflate(R.layout.item_map_building, container, false)
-        container.addView(view)
-
-        val img = view.findViewById<ImageView>(R.id.imgBuilding)
-        plot.collectIcon = view.findViewById(R.id.imgCollect)
-        plot.layoutUpgradeProgress = view.findViewById(R.id.layoutUpgradeProgress)
-        plot.pbUpgrade = view.findViewById(R.id.pbUpgrade)
-        plot.tvUpgradeTimer = view.findViewById(R.id.tvUpgradeTimer)
-
-        if (plot.resourceType != ResourceType.NONE) {
-            plot.collectIcon?.setImageResource(plot.resourceType.iconResId)
-            if (plot.isReady) plot.collectIcon?.visibility = View.VISIBLE
-        }
+        val view = LayoutInflater.from(this).inflate(R.layout.item_map_building, container, false); container.addView(view)
+        val img = view.findViewById<ImageView>(R.id.imgBuilding); plot.collectIcon = view.findViewById(R.id.imgCollect); plot.layoutUpgradeProgress = view.findViewById(R.id.layoutUpgradeProgress); plot.pbUpgrade = view.findViewById(R.id.pbUpgrade); plot.tvUpgradeTimer = view.findViewById(R.id.tvUpgradeTimer)
+        if (plot.resourceType != ResourceType.NONE) { plot.collectIcon?.setImageResource(plot.resourceType.iconResId); if (plot.isReady) plot.collectIcon?.visibility = View.VISIBLE }
         
         val alertIconId = View.generateViewId()
-        if (plot.idCode == "HOSPITAL") {
-            val alertIcon = ImageView(this).apply {
-                id = alertIconId
-                setImageResource(R.drawable.ic_hospital_wounded)
-                layoutParams = FrameLayout.LayoutParams(60, 60).apply { gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL; topMargin = -20 }
-                visibility = View.GONE
-            }
-            (view as FrameLayout).addView(alertIcon)
-            plot.collectIcon = alertIcon 
-        }
+        if (plot.idCode == "HOSPITAL") { val alertIcon = ImageView(this).apply { id = alertIconId; setImageResource(R.drawable.ic_hospital_wounded); layoutParams = FrameLayout.LayoutParams(60, 60).apply { gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL; topMargin = -20 }; visibility = View.GONE }; (view as FrameLayout).addView(alertIcon); plot.collectIcon = alertIcon }
         
         img.setOnClickListener {
             if (plot.isReady && plot.resourceType != ResourceType.NONE) { collectResources(plot) } 
             else if (plot.isUpgrading || plot.isTraining) { SoundManager.playWindowOpen(); DialogManager.showSpeedupDialog(this, plot) } 
-            else if (plot.idCode == "HOSPITAL") {
-                SoundManager.playWindowOpen()
-                if (GameState.isHealing) {
-                    DialogManager.showSpeedupDialog(this, null, null, true)
-                } else if (GameState.woundedInfantry > 0 || GameState.woundedCavalry > 0) {
-                    DialogManager.showHospitalDialog(this, plot)
-                } else {
-                    DialogManager.showUpgradeDialog(this, plot)
-                }
-            }
-            else {
-                SoundManager.playWindowOpen()
-                when (plot.idCode) {
-                    "CASTLE" -> DialogManager.showCastleMainDialog(this, plot)
-                    "BARRACKS_1", "BARRACKS_2" -> DialogManager.showBarracksMenuDialog(this, plot)
-                    else -> DialogManager.showUpgradeDialog(this, plot)
-                }
-            }
+            else if (plot.idCode == "HOSPITAL") { SoundManager.playWindowOpen(); if (GameState.isHealing) { DialogManager.showSpeedupDialog(this, null, null, true) } else if (GameState.woundedInfantry > 0 || GameState.woundedCavalry > 0) { DialogManager.showHospitalDialog(this, plot) } else { DialogManager.showUpgradeDialog(this, plot) } }
+            else { SoundManager.playWindowOpen(); when (plot.idCode) { "CASTLE" -> DialogManager.showCastleMainDialog(this, plot); "BARRACKS_1", "BARRACKS_2" -> DialogManager.showBarracksMenuDialog(this, plot); else -> DialogManager.showUpgradeDialog(this, plot) } }
         }
-        
-        if (plot.idCode != "HOSPITAL") {
-            plot.collectIcon?.setOnClickListener { collectResources(plot) }
-        } else {
-            plot.collectIcon?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showHospitalDialog(this, plot) }
-        }
+        if (plot.idCode != "HOSPITAL") { plot.collectIcon?.setOnClickListener { collectResources(plot) } } else { plot.collectIcon?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showHospitalDialog(this, plot) } }
     }
 
     private fun collectResources(plot: MapPlot) {
-        // 💡 تشغيل الصوت المناسب لنوع المورد
-        when (plot.resourceType) {
-            ResourceType.GOLD -> SoundManager.playGold()
-            ResourceType.IRON -> SoundManager.playIron()
-            ResourceType.WHEAT -> SoundManager.playWheat()
-            else -> {}
-        }
-        
+        when (plot.resourceType) { ResourceType.GOLD -> SoundManager.playGold(); ResourceType.IRON -> SoundManager.playIron(); ResourceType.WHEAT -> SoundManager.playWheat(); else -> {} }
         plot.isReady = false; plot.collectTimer = 0L; plot.collectIcon?.visibility = View.GONE
-        when (plot.resourceType) {
-            ResourceType.GOLD -> GameState.totalGold += plot.getReward()
-            ResourceType.IRON -> GameState.totalIron += plot.getReward()
-            ResourceType.WHEAT -> GameState.totalWheat += plot.getReward()
-            else -> return
-        }
-        GameState.addQuestProgress(QuestType.COLLECT_RESOURCES, 1)
-        playCollectionAnimation(plot); updateHudUI(); GameState.saveGameData(this)
+        when (plot.resourceType) { ResourceType.GOLD -> GameState.totalGold += plot.getReward(); ResourceType.IRON -> GameState.totalIron += plot.getReward(); ResourceType.WHEAT -> GameState.totalWheat += plot.getReward(); else -> return }
+        GameState.addQuestProgress(QuestType.COLLECT_RESOURCES, 1); playCollectionAnimation(plot); updateHudUI(); GameState.saveGameData(this)
     }
 
     private fun startGameLoop() {
@@ -393,69 +263,40 @@ class MainActivity : AppCompatActivity() {
             override fun run() {
                 val now = System.currentTimeMillis()
                 updateVipUI(now)
+                
+                // 💡 تحديث عداد المهام الأسبوعية
+                val weeklyRem = GameState.weeklyQuestEndTime - now
+                if (weeklyRem > 0) {
+                    val d = weeklyRem / 86400000L; val h = (weeklyRem % 86400000L) / 3600000L; val m = (weeklyRem % 3600000L) / 60000L; val s = (weeklyRem % 60000L) / 1000L
+                    tvWeeklyTimerUI.text = if (d > 0) String.format(Locale.US, "%d أيام", d) else String.format(Locale.US, "%02d:%02d:%02d", h, m, s)
+                } else tvWeeklyTimerUI.text = "تحديث..."
 
                 if (GameState.isHealing) {
-                    val remHeal = GameState.healingEndTime - now
-                    val hospitalPlot = GameState.myPlots.find { it.idCode == "HOSPITAL" }
+                    val remHeal = GameState.healingEndTime - now; val hospitalPlot = GameState.myPlots.find { it.idCode == "HOSPITAL" }
                     if (remHeal <= 0) {
-                        GameState.isHealing = false
-                        GameState.totalInfantry += GameState.healingInfantryAmount; GameState.totalCavalry += GameState.healingCavalryAmount
+                        GameState.isHealing = false; GameState.totalInfantry += GameState.healingInfantryAmount; GameState.totalCavalry += GameState.healingCavalryAmount
                         GameState.woundedInfantry -= GameState.healingInfantryAmount; GameState.woundedCavalry -= GameState.healingCavalryAmount
-                        GameState.healingInfantryAmount = 0; GameState.healingCavalryAmount = 0
-                        GameState.calculatePower()
-                        GameState.saveGameData(this@MainActivity); updateHudUI()
-                        hospitalPlot?.layoutUpgradeProgress?.visibility = View.GONE
-                        DialogManager.showGameMessage(this@MainActivity, "دار الشفاء", "تم تعافي الجنود وعادوا لصفوف الجيش بقوة!", R.drawable.ic_settings_gear)
-                    } else {
-                        hospitalPlot?.layoutUpgradeProgress?.visibility = View.VISIBLE
-                        hospitalPlot?.collectIcon?.visibility = View.GONE
-                        hospitalPlot?.pbUpgrade?.progress = (((GameState.healingTotalTime - remHeal).toFloat() / GameState.healingTotalTime) * 100).toInt()
-                        hospitalPlot?.tvUpgradeTimer?.text = "%02d:%02d".format((remHeal/60000), (remHeal%60000)/1000)
-                    }
+                        GameState.healingInfantryAmount = 0; GameState.healingCavalryAmount = 0; GameState.calculatePower(); GameState.saveGameData(this@MainActivity); updateHudUI()
+                        hospitalPlot?.layoutUpgradeProgress?.visibility = View.GONE; DialogManager.showGameMessage(this@MainActivity, "دار الشفاء", "تم تعافي الجنود وعادوا لصفوف الجيش بقوة!", R.drawable.ic_settings_gear)
+                    } else { hospitalPlot?.layoutUpgradeProgress?.visibility = View.VISIBLE; hospitalPlot?.collectIcon?.visibility = View.GONE; hospitalPlot?.pbUpgrade?.progress = (((GameState.healingTotalTime - remHeal).toFloat() / GameState.healingTotalTime) * 100).toInt(); hospitalPlot?.tvUpgradeTimer?.text = "%02d:%02d".format((remHeal/60000), (remHeal%60000)/1000) }
                 } else {
-                    val hospitalPlot = GameState.myPlots.find { it.idCode == "HOSPITAL" }
-                    hospitalPlot?.layoutUpgradeProgress?.visibility = View.GONE
+                    val hospitalPlot = GameState.myPlots.find { it.idCode == "HOSPITAL" }; hospitalPlot?.layoutUpgradeProgress?.visibility = View.GONE
                     if (GameState.woundedInfantry > 0 || GameState.woundedCavalry > 0) hospitalPlot?.collectIcon?.visibility = View.VISIBLE else hospitalPlot?.collectIcon?.visibility = View.GONE
                 }
 
                 GameState.myPlots.forEach { p ->
                     if (p.isUpgrading) {
-                        p.layoutUpgradeProgress?.visibility = View.VISIBLE
-                        if (p.idCode != "HOSPITAL") p.collectIcon?.visibility = View.GONE
-                        val rem = p.upgradeEndTime - now
-                        if (rem <= 0) { 
-                            p.isUpgrading = false; p.level++; GameState.playerExp += p.getExpReward()
-                            GameState.addQuestProgress(QuestType.UPGRADE_BUILDING, 1)
-                            if(GameState.checkPlayerLevelUp(false)) { updateHudUI(); DialogManager.showLevelUpDialog(this@MainActivity, GameState.playerLevel) }
-                            GameState.calculatePower(); updateHudUI(); GameState.saveGameData(this@MainActivity); p.layoutUpgradeProgress?.visibility = View.GONE 
-                            DialogManager.showGameMessage(this@MainActivity, "أعمال البناء", "تم تطوير ${p.name} للمستوى ${p.level} بنجاح!", R.drawable.ic_settings_gear)
-                        } else { 
-                            p.pbUpgrade?.progress = (((p.totalUpgradeTime - rem).toFloat() / p.totalUpgradeTime) * 100).toInt()
-                            p.tvUpgradeTimer?.text = "%02d:%02d".format((rem/60000), (rem%60000)/1000) 
-                        }
+                        p.layoutUpgradeProgress?.visibility = View.VISIBLE; if (p.idCode != "HOSPITAL") p.collectIcon?.visibility = View.GONE; val rem = p.upgradeEndTime - now
+                        if (rem <= 0) { p.isUpgrading = false; p.level++; GameState.playerExp += p.getExpReward(); GameState.addQuestProgress(QuestType.UPGRADE_BUILDING, 1); if(GameState.checkPlayerLevelUp(false)) { updateHudUI(); DialogManager.showLevelUpDialog(this@MainActivity, GameState.playerLevel) }; GameState.calculatePower(); updateHudUI(); GameState.saveGameData(this@MainActivity); p.layoutUpgradeProgress?.visibility = View.GONE; DialogManager.showGameMessage(this@MainActivity, "أعمال البناء", "تم تطوير ${p.name} للمستوى ${p.level} بنجاح!", R.drawable.ic_settings_gear) } 
+                        else { p.pbUpgrade?.progress = (((p.totalUpgradeTime - rem).toFloat() / p.totalUpgradeTime) * 100).toInt(); p.tvUpgradeTimer?.text = "%02d:%02d".format((rem/60000), (rem%60000)/1000) }
                     } else if (p.isTraining) {
-                        p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectIcon?.visibility = View.GONE
-                        val rem = p.trainingEndTime - now
-                        if (rem <= 0) { 
-                            p.isTraining = false; 
-                            if (p.idCode == "BARRACKS_1") GameState.totalInfantry += p.trainingAmount else GameState.totalCavalry += p.trainingAmount
-                            GameState.addQuestProgress(QuestType.TRAIN_TROOPS, p.trainingAmount)
-                            GameState.calculatePower(); updateHudUI(); GameState.saveGameData(this@MainActivity); p.layoutUpgradeProgress?.visibility = View.GONE 
-                            DialogManager.showGameMessage(this@MainActivity, "معسكر التدريب", "تم تدريب ${p.trainingAmount} قوات بنجاح!", R.drawable.ic_settings_gear)
-                        } else { 
-                            p.pbUpgrade?.progress = (((p.trainingTotalTime - rem).toFloat() / p.trainingTotalTime) * 100).toInt()
-                            p.tvUpgradeTimer?.text = "%02d:%02d".format((rem/60000), (rem%60000)/1000) 
-                        }
+                        p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectIcon?.visibility = View.GONE; val rem = p.trainingEndTime - now
+                        if (rem <= 0) { p.isTraining = false; if (p.idCode == "BARRACKS_1") GameState.totalInfantry += p.trainingAmount else GameState.totalCavalry += p.trainingAmount; GameState.addQuestProgress(QuestType.TRAIN_TROOPS, p.trainingAmount); GameState.calculatePower(); updateHudUI(); GameState.saveGameData(this@MainActivity); p.layoutUpgradeProgress?.visibility = View.GONE; DialogManager.showGameMessage(this@MainActivity, "معسكر التدريب", "تم تدريب ${p.trainingAmount} قوات بنجاح!", R.drawable.ic_settings_gear) } 
+                        else { p.pbUpgrade?.progress = (((p.trainingTotalTime - rem).toFloat() / p.trainingTotalTime) * 100).toInt(); p.tvUpgradeTimer?.text = "%02d:%02d".format((rem/60000), (rem%60000)/1000) }
                     } else if (p.resourceType != ResourceType.NONE && !p.isReady && p.idCode != "HOSPITAL") {
-                        p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectTimer += 1000
-                        val targetTime = if(GameState.isVipActive()) 45000L else 60000L
-                        if (p.collectTimer >= targetTime) { 
-                            p.isReady = true; p.layoutUpgradeProgress?.visibility = View.GONE; p.collectIcon?.visibility = View.VISIBLE 
-                        } else {
-                            p.pbUpgrade?.progress = ((p.collectTimer.toFloat() / targetTime.toFloat()) * 100).toInt()
-                            val rem = targetTime - p.collectTimer
-                            p.tvUpgradeTimer?.text = "%02d:%02d".format((rem/60000), (rem%60000)/1000)
-                        }
+                        p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectTimer += 1000; val targetTime = if(GameState.isVipActive()) 45000L else 60000L
+                        if (p.collectTimer >= targetTime) { p.isReady = true; p.layoutUpgradeProgress?.visibility = View.GONE; p.collectIcon?.visibility = View.VISIBLE } 
+                        else { p.pbUpgrade?.progress = ((p.collectTimer.toFloat() / targetTime.toFloat()) * 100).toInt(); val rem = targetTime - p.collectTimer; p.tvUpgradeTimer?.text = "%02d:%02d".format((rem/60000), (rem%60000)/1000) }
                     }
                 }
                 gameHandler.postDelayed(this, 1000)
@@ -465,41 +306,55 @@ class MainActivity : AppCompatActivity() {
 
     fun updateVipUI(now: Long) {
         if (GameState.isVipActive()) {
-            val remaining = GameState.vipEndTime - now
-            val hours = remaining / 3600000; val minutes = (remaining % 3600000) / 60000; val seconds = (remaining % 60000) / 1000
+            val remaining = GameState.vipEndTime - now; val hours = remaining / 3600000; val minutes = (remaining % 3600000) / 60000; val seconds = (remaining % 60000) / 1000
             if (hours > 24) tvVipTimerUI.text = String.format(Locale.US, "%d أيام", hours / 24) else tvVipTimerUI.text = String.format(Locale.US, "%02d:%02d:%02d", hours, minutes, seconds)
             tvVipTimerUI.setTextColor(android.graphics.Color.parseColor("#2ECC71")) 
-        } else {
-            tvVipTimerUI.text = "VIP غير مفعل"
-            tvVipTimerUI.setTextColor(android.graphics.Color.parseColor("#FF5252")) 
-        }
+        } else { tvVipTimerUI.text = "VIP غير مفعل"; tvVipTimerUI.setTextColor(android.graphics.Color.parseColor("#FF5252")) }
     }
 
     private fun playCollectionAnimation(plot: MapPlot) {
         val startLoc = IntArray(2); plot.collectIcon?.getLocationInWindow(startLoc)
         val targetView = when (plot.resourceType) { ResourceType.GOLD -> tvTotalGold; ResourceType.IRON -> tvTotalIron; ResourceType.WHEAT -> tvTotalWheat; else -> tvTotalGold }
-        val targetLoc = IntArray(2); targetView.getLocationInWindow(targetLoc)
-        val rootLayout = findViewById<ViewGroup>(android.R.id.content)
-        val flyingIcon = ImageView(this).apply {
-            setImageResource(plot.resourceType.iconResId); layoutParams = FrameLayout.LayoutParams(100, 100)
-            x = startLoc[0].toFloat(); y = startLoc[1].toFloat()
+        val targetLoc = IntArray(2); targetView.getLocationInWindow(targetLoc); val rootLayout = findViewById<ViewGroup>(android.R.id.content)
+        val flyingIcon = ImageView(this).apply { setImageResource(plot.resourceType.iconResId); layoutParams = FrameLayout.LayoutParams(100, 100); x = startLoc[0].toFloat(); y = startLoc[1].toFloat() }
+        rootLayout.addView(flyingIcon); flyingIcon.animate().x(targetLoc[0].toFloat()).y(targetLoc[1].toFloat()).setDuration(600).setInterpolator(AccelerateDecelerateInterpolator()).withEndAction { rootLayout.removeView(flyingIcon); targetView.startAnimation(AnimationUtils.loadAnimation(this, android.R.anim.fade_in)) }.start()
+    }
+
+    // 💡 دالة الأنميشن للعدادات السلسة
+    private fun animateResourceText(tv: TextView, start: Long, end: Long, prefix: String, onUpdate: (Long) -> Unit): android.animation.ValueAnimator {
+        val animator = android.animation.ValueAnimator.ofFloat(start.toFloat(), end.toFloat())
+        animator.duration = 800
+        animator.addUpdateListener { 
+            val v = (it.animatedValue as Float).toLong()
+            tv.text = "$prefix${formatResourceNumber(v)}"
+            onUpdate(v)
         }
-        rootLayout.addView(flyingIcon)
-        flyingIcon.animate().x(targetLoc[0].toFloat()).y(targetLoc[1].toFloat()).setDuration(600).setInterpolator(AccelerateDecelerateInterpolator())
-            .withEndAction { rootLayout.removeView(flyingIcon); targetView.startAnimation(AnimationUtils.loadAnimation(this, android.R.anim.fade_in)) }.start()
+        animator.start()
+        return animator
     }
 
     fun updateHudUI() {
-        tvTotalGold.text = formatResourceNumber(GameState.totalGold); tvTotalIron.text = formatResourceNumber(GameState.totalIron)
-        tvTotalWheat.text = formatResourceNumber(GameState.totalWheat); tvPlayerLevel.text = "Lv. ${GameState.playerLevel}"
+        tvPlayerLevel.text = "Lv. ${GameState.playerLevel}"
         pbPlayerMP.progress = ((GameState.playerExp.toFloat() / (GameState.playerLevel * 1000).toFloat()) * 100).toInt()
-        tvMainTotalPower.text = "⚔️ ${formatResourceNumber(GameState.playerPower)}" 
+
+        // 💡 العدادات السلسة للموارد والقوة (تتحرك الأرقام صعوداً وهبوطاً بذكاء)
+        if (displayedGold == -1L) displayedGold = GameState.totalGold
+        if (displayedGold != GameState.totalGold) { goldAnimator?.cancel(); goldAnimator = animateResourceText(tvTotalGold, displayedGold, GameState.totalGold, "") { displayedGold = it } } 
+        else tvTotalGold.text = formatResourceNumber(GameState.totalGold)
+
+        if (displayedIron == -1L) displayedIron = GameState.totalIron
+        if (displayedIron != GameState.totalIron) { ironAnimator?.cancel(); ironAnimator = animateResourceText(tvTotalIron, displayedIron, GameState.totalIron, "") { displayedIron = it } } 
+        else tvTotalIron.text = formatResourceNumber(GameState.totalIron)
+
+        if (displayedWheat == -1L) displayedWheat = GameState.totalWheat
+        if (displayedWheat != GameState.totalWheat) { wheatAnimator?.cancel(); wheatAnimator = animateResourceText(tvTotalWheat, displayedWheat, GameState.totalWheat, "") { displayedWheat = it } } 
+        else tvTotalWheat.text = formatResourceNumber(GameState.totalWheat)
+
+        if (displayedPower == -1L) displayedPower = GameState.playerPower
+        if (displayedPower != GameState.playerPower) { powerAnimator?.cancel(); powerAnimator = animateResourceText(tvMainTotalPower, displayedPower, GameState.playerPower, "⚔️ ") { displayedPower = it } } 
+        else tvMainTotalPower.text = "⚔️ ${formatResourceNumber(GameState.playerPower)}"
     }
 
-    fun changeCitySkin(skinResId: Int) {
-        imgCityBackground.setImageResource(skinResId)
-        getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit().putInt("SELECTED_SKIN", skinResId).apply()
-    }
-
+    fun changeCitySkin(skinResId: Int) { imgCityBackground.setImageResource(skinResId); getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit().putInt("SELECTED_SKIN", skinResId).apply() }
     private fun formatResourceNumber(num: Long): String = when { num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0); num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0); else -> num.toString() }
 }
