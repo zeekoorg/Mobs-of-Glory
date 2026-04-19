@@ -163,11 +163,10 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.layoutCastleRewardsClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showCastleRewardsDialog(this, GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1) }
         findViewById<View>(R.id.btnNavArena)?.setOnClickListener { SoundManager.playClick(); startActivity(Intent(this, ArenaActivity::class.java)) }
         
-        // 💡 المهام الأسبوعية الجديدة
+        // 💡 تم ربط زر المهام الأسبوعية بالنافذة الجديدة
         findViewById<View>(R.id.layoutWeeklyQuestsClick)?.setOnClickListener { 
             SoundManager.playWindowOpen()
-            // سنستدعي دالة showWeeklyQuestsDialog التي سنصنعها في DialogManager
-            DialogManager.showGameMessage(this, "المهام الأسبوعية", "المهام الأسبوعية الملحمية قادمة في التحديث القادم لملف DialogManager!", R.drawable.ic_menu_quests)
+            DialogManager.showWeeklyQuestsDialog(this) 
         }
 
         findViewById<View>(R.id.layoutTavernClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showSummoningTavernDialog(this) }
