@@ -37,6 +37,36 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 دالة حزمة البداية للمستخدمين الجدد باستخدام النافذة الموحدة
+    fun showStarterPackDialog(activity: Activity) {
+        SoundManager.playWindowOpen()
+        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_game_message)
+        d.setCancelable(false) // لا يمكن إغلاقها إلا بالاستلام
+
+        d.findViewById<TextView>(R.id.tvMessageTitle)?.text = "هدية الإمبراطور الجديدة"
+        d.findViewById<TextView>(R.id.tvMessageBody)?.text = "أيها المهيب، استلم إمدادات بناء إمبراطوريتك الأولى لتسريع نهضتك!\n\nالمكافأة:\n+ 500K قمح\n+ 500K حديد\n+ 250K ذهب"
+        d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(R.drawable.ic_menu_store)
+        
+        val btnClaim = d.findViewById<Button>(R.id.btnMessageOk)
+        btnClaim?.text = "فتح الصندوق"
+        
+        btnClaim?.setOnClickListener {
+            SoundManager.playClick()
+            GameState.totalGold += 250000
+            GameState.totalIron += 500000
+            GameState.totalWheat += 500000
+            GameState.isStarterPackClaimed = true
+            
+            GameState.saveGameData(activity)
+            updateUI(activity)
+            d.dismiss()
+            
+            showGameMessage(activity, "بداية أسطورية!", "تم إيداع الموارد في خزائن الإمبراطورية بنجاح!", R.drawable.ic_resource_gold)
+        }
+        d.show()
+    }
+
     private fun showAdConfirmDialog(context: Context, onConfirm: () -> Unit) {
         val d = Dialog(context, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_ad_confirm)
