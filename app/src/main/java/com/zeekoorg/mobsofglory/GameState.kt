@@ -32,7 +32,12 @@ object GameState {
     val myHeroes = mutableListOf<Hero>()
     val arsenal = mutableListOf<Weapon>() 
     val myPlots = mutableListOf<MapPlot>()
+    
+    // 💡 القوائم والعدادات الخاصة بالمهام
     val dailyQuestsList = mutableListOf<DynamicQuest>()
+    val weeklyQuestsList = mutableListOf<DynamicQuest>()
+    var weeklyQuestEndTime: Long = 0L
+    
     val claimedCastleRewards = mutableSetOf<Int>()
     val pendingOfflineMessages = mutableListOf<PendingMessage>()
     var pendingLevelUpCount = 0
@@ -40,11 +45,16 @@ object GameState {
     var isHealing: Boolean = false; var healingEndTime: Long = 0L; var healingTotalTime: Long = 0L
     var healingInfantryAmount: Long = 0; var healingCavalryAmount: Long = 0
 
+    // 💡 دالة التقدم أصبحت تضيف في المهام اليومية والأسبوعية معاً في نفس اللحظة
     fun addQuestProgress(type: QuestType, amount: Int) {
         dailyQuestsList.filter { it.type == type }.forEach { quest ->
             if (!quest.isCollected && !quest.isCompleted) {
-                quest.currentAmount += amount
-                if (quest.currentAmount > quest.targetAmount) quest.currentAmount = quest.targetAmount
+                quest.currentAmount += amount; if (quest.currentAmount > quest.targetAmount) quest.currentAmount = quest.targetAmount
+            }
+        }
+        weeklyQuestsList.filter { it.type == type }.forEach { quest ->
+            if (!quest.isCollected && !quest.isCompleted) {
+                quest.currentAmount += amount; if (quest.currentAmount > quest.targetAmount) quest.currentAmount = quest.targetAmount
             }
         }
     }
@@ -66,11 +76,25 @@ object GameState {
             arsenal.add(Weapon(3, "درع الجبابرة", 50000, R.drawable.ic_weapon_titan_shield, 1, Rarity.LEGENDARY))
             arsenal.add(Weapon(4, "رمح التنين الأسطوري", 100000, R.drawable.ic_weapon_dragon_spear, 1, Rarity.LEGENDARY))
         }
+        
+        // 💡 تهيئة المهام اليومية (متوسطة)
         if (dailyQuestsList.isEmpty()) {
-            dailyQuestsList.add(DynamicQuest(1, "اجمع الموارد من الحقول", QuestType.COLLECT_RESOURCES, 5, 2000))
-            dailyQuestsList.add(DynamicQuest(2, "درّب 500 جندي جديد", QuestType.TRAIN_TROOPS, 500, 5000))
-            dailyQuestsList.add(DynamicQuest(3, "قم بتطوير 3 مبانٍ", QuestType.UPGRADE_BUILDING, 3, 10000))
+            dailyQuestsList.add(DynamicQuest(1, "حصاد المزارع والمنجم", QuestType.COLLECT_RESOURCES, 10, 5000, 15000, 15000, 0))
+            dailyQuestsList.add(DynamicQuest(2, "تدريب 500 جندي", QuestType.TRAIN_TROOPS, 500, 5000, 10000, 10000, 0))
+            dailyQuestsList.add(DynamicQuest(3, "تطوير مبنيين", QuestType.UPGRADE_BUILDING, 2, 10000, 20000, 20000, 0))
+            dailyQuestsList.add(DynamicQuest(4, "دعم الخزينة (شاهد 5 إعلانات)", QuestType.WATCH_ADS, 5, 15000, 50000, 50000, 0))
         }
+        
+        // 💡 تهيئة المهام الأسبوعية (صعبة مع دعوة ملكية في الأصعب)
+        if (weeklyQuestsList.isEmpty()) {
+            weeklyQuestsList.add(DynamicQuest(101, "المهمة الأسطورية: تدريب 25K جندي", QuestType.TRAIN_TROOPS, 25000, 100000, 250000, 250000, 1)) // 1 Medal
+            weeklyQuestsList.add(DynamicQuest(102, "النهضة المعمارية: تطوير 15 مبنى", QuestType.UPGRADE_BUILDING, 15, 60000, 150000, 150000, 0))
+            weeklyQuestsList.add(DynamicQuest(103, "الإمبراطورية الغنية: اجمع 100 مرة", QuestType.COLLECT_RESOURCES, 100, 50000, 100000, 100000, 0))
+            weeklyQuestsList.add(DynamicQuest(104, "الداعم الملكي: شاهد 20 إعلاناً", QuestType.WATCH_ADS, 20, 80000, 200000, 200000, 0))
+        }
+        
+        if (weeklyQuestEndTime == 0L) weeklyQuestEndTime = System.currentTimeMillis() + (7L * 24 * 3600000L)
+
         if (myPlots.isEmpty()) {
             myPlots.add(MapPlot("CASTLE", "القلعة المركزية", R.id.plotCastle, 0, ResourceType.NONE, 1))
             myPlots.add(MapPlot("FARM_1", "مزرعة القمح", R.id.plotFarmR1, 0, ResourceType.WHEAT, 1))
@@ -113,7 +137,6 @@ object GameState {
         calculateLegionPower()
     }
 
-    // 💡 تم دمج قوة الجنود (totalTroopsPower) داخل قوة الفيلق ليكون الرقم شاملاً وحقيقياً
     fun calculateLegionPower() {
         var lPower: Long = 0
         myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { lPower += it.getCurrentPower() }
@@ -148,9 +171,7 @@ object GameState {
             }
             
             pendingOfflineMessages.add(PendingMessage("غنائم الموسم", rewardMsg, R.drawable.ic_arena_rewards))
-            arenaScore = 0L
-            arenaLeaderboard.forEach { if (it.isRealPlayer) it.score = 0L }
-            generateAITiers()
+            arenaScore = 0L; arenaLeaderboard.forEach { if (it.isRealPlayer) it.score = 0L }; generateAITiers()
             arenaSeasonEndTime = now + (7L * 24 * 3600000L)
         }
     }
@@ -179,7 +200,11 @@ object GameState {
         prefs.putBoolean("IS_HEALING", isHealing); prefs.putLong("HEALING_END_TIME", healingEndTime); prefs.putLong("HEALING_TOTAL_TIME", healingTotalTime)
         prefs.putLong("HEALING_INF_AMOUNT", healingInfantryAmount); prefs.putLong("HEALING_CAV_AMOUNT", healingCavalryAmount)
         
+        // 💡 حفظ المهام اليومية والأسبوعية
         dailyQuestsList.forEachIndexed { i, q -> prefs.putInt("QUEST_${i}_PROG", q.currentAmount); prefs.putBoolean("QUEST_${i}_COLL", q.isCollected) }
+        weeklyQuestsList.forEachIndexed { i, q -> prefs.putInt("WQUEST_${i}_PROG", q.currentAmount); prefs.putBoolean("WQUEST_${i}_COLL", q.isCollected) }
+        prefs.putLong("WEEKLY_QUEST_END", weeklyQuestEndTime)
+        
         prefs.putString("CLAIMED_CASTLE_REWARDS", claimedCastleRewards.joinToString(","))
         
         myHeroes.forEachIndexed { i, h ->
@@ -252,7 +277,17 @@ object GameState {
         
         arenaLeaderboard.find { it.isRealPlayer }?.let { it.score = arenaScore; it.name = playerName }
 
+        // 💡 استرجاع المهام وفحص انتهاء أسبوع المهام
         dailyQuestsList.forEachIndexed { i, q -> q.currentAmount = prefs.getInt("QUEST_${i}_PROG", 0); q.isCollected = prefs.getBoolean("QUEST_${i}_COLL", false) }
+        weeklyQuestsList.forEachIndexed { i, q -> q.currentAmount = prefs.getInt("WQUEST_${i}_PROG", 0); q.isCollected = prefs.getBoolean("WQUEST_${i}_COLL", false) }
+        weeklyQuestEndTime = prefs.getLong("WEEKLY_QUEST_END", 0L)
+        
+        if (weeklyQuestEndTime == 0L) weeklyQuestEndTime = currentTime + (7L * 24 * 3600000L)
+        if (currentTime >= weeklyQuestEndTime) {
+            weeklyQuestsList.forEach { it.currentAmount = 0; it.isCollected = false }
+            weeklyQuestEndTime = currentTime + (7L * 24 * 3600000L)
+        }
+
         val claimedStr = prefs.getString("CLAIMED_CASTLE_REWARDS", "") ?: ""
         claimedCastleRewards.clear(); if (claimedStr.isNotEmpty()) claimedCastleRewards.addAll(claimedStr.split(",").mapNotNull { it.toIntOrNull() })
         pendingOfflineMessages.clear()
