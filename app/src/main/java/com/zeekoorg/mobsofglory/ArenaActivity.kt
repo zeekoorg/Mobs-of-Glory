@@ -61,7 +61,6 @@ class ArenaActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         GameState.calculatePower()
-        // 💡 تحديث اسم اللاعب في الساحة فوراً عند العودة
         GameState.arenaLeaderboard.find { it.isRealPlayer }?.name = GameState.playerName
         refreshArenaUI()
     }
@@ -75,7 +74,7 @@ class ArenaActivity : AppCompatActivity() {
         tvTotalGold = findViewById(R.id.tvTotalGold); tvTotalIron = findViewById(R.id.tvTotalIron)
         tvTotalWheat = findViewById(R.id.tvTotalWheat); tvPlayerLevel = findViewById(R.id.tvPlayerLevel)
         tvMainTotalPower = findViewById(R.id.tvMainTotalPower)
-        imgMainPlayerAvatar = findViewById(R.id.imgMainPlayerAvatar) // 💡 للتحكم بالصورة
+        imgMainPlayerAvatar = findViewById(R.id.imgMainPlayerAvatar) 
         
         tvSeasonTimer = findViewById(R.id.tvSeasonTimer); tvArenaRank = findViewById(R.id.tvArenaRank)
         tvArenaScore = findViewById(R.id.tvArenaScore)
@@ -138,10 +137,11 @@ class ArenaActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 الألعاب النارية الدموية المذهلة والاهتزاز الخفيف
+    // 💡 الألعاب النارية الدموية המذهلة مع اهتزاز أقوى للخلفية
     private fun triggerHitEffects() {
-        val shake = TranslateAnimation(-5f, 5f, 0f, 0f)
-        shake.duration = 40; shake.repeatMode = Animation.REVERSE; shake.repeatCount = 1
+        // هزتين أقوى قليلاً
+        val shake = TranslateAnimation(-15f, 15f, -5f, 5f)
+        shake.duration = 50; shake.repeatMode = Animation.REVERSE; shake.repeatCount = 2
         imgArenaBackground.startAnimation(shake)
         
         val container = findViewById<ViewGroup>(android.R.id.content)
@@ -149,22 +149,22 @@ class ArenaActivity : AppCompatActivity() {
         val castleCenterX = loc[0] + layoutGhostCastle.width / 2f
         val castleCenterY = loc[1] + layoutGhostCastle.height / 2f
 
-        for (i in 0..39) {
+        // 💡 80 شظية دم، أحجام ضخمة، تطاير بمدى واسع جداً
+        for (i in 0..79) {
             val drop = View(this).apply {
-                layoutParams = FrameLayout.LayoutParams(Random.nextInt(15, 30), Random.nextInt(15, 30))
+                layoutParams = FrameLayout.LayoutParams(Random.nextInt(30, 60), Random.nextInt(30, 60))
                 background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#E74C3C")) }
                 x = castleCenterX; y = castleCenterY; elevation = 20f
             }
             container.addView(drop)
             
-            // انتشار كالألعاب النارية للأعلى والجوانب بمدى ضخم
-            val angle = Math.toRadians(Random.nextDouble(180.0, 360.0))
-            val distance = Random.nextDouble(100.0, 350.0) 
+            val angle = Math.toRadians(Random.nextDouble(0.0, 360.0))
+            val distance = Random.nextDouble(150.0, 600.0) // مدى تطاير واسع ومبهر
             val targetX = castleCenterX + (distance * Math.cos(angle)).toFloat()
             val targetY = castleCenterY + (distance * Math.sin(angle)).toFloat()
 
-            drop.animate().x(targetX).y(targetY).alpha(0f).scaleX(0.3f).scaleY(0.3f)
-                .setDuration(Random.nextLong(400, 800)).setInterpolator(android.view.animation.DecelerateInterpolator())
+            drop.animate().x(targetX).y(targetY).alpha(0f).scaleX(1.5f).scaleY(1.5f)
+                .setDuration(Random.nextLong(500, 1000)).setInterpolator(android.view.animation.DecelerateInterpolator())
                 .withEndAction { container.removeView(drop) }.start()
         }
         layoutAttackPrompt.visibility = View.VISIBLE 
@@ -183,19 +183,37 @@ class ArenaActivity : AppCompatActivity() {
         GameState.arenaScore += earnedScore
         GameState.arenaLeaderboard.find { it.isRealPlayer }?.score = GameState.arenaScore
 
-        val deadInfantry = (sentInfantry * 0.10).toLong(); val woundedInf = (sentInfantry * 0.10).toLong()
-        val deadCavalry = (sentCavalry * 0.10).toLong(); val woundedCav = (sentCavalry * 0.10).toLong()
+        // 💡 مكافأة فورية للدمار إذا تجاوز 250 ألف
+        var hasBonusLoot = false
+        if (damageDealt >= 250000) {
+            GameState.totalIron += 50000; GameState.totalWheat += 50000; GameState.totalGold += 30000
+            hasBonusLoot = true
+        }
+
+        // 💡 تم تقليص الخسائر إلى 5%
+        val deadRatio = 0.05
+        val woundedRatio = 0.05
+
+        val deadInfantry = (sentInfantry * deadRatio).toLong(); val woundedInf = (sentInfantry * woundedRatio).toLong()
+        val deadCavalry = (sentCavalry * deadRatio).toLong(); val woundedCav = (sentCavalry * woundedRatio).toLong()
 
         GameState.totalInfantry -= (deadInfantry + woundedInf); GameState.totalCavalry -= (deadCavalry + woundedCav)
         GameState.woundedInfantry += woundedInf; GameState.woundedCavalry += woundedCav
 
-        // 💡 التحديث الفوري للقوة الشاملة بعد خسارة الجنود!
+        // 💡 تحديث القوة فورا! لأن الجرحى والموتى لا يحسبون كقوة عسكرية
         GameState.calculatePower()
         GameState.saveGameData(this)
         refreshArenaUI()
 
         Handler(Looper.getMainLooper()).postDelayed({
             ArenaDialogManager.showBattleReportDialog(this, damageDealt, earnedScore, deadInfantry + deadCavalry, woundedInf + woundedCav)
+            
+            // 💡 إظهار نافذة المكافأة الفورية بعد التقرير إن وجدت
+            if (hasBonusLoot) {
+                Handler(Looper.getMainLooper()).postDelayed({
+                    DialogManager.showGameMessage(this, "دمار أسطوري!", "لقد ألحقت ضرراً تجاوز 250,000 بالقلعة!\n\nمكافأة فورية:\n+ 50K حديد\n+ 50K قمح\n+ 30K ذهب", R.drawable.ic_ui_castle_rewards)
+                }, 500)
+            }
         }, 800)
     }
 
@@ -205,7 +223,6 @@ class ArenaActivity : AppCompatActivity() {
         tvMainTotalPower.text = "⚔️ قوة الفيلق: ${formatResourceNumber(GameState.legionPower)}"
         tvArenaScore.text = "النقاط: ${formatResourceNumber(GameState.arenaScore)}"
         
-        // 💡 تحديث صورة اللاعب في الساحة لتطابق الشاشة الرئيسية
         if (GameState.selectedAvatarUri != null) {
             try { imgMainPlayerAvatar.setImageURI(Uri.parse(GameState.selectedAvatarUri)) }
             catch (e: Exception) { imgMainPlayerAvatar.setImageResource(R.drawable.img_default_avatar) }
@@ -229,7 +246,6 @@ class ArenaActivity : AppCompatActivity() {
                                              else "ينتهي الموسم خلال: %02d:%02d:%02d".format(hours, minutes, seconds)
                     } else { GameState.checkArenaSeason(); refreshArenaUI() }
 
-                    // 💡 تحريك نقاط الخصوم الوهميين بشكل حي 
                     if (Random.nextInt(100) < 25) { 
                         val fakePlayer = GameState.arenaLeaderboard.filter { !it.isRealPlayer }.random()
                         fakePlayer.score += Random.nextLong(10, 50)
