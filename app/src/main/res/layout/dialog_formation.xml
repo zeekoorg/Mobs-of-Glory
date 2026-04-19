@@ -3,13 +3,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#B3000000">
+    android:background="#B3000000"
+    android:layoutDirection="ltr">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintWidth_percent="0.95"
-        app:layout_constraintHeight_percent="0.90"
+        app:layout_constraintHeight_percent="0.95"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -25,10 +26,10 @@
             android:id="@+id/tvDialogTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="35dp"
-            android:text="تجهيز الفيلق الملكي"
+            android:layout_marginTop="30dp"
+            android:text="تجهيز الفيلق الملكي (الدفاع/الهجوم)"
             android:textColor="#F4D03F"
-            android:textSize="22sp"
+            android:textSize="18sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -41,7 +42,7 @@
             android:background="@drawable/bg_level_tag"
             android:paddingHorizontal="20dp"
             android:paddingVertical="5dp"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="5dp"
             app:layout_constraintTop_toBottomOf="@id/tvDialogTitle"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
@@ -52,7 +53,7 @@
                 android:layout_height="wrap_content"
                 android:text="قوة الفيلق: ⚔️ 0"
                 android:textColor="#FFFFFF"
-                android:textSize="16sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -60,8 +61,8 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_marginHorizontal="15dp"
-            android:layout_marginTop="15dp"
-            android:layout_marginBottom="15dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
             app:layout_constraintTop_toBottomOf="@id/layoutLegionPower"
             app:layout_constraintBottom_toTopOf="@id/btnSaveFormation">
 
@@ -76,47 +77,47 @@
                     android:layout_height="wrap_content"
                     android:text="أبطال الفيلق"
                     android:textColor="#F4D03F"
-                    android:textSize="15sp"
+                    android:textSize="14sp"
                     android:textStyle="bold"
-                    android:layout_marginBottom="8dp"/>
+                    android:layout_marginBottom="5dp"/>
 
                 <LinearLayout
                     android:id="@+id/layoutSelectedHeroes"
                     android:layout_width="match_parent"
-                    android:layout_height="85dp"
+                    android:layout_height="75dp"
                     android:orientation="horizontal"
                     android:weightSum="4"
-                    android:layout_marginBottom="20dp">
+                    android:layout_marginBottom="10dp">
                     
-                    <FrameLayout android:id="@+id/slotHero1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="3dp" android:background="@drawable/bg_inner_frame" android:clickable="true" android:focusable="true">
-                        <ImageView android:id="@+id/imgAddHero1" android:layout_width="35dp" android:layout_height="35dp" android:layout_gravity="center" android:src="@android:drawable/ic_input_add" app:tint="#F4D03F" />
-                        <ImageView android:id="@+id/imgHero1" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="5dp" android:visibility="gone" />
+                    <FrameLayout android:id="@+id/slotHero1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="2dp" android:background="@drawable/bg_inner_frame" android:clickable="true" android:focusable="true">
+                        <ImageView android:id="@+id/imgAddHero1" android:layout_width="30dp" android:layout_height="30dp" android:layout_gravity="center" android:src="@android:drawable/ic_input_add" app:tint="#F4D03F" />
+                        <ImageView android:id="@+id/imgHero1" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="3dp" android:visibility="gone" />
                     </FrameLayout>
 
-                    <FrameLayout android:id="@+id/slotHero2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="3dp" android:background="@drawable/bg_inner_frame" android:clickable="true" android:focusable="true">
-                        <ImageView android:id="@+id/imgAddHero2" android:layout_width="35dp" android:layout_height="35dp" android:layout_gravity="center" android:src="@android:drawable/ic_input_add" app:tint="#F4D03F" />
-                        <ImageView android:id="@+id/imgHero2" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="5dp" android:visibility="gone" />
+                    <FrameLayout android:id="@+id/slotHero2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="2dp" android:background="@drawable/bg_inner_frame" android:clickable="true" android:focusable="true">
+                        <ImageView android:id="@+id/imgAddHero2" android:layout_width="30dp" android:layout_height="30dp" android:layout_gravity="center" android:src="@android:drawable/ic_input_add" app:tint="#F4D03F" />
+                        <ImageView android:id="@+id/imgHero2" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="3dp" android:visibility="gone" />
                         <LinearLayout android:id="@+id/layoutLockHero2" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:background="#99000000">
-                            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_secure" app:tint="#FF5252"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قلعة 5" android:textColor="#FF5252" android:textSize="10sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_secure" app:tint="#FF5252"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قلعة 5" android:textColor="#FF5252" android:textSize="9sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
                         </LinearLayout>
                     </FrameLayout>
 
-                    <FrameLayout android:id="@+id/slotHero3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="3dp" android:background="@drawable/bg_inner_frame" android:clickable="true" android:focusable="true">
-                        <ImageView android:id="@+id/imgAddHero3" android:layout_width="35dp" android:layout_height="35dp" android:layout_gravity="center" android:src="@android:drawable/ic_input_add" app:tint="#F4D03F" />
-                        <ImageView android:id="@+id/imgHero3" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="5dp" android:visibility="gone" />
+                    <FrameLayout android:id="@+id/slotHero3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="2dp" android:background="@drawable/bg_inner_frame" android:clickable="true" android:focusable="true">
+                        <ImageView android:id="@+id/imgAddHero3" android:layout_width="30dp" android:layout_height="30dp" android:layout_gravity="center" android:src="@android:drawable/ic_input_add" app:tint="#F4D03F" />
+                        <ImageView android:id="@+id/imgHero3" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="3dp" android:visibility="gone" />
                         <LinearLayout android:id="@+id/layoutLockHero3" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:background="#99000000">
-                            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_secure" app:tint="#FF5252"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قلعة 10" android:textColor="#FF5252" android:textSize="10sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_secure" app:tint="#FF5252"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قلعة 10" android:textColor="#FF5252" android:textSize="9sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
                         </LinearLayout>
                     </FrameLayout>
 
-                    <FrameLayout android:id="@+id/slotHero4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="3dp" android:background="@drawable/bg_inner_frame" android:clickable="true" android:focusable="true">
-                        <ImageView android:id="@+id/imgAddHero4" android:layout_width="35dp" android:layout_height="35dp" android:layout_gravity="center" android:src="@android:drawable/ic_input_add" app:tint="#F4D03F" />
-                        <ImageView android:id="@+id/imgHero4" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="5dp" android:visibility="gone" />
+                    <FrameLayout android:id="@+id/slotHero4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="2dp" android:background="@drawable/bg_inner_frame" android:clickable="true" android:focusable="true">
+                        <ImageView android:id="@+id/imgAddHero4" android:layout_width="30dp" android:layout_height="30dp" android:layout_gravity="center" android:src="@android:drawable/ic_input_add" app:tint="#F4D03F" />
+                        <ImageView android:id="@+id/imgHero4" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="3dp" android:visibility="gone" />
                         <LinearLayout android:id="@+id/layoutLockHero4" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:background="#99000000">
-                            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_secure" app:tint="#FF5252"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قلعة 15" android:textColor="#FF5252" android:textSize="10sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_secure" app:tint="#FF5252"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قلعة 15" android:textColor="#FF5252" android:textSize="9sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
                         </LinearLayout>
                     </FrameLayout>
                 </LinearLayout>
@@ -126,50 +127,85 @@
                     android:layout_height="wrap_content"
                     android:text="ترسانة الفيلق (الأسلحة)"
                     android:textColor="#F4D03F"
-                    android:textSize="15sp"
+                    android:textSize="14sp"
                     android:textStyle="bold"
-                    android:layout_marginBottom="8dp"/>
+                    android:layout_marginBottom="5dp"/>
 
                 <LinearLayout
                     android:id="@+id/layoutSelectedWeapons"
                     android:layout_width="match_parent"
-                    android:layout_height="85dp"
+                    android:layout_height="75dp"
                     android:orientation="horizontal"
                     android:weightSum="4"
                     android:layout_marginBottom="15dp">
                     
-                    <FrameLayout android:id="@+id/slotWeapon1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="3dp" android:background="@drawable/bg_inner_frame" android:clickable="true" android:focusable="true">
-                        <ImageView android:id="@+id/imgAddWeapon1" android:layout_width="35dp" android:layout_height="35dp" android:layout_gravity="center" android:src="@android:drawable/ic_input_add" app:tint="#F4D03F" />
-                        <ImageView android:id="@+id/imgWeapon1" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="5dp" android:visibility="gone" />
+                    <FrameLayout android:id="@+id/slotWeapon1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="2dp" android:background="@drawable/bg_inner_frame" android:clickable="true" android:focusable="true">
+                        <ImageView android:id="@+id/imgAddWeapon1" android:layout_width="30dp" android:layout_height="30dp" android:layout_gravity="center" android:src="@android:drawable/ic_input_add" app:tint="#F4D03F" />
+                        <ImageView android:id="@+id/imgWeapon1" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="3dp" android:visibility="gone" />
                     </FrameLayout>
 
-                    <FrameLayout android:id="@+id/slotWeapon2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="3dp" android:background="@drawable/bg_inner_frame" android:clickable="true" android:focusable="true">
-                        <ImageView android:id="@+id/imgAddWeapon2" android:layout_width="35dp" android:layout_height="35dp" android:layout_gravity="center" android:src="@android:drawable/ic_input_add" app:tint="#F4D03F" />
-                        <ImageView android:id="@+id/imgWeapon2" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="5dp" android:visibility="gone" />
+                    <FrameLayout android:id="@+id/slotWeapon2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="2dp" android:background="@drawable/bg_inner_frame" android:clickable="true" android:focusable="true">
+                        <ImageView android:id="@+id/imgAddWeapon2" android:layout_width="30dp" android:layout_height="30dp" android:layout_gravity="center" android:src="@android:drawable/ic_input_add" app:tint="#F4D03F" />
+                        <ImageView android:id="@+id/imgWeapon2" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="3dp" android:visibility="gone" />
                         <LinearLayout android:id="@+id/layoutLockWeapon2" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:background="#99000000">
-                            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_secure" app:tint="#FF5252"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قلعة 5" android:textColor="#FF5252" android:textSize="10sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_secure" app:tint="#FF5252"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قلعة 5" android:textColor="#FF5252" android:textSize="9sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
                         </LinearLayout>
                     </FrameLayout>
 
-                    <FrameLayout android:id="@+id/slotWeapon3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="3dp" android:background="@drawable/bg_inner_frame" android:clickable="true" android:focusable="true">
-                        <ImageView android:id="@+id/imgAddWeapon3" android:layout_width="35dp" android:layout_height="35dp" android:layout_gravity="center" android:src="@android:drawable/ic_input_add" app:tint="#F4D03F" />
-                        <ImageView android:id="@+id/imgWeapon3" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="5dp" android:visibility="gone" />
+                    <FrameLayout android:id="@+id/slotWeapon3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="2dp" android:background="@drawable/bg_inner_frame" android:clickable="true" android:focusable="true">
+                        <ImageView android:id="@+id/imgAddWeapon3" android:layout_width="30dp" android:layout_height="30dp" android:layout_gravity="center" android:src="@android:drawable/ic_input_add" app:tint="#F4D03F" />
+                        <ImageView android:id="@+id/imgWeapon3" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="3dp" android:visibility="gone" />
                         <LinearLayout android:id="@+id/layoutLockWeapon3" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:background="#99000000">
-                            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_secure" app:tint="#FF5252"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قلعة 10" android:textColor="#FF5252" android:textSize="10sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_secure" app:tint="#FF5252"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قلعة 10" android:textColor="#FF5252" android:textSize="9sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
                         </LinearLayout>
                     </FrameLayout>
 
-                    <FrameLayout android:id="@+id/slotWeapon4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="3dp" android:background="@drawable/bg_inner_frame" android:clickable="true" android:focusable="true">
-                        <ImageView android:id="@+id/imgAddWeapon4" android:layout_width="35dp" android:layout_height="35dp" android:layout_gravity="center" android:src="@android:drawable/ic_input_add" app:tint="#F4D03F" />
-                        <ImageView android:id="@+id/imgWeapon4" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="5dp" android:visibility="gone" />
+                    <FrameLayout android:id="@+id/slotWeapon4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="2dp" android:background="@drawable/bg_inner_frame" android:clickable="true" android:focusable="true">
+                        <ImageView android:id="@+id/imgAddWeapon4" android:layout_width="30dp" android:layout_height="30dp" android:layout_gravity="center" android:src="@android:drawable/ic_input_add" app:tint="#F4D03F" />
+                        <ImageView android:id="@+id/imgWeapon4" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="3dp" android:visibility="gone" />
                         <LinearLayout android:id="@+id/layoutLockWeapon4" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:background="#99000000">
-                            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_secure" app:tint="#FF5252"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قلعة 15" android:textColor="#FF5252" android:textSize="10sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_secure" app:tint="#FF5252"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قلعة 15" android:textColor="#FF5252" android:textSize="9sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
                         </LinearLayout>
                     </FrameLayout>
                 </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#555555" android:layout_marginBottom="10dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="قوات الفيلق الأساسية"
+                    android:textColor="#3498DB"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="10dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="5dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="المشاة 🛡️" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tvFormationInfantryMax" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="متاح: 0" android:textColor="#BDC3C7" android:textSize="11sp" android:layout_marginEnd="10dp"/>
+                    <TextView android:id="@+id/tvFormationInfantrySelected" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#2ECC71" android:textSize="13sp" android:textStyle="bold"/>
+                </LinearLayout>
+                <SeekBar android:id="@+id/seekFormationInfantry" android:layout_width="match_parent" android:layout_height="wrap_content" android:progressTint="#2ECC71" android:thumbTint="#FFFFFF" android:layout_marginBottom="15dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="5dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="الفرسان 🐎" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tvFormationCavalryMax" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="متاح: 0" android:textColor="#BDC3C7" android:textSize="11sp" android:layout_marginEnd="10dp"/>
+                    <TextView android:id="@+id/tvFormationCavalrySelected" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#2ECC71" android:textSize="13sp" android:textStyle="bold"/>
+                </LinearLayout>
+                <SeekBar android:id="@+id/seekFormationCavalry" android:layout_width="match_parent" android:layout_height="wrap_content" android:progressTint="#2ECC71" android:thumbTint="#FFFFFF" android:layout_marginBottom="10dp"/>
 
             </LinearLayout>
         </ScrollView>
@@ -192,9 +228,9 @@
             android:id="@+id/btnClose"
             android:layout_width="160dp"
             android:layout_height="40dp"
-            android:layout_marginBottom="20dp"
+            android:layout_marginBottom="25dp"
             android:background="#00000000"
-            android:text="إلغاء"
+            android:text="إلغاء الأمر"
             android:textColor="#BDC3C7"
             android:textSize="14sp"
             android:textStyle="bold"
