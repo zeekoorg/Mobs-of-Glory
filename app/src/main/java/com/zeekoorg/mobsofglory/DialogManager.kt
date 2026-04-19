@@ -27,6 +27,7 @@ object DialogManager {
     }
 
     fun showGameMessage(context: Context, title: String, message: String, iconResId: Int) {
+        SoundManager.playWindowOpen()
         val d = Dialog(context, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_game_message)
         d.findViewById<TextView>(R.id.tvMessageTitle)?.text = title
@@ -45,6 +46,7 @@ object DialogManager {
     }
 
     fun showLevelUpDialog(activity: Activity, newLevel: Int) {
+        SoundManager.playWindowOpen() 
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_level_up); d.setCancelable(false) 
         d.findViewById<TextView>(R.id.tvLevelUpMessage)?.text = "لقد وصلت للمستوى $newLevel"
@@ -71,6 +73,7 @@ object DialogManager {
     }
 
     fun showPlayerProfileDialog(activity: Activity, onPickImage: () -> Unit, onChangeName: () -> Unit) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_player_profile)
         try {
@@ -95,6 +98,7 @@ object DialogManager {
     }
 
     fun showVipDialog(activity: Activity) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_vip)
         val tvStatus = d.findViewById<TextView>(R.id.tvVipStatusDialog)
@@ -126,6 +130,7 @@ object DialogManager {
     }
 
     fun showBagDialog(activity: Activity) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_bag)
 
@@ -166,9 +171,12 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 المهام اليومية معدلة لتدعم الموارد المتعددة
     fun showQuestsDialog(activity: Activity) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_quests)
+        d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "المهام اليومية"
         val container = d.findViewById<LinearLayout>(R.id.layoutQuestsContainer); container?.removeAllViews() 
         val inflater = LayoutInflater.from(activity)
         
@@ -177,7 +185,12 @@ object DialogManager {
             val tvTitle = view.findViewById<TextView>(R.id.tvQuestTitle); val pbProgress = view.findViewById<ProgressBar>(R.id.pbQuestProgress)
             val tvProgressText = view.findViewById<TextView>(R.id.tvQuestProgressText); val tvReward = view.findViewById<TextView>(R.id.tvQuestReward); val btnClaim = view.findViewById<Button>(R.id.btnClaimQuest)
             
-            tvTitle.text = quest.title; tvReward.text = "المكافأة: ${formatResourceNumber(quest.rewardGold)} ذهب"
+            tvTitle.text = quest.title
+            var rText = "المكافأة: ${formatResourceNumber(quest.rewardGold)} ذهب"
+            if (quest.rewardWheat > 0) rText += " + ${formatResourceNumber(quest.rewardWheat)} قمح"
+            if (quest.rewardIron > 0) rText += " + ${formatResourceNumber(quest.rewardIron)} حديد"
+            tvReward.text = rText
+            
             pbProgress.max = quest.targetAmount; pbProgress.progress = quest.currentAmount; tvProgressText.text = "${quest.currentAmount} / ${quest.targetAmount}"
             
             if (quest.isCollected) { btnClaim.text = "مستلمة"; btnClaim.setTextColor(Color.parseColor("#2ECC71")); btnClaim.isEnabled = false } 
@@ -185,9 +198,56 @@ object DialogManager {
                 btnClaim.text = "استلام"; btnClaim.setTextColor(Color.WHITE)
                 btnClaim.setOnClickListener {
                     SoundManager.playClick()
-                    GameState.totalGold += quest.rewardGold; quest.isCollected = true; updateUI(activity); GameState.saveGameData(activity)
+                    GameState.totalGold += quest.rewardGold; GameState.totalWheat += quest.rewardWheat; GameState.totalIron += quest.rewardIron
+                    quest.isCollected = true; updateUI(activity); GameState.saveGameData(activity)
                     btnClaim.text = "مستلمة"; btnClaim.setTextColor(Color.parseColor("#2ECC71")); btnClaim.isEnabled = false
-                    showGameMessage(activity, "إنجاز المهمة", "تم استلام مكافأة المهمة بنجاح!", R.drawable.ic_resource_gold)
+                    showGameMessage(activity, "إنجاز المهمة", "تم استلام المكافأة بنجاح!", R.drawable.ic_resource_gold)
+                }
+            } else { btnClaim.text = "غير مكتمل"; btnClaim.setTextColor(Color.parseColor("#7F8C8D")); btnClaim.isEnabled = false }
+            container?.addView(view)
+        }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
+        d.show()
+    }
+
+    // 💡 المهام الأسبوعية الجديدة كلياً
+    fun showWeeklyQuestsDialog(activity: Activity) {
+        SoundManager.playWindowOpen()
+        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_quests)
+        d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "المهام الأسبوعية الملحمية"
+        val container = d.findViewById<LinearLayout>(R.id.layoutQuestsContainer); container?.removeAllViews() 
+        val inflater = LayoutInflater.from(activity)
+        
+        GameState.weeklyQuestsList.forEach { quest ->
+            val view = inflater.inflate(R.layout.item_quest, container, false)
+            val tvTitle = view.findViewById<TextView>(R.id.tvQuestTitle); val pbProgress = view.findViewById<ProgressBar>(R.id.pbQuestProgress)
+            val tvProgressText = view.findViewById<TextView>(R.id.tvQuestProgressText); val tvReward = view.findViewById<TextView>(R.id.tvQuestReward); val btnClaim = view.findViewById<Button>(R.id.btnClaimQuest)
+            
+            // تخصيص الأيقونة إذا كانت المهمة قوية
+            if (quest.rewardMedals > 0) {
+                view.findViewById<ImageView>(R.id.imgQuestIcon).setImageResource(R.drawable.ic_item_legend_medal)
+            }
+            
+            tvTitle.text = quest.title
+            var rText = "المكافأة: ${formatResourceNumber(quest.rewardGold)} ذهب"
+            if (quest.rewardWheat > 0) rText += " + ${formatResourceNumber(quest.rewardWheat)} قمح"
+            if (quest.rewardIron > 0) rText += " + ${formatResourceNumber(quest.rewardIron)} حديد"
+            if (quest.rewardMedals > 0) rText += "\n+ ${quest.rewardMedals} دعوة ملكية"
+            tvReward.text = rText
+            
+            pbProgress.max = quest.targetAmount; pbProgress.progress = quest.currentAmount; tvProgressText.text = "${quest.currentAmount} / ${quest.targetAmount}"
+            
+            if (quest.isCollected) { btnClaim.text = "مستلمة"; btnClaim.setTextColor(Color.parseColor("#2ECC71")); btnClaim.isEnabled = false } 
+            else if (quest.isCompleted) {
+                btnClaim.text = "استلام"; btnClaim.setTextColor(Color.WHITE)
+                btnClaim.setOnClickListener {
+                    SoundManager.playClick()
+                    GameState.totalGold += quest.rewardGold; GameState.totalWheat += quest.rewardWheat; GameState.totalIron += quest.rewardIron; GameState.summonMedals += quest.rewardMedals
+                    quest.isCollected = true; updateUI(activity); GameState.saveGameData(activity)
+                    btnClaim.text = "مستلمة"; btnClaim.setTextColor(Color.parseColor("#2ECC71")); btnClaim.isEnabled = false
+                    val icon = if (quest.rewardMedals > 0) R.drawable.ic_item_legend_medal else R.drawable.ic_resource_gold
+                    showGameMessage(activity, "إنجاز أسبوعي!", "تم استلام غنائم المهمة الملحمية!", icon)
                 }
             } else { btnClaim.text = "غير مكتمل"; btnClaim.setTextColor(Color.parseColor("#7F8C8D")); btnClaim.isEnabled = false }
             container?.addView(view)
@@ -197,6 +257,7 @@ object DialogManager {
     }
 
     fun showCastleRewardsDialog(activity: Activity, castleLevel: Int) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_castle_rewards)
         val container = d.findViewById<LinearLayout>(R.id.layoutCastleRewardsContainer); container?.removeAllViews() 
@@ -230,6 +291,7 @@ object DialogManager {
     }
 
     fun showHeroesDialog(activity: Activity) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_heroes)
         val handler = Handler(Looper.getMainLooper())
@@ -290,6 +352,7 @@ object DialogManager {
     }
 
     fun showCastleMainDialog(activity: Activity, p: MapPlot) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_castle_main)
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = p.name
@@ -301,6 +364,7 @@ object DialogManager {
     }
 
     fun showBarracksMenuDialog(activity: Activity, p: MapPlot) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_castle_main) 
         val isInfantry = p.idCode == "BARRACKS_1"
@@ -312,6 +376,7 @@ object DialogManager {
     }
 
     fun showHospitalDialog(activity: Activity, p: MapPlot) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_hospital)
 
@@ -355,6 +420,7 @@ object DialogManager {
     }
 
     fun showTrainTroopsDialog(activity: Activity, p: MapPlot) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_train_troops)
 
@@ -390,18 +456,13 @@ object DialogManager {
             if (currentAmt == 0) { SoundManager.playClick(); showGameMessage(activity, "تنبيه", "الرجاء تحديد عدد الجنود للتدريب!", R.drawable.ic_settings_gear); return@setOnClickListener }
             val totalW = (currentAmt * costW).toLong(); val totalI = (currentAmt * costI).toLong()
             if (GameState.totalWheat >= totalW && GameState.totalIron >= totalI) {
-                // 💡 صوت بدء التدريب (صيحة جنود)
                 SoundManager.playTrain()
-                
                 GameState.totalWheat -= totalW; GameState.totalIron -= totalI; p.isTraining = true; p.trainingAmount = currentAmt
                 var tTime = currentAmt * 2000L; if(GameState.isVipActive()) tTime = (tTime * 0.8).toLong()
                 p.trainingTotalTime = tTime; p.trainingEndTime = System.currentTimeMillis() + p.trainingTotalTime; p.collectTimer = 0L 
                 updateUI(activity); GameState.saveGameData(activity); d.dismiss()
                 showGameMessage(activity, "معسكر التدريب", "بدأ تدريب القوات بنجاح!", R.drawable.ic_settings_gear) 
-            } else {
-                SoundManager.playClick()
-                showGameMessage(activity, "عذراً", "الموارد لا تكفي للتدريب!", R.drawable.ic_resource_wheat)
-            }
+            } else { SoundManager.playClick(); showGameMessage(activity, "عذراً", "الموارد لا تكفي للتدريب!", R.drawable.ic_resource_wheat) }
         }
         updateCosts()
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
@@ -409,6 +470,7 @@ object DialogManager {
     }
 
     fun showUpgradeDialog(activity: Activity, p: MapPlot) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_upgrade_building)
         val cW = p.getCostWheat(); val cI = p.getCostIron(); val cG = p.getCostGold(); var uSec = p.getUpgradeTimeSeconds()
@@ -486,7 +548,9 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 تم دمج مهام مشاهدة الإعلانات داخل المتجر
     fun showStoreDialog(activity: Activity) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_store)
 
@@ -506,14 +570,16 @@ object DialogManager {
         d.findViewById<Button>(R.id.btnBuySpeedup2h)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 28000) { GameState.totalGold -= 28000; GameState.countSpeedup2h++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_2h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
         d.findViewById<Button>(R.id.btnBuySpeedup8h)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 100000) { GameState.totalGold -= 100000; GameState.countSpeedup8Hour++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_8h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
 
-        d.findViewById<Button>(R.id.btnAdResources)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.totalWheat += 50000; GameState.totalIron += 50000; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على 50K قمح و 50K حديد!", R.drawable.ic_resource_iron) }, onAdClosed = {}) } }
-        d.findViewById<Button>(R.id.btnAdGold)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.totalGold += 10000; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على 10K ذهب!", R.drawable.ic_resource_gold) }, onAdClosed = {}) } }
-        d.findViewById<Button>(R.id.btnAdSpeedup)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.countSpeedup30m++; GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على تسريع 30 دقيقة!", R.drawable.ic_speedup_30m) }, onAdClosed = {}) } }
+        // إضافة تقدم لمهام الإعلانات هنا
+        d.findViewById<Button>(R.id.btnAdResources)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.addQuestProgress(QuestType.WATCH_ADS, 1); GameState.totalWheat += 50000; GameState.totalIron += 50000; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على 50K قمح و 50K حديد!", R.drawable.ic_resource_iron) }, onAdClosed = {}) } }
+        d.findViewById<Button>(R.id.btnAdGold)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.addQuestProgress(QuestType.WATCH_ADS, 1); GameState.totalGold += 10000; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على 10K ذهب!", R.drawable.ic_resource_gold) }, onAdClosed = {}) } }
+        d.findViewById<Button>(R.id.btnAdSpeedup)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.addQuestProgress(QuestType.WATCH_ADS, 1); GameState.countSpeedup30m++; GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على تسريع 30 دقيقة!", R.drawable.ic_speedup_30m) }, onAdClosed = {}) } }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
     fun showDecorationsDialog(activity: Activity) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_decorations)
         d.findViewById<TextView>(R.id.tvSkinSnake)?.text = if (GameState.isPyramidUnlocked) "متاح للتطبيق" else "مقفلة"
@@ -529,14 +595,17 @@ object DialogManager {
     }
 
     fun showSummoningTavernDialog(activity: Activity) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_summoning_tavern) 
         val tvMedals = d.findViewById<TextView>(R.id.tvSummonMedals); tvMedals?.text = "دعوات ملكية: ${GameState.summonMedals}"
 
+        // 💡 إضافة تقدم للإعلان في قاعة الأساطير أيضاً
         d.findViewById<Button>(R.id.btnSummonAd)?.setOnClickListener {
             SoundManager.playClick()
             showAdConfirmDialog(activity) {
                 YandexAdsManager.showRewardedAd(activity, onRewarded = {
+                    GameState.addQuestProgress(QuestType.WATCH_ADS, 1)
                     val luckyHero = GameState.myHeroes[Random.nextInt(0, 4)]; val shardsCount = if (Random.nextInt(100) < 10) 2 else 1
                     luckyHero.shardsOwned += shardsCount; GameState.saveGameData(activity)
                     showGameMessage(activity, "استدعاء ناجح!", "حصلت على $shardsCount شظية لـ ${luckyHero.name}", R.drawable.ic_ui_tavern)
@@ -559,6 +628,7 @@ object DialogManager {
     }
 
     fun showSettingsDialog(activity: Activity) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_settings)
 
@@ -569,18 +639,8 @@ object DialogManager {
         fun updateButtonState(btn: Button?, isOn: Boolean) { if (isOn) { btn?.text = "مفعل"; btn?.setTextColor(Color.parseColor("#2ECC71")) } else { btn?.text = "معطل"; btn?.setTextColor(Color.parseColor("#FF5252")) } }
         updateButtonState(btnMusic, isMusicOn); updateButtonState(btnSfx, isSfxOn)
 
-        btnMusic?.setOnClickListener { 
-            SoundManager.playClick()
-            isMusicOn = !isMusicOn; prefs.edit().putBoolean("MUSIC", isMusicOn).apply(); updateButtonState(btnMusic, isMusicOn)
-            // 💡 ربط الإعدادات بمحرك الصوت
-            SoundManager.updateSettings(isMusicOn, isSfxOn)
-        }
-        btnSfx?.setOnClickListener { 
-            SoundManager.playClick()
-            isSfxOn = !isSfxOn; prefs.edit().putBoolean("SFX", isSfxOn).apply(); updateButtonState(btnSfx, isSfxOn)
-            // 💡 ربط الإعدادات بمحرك الصوت
-            SoundManager.updateSettings(isMusicOn, isSfxOn)
-        }
+        btnMusic?.setOnClickListener { SoundManager.playClick(); isMusicOn = !isMusicOn; prefs.edit().putBoolean("MUSIC", isMusicOn).apply(); updateButtonState(btnMusic, isMusicOn); SoundManager.updateSettings(isMusicOn, isSfxOn) }
+        btnSfx?.setOnClickListener { SoundManager.playClick(); isSfxOn = !isSfxOn; prefs.edit().putBoolean("SFX", isSfxOn).apply(); updateButtonState(btnSfx, isSfxOn); SoundManager.updateSettings(isMusicOn, isSfxOn) }
         d.findViewById<Button>(R.id.btnManualSave)?.setOnClickListener { SoundManager.playClick(); GameState.saveGameData(activity); d.dismiss(); showGameMessage(activity, "حفظ التقدم", "تم حفظ تقدم الإمبراطورية في السجلات الملكية بنجاح!", R.drawable.ic_settings_gear) }
         d.findViewById<Button>(R.id.btnContactSupport)?.setOnClickListener { SoundManager.playClick(); d.dismiss(); showGameMessage(activity, "رسالة للمطور", "قريباً: سيتم توجيهك لصفحة الدعم الفني أو مجتمع اللعبة!", R.drawable.ic_ui_weapons) }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
@@ -588,6 +648,7 @@ object DialogManager {
     }
 
     fun showWeaponsDialog(activity: Activity) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_weapons)
         val container = d.findViewById<LinearLayout>(R.id.layoutWeaponsContainer)
@@ -618,16 +679,12 @@ object DialogManager {
                     btnAction.text = if (weapon.isOwned) "ترقية" else "صناعة"; btnAction.setTextColor(Color.WHITE)
                     btnAction.setOnClickListener {
                         if (GameState.totalIron >= weapon.getCostIron() && GameState.totalGold >= weapon.getCostGold()) {
-                            // 💡 صوت الحدادة
                             SoundManager.playBlacksmith()
                             GameState.totalIron -= weapon.getCostIron(); GameState.totalGold -= weapon.getCostGold()
                             weapon.isOwned = true; weapon.isUpgrading = true; weapon.totalUpgradeTime = weapon.getUpgradeTimeSeconds() * 1000
                             weapon.upgradeEndTime = System.currentTimeMillis() + weapon.totalUpgradeTime
                             updateUI(activity); GameState.saveGameData(activity); refreshWeaponsList()
-                        } else {
-                            SoundManager.playClick()
-                            showGameMessage(activity, "موارد غير كافية", "تنقصك الموارد لصناعة/ترقية السلاح!", R.drawable.ic_resource_iron)
-                        }
+                        } else { SoundManager.playClick(); showGameMessage(activity, "موارد غير كافية", "تنقصك الموارد لصناعة/ترقية السلاح!", R.drawable.ic_resource_iron) }
                     }
                 }
                 container?.addView(view)
@@ -640,6 +697,7 @@ object DialogManager {
     }
 
     fun showHeroSelectorDialog(activity: Activity, onSelected: (Hero) -> Unit) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_quests) 
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "اختر بطلاً للفيلق"
@@ -665,6 +723,7 @@ object DialogManager {
     }
 
     fun showWeaponSelectorDialog(activity: Activity, onSelected: (Weapon) -> Unit) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_quests) 
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "اختر سلاحاً للفيلق"
@@ -690,38 +749,22 @@ object DialogManager {
     }
 
     fun showFormationDialog(activity: Activity) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_formation)
         
         val castleLevel = GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
         val tvPower = d.findViewById<TextView>(R.id.tvFormationPower)
 
-        val seekInfantry = d.findViewById<SeekBar>(R.id.seekFormationInfantry)
-        val tvInfantryMax = d.findViewById<TextView>(R.id.tvFormationInfantryMax)
-        val tvInfantrySelected = d.findViewById<TextView>(R.id.tvFormationInfantrySelected)
-        
-        val seekCavalry = d.findViewById<SeekBar>(R.id.seekFormationCavalry)
-        val tvCavalryMax = d.findViewById<TextView>(R.id.tvFormationCavalryMax)
-        val tvCavalrySelected = d.findViewById<TextView>(R.id.tvFormationCavalrySelected)
+        val seekInfantry = d.findViewById<SeekBar>(R.id.seekFormationInfantry); val tvInfantryMax = d.findViewById<TextView>(R.id.tvFormationInfantryMax); val tvInfantrySelected = d.findViewById<TextView>(R.id.tvFormationInfantrySelected)
+        val seekCavalry = d.findViewById<SeekBar>(R.id.seekFormationCavalry); val tvCavalryMax = d.findViewById<TextView>(R.id.tvFormationCavalryMax); val tvCavalrySelected = d.findViewById<TextView>(R.id.tvFormationCavalrySelected)
 
         val prefs = activity.getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
-        var selectedInfantry = prefs.getLong("FORMATION_INFANTRY", GameState.totalInfantry)
-        var selectedCavalry = prefs.getLong("FORMATION_CAVALRY", GameState.totalCavalry)
+        var selectedInfantry = prefs.getLong("FORMATION_INFANTRY", GameState.totalInfantry); var selectedCavalry = prefs.getLong("FORMATION_CAVALRY", GameState.totalCavalry)
+        if (selectedInfantry > GameState.totalInfantry) selectedInfantry = GameState.totalInfantry; if (selectedCavalry > GameState.totalCavalry) selectedCavalry = GameState.totalCavalry
 
-        if (selectedInfantry > GameState.totalInfantry) selectedInfantry = GameState.totalInfantry
-        if (selectedCavalry > GameState.totalCavalry) selectedCavalry = GameState.totalCavalry
-
-        val maxInf = GameState.totalInfantry
-        tvInfantryMax?.text = "متاح: ${formatResourceNumber(maxInf)}"
-        seekInfantry?.max = if (maxInf > Int.MAX_VALUE) Int.MAX_VALUE else maxInf.toInt()
-        seekInfantry?.progress = selectedInfantry.toInt()
-        tvInfantrySelected?.text = formatResourceNumber(selectedInfantry)
-
-        val maxCav = GameState.totalCavalry
-        tvCavalryMax?.text = "متاح: ${formatResourceNumber(maxCav)}"
-        seekCavalry?.max = if (maxCav > Int.MAX_VALUE) Int.MAX_VALUE else maxCav.toInt()
-        seekCavalry?.progress = selectedCavalry.toInt()
-        tvCavalrySelected?.text = formatResourceNumber(selectedCavalry)
+        val maxInf = GameState.totalInfantry; tvInfantryMax?.text = "متاح: ${formatResourceNumber(maxInf)}"; seekInfantry?.max = if (maxInf > Int.MAX_VALUE) Int.MAX_VALUE else maxInf.toInt(); seekInfantry?.progress = selectedInfantry.toInt(); tvInfantrySelected?.text = formatResourceNumber(selectedInfantry)
+        val maxCav = GameState.totalCavalry; tvCavalryMax?.text = "متاح: ${formatResourceNumber(maxCav)}"; seekCavalry?.max = if (maxCav > Int.MAX_VALUE) Int.MAX_VALUE else maxCav.toInt(); seekCavalry?.progress = selectedCavalry.toInt(); tvCavalrySelected?.text = formatResourceNumber(selectedCavalry)
 
         val heroSlots = listOf(Triple(d.findViewById<FrameLayout>(R.id.slotHero1), d.findViewById<ImageView>(R.id.imgHero1), d.findViewById<ImageView>(R.id.imgAddHero1)), Triple(d.findViewById<FrameLayout>(R.id.slotHero2), d.findViewById<ImageView>(R.id.imgHero2), d.findViewById<ImageView>(R.id.imgAddHero2)), Triple(d.findViewById<FrameLayout>(R.id.slotHero3), d.findViewById<ImageView>(R.id.imgHero3), d.findViewById<ImageView>(R.id.imgAddHero3)), Triple(d.findViewById<FrameLayout>(R.id.slotHero4), d.findViewById<ImageView>(R.id.imgHero4), d.findViewById<ImageView>(R.id.imgAddHero4)))
         val lockHeroes = listOf(null, d.findViewById<View>(R.id.layoutLockHero2), d.findViewById<View>(R.id.layoutLockHero3), d.findViewById<View>(R.id.layoutLockHero4))
@@ -733,71 +776,34 @@ object DialogManager {
             var lPower: Long = 0
             GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { lPower += it.getCurrentPower() }
             GameState.arsenal.filter { it.isOwned && it.isEquipped }.forEach { lPower += it.getCurrentPower() }
-            val troopsPower = (selectedInfantry * 5) + (selectedCavalry * 10)
-            tvPower?.text = "قوة التشكيلة: ⚔️ ${formatResourceNumber(lPower + troopsPower)}"
+            val troopsPower = (selectedInfantry * 5) + (selectedCavalry * 10); tvPower?.text = "قوة التشكيلة: ⚔️ ${formatResourceNumber(lPower + troopsPower)}"
         }
 
-        seekInfantry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedInfantry = progress.toLong(); tvInfantrySelected?.text = formatResourceNumber(selectedInfantry); updateFormationPower() }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
-
-        seekCavalry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedCavalry = progress.toLong(); tvCavalrySelected?.text = formatResourceNumber(selectedCavalry); updateFormationPower() }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
+        seekInfantry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener { override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedInfantry = progress.toLong(); tvInfantrySelected?.text = formatResourceNumber(selectedInfantry); updateFormationPower() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
+        seekCavalry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener { override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedCavalry = progress.toLong(); tvCavalrySelected?.text = formatResourceNumber(selectedCavalry); updateFormationPower() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
 
         fun refreshFormationUI() {
             updateFormationPower()
-            val equippedHeroes = GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }
-            val equippedWeapons = GameState.arsenal.filter { it.isOwned && it.isEquipped }
+            val equippedHeroes = GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }; val equippedWeapons = GameState.arsenal.filter { it.isOwned && it.isEquipped }
 
             for (i in 0..3) {
                 val (slot, imgFull, imgAdd) = heroSlots[i]; val lock = lockHeroes[i]; val reqLevel = unlockLevels[i]
-                if (castleLevel < reqLevel) {
-                    lock?.visibility = View.VISIBLE; imgFull?.visibility = View.GONE; imgAdd?.visibility = View.GONE
-                    slot?.setOnClickListener { SoundManager.playClick(); showGameMessage(activity, "خانة مقفلة", "تحتاج لترقية القلعة للمستوى $reqLevel لفتح هذه الخانة!", R.drawable.ic_settings_gear) }
-                } else {
-                    lock?.visibility = View.GONE
-                    if (i < equippedHeroes.size) {
-                        imgFull?.visibility = View.VISIBLE; imgAdd?.visibility = View.GONE
-                        val hero = equippedHeroes[i]; imgFull?.setImageResource(hero.iconResId) 
-                        slot?.setOnClickListener { SoundManager.playClick(); hero.isEquipped = false; GameState.saveGameData(activity); refreshFormationUI() }
-                    } else {
-                        imgFull?.visibility = View.GONE; imgAdd?.visibility = View.VISIBLE
-                        slot?.setOnClickListener { SoundManager.playClick(); showHeroSelectorDialog(activity) { selectedHero -> selectedHero.isEquipped = true; GameState.saveGameData(activity); refreshFormationUI() } }
-                    }
-                }
+                if (castleLevel < reqLevel) { lock?.visibility = View.VISIBLE; imgFull?.visibility = View.GONE; imgAdd?.visibility = View.GONE; slot?.setOnClickListener { SoundManager.playClick(); showGameMessage(activity, "خانة مقفلة", "تحتاج لترقية القلعة للمستوى $reqLevel لفتح هذه الخانة!", R.drawable.ic_settings_gear) } } 
+                else { lock?.visibility = View.GONE; if (i < equippedHeroes.size) { imgFull?.visibility = View.VISIBLE; imgAdd?.visibility = View.GONE; val hero = equippedHeroes[i]; imgFull?.setImageResource(hero.iconResId); slot?.setOnClickListener { SoundManager.playClick(); hero.isEquipped = false; GameState.saveGameData(activity); refreshFormationUI() } } 
+                else { imgFull?.visibility = View.GONE; imgAdd?.visibility = View.VISIBLE; slot?.setOnClickListener { SoundManager.playClick(); showHeroSelectorDialog(activity) { selectedHero -> selectedHero.isEquipped = true; GameState.saveGameData(activity); refreshFormationUI() } } } }
             }
 
             for (i in 0..3) {
                 val (slot, imgFull, imgAdd) = weaponSlots[i]; val lock = lockWeapons[i]; val reqLevel = unlockLevels[i]
-                if (castleLevel < reqLevel) {
-                    lock?.visibility = View.VISIBLE; imgFull?.visibility = View.GONE; imgAdd?.visibility = View.GONE
-                    slot?.setOnClickListener { SoundManager.playClick(); showGameMessage(activity, "خانة مقفلة", "تحتاج لترقية القلعة للمستوى $reqLevel لفتح هذه الخانة!", R.drawable.ic_settings_gear) }
-                } else {
-                    lock?.visibility = View.GONE
-                    if (i < equippedWeapons.size) {
-                        imgFull?.visibility = View.VISIBLE; imgAdd?.visibility = View.GONE
-                        val weapon = equippedWeapons[i]; imgFull?.setImageResource(weapon.iconResId) 
-                        slot?.setOnClickListener { SoundManager.playClick(); weapon.isEquipped = false; GameState.saveGameData(activity); refreshFormationUI() }
-                    } else {
-                        imgFull?.visibility = View.GONE; imgAdd?.visibility = View.VISIBLE
-                        slot?.setOnClickListener { SoundManager.playClick(); showWeaponSelectorDialog(activity) { selectedWeapon -> selectedWeapon.isEquipped = true; GameState.saveGameData(activity); refreshFormationUI() } }
-                    }
-                }
+                if (castleLevel < reqLevel) { lock?.visibility = View.VISIBLE; imgFull?.visibility = View.GONE; imgAdd?.visibility = View.GONE; slot?.setOnClickListener { SoundManager.playClick(); showGameMessage(activity, "خانة مقفلة", "تحتاج لترقية القلعة للمستوى $reqLevel لفتح هذه الخانة!", R.drawable.ic_settings_gear) } } 
+                else { lock?.visibility = View.GONE; if (i < equippedWeapons.size) { imgFull?.visibility = View.VISIBLE; imgAdd?.visibility = View.GONE; val weapon = equippedWeapons[i]; imgFull?.setImageResource(weapon.iconResId); slot?.setOnClickListener { SoundManager.playClick(); weapon.isEquipped = false; GameState.saveGameData(activity); refreshFormationUI() } } 
+                else { imgFull?.visibility = View.GONE; imgAdd?.visibility = View.VISIBLE; slot?.setOnClickListener { SoundManager.playClick(); showWeaponSelectorDialog(activity) { selectedWeapon -> selectedWeapon.isEquipped = true; GameState.saveGameData(activity); refreshFormationUI() } } } }
             }
         }
         refreshFormationUI()
 
-        d.findViewById<Button>(R.id.btnSaveFormation)?.setOnClickListener { 
-            SoundManager.playClick()
-            prefs.edit().putLong("FORMATION_INFANTRY", selectedInfantry).putLong("FORMATION_CAVALRY", selectedCavalry).apply()
-            showGameMessage(activity, "التشكيلة جاهزة", "تم حفظ التشكيلة الدفاعية بنجاح!", R.drawable.ic_ui_formation)
-            updateUI(activity); d.dismiss() 
-        }
-        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
-        d.show()
+        d.findViewById<Button>(R.id.btnSaveFormation)?.setOnClickListener { SoundManager.playClick(); prefs.edit().putLong("FORMATION_INFANTRY", selectedInfantry).putLong("FORMATION_CAVALRY", selectedCavalry).apply(); showGameMessage(activity, "التشكيلة جاهزة", "تم حفظ التشكيلة الدفاعية بنجاح!", R.drawable.ic_ui_formation); updateUI(activity); d.dismiss() }
+        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }; d.show()
     }
 
     private fun formatResourceNumber(num: Long): String = when { num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0); num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0); else -> num.toString() }
