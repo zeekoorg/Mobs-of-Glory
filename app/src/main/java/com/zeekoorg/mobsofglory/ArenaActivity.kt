@@ -137,9 +137,8 @@ class ArenaActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 الألعاب النارية الدموية המذهلة مع اهتزاز أقوى للخلفية
+    // 💡 الألعاب النارية الدموية: تطاير للأعلى واليمين واليسار فقط
     private fun triggerHitEffects() {
-        // هزتين أقوى قليلاً
         val shake = TranslateAnimation(-15f, 15f, -5f, 5f)
         shake.duration = 50; shake.repeatMode = Animation.REVERSE; shake.repeatCount = 2
         imgArenaBackground.startAnimation(shake)
@@ -149,7 +148,6 @@ class ArenaActivity : AppCompatActivity() {
         val castleCenterX = loc[0] + layoutGhostCastle.width / 2f
         val castleCenterY = loc[1] + layoutGhostCastle.height / 2f
 
-        // 💡 80 شظية دم، أحجام ضخمة، تطاير بمدى واسع جداً
         for (i in 0..79) {
             val drop = View(this).apply {
                 layoutParams = FrameLayout.LayoutParams(Random.nextInt(30, 60), Random.nextInt(30, 60))
@@ -158,8 +156,9 @@ class ArenaActivity : AppCompatActivity() {
             }
             container.addView(drop)
             
-            val angle = Math.toRadians(Random.nextDouble(0.0, 360.0))
-            val distance = Random.nextDouble(150.0, 600.0) // مدى تطاير واسع ومبهر
+            // 💡 الزاوية من 180 إلى 360 درجة تعني (اليسار، الأعلى، اليمين)
+            val angle = Math.toRadians(Random.nextDouble(180.0, 360.0))
+            val distance = Random.nextDouble(150.0, 600.0) 
             val targetX = castleCenterX + (distance * Math.cos(angle)).toFloat()
             val targetY = castleCenterY + (distance * Math.sin(angle)).toFloat()
 
@@ -183,16 +182,15 @@ class ArenaActivity : AppCompatActivity() {
         GameState.arenaScore += earnedScore
         GameState.arenaLeaderboard.find { it.isRealPlayer }?.score = GameState.arenaScore
 
-        // 💡 مكافأة فورية للدمار إذا تجاوز 250 ألف
         var hasBonusLoot = false
         if (damageDealt >= 250000) {
             GameState.totalIron += 50000; GameState.totalWheat += 50000; GameState.totalGold += 30000
             hasBonusLoot = true
         }
 
-        // 💡 تم تقليص الخسائر إلى 5%
-        val deadRatio = 0.05
-        val woundedRatio = 0.05
+        // 💡 تقليص الخسائر إلى 2% فقط
+        val deadRatio = 0.02
+        val woundedRatio = 0.02
 
         val deadInfantry = (sentInfantry * deadRatio).toLong(); val woundedInf = (sentInfantry * woundedRatio).toLong()
         val deadCavalry = (sentCavalry * deadRatio).toLong(); val woundedCav = (sentCavalry * woundedRatio).toLong()
@@ -200,7 +198,6 @@ class ArenaActivity : AppCompatActivity() {
         GameState.totalInfantry -= (deadInfantry + woundedInf); GameState.totalCavalry -= (deadCavalry + woundedCav)
         GameState.woundedInfantry += woundedInf; GameState.woundedCavalry += woundedCav
 
-        // 💡 تحديث القوة فورا! لأن الجرحى والموتى لا يحسبون كقوة عسكرية
         GameState.calculatePower()
         GameState.saveGameData(this)
         refreshArenaUI()
@@ -208,7 +205,6 @@ class ArenaActivity : AppCompatActivity() {
         Handler(Looper.getMainLooper()).postDelayed({
             ArenaDialogManager.showBattleReportDialog(this, damageDealt, earnedScore, deadInfantry + deadCavalry, woundedInf + woundedCav)
             
-            // 💡 إظهار نافذة المكافأة الفورية بعد التقرير إن وجدت
             if (hasBonusLoot) {
                 Handler(Looper.getMainLooper()).postDelayed({
                     DialogManager.showGameMessage(this, "دمار أسطوري!", "لقد ألحقت ضرراً تجاوز 250,000 بالقلعة!\n\nمكافأة فورية:\n+ 50K حديد\n+ 50K قمح\n+ 30K ذهب", R.drawable.ic_ui_castle_rewards)
@@ -267,5 +263,9 @@ class ArenaActivity : AppCompatActivity() {
         })
     }
 
-    private fun formatResourceNumber(num: Long): String = when { num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0); num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0); else -> num.toString() }
+    private fun formatResourceNumber(num: Long): String = when { 
+        num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0)
+        num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0)
+        else -> num.toString() 
+    }
 }
