@@ -137,7 +137,7 @@ class ArenaActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 الألعاب النارية الدموية: تطاير للأعلى واليمين واليسار فقط
+    // 💡 الألعاب النارية الدموية المكثفة جداً والصغيرة (تأثير الرذاذ الكثيف)
     private fun triggerHitEffects() {
         val shake = TranslateAnimation(-15f, 15f, -5f, 5f)
         shake.duration = 50; shake.repeatMode = Animation.REVERSE; shake.repeatCount = 2
@@ -148,22 +148,26 @@ class ArenaActivity : AppCompatActivity() {
         val castleCenterX = loc[0] + layoutGhostCastle.width / 2f
         val castleCenterY = loc[1] + layoutGhostCastle.height / 2f
 
-        for (i in 0..79) {
+        // 💡 160 كرة (ضعف العدد السابق لجعلها مكثفة جداً)
+        for (i in 0..159) {
             val drop = View(this).apply {
-                layoutParams = FrameLayout.LayoutParams(Random.nextInt(30, 60), Random.nextInt(30, 60))
+                // 💡 تصغير الحجم جداً لجعلها ناعمة
+                val size = Random.nextInt(8, 16) 
+                layoutParams = FrameLayout.LayoutParams(size, size)
                 background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#E74C3C")) }
                 x = castleCenterX; y = castleCenterY; elevation = 20f
             }
             container.addView(drop)
             
-            // 💡 الزاوية من 180 إلى 360 درجة تعني (اليسار، الأعلى، اليمين)
             val angle = Math.toRadians(Random.nextDouble(180.0, 360.0))
-            val distance = Random.nextDouble(150.0, 600.0) 
+            // 💡 مدى تطاير عشوائي وواسع
+            val distance = Random.nextDouble(100.0, 650.0) 
             val targetX = castleCenterX + (distance * Math.cos(angle)).toFloat()
             val targetY = castleCenterY + (distance * Math.sin(angle)).toFloat()
 
-            drop.animate().x(targetX).y(targetY).alpha(0f).scaleX(1.5f).scaleY(1.5f)
-                .setDuration(Random.nextLong(500, 1000)).setInterpolator(android.view.animation.DecelerateInterpolator())
+            // 💡 أنميشن تلاشي وتصغير إضافي عند النهاية
+            drop.animate().x(targetX).y(targetY).alpha(0f).scaleX(0.2f).scaleY(0.2f)
+                .setDuration(Random.nextLong(400, 1200)).setInterpolator(android.view.animation.DecelerateInterpolator())
                 .withEndAction { container.removeView(drop) }.start()
         }
         layoutAttackPrompt.visibility = View.VISIBLE 
@@ -188,7 +192,6 @@ class ArenaActivity : AppCompatActivity() {
             hasBonusLoot = true
         }
 
-        // 💡 تقليص الخسائر إلى 2% فقط
         val deadRatio = 0.02
         val woundedRatio = 0.02
 
@@ -263,9 +266,5 @@ class ArenaActivity : AppCompatActivity() {
         })
     }
 
-    private fun formatResourceNumber(num: Long): String = when { 
-        num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0)
-        num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0)
-        else -> num.toString() 
-    }
+    private fun formatResourceNumber(num: Long): String = when { num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0); num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0); else -> num.toString() }
 }
