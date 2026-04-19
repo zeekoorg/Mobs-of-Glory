@@ -43,7 +43,6 @@ class MainActivity : AppCompatActivity() {
     private val gameHandler = Handler(Looper.getMainLooper())
     private var doubleBackToExitPressedOnce = false
 
-    // 💡 متغيرات العداد السلس (Rolling Numbers)
     private var displayedGold = -1L
     private var displayedIron = -1L
     private var displayedWheat = -1L
@@ -93,7 +92,6 @@ class MainActivity : AppCompatActivity() {
         GameState.loadGameDataAndProcessOffline(this)
         GameState.calculatePower()
         
-        // 💡 تهيئة الأيقونة الطافية للقلعة
         setupFloatingEventIcon()
 
         updateHudUI()
@@ -124,7 +122,6 @@ class MainActivity : AppCompatActivity() {
         SoundManager.onDestroy()
     }
 
-    // 💡 زر الرجوع (نقر مرتين للخروج)
     override fun onBackPressed() {
         if (doubleBackToExitPressedOnce) {
             super.onBackPressed()
@@ -163,7 +160,6 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.layoutCastleRewardsClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showCastleRewardsDialog(this, GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1) }
         findViewById<View>(R.id.btnNavArena)?.setOnClickListener { SoundManager.playClick(); startActivity(Intent(this, ArenaActivity::class.java)) }
         
-        // 💡 تم ربط زر المهام الأسبوعية بالنافذة الجديدة
         findViewById<View>(R.id.layoutWeeklyQuestsClick)?.setOnClickListener { 
             SoundManager.playWindowOpen()
             DialogManager.showWeeklyQuestsDialog(this) 
@@ -263,11 +259,15 @@ class MainActivity : AppCompatActivity() {
                 val now = System.currentTimeMillis()
                 updateVipUI(now)
                 
-                // 💡 تحديث عداد المهام الأسبوعية
+                // 💡 تحديث عداد المهام الأسبوعية مع دمج الأيام بالوقت
                 val weeklyRem = GameState.weeklyQuestEndTime - now
                 if (weeklyRem > 0) {
-                    val d = weeklyRem / 86400000L; val h = (weeklyRem % 86400000L) / 3600000L; val m = (weeklyRem % 3600000L) / 60000L; val s = (weeklyRem % 60000L) / 1000L
-                    tvWeeklyTimerUI.text = if (d > 0) String.format(Locale.US, "%d أيام", d) else String.format(Locale.US, "%02d:%02d:%02d", h, m, s)
+                    val d = weeklyRem / 86400000L
+                    val h = (weeklyRem % 86400000L) / 3600000L
+                    val m = (weeklyRem % 3600000L) / 60000L
+                    val s = (weeklyRem % 60000L) / 1000L
+                    tvWeeklyTimerUI.text = if (d > 0) String.format(Locale.US, "%dيوم %02d:%02d:%02d", d, h, m, s) 
+                                           else String.format(Locale.US, "%02d:%02d:%02d", h, m, s)
                 } else tvWeeklyTimerUI.text = "تحديث..."
 
                 if (GameState.isHealing) {
@@ -319,7 +319,6 @@ class MainActivity : AppCompatActivity() {
         rootLayout.addView(flyingIcon); flyingIcon.animate().x(targetLoc[0].toFloat()).y(targetLoc[1].toFloat()).setDuration(600).setInterpolator(AccelerateDecelerateInterpolator()).withEndAction { rootLayout.removeView(flyingIcon); targetView.startAnimation(AnimationUtils.loadAnimation(this, android.R.anim.fade_in)) }.start()
     }
 
-    // 💡 دالة الأنميشن للعدادات السلسة
     private fun animateResourceText(tv: TextView, start: Long, end: Long, prefix: String, onUpdate: (Long) -> Unit): android.animation.ValueAnimator {
         val animator = android.animation.ValueAnimator.ofFloat(start.toFloat(), end.toFloat())
         animator.duration = 800
@@ -336,7 +335,6 @@ class MainActivity : AppCompatActivity() {
         tvPlayerLevel.text = "Lv. ${GameState.playerLevel}"
         pbPlayerMP.progress = ((GameState.playerExp.toFloat() / (GameState.playerLevel * 1000).toFloat()) * 100).toInt()
 
-        // 💡 العدادات السلسة للموارد والقوة (تتحرك الأرقام صعوداً وهبوطاً بذكاء)
         if (displayedGold == -1L) displayedGold = GameState.totalGold
         if (displayedGold != GameState.totalGold) { goldAnimator?.cancel(); goldAnimator = animateResourceText(tvTotalGold, displayedGold, GameState.totalGold, "") { displayedGold = it } } 
         else tvTotalGold.text = formatResourceNumber(GameState.totalGold)
