@@ -102,6 +102,13 @@ class MainActivity : AppCompatActivity() {
         
         checkPendingLevelUps()
         showPendingOfflineMessages()
+
+        // 💡 إضافة استدعاء حزمة البداية للمستخدمين الجدد
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (!GameState.isStarterPackClaimed) {
+                DialogManager.showStarterPackDialog(this)
+            }
+        }, 1500)
     }
 
     override fun onResume() {
@@ -259,15 +266,10 @@ class MainActivity : AppCompatActivity() {
                 val now = System.currentTimeMillis()
                 updateVipUI(now)
                 
-                // 💡 تحديث عداد المهام الأسبوعية مع دمج الأيام بالوقت
                 val weeklyRem = GameState.weeklyQuestEndTime - now
                 if (weeklyRem > 0) {
-                    val d = weeklyRem / 86400000L
-                    val h = (weeklyRem % 86400000L) / 3600000L
-                    val m = (weeklyRem % 3600000L) / 60000L
-                    val s = (weeklyRem % 60000L) / 1000L
-                    tvWeeklyTimerUI.text = if (d > 0) String.format(Locale.US, "%dيوم %02d:%02d:%02d", d, h, m, s) 
-                                           else String.format(Locale.US, "%02d:%02d:%02d", h, m, s)
+                    val d = weeklyRem / 86400000L; val h = (weeklyRem % 86400000L) / 3600000L; val m = (weeklyRem % 3600000L) / 60000L; val s = (weeklyRem % 60000L) / 1000L
+                    tvWeeklyTimerUI.text = if (d > 0) String.format(Locale.US, "%dيوم %02d:%02d:%02d", d, h, m, s) else String.format(Locale.US, "%02d:%02d:%02d", h, m, s)
                 } else tvWeeklyTimerUI.text = "تحديث..."
 
                 if (GameState.isHealing) {
