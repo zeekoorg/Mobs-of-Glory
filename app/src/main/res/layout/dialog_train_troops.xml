@@ -30,7 +30,7 @@
             android:layout_marginTop="35dp"
             android:gravity="center"
             android:text="تدريب القوات"
-            android:textColor="#FFFFFF"
+            android:textColor="#F4D03F"
             android:textSize="20sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
@@ -39,7 +39,7 @@
 
         <LinearLayout
             android:id="@+id/layoutContent"
-            android:layout_width="220dp"
+            android:layout_width="260dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="15dp"
             android:gravity="center"
@@ -54,35 +54,45 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="15dp"
                 android:text="القوات المملوكة: 0"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp"
+                android:textColor="#BDC3C7"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="15dp"
-                android:gravity="center"
-                android:orientation="horizontal">
+                android:orientation="vertical"
+                android:layout_marginBottom="15dp">
+                
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/tvMaxTrainCapacity"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="الحد الأقصى: 500"
+                        android:textColor="#BDC3C7"
+                        android:textSize="10sp"/>
+                    <TextView
+                        android:id="@+id/tvSelectedTrainAmount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textColor="#2ECC71"
+                        android:textSize="14sp"
+                        android:textStyle="bold"/>
+                </LinearLayout>
 
-                <Button
-                    android:id="@+id/btnTrain100"
-                    android:layout_width="wrap_content"
-                    android:layout_height="40dp"
-                    android:layout_marginEnd="10dp"
-                    android:background="@drawable/bg_btn_gold_border"
-                    android:text="+ 100"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/btnTrain1000"
-                    android:layout_width="wrap_content"
-                    android:layout_height="40dp"
-                    android:background="@drawable/bg_btn_gold_border"
-                    android:text="+ 1000"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold" />
+                <SeekBar
+                    android:id="@+id/seekTrainTroops"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:progressTint="#2ECC71"
+                    android:thumbTint="#FFFFFF"/>
             </LinearLayout>
 
             <LinearLayout
@@ -130,15 +140,15 @@
                 android:layout_marginTop="10dp"
                 android:layout_marginBottom="5dp"
                 android:text="قوة الوحدة: 5 | الحمولة: 10"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp" />
+                android:textColor="#BDC3C7"
+                android:textSize="11sp" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:layout_marginBottom="35dp"
+            android:layout_marginBottom="30dp"
             android:gravity="center"
             android:orientation="vertical"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -161,13 +171,12 @@
                 android:id="@+id/btnClose"
                 android:layout_width="180dp"
                 android:layout_height="45dp"
-                android:background="@drawable/bg_btn_gold_border"
+                android:background="#00000000"
                 android:text="إغلاق"
-                android:textColor="#FFFFFF"
-                android:textSize="16sp"
+                android:textColor="#BDC3C7"
+                android:textSize="14sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
-
