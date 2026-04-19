@@ -16,7 +16,8 @@ enum class ResourceType(val iconResId: Int) {
 enum class QuestType {
     COLLECT_RESOURCES,
     TRAIN_TROOPS,
-    UPGRADE_BUILDING
+    UPGRADE_BUILDING,
+    WATCH_ADS // 💡 نوع جديد لمهمة الإعلانات
 }
 
 enum class Rarity(val powerMultiplier: Double, val costMultiplier: Double, val timeMultiplier: Double) {
@@ -50,9 +51,11 @@ data class Weapon(
     fun getUpgradeTimeSeconds(): Long = (level * level * 120 * rarity.timeMultiplier).toLong()
 }
 
+// 💡 تعديل جوهري: إضافة الموارد المتعددة والدعوات الملكية كجوائز في المهام
 data class DynamicQuest(
     val id: Int, val title: String, val type: QuestType, val targetAmount: Int,
-    val rewardGold: Long, var currentAmount: Int = 0, var isCollected: Boolean = false
+    val rewardGold: Long, val rewardWheat: Long = 0L, val rewardIron: Long = 0L, val rewardMedals: Int = 0,
+    var currentAmount: Int = 0, var isCollected: Boolean = false
 ) {
     val isCompleted: Boolean get() = currentAmount >= targetAmount
 }
@@ -71,8 +74,6 @@ data class MapPlot(
     var layoutUpgradeProgress: View? = null, var pbUpgrade: ProgressBar? = null, 
     var tvUpgradeTimer: TextView? = null, var collectIcon: ImageView? = null
 ) {
-    
-    // 💡 استراتيجية التطوير القاسية: القلعة أغلى وأبطأ، والمعادلة تتضاعف بعد المستوى 5
     fun getCostWheat(): Long {
         val base = if (idCode == "CASTLE") 2500.0 else 800.0
         val exponent = if (level >= 5) 3.2 else 2.0
@@ -97,7 +98,6 @@ data class MapPlot(
         return (baseTime * level.toDouble().pow(exponent)).toLong()
     } 
 
-    // 💡 استراتيجية الجمع: مستوى 50 يعطي 10 ألف قمح/حديد و 5 آلاف ذهب
     fun getReward(): Long {
         return if (resourceType == ResourceType.GOLD) {
             (level * 100).toLong() 
@@ -106,7 +106,6 @@ data class MapPlot(
         }
     }
     
-    // 💡 سعة التدريب المرتبطة بمستوى المبنى
     fun getMaxTrainingCapacity(): Int {
         return when {
             level < 5 -> 500
