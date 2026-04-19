@@ -17,6 +17,9 @@ object GameState {
     var woundedInfantry: Long = 0; var woundedCavalry: Long = 0
     var summonMedals: Int = 0
     
+    // 💡 متغير حزمة البداية
+    var isStarterPackClaimed: Boolean = false
+    
     var isPyramidUnlocked = false; var isDiamondUnlocked = false; var isPeacockUnlocked = false
     var countSpeedup5m: Int = 0; var countSpeedup15m: Int = 0; var countSpeedup30m: Int = 0
     var countSpeedup1Hour: Int = 0; var countSpeedup2h: Int = 0; var countSpeedup8Hour: Int = 0
@@ -33,7 +36,6 @@ object GameState {
     val arsenal = mutableListOf<Weapon>() 
     val myPlots = mutableListOf<MapPlot>()
     
-    // 💡 القوائم والعدادات الخاصة بالمهام
     val dailyQuestsList = mutableListOf<DynamicQuest>()
     val weeklyQuestsList = mutableListOf<DynamicQuest>()
     var weeklyQuestEndTime: Long = 0L
@@ -45,7 +47,6 @@ object GameState {
     var isHealing: Boolean = false; var healingEndTime: Long = 0L; var healingTotalTime: Long = 0L
     var healingInfantryAmount: Long = 0; var healingCavalryAmount: Long = 0
 
-    // 💡 دالة التقدم أصبحت تضيف في المهام اليومية والأسبوعية معاً في نفس اللحظة
     fun addQuestProgress(type: QuestType, amount: Int) {
         dailyQuestsList.filter { it.type == type }.forEach { quest ->
             if (!quest.isCollected && !quest.isCompleted) {
@@ -77,7 +78,6 @@ object GameState {
             arsenal.add(Weapon(4, "رمح التنين الأسطوري", 100000, R.drawable.ic_weapon_dragon_spear, 1, Rarity.LEGENDARY))
         }
         
-        // 💡 تهيئة المهام اليومية (متوسطة)
         if (dailyQuestsList.isEmpty()) {
             dailyQuestsList.add(DynamicQuest(1, "حصاد المزارع والمنجم", QuestType.COLLECT_RESOURCES, 10, 5000, 15000, 15000, 0))
             dailyQuestsList.add(DynamicQuest(2, "تدريب 500 جندي", QuestType.TRAIN_TROOPS, 500, 5000, 10000, 10000, 0))
@@ -85,9 +85,8 @@ object GameState {
             dailyQuestsList.add(DynamicQuest(4, "دعم الخزينة (شاهد 5 إعلانات)", QuestType.WATCH_ADS, 5, 15000, 50000, 50000, 0))
         }
         
-        // 💡 تهيئة المهام الأسبوعية (صعبة مع دعوة ملكية في الأصعب)
         if (weeklyQuestsList.isEmpty()) {
-            weeklyQuestsList.add(DynamicQuest(101, "المهمة الأسطورية: تدريب 25K جندي", QuestType.TRAIN_TROOPS, 25000, 100000, 250000, 250000, 1)) // 1 Medal
+            weeklyQuestsList.add(DynamicQuest(101, "المهمة الأسطورية: تدريب 25K جندي", QuestType.TRAIN_TROOPS, 25000, 100000, 250000, 250000, 1))
             weeklyQuestsList.add(DynamicQuest(102, "النهضة المعمارية: تطوير 15 مبنى", QuestType.UPGRADE_BUILDING, 15, 60000, 150000, 150000, 0))
             weeklyQuestsList.add(DynamicQuest(103, "الإمبراطورية الغنية: اجمع 100 مرة", QuestType.COLLECT_RESOURCES, 100, 50000, 100000, 100000, 0))
             weeklyQuestsList.add(DynamicQuest(104, "الداعم الملكي: شاهد 20 إعلاناً", QuestType.WATCH_ADS, 20, 80000, 200000, 200000, 0))
@@ -185,6 +184,9 @@ object GameState {
         prefs.putLong("WOUNDED_INFANTRY", woundedInfantry); prefs.putLong("WOUNDED_CAVALRY", woundedCavalry)
         prefs.putInt("SUMMON_MEDALS", summonMedals)
         
+        // 💡 حفظ حالة حزمة البداية
+        prefs.putBoolean("STARTER_PACK_CLAIMED", isStarterPackClaimed)
+        
         prefs.putBoolean("PYRAMID_UNLOCKED", isPyramidUnlocked); prefs.putBoolean("DIAMOND_UNLOCKED", isDiamondUnlocked); prefs.putBoolean("PEACOCK_UNLOCKED", isPeacockUnlocked)
         prefs.putInt("SPEEDUP_5M", countSpeedup5m); prefs.putInt("SPEEDUP_15M", countSpeedup15m); prefs.putInt("SPEEDUP_30M", countSpeedup30m)
         prefs.putInt("SPEEDUP_1H", countSpeedup1Hour); prefs.putInt("SPEEDUP_2H", countSpeedup2h); prefs.putInt("SPEEDUP_8H", countSpeedup8Hour)
@@ -200,7 +202,6 @@ object GameState {
         prefs.putBoolean("IS_HEALING", isHealing); prefs.putLong("HEALING_END_TIME", healingEndTime); prefs.putLong("HEALING_TOTAL_TIME", healingTotalTime)
         prefs.putLong("HEALING_INF_AMOUNT", healingInfantryAmount); prefs.putLong("HEALING_CAV_AMOUNT", healingCavalryAmount)
         
-        // 💡 حفظ المهام اليومية والأسبوعية
         dailyQuestsList.forEachIndexed { i, q -> prefs.putInt("QUEST_${i}_PROG", q.currentAmount); prefs.putBoolean("QUEST_${i}_COLL", q.isCollected) }
         weeklyQuestsList.forEachIndexed { i, q -> prefs.putInt("WQUEST_${i}_PROG", q.currentAmount); prefs.putBoolean("WQUEST_${i}_COLL", q.isCollected) }
         prefs.putLong("WEEKLY_QUEST_END", weeklyQuestEndTime)
@@ -235,6 +236,9 @@ object GameState {
         totalInfantry = prefs.getLong("TOTAL_INFANTRY", 0); totalCavalry = prefs.getLong("TOTAL_CAVALRY", 0)
         woundedInfantry = prefs.getLong("WOUNDED_INFANTRY", 0); woundedCavalry = prefs.getLong("WOUNDED_CAVALRY", 0)
         summonMedals = prefs.getInt("SUMMON_MEDALS", 2)
+        
+        // 💡 استرجاع حالة حزمة البداية
+        isStarterPackClaimed = prefs.getBoolean("STARTER_PACK_CLAIMED", false)
         
         isPyramidUnlocked = prefs.getBoolean("PYRAMID_UNLOCKED", false); isDiamondUnlocked = prefs.getBoolean("DIAMOND_UNLOCKED", false); isPeacockUnlocked = prefs.getBoolean("PEACOCK_UNLOCKED", false)
         countSpeedup5m = prefs.getInt("SPEEDUP_5M", 0); countSpeedup15m = prefs.getInt("SPEEDUP_15M", 0); countSpeedup30m = prefs.getInt("SPEEDUP_30M", 0)
@@ -277,7 +281,6 @@ object GameState {
         
         arenaLeaderboard.find { it.isRealPlayer }?.let { it.score = arenaScore; it.name = playerName }
 
-        // 💡 استرجاع المهام وفحص انتهاء أسبوع المهام
         dailyQuestsList.forEachIndexed { i, q -> q.currentAmount = prefs.getInt("QUEST_${i}_PROG", 0); q.isCollected = prefs.getBoolean("QUEST_${i}_COLL", false) }
         weeklyQuestsList.forEachIndexed { i, q -> q.currentAmount = prefs.getInt("WQUEST_${i}_PROG", 0); q.isCollected = prefs.getBoolean("WQUEST_${i}_COLL", false) }
         weeklyQuestEndTime = prefs.getLong("WEEKLY_QUEST_END", 0L)
