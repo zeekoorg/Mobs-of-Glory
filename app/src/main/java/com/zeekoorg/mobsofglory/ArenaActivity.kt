@@ -63,11 +63,17 @@ class ArenaActivity : AppCompatActivity() {
         GameState.calculatePower()
         GameState.arenaLeaderboard.find { it.isRealPlayer }?.name = GameState.playerName
         refreshArenaUI()
+        
+        // 💡 تشغيل موسيقى المعركة الملحمية
+        SoundManager.playBGM(this, R.raw.bgm_arena)
     }
 
     override fun onPause() {
         super.onPause()
         GameState.saveGameData(this)
+        
+        // 💡 إيقاف الموسيقى مؤقتاً عند الخروج من الساحة
+        SoundManager.pauseBGM()
     }
 
     private fun initViews() {
@@ -86,35 +92,41 @@ class ArenaActivity : AppCompatActivity() {
     private fun setupActionListeners() {
         layoutGhostCastle.setOnClickListener {
             if (GameState.arenaStamina > 0) {
+                SoundManager.playClick()
                 ArenaDialogManager.showPreparationDialog(this) { sentInfantry, sentCavalry -> startMarchAnimation(sentInfantry, sentCavalry) }
-            } else DialogManager.showGameMessage(this, "نفاد الطاقة", "لا تمتلك طاقة هجوم! انتظر قليلاً أو اشحن طاقتك.", R.drawable.ic_settings_gear)
+            } else {
+                SoundManager.playClick()
+                DialogManager.showGameMessage(this, "نفاد الطاقة", "لا تمتلك طاقة هجوم! انتظر قليلاً أو اشحن طاقتك.", R.drawable.ic_settings_gear)
+            }
         }
 
         findViewById<View>(R.id.btnRechargeStamina)?.setOnClickListener {
+            SoundManager.playClick()
             if (GameState.arenaStamina < 5) showStaminaAdDialog() else DialogManager.showGameMessage(this, "طاقة ممتلئة", "طاقتك ممتلئة بالفعل أيها المهيب!", R.drawable.ic_settings_gear)
         }
 
-        findViewById<View>(R.id.btnLeaderboard)?.setOnClickListener { ArenaDialogManager.showLeaderboardDialog(this) }
-        findViewById<View>(R.id.btnArenaRewards)?.setOnClickListener { ArenaDialogManager.showArenaRewardsDialog(this) }
-        findViewById<View>(R.id.btnSettings)?.setOnClickListener { DialogManager.showSettingsDialog(this) }
-        findViewById<View>(R.id.layoutAvatarClick)?.setOnClickListener { DialogManager.showGameMessage(this, "ملف الإمبراطور", "يمكنك تغيير اسمك وصورتك من داخل المدينة الرئيسية.", R.drawable.ic_user_frame) }
-        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { finish() }
-        findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { DialogManager.showHeroesDialog(this) }
-        findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { DialogManager.showQuestsDialog(this) }
-        findViewById<View>(R.id.btnNavBag)?.setOnClickListener { DialogManager.showBagDialog(this) }
+        findViewById<View>(R.id.btnLeaderboard)?.setOnClickListener { SoundManager.playWindowOpen(); ArenaDialogManager.showLeaderboardDialog(this) }
+        findViewById<View>(R.id.btnArenaRewards)?.setOnClickListener { SoundManager.playWindowOpen(); ArenaDialogManager.showArenaRewardsDialog(this) }
+        findViewById<View>(R.id.btnSettings)?.setOnClickListener { SoundManager.playClick(); DialogManager.showSettingsDialog(this) }
+        findViewById<View>(R.id.layoutAvatarClick)?.setOnClickListener { SoundManager.playClick(); DialogManager.showGameMessage(this, "ملف الإمبراطور", "يمكنك تغيير اسمك وصورتك من داخل المدينة الرئيسية.", R.drawable.ic_user_frame) }
+        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { SoundManager.playClick(); finish() }
+        findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showHeroesDialog(this) }
+        findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showQuestsDialog(this) }
+        findViewById<View>(R.id.btnNavBag)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showBagDialog(this) }
     }
 
     private fun showStaminaAdDialog() {
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_ad_confirm)
         d.findViewById<Button>(R.id.btnConfirmAd)?.setOnClickListener {
+            SoundManager.playClick()
             d.dismiss()
             YandexAdsManager.showRewardedAd(this, onRewarded = {
                 GameState.arenaStamina = 5; GameState.arenaStaminaLastRegenTime = System.currentTimeMillis(); GameState.saveGameData(this)
                 refreshArenaUI(); DialogManager.showGameMessage(this, "طاقة كاملة", "تم شحن طاقة الهجوم بالكامل! سحقاً للأعداء!", R.drawable.ic_settings_gear)
             }, onAdClosed = {})
         }
-        d.findViewById<Button>(R.id.btnCancelAd)?.setOnClickListener { d.dismiss() }
+        d.findViewById<Button>(R.id.btnCancelAd)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -122,6 +134,9 @@ class ArenaActivity : AppCompatActivity() {
         GameState.arenaStamina--; if (GameState.arenaStamina == 4) GameState.arenaStaminaLastRegenTime = System.currentTimeMillis()
         refreshArenaUI(); layoutAttackPrompt.visibility = View.INVISIBLE
         
+        // 💡 صوت زحف الجيش
+        SoundManager.playMarch()
+
         imgMarchingLegion.clearAnimation(); imgMarchingLegion.animate().cancel()
         imgMarchingLegion.scaleX = 1.0f; imgMarchingLegion.scaleY = 1.0f; imgMarchingLegion.translationX = 0f; imgMarchingLegion.translationY = 0f
         imgMarchingLegion.alpha = 1.0f; imgMarchingLegion.visibility = View.VISIBLE
@@ -137,8 +152,10 @@ class ArenaActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 الألعاب النارية الدموية المكثفة جداً والصغيرة (تأثير الرذاذ الكثيف)
     private fun triggerHitEffects() {
+        // 💡 صوت تحطم القلعة والضربة القاضية
+        SoundManager.playClash()
+
         val shake = TranslateAnimation(-15f, 15f, -5f, 5f)
         shake.duration = 50; shake.repeatMode = Animation.REVERSE; shake.repeatCount = 2
         imgArenaBackground.startAnimation(shake)
@@ -148,10 +165,8 @@ class ArenaActivity : AppCompatActivity() {
         val castleCenterX = loc[0] + layoutGhostCastle.width / 2f
         val castleCenterY = loc[1] + layoutGhostCastle.height / 2f
 
-        // 💡 160 كرة (ضعف العدد السابق لجعلها مكثفة جداً)
         for (i in 0..159) {
             val drop = View(this).apply {
-                // 💡 تصغير الحجم جداً لجعلها ناعمة
                 val size = Random.nextInt(8, 16) 
                 layoutParams = FrameLayout.LayoutParams(size, size)
                 background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#E74C3C")) }
@@ -160,12 +175,10 @@ class ArenaActivity : AppCompatActivity() {
             container.addView(drop)
             
             val angle = Math.toRadians(Random.nextDouble(180.0, 360.0))
-            // 💡 مدى تطاير عشوائي وواسع
             val distance = Random.nextDouble(100.0, 650.0) 
             val targetX = castleCenterX + (distance * Math.cos(angle)).toFloat()
             val targetY = castleCenterY + (distance * Math.sin(angle)).toFloat()
 
-            // 💡 أنميشن تلاشي وتصغير إضافي عند النهاية
             drop.animate().x(targetX).y(targetY).alpha(0f).scaleX(0.2f).scaleY(0.2f)
                 .setDuration(Random.nextLong(400, 1200)).setInterpolator(android.view.animation.DecelerateInterpolator())
                 .withEndAction { container.removeView(drop) }.start()
@@ -210,6 +223,7 @@ class ArenaActivity : AppCompatActivity() {
             
             if (hasBonusLoot) {
                 Handler(Looper.getMainLooper()).postDelayed({
+                    SoundManager.playWindowOpen() // 💡 صوت للغنيمة
                     DialogManager.showGameMessage(this, "دمار أسطوري!", "لقد ألحقت ضرراً تجاوز 250,000 بالقلعة!\n\nمكافأة فورية:\n+ 50K حديد\n+ 50K قمح\n+ 30K ذهب", R.drawable.ic_ui_castle_rewards)
                 }, 500)
             }
