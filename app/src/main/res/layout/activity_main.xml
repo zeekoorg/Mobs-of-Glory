@@ -25,6 +25,20 @@
         app:layout_constraintEnd_toEndOf="parent">
 
         <FrameLayout android:id="@+id/plotCastle" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.52" app:layout_constraintHeight_percent="0.30" app:layout_constraintHorizontal_bias="0.55" app:layout_constraintVertical_bias="0.22" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+        
+        <ImageView
+            android:id="@+id/imgFloatingCastleEvent"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:src="@drawable/ic_floating_event"
+            android:clickable="true"
+            android:focusable="true"
+            app:layout_constraintBottom_toTopOf="@id/plotCastle"
+            app:layout_constraintStart_toStartOf="@id/plotCastle"
+            app:layout_constraintEnd_toEndOf="@id/plotCastle"
+            android:layout_marginBottom="-15dp"
+            android:elevation="10dp"/>
+
         <FrameLayout android:id="@+id/plotFarmR1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.77" app:layout_constraintVertical_bias="0.54" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
         <FrameLayout android:id="@+id/plotBarracksL1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.26" app:layout_constraintVertical_bias="0.54" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
         <FrameLayout android:id="@+id/plotHospitalM1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.52" app:layout_constraintVertical_bias="0.65" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
@@ -270,6 +284,40 @@
             android:layout_height="wrap_content"
             android:text="ساحة الغزوات"
             android:textColor="#FFFFFF"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            android:layout_marginTop="3dp"
+            android:background="#99000000"
+            android:paddingHorizontal="5dp"
+            android:paddingVertical="2dp"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layoutWeeklyQuestsClick"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="@id/btnNavArena"
+        app:layout_constraintEnd_toEndOf="@id/btnNavArena"
+        app:layout_constraintTop_toBottomOf="@id/btnNavArena"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:src="@drawable/ic_menu_quests" 
+            android:background="@drawable/bg_inner_frame"
+            android:padding="6dp"/>
+
+        <TextView
+            android:id="@+id/tvWeeklyTimerUI"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00:00"
+            android:textColor="#F4D03F"
             android:textSize="9sp"
             android:textStyle="bold"
             android:layout_marginTop="3dp"
