@@ -32,15 +32,15 @@ object DialogManager {
         d.findViewById<TextView>(R.id.tvMessageTitle)?.text = title
         d.findViewById<TextView>(R.id.tvMessageBody)?.text = message
         d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(iconResId)
-        d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener { d.dismiss() }
+        d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
     private fun showAdConfirmDialog(context: Context, onConfirm: () -> Unit) {
         val d = Dialog(context, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_ad_confirm)
-        d.findViewById<Button>(R.id.btnConfirmAd)?.setOnClickListener { d.dismiss(); onConfirm() }
-        d.findViewById<Button>(R.id.btnCancelAd)?.setOnClickListener { d.dismiss() }
+        d.findViewById<Button>(R.id.btnConfirmAd)?.setOnClickListener { SoundManager.playClick(); d.dismiss(); onConfirm() }
+        d.findViewById<Button>(R.id.btnCancelAd)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -62,6 +62,7 @@ object DialogManager {
         else { tvMedal?.visibility = View.GONE; imgMedal?.visibility = View.GONE }
 
         d.findViewById<Button>(R.id.btnCollectLevelReward)?.setOnClickListener {
+            SoundManager.playClick()
             GameState.totalGold += goldReward; GameState.totalIron += ironReward; GameState.totalWheat += wheatReward; GameState.summonMedals += medalReward
             GameState.saveGameData(activity); updateUI(activity); d.dismiss()
             showGameMessage(activity, "غنائم ملكية", "تمت إضافة المكافآت لخزانتك بنجاح!", R.drawable.ic_resource_gold)
@@ -86,10 +87,10 @@ object DialogManager {
             
             val imgProfileAvatar = d.findViewById<ImageView>(R.id.imgProfileAvatar)
             if (GameState.selectedAvatarUri != null) imgProfileAvatar?.setImageURI(Uri.parse(GameState.selectedAvatarUri))
-            d.findViewById<Button>(R.id.btnChangePic)?.setOnClickListener { onPickImage(); d.dismiss() }
-            d.findViewById<ImageView>(R.id.btnChangeName)?.setOnClickListener { onChangeName(); d.dismiss() }
+            d.findViewById<Button>(R.id.btnChangePic)?.setOnClickListener { SoundManager.playClick(); onPickImage(); d.dismiss() }
+            d.findViewById<ImageView>(R.id.btnChangeName)?.setOnClickListener { SoundManager.playClick(); onChangeName(); d.dismiss() }
         } catch (e: Exception) { e.printStackTrace() }
-        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -117,10 +118,10 @@ object DialogManager {
         }
 
         refreshVipUI()
-        d.findViewById<Button>(R.id.btnUseVip8h)?.setOnClickListener { if (GameState.countVip8h > 0) { GameState.countVip8h--; addVipTime(28800000L) } else if (GameState.totalGold >= 200000) { GameState.totalGold -= 200000; updateUI(activity); addVipTime(28800000L) } else showGameMessage(activity, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        d.findViewById<Button>(R.id.btnUseVip24h)?.setOnClickListener { if (GameState.countVip24h > 0) { GameState.countVip24h--; addVipTime(86400000L) } else if (GameState.totalGold >= 500000) { GameState.totalGold -= 500000; updateUI(activity); addVipTime(86400000L) } else showGameMessage(activity, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        d.findViewById<Button>(R.id.btnUseVip7d)?.setOnClickListener { if (GameState.countVip7d > 0) { GameState.countVip7d--; addVipTime(604800000L) } else if (GameState.totalGold >= 3000000) { GameState.totalGold -= 3000000; updateUI(activity); addVipTime(604800000L) } else showGameMessage(activity, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<Button>(R.id.btnUseVip8h)?.setOnClickListener { SoundManager.playClick(); if (GameState.countVip8h > 0) { GameState.countVip8h--; addVipTime(28800000L) } else if (GameState.totalGold >= 200000) { GameState.totalGold -= 200000; updateUI(activity); addVipTime(28800000L) } else showGameMessage(activity, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnUseVip24h)?.setOnClickListener { SoundManager.playClick(); if (GameState.countVip24h > 0) { GameState.countVip24h--; addVipTime(86400000L) } else if (GameState.totalGold >= 500000) { GameState.totalGold -= 500000; updateUI(activity); addVipTime(86400000L) } else showGameMessage(activity, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnUseVip7d)?.setOnClickListener { SoundManager.playClick(); if (GameState.countVip7d > 0) { GameState.countVip7d--; addVipTime(604800000L) } else if (GameState.totalGold >= 3000000) { GameState.totalGold -= 3000000; updateUI(activity); addVipTime(604800000L) } else showGameMessage(activity, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -137,14 +138,15 @@ object DialogManager {
         refreshBagUI()
 
         val speedupMsg = "استخدم التسريع من المبنى أو السلاح أو دار الشفاء مباشرة!"
-        d.findViewById<Button>(R.id.btnUseBagSpeedup5m)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_5m) }
-        d.findViewById<Button>(R.id.btnUseBagSpeedup15m)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_15m) }
-        d.findViewById<Button>(R.id.btnUseBagSpeedup30m)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_30m) }
-        d.findViewById<Button>(R.id.btnUseBagSpeedup1h)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_1h) }
-        d.findViewById<Button>(R.id.btnUseBagSpeedup2h)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_2h) }
-        d.findViewById<Button>(R.id.btnUseBagSpeedup8h)?.setOnClickListener { showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_8h) }
+        d.findViewById<Button>(R.id.btnUseBagSpeedup5m)?.setOnClickListener { SoundManager.playClick(); showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_5m) }
+        d.findViewById<Button>(R.id.btnUseBagSpeedup15m)?.setOnClickListener { SoundManager.playClick(); showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_15m) }
+        d.findViewById<Button>(R.id.btnUseBagSpeedup30m)?.setOnClickListener { SoundManager.playClick(); showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_30m) }
+        d.findViewById<Button>(R.id.btnUseBagSpeedup1h)?.setOnClickListener { SoundManager.playClick(); showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_1h) }
+        d.findViewById<Button>(R.id.btnUseBagSpeedup2h)?.setOnClickListener { SoundManager.playClick(); showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_2h) }
+        d.findViewById<Button>(R.id.btnUseBagSpeedup8h)?.setOnClickListener { SoundManager.playClick(); showGameMessage(activity, "ملاحظة", speedupMsg, R.drawable.ic_speedup_8h) }
 
         d.findViewById<Button>(R.id.btnUseBagResBox)?.setOnClickListener {
+            SoundManager.playClick()
             if (GameState.countResourceBox > 0) {
                 GameState.countResourceBox--; GameState.totalWheat += 50000; GameState.totalIron += 50000
                 if(Random.nextInt(100) == 0) { GameState.countVip8h++; showGameMessage(activity, "صندوق أسطوري!", "حصلت على 50K قمح وحديد\nومبروك! وجدت بطاقة VIP 8 ساعات!", R.drawable.ic_vip_crown) } 
@@ -154,12 +156,13 @@ object DialogManager {
         }
 
         d.findViewById<Button>(R.id.btnUseBagGoldBox)?.setOnClickListener {
+            SoundManager.playClick()
             if (GameState.countGoldBox > 0) {
                 GameState.countGoldBox--; GameState.totalGold += 25000; updateUI(activity); GameState.saveGameData(activity); refreshBagUI()
                 showGameMessage(activity, "مكافأة الذهب", "حصلت على 25K ذهب!", R.drawable.ic_resource_gold)
             } else showGameMessage(activity, "حقيبة فارغة", "لا تملك صناديق ذهب!", R.drawable.ic_menu_bag)
         }
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -181,6 +184,7 @@ object DialogManager {
             else if (quest.isCompleted) {
                 btnClaim.text = "استلام"; btnClaim.setTextColor(Color.WHITE)
                 btnClaim.setOnClickListener {
+                    SoundManager.playClick()
                     GameState.totalGold += quest.rewardGold; quest.isCollected = true; updateUI(activity); GameState.saveGameData(activity)
                     btnClaim.text = "مستلمة"; btnClaim.setTextColor(Color.parseColor("#2ECC71")); btnClaim.isEnabled = false
                     showGameMessage(activity, "إنجاز المهمة", "تم استلام مكافأة المهمة بنجاح!", R.drawable.ic_resource_gold)
@@ -188,7 +192,7 @@ object DialogManager {
             } else { btnClaim.text = "غير مكتمل"; btnClaim.setTextColor(Color.parseColor("#7F8C8D")); btnClaim.isEnabled = false }
             container?.addView(view)
         }
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -212,6 +216,7 @@ object DialogManager {
             else if (castleLevel >= reqLevel) {
                 btnClaim.text = "استلام"; btnClaim.setTextColor(Color.WHITE)
                 btnClaim.setOnClickListener {
+                    SoundManager.playClick()
                     GameState.claimedCastleRewards.add(reqLevel)
                     when (reqLevel) { 5 -> { GameState.countResourceBox += 1; GameState.totalGold += 10000 }; 10 -> { GameState.countSpeedup8Hour += 1; GameState.countGoldBox += 1 }; 15 -> { GameState.countVip8h += 1; GameState.countResourceBox += 2 }; 20 -> { GameState.summonMedals += 5; GameState.totalGold += 50000 } }
                     updateUI(activity); GameState.saveGameData(activity); btnClaim.text = "مستلمة"; btnClaim.setTextColor(Color.parseColor("#2ECC71")); btnClaim.isEnabled = false
@@ -220,7 +225,7 @@ object DialogManager {
             } else { btnClaim.text = "مقفلة"; btnClaim.setTextColor(Color.parseColor("#7F8C8D")); btnClaim.isEnabled = false }
             container?.addView(view)
         }
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -258,6 +263,7 @@ object DialogManager {
             }
             
             btnAct?.setOnClickListener {
+                SoundManager.playClick()
                 if (!h.isUnlocked && h.shardsOwned >= h.shardsRequired) { 
                     h.isUnlocked = true; h.shardsOwned -= h.shardsRequired; GameState.calculatePower(); GameState.saveGameData(activity); updateHeroUI(i, tvL, tvB, btn)
                     showGameMessage(activity, "تجنيد بطل", "تم تجنيد ${h.name} بنجاح!", R.drawable.ic_menu_heroes)
@@ -278,7 +284,7 @@ object DialogManager {
         updateHeroUI(3, R.id.tvHero4Level, R.id.tvHero4Boost, R.id.btnHero4); updateHeroUI(4, R.id.tvHero5Level, R.id.tvHero5Boost, R.id.btnHero5); updateHeroUI(5, R.id.tvHero6Level, R.id.tvHero6Boost, R.id.btnHero6)
         updateHeroUI(6, R.id.tvHero7Level, R.id.tvHero7Boost, R.id.btnHero7); updateHeroUI(7, R.id.tvHero8Level, R.id.tvHero8Boost, R.id.btnHero8)
         
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.setOnDismissListener { handler.removeCallbacksAndMessages(null) }
         d.show()
     }
@@ -288,9 +294,9 @@ object DialogManager {
         d.setContentView(R.layout.dialog_castle_main)
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = p.name
         d.findViewById<TextView>(R.id.tvDialogInfo)?.text = "أيها المُهيب، القلعة هي رمز هيبتك.\nقوة الإمبراطورية: ${formatResourceNumber(GameState.playerPower)}"
-        d.findViewById<Button>(R.id.btnCastleUpgrade)?.apply { text = "تطوير المبنى"; setOnClickListener { d.dismiss(); showUpgradeDialog(activity, p) } }
-        d.findViewById<Button>(R.id.btnCastleDecorations)?.apply { text = "زينة المدينة"; setOnClickListener { d.dismiss(); showDecorationsDialog(activity) } }
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<Button>(R.id.btnCastleUpgrade)?.apply { text = "تطوير المبنى"; setOnClickListener { SoundManager.playClick(); d.dismiss(); showUpgradeDialog(activity, p) } }
+        d.findViewById<Button>(R.id.btnCastleDecorations)?.apply { text = "زينة المدينة"; setOnClickListener { SoundManager.playClick(); d.dismiss(); showDecorationsDialog(activity) } }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -299,13 +305,12 @@ object DialogManager {
         d.setContentView(R.layout.dialog_castle_main) 
         val isInfantry = p.idCode == "BARRACKS_1"
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = p.name; d.findViewById<TextView>(R.id.tvDialogInfo)?.text = if (isInfantry) "المشاة هم درع الإمبراطورية الصلب." else "الفرسان هم القوة الضاربة السريعة."
-        d.findViewById<Button>(R.id.btnCastleUpgrade)?.apply { text = "ترقية المبنى"; setOnClickListener { d.dismiss(); showUpgradeDialog(activity, p) } }
-        d.findViewById<Button>(R.id.btnCastleDecorations)?.apply { text = "تدريب القوات"; setOnClickListener { d.dismiss(); showTrainTroopsDialog(activity, p) } }
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<Button>(R.id.btnCastleUpgrade)?.apply { text = "ترقية المبنى"; setOnClickListener { SoundManager.playClick(); d.dismiss(); showUpgradeDialog(activity, p) } }
+        d.findViewById<Button>(R.id.btnCastleDecorations)?.apply { text = "تدريب القوات"; setOnClickListener { SoundManager.playClick(); d.dismiss(); showTrainTroopsDialog(activity, p) } }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
-    // 💡 تم تحديث دالة المستشفى لتغلق النافذة فور العلاج!
     fun showHospitalDialog(activity: Activity, p: MapPlot) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_hospital)
@@ -331,6 +336,7 @@ object DialogManager {
                 btnAction?.text = "علاج الجميع"; btnAction?.isEnabled = true; btnAction?.setBackgroundResource(R.drawable.bg_btn_gold_border)
 
                 btnAction?.setOnClickListener {
+                    SoundManager.playClick()
                     if (GameState.totalWheat >= costWheat && GameState.totalIron >= costIron) {
                         GameState.totalWheat -= costWheat; GameState.totalIron -= costIron
                         GameState.isHealing = true
@@ -338,17 +344,16 @@ object DialogManager {
                         GameState.healingTotalTime = healTimeSec * 1000L; GameState.healingEndTime = System.currentTimeMillis() + GameState.healingTotalTime
                         GameState.saveGameData(activity); updateUI(activity)
                         showGameMessage(activity, "دار الشفاء", "بدأ علاج الجرحى. ستعود قواتك لصفوف الجيش قريباً!", R.drawable.ic_settings_gear)
-                        d.dismiss() // 💡 إغلاق النافذة فوراً
+                        d.dismiss()
                     } else showGameMessage(activity, "عذراً", "الموارد لا تكفي لعلاج الجرحى!", R.drawable.ic_resource_wheat)
                 }
             }
         }
         refreshHospitalUI()
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
-    // 💡 تم تحديث التدريب ليستخدم شريط السحب والحد الأقصى الديناميكي
     fun showTrainTroopsDialog(activity: Activity, p: MapPlot) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_train_troops)
@@ -382,18 +387,24 @@ object DialogManager {
         })
 
         d.findViewById<Button>(R.id.btnConfirmTrain)?.setOnClickListener {
-            if (currentAmt == 0) { showGameMessage(activity, "تنبيه", "الرجاء تحديد عدد الجنود للتدريب!", R.drawable.ic_settings_gear); return@setOnClickListener }
+            if (currentAmt == 0) { SoundManager.playClick(); showGameMessage(activity, "تنبيه", "الرجاء تحديد عدد الجنود للتدريب!", R.drawable.ic_settings_gear); return@setOnClickListener }
             val totalW = (currentAmt * costW).toLong(); val totalI = (currentAmt * costI).toLong()
             if (GameState.totalWheat >= totalW && GameState.totalIron >= totalI) {
+                // 💡 صوت بدء التدريب (صيحة جنود)
+                SoundManager.playTrain()
+                
                 GameState.totalWheat -= totalW; GameState.totalIron -= totalI; p.isTraining = true; p.trainingAmount = currentAmt
                 var tTime = currentAmt * 2000L; if(GameState.isVipActive()) tTime = (tTime * 0.8).toLong()
                 p.trainingTotalTime = tTime; p.trainingEndTime = System.currentTimeMillis() + p.trainingTotalTime; p.collectTimer = 0L 
                 updateUI(activity); GameState.saveGameData(activity); d.dismiss()
                 showGameMessage(activity, "معسكر التدريب", "بدأ تدريب القوات بنجاح!", R.drawable.ic_settings_gear) 
-            } else showGameMessage(activity, "عذراً", "الموارد لا تكفي للتدريب!", R.drawable.ic_resource_wheat)
+            } else {
+                SoundManager.playClick()
+                showGameMessage(activity, "عذراً", "الموارد لا تكفي للتدريب!", R.drawable.ic_resource_wheat)
+            }
         }
         updateCosts()
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -418,13 +429,14 @@ object DialogManager {
         else {
             btnUpgrade?.text = "تطوير"; btnUpgrade?.setTextColor(Color.WHITE); tvInfo?.text = "الترقية ستعزز قوة الإمبراطورية."; tvInfo?.setTextColor(Color.WHITE)
             btnUpgrade?.setOnClickListener {
+                SoundManager.playClick()
                 GameState.totalWheat -= cW; GameState.totalIron -= cI; GameState.totalGold -= cG
                 p.isUpgrading = true; p.totalUpgradeTime = uSec * 1000; p.upgradeEndTime = System.currentTimeMillis() + p.totalUpgradeTime; p.collectTimer = 0L
                 updateUI(activity); GameState.saveGameData(activity); d.dismiss()
                 showGameMessage(activity, "أعمال البناء", "بدأ التطوير بنجاح!", R.drawable.ic_settings_gear) 
             }
         }
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -462,14 +474,14 @@ object DialogManager {
             GameState.saveGameData(activity); refreshSpeedupUI(); showGameMessage(activity, "تسريع الوقت", "تم خصم $name من الوقت المتبقي!", iconId) 
         }
 
-        btnUse5m?.setOnClickListener { if (GameState.countSpeedup5m > 0) { GameState.countSpeedup5m--; applySpeedup(300000L, "5 دقائق", R.drawable.ic_speedup_5m) } else { d.dismiss(); showStoreDialog(activity) } }
-        btnUse15m?.setOnClickListener { if (GameState.countSpeedup15m > 0) { GameState.countSpeedup15m--; applySpeedup(900000L, "15 دقيقة", R.drawable.ic_speedup_15m) } else { d.dismiss(); showStoreDialog(activity) } }
-        btnUse30m?.setOnClickListener { if (GameState.countSpeedup30m > 0) { GameState.countSpeedup30m--; applySpeedup(1800000L, "30 دقيقة", R.drawable.ic_speedup_30m) } else { d.dismiss(); showStoreDialog(activity) } }
-        btnUse1h?.setOnClickListener { if (GameState.countSpeedup1Hour > 0) { GameState.countSpeedup1Hour--; applySpeedup(3600000L, "ساعة", R.drawable.ic_speedup_1h) } else { d.dismiss(); showStoreDialog(activity) } }
-        btnUse2h?.setOnClickListener { if (GameState.countSpeedup2h > 0) { GameState.countSpeedup2h--; applySpeedup(7200000L, "ساعتين", R.drawable.ic_speedup_2h) } else { d.dismiss(); showStoreDialog(activity) } }
-        btnUse8h?.setOnClickListener { if (GameState.countSpeedup8Hour > 0) { GameState.countSpeedup8Hour--; applySpeedup(28800000L, "8 ساعات", R.drawable.ic_speedup_8h) } else { d.dismiss(); showStoreDialog(activity) } }
+        btnUse5m?.setOnClickListener { SoundManager.playClick(); if (GameState.countSpeedup5m > 0) { GameState.countSpeedup5m--; applySpeedup(300000L, "5 دقائق", R.drawable.ic_speedup_5m) } else { d.dismiss(); showStoreDialog(activity) } }
+        btnUse15m?.setOnClickListener { SoundManager.playClick(); if (GameState.countSpeedup15m > 0) { GameState.countSpeedup15m--; applySpeedup(900000L, "15 دقيقة", R.drawable.ic_speedup_15m) } else { d.dismiss(); showStoreDialog(activity) } }
+        btnUse30m?.setOnClickListener { SoundManager.playClick(); if (GameState.countSpeedup30m > 0) { GameState.countSpeedup30m--; applySpeedup(1800000L, "30 دقيقة", R.drawable.ic_speedup_30m) } else { d.dismiss(); showStoreDialog(activity) } }
+        btnUse1h?.setOnClickListener { SoundManager.playClick(); if (GameState.countSpeedup1Hour > 0) { GameState.countSpeedup1Hour--; applySpeedup(3600000L, "ساعة", R.drawable.ic_speedup_1h) } else { d.dismiss(); showStoreDialog(activity) } }
+        btnUse2h?.setOnClickListener { SoundManager.playClick(); if (GameState.countSpeedup2h > 0) { GameState.countSpeedup2h--; applySpeedup(7200000L, "ساعتين", R.drawable.ic_speedup_2h) } else { d.dismiss(); showStoreDialog(activity) } }
+        btnUse8h?.setOnClickListener { SoundManager.playClick(); if (GameState.countSpeedup8Hour > 0) { GameState.countSpeedup8Hour--; applySpeedup(28800000L, "8 ساعات", R.drawable.ic_speedup_8h) } else { d.dismiss(); showStoreDialog(activity) } }
 
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.setOnDismissListener { handler.removeCallbacks(runnable) }
         d.show()
     }
@@ -483,21 +495,21 @@ object DialogManager {
         if (GameState.isPeacockUnlocked) { btnPeacock?.text = "مملوكة"; btnPeacock?.isEnabled = false }
         if (GameState.isDiamondUnlocked) { btnDiamond?.text = "مملوكة"; btnDiamond?.isEnabled = false }
 
-        btnPyramid?.setOnClickListener { if (GameState.totalGold >= 500000) { GameState.totalGold -= 500000; GameState.isPyramidUnlocked = true; btnPyramid.text = "مملوكة"; btnPyramid.isEnabled = false; updateUI(activity); GameState.saveGameData(activity); if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_pyramid); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        btnPeacock?.setOnClickListener { if (GameState.totalGold >= 1500000) { GameState.totalGold -= 1500000; GameState.isPeacockUnlocked = true; btnPeacock.text = "مملوكة"; btnPeacock.isEnabled = false; updateUI(activity); GameState.saveGameData(activity); if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_peacock); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        btnDiamond?.setOnClickListener { if (GameState.totalGold >= 3000000) { GameState.totalGold -= 3000000; GameState.isDiamondUnlocked = true; btnDiamond.text = "مملوكة"; btnDiamond.isEnabled = false; updateUI(activity); GameState.saveGameData(activity); if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_diamond); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        btnPyramid?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 500000) { GameState.totalGold -= 500000; GameState.isPyramidUnlocked = true; btnPyramid.text = "مملوكة"; btnPyramid.isEnabled = false; updateUI(activity); GameState.saveGameData(activity); if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_pyramid); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        btnPeacock?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 1500000) { GameState.totalGold -= 1500000; GameState.isPeacockUnlocked = true; btnPeacock.text = "مملوكة"; btnPeacock.isEnabled = false; updateUI(activity); GameState.saveGameData(activity); if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_peacock); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        btnDiamond?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 3000000) { GameState.totalGold -= 3000000; GameState.isDiamondUnlocked = true; btnDiamond.text = "مملوكة"; btnDiamond.isEnabled = false; updateUI(activity); GameState.saveGameData(activity); if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_diamond); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
 
-        d.findViewById<Button>(R.id.btnBuySpeedup5m)?.setOnClickListener { if (GameState.totalGold >= 1000) { GameState.totalGold -= 1000; GameState.countSpeedup5m++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_5m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        d.findViewById<Button>(R.id.btnBuySpeedup15m)?.setOnClickListener { if (GameState.totalGold >= 3000) { GameState.totalGold -= 3000; GameState.countSpeedup15m++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_15m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        d.findViewById<Button>(R.id.btnBuySpeedup30m)?.setOnClickListener { if (GameState.totalGold >= 5000) { GameState.totalGold -= 5000; GameState.countSpeedup30m++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_30m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        d.findViewById<Button>(R.id.btnBuySpeedup1h)?.setOnClickListener { if (GameState.totalGold >= 15000) { GameState.totalGold -= 15000; GameState.countSpeedup1Hour++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_1h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        d.findViewById<Button>(R.id.btnBuySpeedup2h)?.setOnClickListener { if (GameState.totalGold >= 28000) { GameState.totalGold -= 28000; GameState.countSpeedup2h++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_2h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
-        d.findViewById<Button>(R.id.btnBuySpeedup8h)?.setOnClickListener { if (GameState.totalGold >= 100000) { GameState.totalGold -= 100000; GameState.countSpeedup8Hour++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_8h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnBuySpeedup5m)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 1000) { GameState.totalGold -= 1000; GameState.countSpeedup5m++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_5m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnBuySpeedup15m)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 3000) { GameState.totalGold -= 3000; GameState.countSpeedup15m++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_15m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnBuySpeedup30m)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 5000) { GameState.totalGold -= 5000; GameState.countSpeedup30m++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_30m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnBuySpeedup1h)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 15000) { GameState.totalGold -= 15000; GameState.countSpeedup1Hour++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_1h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnBuySpeedup2h)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 28000) { GameState.totalGold -= 28000; GameState.countSpeedup2h++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_2h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
+        d.findViewById<Button>(R.id.btnBuySpeedup8h)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 100000) { GameState.totalGold -= 100000; GameState.countSpeedup8Hour++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_8h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
 
-        d.findViewById<Button>(R.id.btnAdResources)?.setOnClickListener { showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.totalWheat += 50000; GameState.totalIron += 50000; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على 50K قمح و 50K حديد!", R.drawable.ic_resource_iron) }, onAdClosed = {}) } }
-        d.findViewById<Button>(R.id.btnAdGold)?.setOnClickListener { showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.totalGold += 10000; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على 10K ذهب!", R.drawable.ic_resource_gold) }, onAdClosed = {}) } }
-        d.findViewById<Button>(R.id.btnAdSpeedup)?.setOnClickListener { showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.countSpeedup30m++; GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على تسريع 30 دقيقة!", R.drawable.ic_speedup_30m) }, onAdClosed = {}) } }
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<Button>(R.id.btnAdResources)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.totalWheat += 50000; GameState.totalIron += 50000; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على 50K قمح و 50K حديد!", R.drawable.ic_resource_iron) }, onAdClosed = {}) } }
+        d.findViewById<Button>(R.id.btnAdGold)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.totalGold += 10000; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على 10K ذهب!", R.drawable.ic_resource_gold) }, onAdClosed = {}) } }
+        d.findViewById<Button>(R.id.btnAdSpeedup)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.countSpeedup30m++; GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على تسريع 30 دقيقة!", R.drawable.ic_speedup_30m) }, onAdClosed = {}) } }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -508,11 +520,11 @@ object DialogManager {
         d.findViewById<TextView>(R.id.tvSkinDiamond)?.text = if (GameState.isDiamondUnlocked) "متاح للتطبيق" else "مقفلة"
         d.findViewById<TextView>(R.id.tvSkinPeacock)?.text = if (GameState.isPeacockUnlocked) "متاح للتطبيق" else "مقفلة"
 
-        d.findViewById<View>(R.id.btnSkinDefault)?.setOnClickListener { if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_mobs_city_isometric); d.dismiss() }
-        d.findViewById<View>(R.id.btnSkinSnake)?.setOnClickListener { if (GameState.isPyramidUnlocked) { if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_pyramid); d.dismiss() } else showGameMessage(activity, "عذراً", "مقفلة! اشتريها من المتجر أولاً", R.drawable.ic_settings_gear) }
-        d.findViewById<View>(R.id.btnSkinDiamond)?.setOnClickListener { if (GameState.isDiamondUnlocked) { if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_diamond); d.dismiss() } else showGameMessage(activity, "عذراً", "مقفلة! اشتريها من المتجر أولاً", R.drawable.ic_settings_gear) }
-        d.findViewById<View>(R.id.btnSkinPeacock)?.setOnClickListener { if (GameState.isPeacockUnlocked) { if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_peacock); d.dismiss() } else showGameMessage(activity, "عذراً", "مقفلة! اشتريها من المتجر أولاً", R.drawable.ic_settings_gear) }
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<View>(R.id.btnSkinDefault)?.setOnClickListener { SoundManager.playClick(); if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_mobs_city_isometric); d.dismiss() }
+        d.findViewById<View>(R.id.btnSkinSnake)?.setOnClickListener { SoundManager.playClick(); if (GameState.isPyramidUnlocked) { if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_pyramid); d.dismiss() } else showGameMessage(activity, "عذراً", "مقفلة! اشتريها من المتجر أولاً", R.drawable.ic_settings_gear) }
+        d.findViewById<View>(R.id.btnSkinDiamond)?.setOnClickListener { SoundManager.playClick(); if (GameState.isDiamondUnlocked) { if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_diamond); d.dismiss() } else showGameMessage(activity, "عذراً", "مقفلة! اشتريها من المتجر أولاً", R.drawable.ic_settings_gear) }
+        d.findViewById<View>(R.id.btnSkinPeacock)?.setOnClickListener { SoundManager.playClick(); if (GameState.isPeacockUnlocked) { if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_peacock); d.dismiss() } else showGameMessage(activity, "عذراً", "مقفلة! اشتريها من المتجر أولاً", R.drawable.ic_settings_gear) }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -522,6 +534,7 @@ object DialogManager {
         val tvMedals = d.findViewById<TextView>(R.id.tvSummonMedals); tvMedals?.text = "دعوات ملكية: ${GameState.summonMedals}"
 
         d.findViewById<Button>(R.id.btnSummonAd)?.setOnClickListener {
+            SoundManager.playClick()
             showAdConfirmDialog(activity) {
                 YandexAdsManager.showRewardedAd(activity, onRewarded = {
                     val luckyHero = GameState.myHeroes[Random.nextInt(0, 4)]; val shardsCount = if (Random.nextInt(100) < 10) 2 else 1
@@ -532,6 +545,7 @@ object DialogManager {
         }
 
         d.findViewById<Button>(R.id.btnSummonPremium)?.setOnClickListener {
+            SoundManager.playClick()
             if (GameState.summonMedals > 0) {
                 GameState.summonMedals--; val luckyHero = GameState.myHeroes[Random.nextInt(2, GameState.myHeroes.size)]; val shardsCount = Random.nextInt(2, 5)
                 luckyHero.shardsOwned += shardsCount
@@ -540,7 +554,7 @@ object DialogManager {
                 tvMedals?.text = "دعوات ملكية: ${GameState.summonMedals}"; GameState.saveGameData(activity)
             } else showGameMessage(activity, "عذراً", "لا تملك دعوات ملكية!", R.drawable.ic_item_legend_medal)
         }
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -555,11 +569,21 @@ object DialogManager {
         fun updateButtonState(btn: Button?, isOn: Boolean) { if (isOn) { btn?.text = "مفعل"; btn?.setTextColor(Color.parseColor("#2ECC71")) } else { btn?.text = "معطل"; btn?.setTextColor(Color.parseColor("#FF5252")) } }
         updateButtonState(btnMusic, isMusicOn); updateButtonState(btnSfx, isSfxOn)
 
-        btnMusic?.setOnClickListener { isMusicOn = !isMusicOn; prefs.edit().putBoolean("MUSIC", isMusicOn).apply(); updateButtonState(btnMusic, isMusicOn) }
-        btnSfx?.setOnClickListener { isSfxOn = !isSfxOn; prefs.edit().putBoolean("SFX", isSfxOn).apply(); updateButtonState(btnSfx, isSfxOn) }
-        d.findViewById<Button>(R.id.btnManualSave)?.setOnClickListener { GameState.saveGameData(activity); d.dismiss(); showGameMessage(activity, "حفظ التقدم", "تم حفظ تقدم الإمبراطورية في السجلات الملكية بنجاح!", R.drawable.ic_settings_gear) }
-        d.findViewById<Button>(R.id.btnContactSupport)?.setOnClickListener { d.dismiss(); showGameMessage(activity, "رسالة للمطور", "قريباً: سيتم توجيهك لصفحة الدعم الفني أو مجتمع اللعبة!", R.drawable.ic_ui_weapons) }
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        btnMusic?.setOnClickListener { 
+            SoundManager.playClick()
+            isMusicOn = !isMusicOn; prefs.edit().putBoolean("MUSIC", isMusicOn).apply(); updateButtonState(btnMusic, isMusicOn)
+            // 💡 ربط الإعدادات بمحرك الصوت
+            SoundManager.updateSettings(isMusicOn, isSfxOn)
+        }
+        btnSfx?.setOnClickListener { 
+            SoundManager.playClick()
+            isSfxOn = !isSfxOn; prefs.edit().putBoolean("SFX", isSfxOn).apply(); updateButtonState(btnSfx, isSfxOn)
+            // 💡 ربط الإعدادات بمحرك الصوت
+            SoundManager.updateSettings(isMusicOn, isSfxOn)
+        }
+        d.findViewById<Button>(R.id.btnManualSave)?.setOnClickListener { SoundManager.playClick(); GameState.saveGameData(activity); d.dismiss(); showGameMessage(activity, "حفظ التقدم", "تم حفظ تقدم الإمبراطورية في السجلات الملكية بنجاح!", R.drawable.ic_settings_gear) }
+        d.findViewById<Button>(R.id.btnContactSupport)?.setOnClickListener { SoundManager.playClick(); d.dismiss(); showGameMessage(activity, "رسالة للمطور", "قريباً: سيتم توجيهك لصفحة الدعم الفني أو مجتمع اللعبة!", R.drawable.ic_ui_weapons) }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -587,25 +611,30 @@ object DialogManager {
                     val remaining = weapon.upgradeEndTime - System.currentTimeMillis()
                     if (remaining > 0) {
                         btnAction.text = formatTimeMillis(remaining); btnAction.setTextColor(Color.parseColor("#F4D03F"))
-                        btnAction.setOnClickListener { d.dismiss(); showSpeedupDialog(activity, null, weapon) }
+                        btnAction.setOnClickListener { SoundManager.playClick(); d.dismiss(); showSpeedupDialog(activity, null, weapon) }
                         handler.postDelayed({ refreshWeaponsList() }, 1000)
                     } else { weapon.isUpgrading = false; weapon.level++; GameState.calculatePower(); GameState.saveGameData(activity); refreshWeaponsList() }
                 } else {
                     btnAction.text = if (weapon.isOwned) "ترقية" else "صناعة"; btnAction.setTextColor(Color.WHITE)
                     btnAction.setOnClickListener {
                         if (GameState.totalIron >= weapon.getCostIron() && GameState.totalGold >= weapon.getCostGold()) {
+                            // 💡 صوت الحدادة
+                            SoundManager.playBlacksmith()
                             GameState.totalIron -= weapon.getCostIron(); GameState.totalGold -= weapon.getCostGold()
                             weapon.isOwned = true; weapon.isUpgrading = true; weapon.totalUpgradeTime = weapon.getUpgradeTimeSeconds() * 1000
                             weapon.upgradeEndTime = System.currentTimeMillis() + weapon.totalUpgradeTime
                             updateUI(activity); GameState.saveGameData(activity); refreshWeaponsList()
-                        } else showGameMessage(activity, "موارد غير كافية", "تنقصك الموارد لصناعة/ترقية السلاح!", R.drawable.ic_resource_iron)
+                        } else {
+                            SoundManager.playClick()
+                            showGameMessage(activity, "موارد غير كافية", "تنقصك الموارد لصناعة/ترقية السلاح!", R.drawable.ic_resource_iron)
+                        }
                     }
                 }
                 container?.addView(view)
             }
         }
         refreshWeaponsList()
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.setOnDismissListener { handler.removeCallbacksAndMessages(null) }
         d.show()
     }
@@ -626,12 +655,12 @@ object DialogManager {
                     text = "${hero.name} (قوة: ${formatResourceNumber(hero.getCurrentPower())})"
                     setTextColor(Color.WHITE); setBackgroundResource(R.drawable.bg_btn_gold_border)
                     layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 10, 0, 10) }
-                    setOnClickListener { onSelected(hero); d.dismiss() }
+                    setOnClickListener { SoundManager.playClick(); onSelected(hero); d.dismiss() }
                 }
                 container?.addView(btn)
             }
         }
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -651,16 +680,15 @@ object DialogManager {
                     text = "${weapon.name} (قوة: ${formatResourceNumber(weapon.getCurrentPower())})"
                     setTextColor(Color.WHITE); setBackgroundResource(R.drawable.bg_btn_gold_border)
                     layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 10, 0, 10) }
-                    setOnClickListener { onSelected(weapon); d.dismiss() }
+                    setOnClickListener { SoundManager.playClick(); onSelected(weapon); d.dismiss() }
                 }
                 container?.addView(btn)
             }
         }
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
-    // 💡 تمت إضافة اختيار أعداد الجنود وحفظها للتشكيلة الدفاعية/الهجومية
     fun showFormationDialog(activity: Activity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_formation)
@@ -728,16 +756,16 @@ object DialogManager {
                 val (slot, imgFull, imgAdd) = heroSlots[i]; val lock = lockHeroes[i]; val reqLevel = unlockLevels[i]
                 if (castleLevel < reqLevel) {
                     lock?.visibility = View.VISIBLE; imgFull?.visibility = View.GONE; imgAdd?.visibility = View.GONE
-                    slot?.setOnClickListener { showGameMessage(activity, "خانة مقفلة", "تحتاج لترقية القلعة للمستوى $reqLevel لفتح هذه الخانة!", R.drawable.ic_settings_gear) }
+                    slot?.setOnClickListener { SoundManager.playClick(); showGameMessage(activity, "خانة مقفلة", "تحتاج لترقية القلعة للمستوى $reqLevel لفتح هذه الخانة!", R.drawable.ic_settings_gear) }
                 } else {
                     lock?.visibility = View.GONE
                     if (i < equippedHeroes.size) {
                         imgFull?.visibility = View.VISIBLE; imgAdd?.visibility = View.GONE
                         val hero = equippedHeroes[i]; imgFull?.setImageResource(hero.iconResId) 
-                        slot?.setOnClickListener { hero.isEquipped = false; GameState.saveGameData(activity); refreshFormationUI() }
+                        slot?.setOnClickListener { SoundManager.playClick(); hero.isEquipped = false; GameState.saveGameData(activity); refreshFormationUI() }
                     } else {
                         imgFull?.visibility = View.GONE; imgAdd?.visibility = View.VISIBLE
-                        slot?.setOnClickListener { showHeroSelectorDialog(activity) { selectedHero -> selectedHero.isEquipped = true; GameState.saveGameData(activity); refreshFormationUI() } }
+                        slot?.setOnClickListener { SoundManager.playClick(); showHeroSelectorDialog(activity) { selectedHero -> selectedHero.isEquipped = true; GameState.saveGameData(activity); refreshFormationUI() } }
                     }
                 }
             }
@@ -746,16 +774,16 @@ object DialogManager {
                 val (slot, imgFull, imgAdd) = weaponSlots[i]; val lock = lockWeapons[i]; val reqLevel = unlockLevels[i]
                 if (castleLevel < reqLevel) {
                     lock?.visibility = View.VISIBLE; imgFull?.visibility = View.GONE; imgAdd?.visibility = View.GONE
-                    slot?.setOnClickListener { showGameMessage(activity, "خانة مقفلة", "تحتاج لترقية القلعة للمستوى $reqLevel لفتح هذه الخانة!", R.drawable.ic_settings_gear) }
+                    slot?.setOnClickListener { SoundManager.playClick(); showGameMessage(activity, "خانة مقفلة", "تحتاج لترقية القلعة للمستوى $reqLevel لفتح هذه الخانة!", R.drawable.ic_settings_gear) }
                 } else {
                     lock?.visibility = View.GONE
                     if (i < equippedWeapons.size) {
                         imgFull?.visibility = View.VISIBLE; imgAdd?.visibility = View.GONE
                         val weapon = equippedWeapons[i]; imgFull?.setImageResource(weapon.iconResId) 
-                        slot?.setOnClickListener { weapon.isEquipped = false; GameState.saveGameData(activity); refreshFormationUI() }
+                        slot?.setOnClickListener { SoundManager.playClick(); weapon.isEquipped = false; GameState.saveGameData(activity); refreshFormationUI() }
                     } else {
                         imgFull?.visibility = View.GONE; imgAdd?.visibility = View.VISIBLE
-                        slot?.setOnClickListener { showWeaponSelectorDialog(activity) { selectedWeapon -> selectedWeapon.isEquipped = true; GameState.saveGameData(activity); refreshFormationUI() } }
+                        slot?.setOnClickListener { SoundManager.playClick(); showWeaponSelectorDialog(activity) { selectedWeapon -> selectedWeapon.isEquipped = true; GameState.saveGameData(activity); refreshFormationUI() } }
                     }
                 }
             }
@@ -763,11 +791,12 @@ object DialogManager {
         refreshFormationUI()
 
         d.findViewById<Button>(R.id.btnSaveFormation)?.setOnClickListener { 
+            SoundManager.playClick()
             prefs.edit().putLong("FORMATION_INFANTRY", selectedInfantry).putLong("FORMATION_CAVALRY", selectedCavalry).apply()
             showGameMessage(activity, "التشكيلة جاهزة", "تم حفظ التشكيلة الدفاعية بنجاح!", R.drawable.ic_ui_formation)
             updateUI(activity); d.dismiss() 
         }
-        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
