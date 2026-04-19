@@ -48,6 +48,7 @@ class MainActivity : AppCompatActivity() {
                 
                 GameState.saveGameData(this)
                 updateAvatarImages()
+                SoundManager.playClick()
                 DialogManager.showGameMessage(this, "تغيير الصورة", "تم حفظ صورتك الملكية في خزائن اللعبة!", R.drawable.ic_vip_crown)
             } else {
                 DialogManager.showGameMessage(this, "خطأ", "فشل في حفظ الصورة!", R.drawable.ic_settings_gear)
@@ -58,6 +59,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // 💡 تهيئة محرك الصوت في بداية اللعبة
+        SoundManager.init(this)
 
         YandexAdsManager.initYandexAds(this)
         
@@ -90,11 +94,20 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         GameState.calculatePower()
         updateHudUI()
+        // 💡 تشغيل أو استئناف موسيقى المدينة
+        SoundManager.playBGM(this, R.raw.bgm_city)
     }
 
     override fun onPause() {
         super.onPause()
         GameState.saveGameData(this)
+        // 💡 إيقاف الموسيقى مؤقتاً عند الخروج من اللعبة
+        SoundManager.pauseBGM()
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        SoundManager.onDestroy()
     }
 
     private fun initViews() {
@@ -110,32 +123,59 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupActionListeners() {
-        findViewById<View>(R.id.btnSettings)?.setOnClickListener { DialogManager.showSettingsDialog(this) }
+        findViewById<View>(R.id.btnSettings)?.setOnClickListener { 
+            SoundManager.playClick()
+            DialogManager.showSettingsDialog(this) 
+        }
 
         findViewById<View>(R.id.layoutAvatarClick)?.setOnClickListener { 
+            SoundManager.playWindowOpen()
             DialogManager.showPlayerProfileDialog(this, 
                 onPickImage = { showAvatarSelectionDialog() },
                 onChangeName = { showChangeNameDialog() }
             ) 
         }
         
-        findViewById<View>(R.id.layoutVipClick)?.setOnClickListener { DialogManager.showVipDialog(this) }
+        findViewById<View>(R.id.layoutVipClick)?.setOnClickListener { 
+            SoundManager.playWindowOpen()
+            DialogManager.showVipDialog(this) 
+        }
+        
         findViewById<View>(R.id.layoutCastleRewardsClick)?.setOnClickListener {
+            SoundManager.playWindowOpen()
             val castleLvl = GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
             DialogManager.showCastleRewardsDialog(this, castleLvl)
         }
-        findViewById<View>(R.id.layoutTavernClick)?.setOnClickListener { DialogManager.showSummoningTavernDialog(this) }
-        findViewById<View>(R.id.layoutWeaponsClick)?.setOnClickListener { DialogManager.showWeaponsDialog(this) }
-        findViewById<View>(R.id.layoutFormationClick)?.setOnClickListener { DialogManager.showFormationDialog(this) }
-        findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { DialogManager.showHeroesDialog(this) }
-        findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { DialogManager.showQuestsDialog(this) }
-        findViewById<View>(R.id.btnNavBag)?.setOnClickListener { DialogManager.showBagDialog(this) }
+        
+        findViewById<View>(R.id.layoutTavernClick)?.setOnClickListener { 
+            SoundManager.playWindowOpen()
+            DialogManager.showSummoningTavernDialog(this) 
+        }
+        
+        findViewById<View>(R.id.layoutWeaponsClick)?.setOnClickListener { 
+            SoundManager.playBlacksmith() // 💡 صوت الحدادة الخاص بالأسلحة
+            DialogManager.showWeaponsDialog(this) 
+        }
+        
+        findViewById<View>(R.id.layoutFormationClick)?.setOnClickListener { 
+            SoundManager.playWindowOpen()
+            DialogManager.showFormationDialog(this) 
+        }
+        
+        findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showHeroesDialog(this) }
+        findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showQuestsDialog(this) }
+        findViewById<View>(R.id.btnNavBag)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showBagDialog(this) }
+        
         findViewById<View>(R.id.btnNavArena)?.setOnClickListener { 
+            SoundManager.playClick()
             val intent = Intent(this, ArenaActivity::class.java)
             startActivity(intent)
         } 
-        findViewById<View>(R.id.btnNavStore)?.setOnClickListener { DialogManager.showStoreDialog(this) }
+
+        findViewById<View>(R.id.btnNavStore)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showStoreDialog(this) }
+        
         findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
+            SoundManager.playClick()
             DialogManager.showGameMessage(this, "المدينة الرئيسية", "أنت بالفعل داخل أسوار مدينتك أيها المهيب!", R.drawable.ic_ui_castle_rewards)
         } 
     }
@@ -159,7 +199,7 @@ class MainActivity : AppCompatActivity() {
             d.findViewById<TextView>(R.id.tvMessageTitle)?.text = msg.title
             d.findViewById<TextView>(R.id.tvMessageBody)?.text = msg.body
             d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(msg.iconResId)
-            d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener { d.dismiss(); showPendingOfflineMessages() }
+            d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener { SoundManager.playClick(); d.dismiss(); showPendingOfflineMessages() }
             d.show()
         }
     }
@@ -169,7 +209,7 @@ class MainActivity : AppCompatActivity() {
         d.setContentView(R.layout.dialog_avatar_preview)
         d.findViewById<TextView>(R.id.tvPreviewTitle)?.text = title
         d.findViewById<ImageView>(R.id.imgPreviewAvatar)?.setImageResource(imgResId)
-        d.findViewById<Button>(R.id.btnClosePreview)?.setOnClickListener { d.dismiss() }
+        d.findViewById<Button>(R.id.btnClosePreview)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -178,6 +218,7 @@ class MainActivity : AppCompatActivity() {
         d.setContentView(R.layout.dialog_avatar_selection)
 
         d.findViewById<Button>(R.id.btnUseDefaultAvatar)?.setOnClickListener {
+            SoundManager.playClick()
             val defaultUri = "android.resource://$packageName/${R.drawable.img_default_avatar}"
             GameState.selectedAvatarUri = defaultUri
             getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit().putString("PLAYER_CUSTOM_AVATAR", defaultUri).apply()
@@ -194,9 +235,10 @@ class MainActivity : AppCompatActivity() {
 
             if (isUnlocked) { btn?.text = "استخدام"; btn?.setTextColor(android.graphics.Color.WHITE) }
 
-            imageContainer?.setOnClickListener { showAvatarPreviewDialog(imgResId, avatarName) }
+            imageContainer?.setOnClickListener { SoundManager.playClick(); showAvatarPreviewDialog(imgResId, avatarName) }
 
             btn?.setOnClickListener {
+                SoundManager.playClick()
                 if (prefs.getBoolean(prefKey, false)) {
                     val premiumUri = "android.resource://$packageName/$imgResId"
                     GameState.selectedAvatarUri = premiumUri
@@ -222,10 +264,11 @@ class MainActivity : AppCompatActivity() {
         setupPremiumAvatar(R.id.btnBuyAvatarEmperor, R.drawable.img_avatar_emperor, cost, "AV_EMPEROR_UNLOCKED", "صورة الإمبراطور")
 
         d.findViewById<Button>(R.id.btnChooseFromGallery)?.setOnClickListener {
+            SoundManager.playClick()
             if (GameState.isVipActive()) { pickImageLauncher.launch("image/*"); d.dismiss() } 
             else { DialogManager.showGameMessage(this, "ميزة حصرية", "هذه الميزة تتطلب تفعيل الـ VIP!", R.drawable.ic_vip_crown); DialogManager.showVipDialog(this) }
         }
-        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
+        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -235,6 +278,7 @@ class MainActivity : AppCompatActivity() {
         val input = d.findViewById<EditText>(R.id.etNewName)
         
         d.findViewById<Button>(R.id.btnConfirmChangeName)?.setOnClickListener {
+            SoundManager.playClick()
             val newName = input?.text.toString().trim()
             if (newName.isNotEmpty()) {
                 if (GameState.totalGold >= 500) {
@@ -243,7 +287,7 @@ class MainActivity : AppCompatActivity() {
                 } else DialogManager.showGameMessage(this, "عذراً", "رصيد الذهب غير كافٍ!", R.drawable.ic_resource_gold)
             } else DialogManager.showGameMessage(this, "خطأ", "الاسم لا يمكن أن يكون فارغاً!", R.drawable.ic_settings_gear)
         }
-        d.findViewById<Button>(R.id.btnCancelChangeName)?.setOnClickListener { d.dismiss() }
+        d.findViewById<Button>(R.id.btnCancelChangeName)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
@@ -296,9 +340,9 @@ class MainActivity : AppCompatActivity() {
         
         img.setOnClickListener {
             if (plot.isReady && plot.resourceType != ResourceType.NONE) { collectResources(plot) } 
-            else if (plot.isUpgrading || plot.isTraining) { DialogManager.showSpeedupDialog(this, plot) } 
-            // 💡 ذكاء النقر الجديد لدار الشفاء
+            else if (plot.isUpgrading || plot.isTraining) { SoundManager.playWindowOpen(); DialogManager.showSpeedupDialog(this, plot) } 
             else if (plot.idCode == "HOSPITAL") {
+                SoundManager.playWindowOpen()
                 if (GameState.isHealing) {
                     DialogManager.showSpeedupDialog(this, null, null, true)
                 } else if (GameState.woundedInfantry > 0 || GameState.woundedCavalry > 0) {
@@ -308,6 +352,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             else {
+                SoundManager.playWindowOpen()
                 when (plot.idCode) {
                     "CASTLE" -> DialogManager.showCastleMainDialog(this, plot)
                     "BARRACKS_1", "BARRACKS_2" -> DialogManager.showBarracksMenuDialog(this, plot)
@@ -319,11 +364,19 @@ class MainActivity : AppCompatActivity() {
         if (plot.idCode != "HOSPITAL") {
             plot.collectIcon?.setOnClickListener { collectResources(plot) }
         } else {
-            plot.collectIcon?.setOnClickListener { DialogManager.showHospitalDialog(this, plot) }
+            plot.collectIcon?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showHospitalDialog(this, plot) }
         }
     }
 
     private fun collectResources(plot: MapPlot) {
+        // 💡 تشغيل الصوت المناسب لنوع المورد
+        when (plot.resourceType) {
+            ResourceType.GOLD -> SoundManager.playGold()
+            ResourceType.IRON -> SoundManager.playIron()
+            ResourceType.WHEAT -> SoundManager.playWheat()
+            else -> {}
+        }
+        
         plot.isReady = false; plot.collectTimer = 0L; plot.collectIcon?.visibility = View.GONE
         when (plot.resourceType) {
             ResourceType.GOLD -> GameState.totalGold += plot.getReward()
@@ -341,7 +394,6 @@ class MainActivity : AppCompatActivity() {
                 val now = System.currentTimeMillis()
                 updateVipUI(now)
 
-                // 💡 التحديث التلقائي والعداد الخاص بدار الشفاء
                 if (GameState.isHealing) {
                     val remHeal = GameState.healingEndTime - now
                     val hospitalPlot = GameState.myPlots.find { it.idCode == "HOSPITAL" }
