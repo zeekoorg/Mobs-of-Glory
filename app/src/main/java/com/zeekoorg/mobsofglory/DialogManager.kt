@@ -171,7 +171,6 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 المهام اليومية معدلة لتدعم الموارد المتعددة
     fun showQuestsDialog(activity: Activity) {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
@@ -210,7 +209,7 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 المهام الأسبوعية الجديدة كلياً
+    // 💡 المهام الأسبوعية الملحمية تم إضافتها هنا!
     fun showWeeklyQuestsDialog(activity: Activity) {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
@@ -224,9 +223,8 @@ object DialogManager {
             val tvTitle = view.findViewById<TextView>(R.id.tvQuestTitle); val pbProgress = view.findViewById<ProgressBar>(R.id.pbQuestProgress)
             val tvProgressText = view.findViewById<TextView>(R.id.tvQuestProgressText); val tvReward = view.findViewById<TextView>(R.id.tvQuestReward); val btnClaim = view.findViewById<Button>(R.id.btnClaimQuest)
             
-            // تخصيص الأيقونة إذا كانت المهمة قوية
             if (quest.rewardMedals > 0) {
-                view.findViewById<ImageView>(R.id.imgQuestIcon).setImageResource(R.drawable.ic_item_legend_medal)
+                view.findViewById<ImageView>(R.id.imgQuestIcon)?.setImageResource(R.drawable.ic_item_legend_medal)
             }
             
             tvTitle.text = quest.title
@@ -548,7 +546,6 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 تم دمج مهام مشاهدة الإعلانات داخل المتجر
     fun showStoreDialog(activity: Activity) {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
@@ -570,7 +567,6 @@ object DialogManager {
         d.findViewById<Button>(R.id.btnBuySpeedup2h)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 28000) { GameState.totalGold -= 28000; GameState.countSpeedup2h++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_2h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
         d.findViewById<Button>(R.id.btnBuySpeedup8h)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 100000) { GameState.totalGold -= 100000; GameState.countSpeedup8Hour++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_8h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
 
-        // إضافة تقدم لمهام الإعلانات هنا
         d.findViewById<Button>(R.id.btnAdResources)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.addQuestProgress(QuestType.WATCH_ADS, 1); GameState.totalWheat += 50000; GameState.totalIron += 50000; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على 50K قمح و 50K حديد!", R.drawable.ic_resource_iron) }, onAdClosed = {}) } }
         d.findViewById<Button>(R.id.btnAdGold)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.addQuestProgress(QuestType.WATCH_ADS, 1); GameState.totalGold += 10000; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على 10K ذهب!", R.drawable.ic_resource_gold) }, onAdClosed = {}) } }
         d.findViewById<Button>(R.id.btnAdSpeedup)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.addQuestProgress(QuestType.WATCH_ADS, 1); GameState.countSpeedup30m++; GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على تسريع 30 دقيقة!", R.drawable.ic_speedup_30m) }, onAdClosed = {}) } }
@@ -600,7 +596,6 @@ object DialogManager {
         d.setContentView(R.layout.dialog_summoning_tavern) 
         val tvMedals = d.findViewById<TextView>(R.id.tvSummonMedals); tvMedals?.text = "دعوات ملكية: ${GameState.summonMedals}"
 
-        // 💡 إضافة تقدم للإعلان في قاعة الأساطير أيضاً
         d.findViewById<Button>(R.id.btnSummonAd)?.setOnClickListener {
             SoundManager.playClick()
             showAdConfirmDialog(activity) {
