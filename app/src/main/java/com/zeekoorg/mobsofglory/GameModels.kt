@@ -4,7 +4,6 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
-import com.zeekoorg.mobsofglory.R
 import kotlin.math.pow
 
 enum class ResourceType(val iconResId: Int) { 
@@ -72,11 +71,52 @@ data class MapPlot(
     var layoutUpgradeProgress: View? = null, var pbUpgrade: ProgressBar? = null, 
     var tvUpgradeTimer: TextView? = null, var collectIcon: ImageView? = null
 ) {
-    fun getCostWheat(): Long = (if (idCode == "CASTLE") 1200 else 800 * level.toDouble().pow(3)).toLong()
-    fun getCostIron(): Long = (if (idCode == "CASTLE") 1000 else 500 * level.toDouble().pow(3)).toLong()
-    fun getCostGold(): Long = (if (idCode == "CASTLE") 300 else 100 * level.toDouble().pow(2.5)).toLong()
-    fun getUpgradeTimeSeconds(): Long = (level * level * 45).toLong() 
-    fun getReward(): Long = (level * 150).toLong()
+    
+    // 💡 استراتيجية التطوير القاسية: القلعة أغلى وأبطأ، والمعادلة تتضاعف بعد المستوى 5
+    fun getCostWheat(): Long {
+        val base = if (idCode == "CASTLE") 2500.0 else 800.0
+        val exponent = if (level >= 5) 3.2 else 2.0
+        return (base * level.toDouble().pow(exponent)).toLong()
+    }
+    
+    fun getCostIron(): Long {
+        val base = if (idCode == "CASTLE") 2000.0 else 500.0
+        val exponent = if (level >= 5) 3.2 else 2.0
+        return (base * level.toDouble().pow(exponent)).toLong()
+    }
+    
+    fun getCostGold(): Long {
+        val base = if (idCode == "CASTLE") 800.0 else 150.0
+        val exponent = if (level >= 5) 3.0 else 1.8
+        return (base * level.toDouble().pow(exponent)).toLong()
+    }
+    
+    fun getUpgradeTimeSeconds(): Long {
+        val baseTime = if (idCode == "CASTLE") 180.0 else 60.0
+        val exponent = if (level >= 5) 2.5 else 1.5
+        return (baseTime * level.toDouble().pow(exponent)).toLong()
+    } 
+
+    // 💡 استراتيجية الجمع: مستوى 50 يعطي 10 ألف قمح/حديد و 5 آلاف ذهب
+    fun getReward(): Long {
+        return if (resourceType == ResourceType.GOLD) {
+            (level * 100).toLong() 
+        } else {
+            (level * 200).toLong() 
+        }
+    }
+    
+    // 💡 سعة التدريب المرتبطة بمستوى المبنى
+    fun getMaxTrainingCapacity(): Int {
+        return when {
+            level < 5 -> 500
+            level < 10 -> 1000
+            level < 15 -> 2000
+            level < 25 -> 3000
+            else -> 5000
+        }
+    }
+
     fun getPowerProvided(): Long = (level * 250).toLong()
     fun getExpReward(): Int = level * 300
 }
