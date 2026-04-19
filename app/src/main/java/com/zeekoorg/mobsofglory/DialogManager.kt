@@ -209,7 +209,6 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 المهام الأسبوعية الملحمية تم إضافتها هنا!
     fun showWeeklyQuestsDialog(activity: Activity) {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
