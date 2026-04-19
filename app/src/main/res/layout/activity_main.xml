@@ -209,7 +209,7 @@
             android:layout_width="45dp"
             android:layout_height="45dp"
             android:src="@drawable/ic_vip_crown" 
-            android:background="@drawable/bg_inner_frame"
+            android:background="@drawable/bg_btn_gold_border"
             android:padding="6dp"/>
 
         <TextView
@@ -221,7 +221,7 @@
             android:textSize="9sp"
             android:textStyle="bold"
             android:layout_marginTop="3dp"
-            android:background="#99000000"
+            android:background="@drawable/bg_level_tag"
             android:paddingHorizontal="5dp"
             android:paddingVertical="2dp"/>
     </LinearLayout>
@@ -243,7 +243,7 @@
             android:layout_width="45dp"
             android:layout_height="45dp"
             android:src="@drawable/ic_ui_castle_rewards" 
-            android:background="@drawable/bg_inner_frame"
+            android:background="@drawable/bg_btn_gold_border"
             android:padding="6dp"/>
 
         <TextView
@@ -254,7 +254,7 @@
             android:textSize="9sp"
             android:textStyle="bold"
             android:layout_marginTop="3dp"
-            android:background="#99000000"
+            android:background="@drawable/bg_level_tag"
             android:paddingHorizontal="5dp"
             android:paddingVertical="2dp"/>
     </LinearLayout>
@@ -276,7 +276,7 @@
             android:layout_width="45dp"
             android:layout_height="45dp"
             android:src="@drawable/ic_ui_arena" 
-            android:background="@drawable/bg_inner_frame"
+            android:background="@drawable/bg_btn_gold_border"
             android:padding="6dp"/>
 
         <TextView
@@ -287,7 +287,7 @@
             android:textSize="9sp"
             android:textStyle="bold"
             android:layout_marginTop="3dp"
-            android:background="#99000000"
+            android:background="@drawable/bg_level_tag"
             android:paddingHorizontal="5dp"
             android:paddingVertical="2dp"/>
     </LinearLayout>
@@ -309,7 +309,7 @@
             android:layout_width="45dp"
             android:layout_height="45dp"
             android:src="@drawable/ic_menu_quests" 
-            android:background="@drawable/bg_inner_frame"
+            android:background="@drawable/bg_btn_gold_border"
             android:padding="6dp"/>
 
         <TextView
@@ -321,7 +321,7 @@
             android:textSize="9sp"
             android:textStyle="bold"
             android:layout_marginTop="3dp"
-            android:background="#99000000"
+            android:background="@drawable/bg_level_tag"
             android:paddingHorizontal="5dp"
             android:paddingVertical="2dp"/>
     </LinearLayout>
@@ -343,7 +343,7 @@
             android:layout_width="45dp"
             android:layout_height="45dp"
             android:src="@drawable/ic_ui_tavern" 
-            android:background="@drawable/bg_inner_frame"
+            android:background="@drawable/bg_btn_gold_border"
             android:padding="6dp"/>
 
         <TextView
@@ -354,7 +354,7 @@
             android:textSize="9sp"
             android:textStyle="bold"
             android:layout_marginTop="3dp"
-            android:background="#99000000"
+            android:background="@drawable/bg_level_tag"
             android:paddingHorizontal="5dp"
             android:paddingVertical="2dp"/>
     </LinearLayout>
@@ -376,7 +376,7 @@
             android:layout_width="45dp"
             android:layout_height="45dp"
             android:src="@drawable/ic_ui_weapons" 
-            android:background="@drawable/bg_inner_frame"
+            android:background="@drawable/bg_btn_gold_border"
             android:padding="6dp"/>
 
         <TextView
@@ -387,7 +387,7 @@
             android:textSize="9sp"
             android:textStyle="bold"
             android:layout_marginTop="3dp"
-            android:background="#99000000"
+            android:background="@drawable/bg_level_tag"
             android:paddingHorizontal="5dp"
             android:paddingVertical="2dp"/>
     </LinearLayout>
@@ -409,7 +409,7 @@
             android:layout_width="45dp"
             android:layout_height="45dp"
             android:src="@drawable/ic_ui_formation" 
-            android:background="@drawable/bg_inner_frame"
+            android:background="@drawable/bg_btn_gold_border"
             android:padding="6dp"/>
 
         <TextView
@@ -420,7 +420,7 @@
             android:textSize="9sp"
             android:textStyle="bold"
             android:layout_marginTop="3dp"
-            android:background="#99000000"
+            android:background="@drawable/bg_level_tag"
             android:paddingHorizontal="5dp"
             android:paddingVertical="2dp"/>
     </LinearLayout>
