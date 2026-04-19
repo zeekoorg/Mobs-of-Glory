@@ -64,7 +64,6 @@ class ArenaActivity : AppCompatActivity() {
         GameState.arenaLeaderboard.find { it.isRealPlayer }?.name = GameState.playerName
         refreshArenaUI()
         
-        // 💡 تشغيل موسيقى المعركة الملحمية
         SoundManager.playBGM(this, R.raw.bgm_arena)
     }
 
@@ -72,7 +71,6 @@ class ArenaActivity : AppCompatActivity() {
         super.onPause()
         GameState.saveGameData(this)
         
-        // 💡 إيقاف الموسيقى مؤقتاً عند الخروج من الساحة
         SoundManager.pauseBGM()
     }
 
@@ -122,6 +120,9 @@ class ArenaActivity : AppCompatActivity() {
             SoundManager.playClick()
             d.dismiss()
             YandexAdsManager.showRewardedAd(this, onRewarded = {
+                // 💡 هنا تمت إضافة مستمع الإعلانات الذكي ليعمل عند شحن الطاقة
+                GameState.addQuestProgress(QuestType.WATCH_ADS, 1)
+                
                 GameState.arenaStamina = 5; GameState.arenaStaminaLastRegenTime = System.currentTimeMillis(); GameState.saveGameData(this)
                 refreshArenaUI(); DialogManager.showGameMessage(this, "طاقة كاملة", "تم شحن طاقة الهجوم بالكامل! سحقاً للأعداء!", R.drawable.ic_settings_gear)
             }, onAdClosed = {})
@@ -134,7 +135,6 @@ class ArenaActivity : AppCompatActivity() {
         GameState.arenaStamina--; if (GameState.arenaStamina == 4) GameState.arenaStaminaLastRegenTime = System.currentTimeMillis()
         refreshArenaUI(); layoutAttackPrompt.visibility = View.INVISIBLE
         
-        // 💡 صوت زحف الجيش
         SoundManager.playMarch()
 
         imgMarchingLegion.clearAnimation(); imgMarchingLegion.animate().cancel()
@@ -153,7 +153,6 @@ class ArenaActivity : AppCompatActivity() {
     }
 
     private fun triggerHitEffects() {
-        // 💡 صوت تحطم القلعة والضربة القاضية
         SoundManager.playClash()
 
         val shake = TranslateAnimation(-15f, 15f, -5f, 5f)
@@ -223,7 +222,7 @@ class ArenaActivity : AppCompatActivity() {
             
             if (hasBonusLoot) {
                 Handler(Looper.getMainLooper()).postDelayed({
-                    SoundManager.playWindowOpen() // 💡 صوت للغنيمة
+                    SoundManager.playWindowOpen()
                     DialogManager.showGameMessage(this, "دمار أسطوري!", "لقد ألحقت ضرراً تجاوز 250,000 بالقلعة!\n\nمكافأة فورية:\n+ 50K حديد\n+ 50K قمح\n+ 30K ذهب", R.drawable.ic_ui_castle_rewards)
                 }, 500)
             }
