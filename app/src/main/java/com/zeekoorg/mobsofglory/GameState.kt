@@ -17,7 +17,6 @@ object GameState {
     var woundedInfantry: Long = 0; var woundedCavalry: Long = 0
     var summonMedals: Int = 0
     
-    // 💡 متغير حزمة البداية
     var isStarterPackClaimed: Boolean = false
     
     var isPyramidUnlocked = false; var isDiamondUnlocked = false; var isPeacockUnlocked = false
@@ -58,6 +57,17 @@ object GameState {
                 quest.currentAmount += amount; if (quest.currentAmount > quest.targetAmount) quest.currentAmount = quest.targetAmount
             }
         }
+    }
+
+    // 💡 دوال المراقبة الذكية لنقاط التنبيه
+    fun hasUnclaimedDailyQuests(): Boolean = dailyQuestsList.any { it.isCompleted && !it.isCollected }
+    fun hasUnclaimedWeeklyQuests(): Boolean = weeklyQuestsList.any { it.isCompleted && !it.isCollected }
+    fun hasBagItems(): Boolean = countResourceBox > 0 || countGoldBox > 0
+    fun hasSummonMedals(): Boolean = summonMedals > 0
+    fun hasCastleRewards(): Boolean {
+        val castleLvl = myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
+        val milestones = listOf(5, 10, 15, 20)
+        return milestones.any { castleLvl >= it && !claimedCastleRewards.contains(it) }
     }
 
     fun initializeDataLists() {
@@ -184,7 +194,6 @@ object GameState {
         prefs.putLong("WOUNDED_INFANTRY", woundedInfantry); prefs.putLong("WOUNDED_CAVALRY", woundedCavalry)
         prefs.putInt("SUMMON_MEDALS", summonMedals)
         
-        // 💡 حفظ حالة حزمة البداية
         prefs.putBoolean("STARTER_PACK_CLAIMED", isStarterPackClaimed)
         
         prefs.putBoolean("PYRAMID_UNLOCKED", isPyramidUnlocked); prefs.putBoolean("DIAMOND_UNLOCKED", isDiamondUnlocked); prefs.putBoolean("PEACOCK_UNLOCKED", isPeacockUnlocked)
@@ -237,7 +246,6 @@ object GameState {
         woundedInfantry = prefs.getLong("WOUNDED_INFANTRY", 0); woundedCavalry = prefs.getLong("WOUNDED_CAVALRY", 0)
         summonMedals = prefs.getInt("SUMMON_MEDALS", 2)
         
-        // 💡 استرجاع حالة حزمة البداية
         isStarterPackClaimed = prefs.getBoolean("STARTER_PACK_CLAIMED", false)
         
         isPyramidUnlocked = prefs.getBoolean("PYRAMID_UNLOCKED", false); isDiamondUnlocked = prefs.getBoolean("DIAMOND_UNLOCKED", false); isPeacockUnlocked = prefs.getBoolean("PEACOCK_UNLOCKED", false)
