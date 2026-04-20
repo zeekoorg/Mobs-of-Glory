@@ -103,67 +103,56 @@ class MainActivity : AppCompatActivity() {
         checkPendingLevelUps()
         showPendingOfflineMessages()
 
-        // 💡 إطلاق نظام Spotlight الاحترافي بعد تحميل الشاشة
         Handler(Looper.getMainLooper()).postDelayed({
             checkAndRunSpotlightTutorial()
         }, 1500)
     }
 
-    // 💡 دالة التحكم بمسار التعليمات في الشاشة الرئيسية
+    // 💡 المسار المترابط الذي لا ينكسر (الخطوات 0, 3, 6, 8, 10, 12, 14)
     fun checkAndRunSpotlightTutorial() {
         val rootLayout = window.decorView as ViewGroup
         
         when (GameState.tutorialStep) {
             0 -> {
-                // الخطوة 0: القلعة
-                val btnCastle = findViewById<View>(R.id.plotCastle) ?: return
+                // 💡 الوصول للـ ImageView المباشر لتجنب مشكلة النقرتين
+                val btnCastleContainer = findViewById<View>(R.id.plotCastle)
+                val btnCastle = btnCastleContainer?.findViewById<ImageView>(R.id.imgBuilding) ?: return
                 SpotlightView.show(this, rootLayout, btnCastle, "أهلاً بك في إمبراطوريتك يا زعيم!\nلنبدأ بترقية القلعة، قلب الإمبراطورية.") {
-                    GameState.tutorialStep = 1 
-                    GameState.saveGameData(this)
+                    GameState.tutorialStep = 1; GameState.saveGameData(this)
                 }
             }
-            2 -> {
-                // الخطوة 2: الثكنة (بعد ترقية القلعة)
-                val btnBarracks = findViewById<View>(R.id.plotBarracksL1) ?: return
+            3 -> {
+                val btnBarracksContainer = findViewById<View>(R.id.plotBarracksL1)
+                val btnBarracks = btnBarracksContainer?.findViewById<ImageView>(R.id.imgBuilding) ?: return
                 SpotlightView.show(this, rootLayout, btnBarracks, "رائع! القلعة تطورت.\nالآن اضغط على الثكنة لإعداد جيشك.") {
-                    GameState.tutorialStep = 3 
-                    GameState.saveGameData(this)
-                }
-            }
-            4 -> {
-                // الخطوة 4: المهام (بعد التدريب)
-                val btnQuests = findViewById<View>(R.id.btnNavQuests) ?: return
-                SpotlightView.show(this, rootLayout, btnQuests, "جيشك مستعد!\nهنا يمكنك إنجاز المهام للحصول على الجوائز المذهلة.") {
-                    GameState.tutorialStep = 5 
-                    GameState.saveGameData(this)
+                    GameState.tutorialStep = 4; GameState.saveGameData(this)
                 }
             }
             6 -> {
-                // الخطوة 6: الملف الشخصي
-                val btnProfile = findViewById<View>(R.id.layoutAvatarClick) ?: return
-                SpotlightView.show(this, rootLayout, btnProfile, "يجب أن يعرف الجميع من هو الحاكم!\nاضغط هنا لتعديل اسمك وصورتك الشخصية.") {
-                    GameState.tutorialStep = 7 
-                    GameState.saveGameData(this)
+                val btnQuests = findViewById<View>(R.id.btnNavQuests) ?: return
+                SpotlightView.show(this, rootLayout, btnQuests, "جيشك مستعد!\nهنا يمكنك إنجاز المهام للحصول على الجوائز المذهلة.") {
+                    GameState.tutorialStep = 7; GameState.saveGameData(this)
                 }
             }
             8 -> {
-                // الخطوة 8: مكافآت القلعة
-                val btnCastleRewards = findViewById<View>(R.id.layoutCastleRewardsClick) ?: return
-                SpotlightView.show(this, rootLayout, btnCastleRewards, "مكافآت الترقية بانتظارك!\nاحصل عليها من هنا كلما طورت قلعتك.") {
-                    GameState.tutorialStep = 9 
-                    GameState.saveGameData(this)
+                val btnProfile = findViewById<View>(R.id.layoutAvatarClick) ?: return
+                SpotlightView.show(this, rootLayout, btnProfile, "يجب أن يعرف الجميع من هو الحاكم!\nاضغط هنا لتعديل ملفك الشخصي وصورتك.") {
+                    GameState.tutorialStep = 9; GameState.saveGameData(this)
                 }
             }
             10 -> {
-                // الخطوة 10: الأبطال
-                val btnTavern = findViewById<View>(R.id.btnNavHeroes) ?: return
-                SpotlightView.show(this, rootLayout, btnTavern, "لن تكتمل قوتك بدون أبطال ملحميين!\nافتح القائمة لتجنيد أبطال يقودون جيشك.") {
-                    GameState.tutorialStep = 11 
-                    GameState.saveGameData(this)
+                val btnCastleRewards = findViewById<View>(R.id.layoutCastleRewardsClick) ?: return
+                SpotlightView.show(this, rootLayout, btnCastleRewards, "مكافآت الترقية بانتظارك!\nاحصل عليها من هنا كلما طورت قلعتك.") {
+                    GameState.tutorialStep = 11; GameState.saveGameData(this)
                 }
             }
             12 -> {
-                // الخطوة 12: إظهار حزمة البداية (النهاية)
+                val btnHeroes = findViewById<View>(R.id.btnNavHeroes) ?: return
+                SpotlightView.show(this, rootLayout, btnHeroes, "لن تكتمل قوتك بدون أبطال ملحميين!\nافتح القائمة لتجنيد أبطال يقودون جيشك.") {
+                    GameState.tutorialStep = 13; GameState.saveGameData(this)
+                }
+            }
+            14 -> {
                 if (!GameState.isStarterPackClaimed) {
                     DialogManager.showStarterPackDialog(this)
                 }
@@ -176,7 +165,6 @@ class MainActivity : AppCompatActivity() {
         GameState.calculatePower()
         updateHudUI()
         SoundManager.playBGM(this, R.raw.bgm_city)
-        // التحقق من التعليمات عند العودة للشاشة
         Handler(Looper.getMainLooper()).postDelayed({ checkAndRunSpotlightTutorial() }, 500)
     }
 
@@ -358,7 +346,6 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                // 💡 استدعاء دالة تحديث النقاط الذكية
                 updateNotificationBadges()
 
                 gameHandler.postDelayed(this, 1000)
@@ -414,20 +401,19 @@ class MainActivity : AppCompatActivity() {
         if (displayedPower != GameState.playerPower) { powerAnimator?.cancel(); powerAnimator = animateResourceText(tvMainTotalPower, displayedPower, GameState.playerPower, "⚔️ ") { displayedPower = it } } 
         else tvMainTotalPower.text = "⚔️ ${formatResourceNumber(GameState.playerPower)}"
         
-        // 💡 تحديث النقاط الذكية
         updateNotificationBadges()
     }
 
-    // 💡 دالة إظهار وإخفاء النقاط الخضراء بذكاء
     private fun updateNotificationBadges() {
         findViewById<View>(R.id.badgeQuests)?.visibility = if (GameState.hasUnclaimedDailyQuests()) View.VISIBLE else View.GONE
         findViewById<View>(R.id.badgeWeeklyQuests)?.visibility = if (GameState.hasUnclaimedWeeklyQuests()) View.VISIBLE else View.GONE
         findViewById<View>(R.id.badgeBag)?.visibility = if (GameState.hasBagItems()) View.VISIBLE else View.GONE
         findViewById<View>(R.id.badgeTavern)?.visibility = if (GameState.hasSummonMedals()) View.VISIBLE else View.GONE
         findViewById<View>(R.id.badgeCastleRewards)?.visibility = if (GameState.hasCastleRewards()) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.badgeStore)?.visibility = View.VISIBLE // 💡 دائم الظهور للمتجر
+        findViewById<View>(R.id.badgeStore)?.visibility = View.VISIBLE
     }
 
     fun changeCitySkin(skinResId: Int) { imgCityBackground.setImageResource(skinResId); getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit().putInt("SELECTED_SKIN", skinResId).apply() }
     private fun formatResourceNumber(num: Long): String = when { num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0); num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0); else -> num.toString() }
 }
+
