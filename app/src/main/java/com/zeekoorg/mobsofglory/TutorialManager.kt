@@ -1,112 +1,145 @@
 package com.zeekoorg.mobsofglory
 
-import android.graphics.Rect
-import android.view.MotionEvent
+import android.graphics.*
+import android.view.Gravity
 import android.view.View
-import android.view.animation.Animation
-import android.view.animation.TranslateAnimation
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
+import android.view.animation.AlphaAnimation
+import android.view.animation.Animation
+import android.view.animation.TranslateAnimation
 
 object TutorialManager {
 
-    fun checkAndShowTutorial(activity: MainActivity) {
-        val overlay = activity.findViewById<View>(R.id.layoutTutorialOverlay)
+    private var tutorialOverlay: FrameLayout? = null
+
+    // 💡 بدء نظام تسليط الضوء (Spotlight)
+    fun startSpotlightTutorial(activity: MainActivity) {
+        val rootLayout = activity.window.decorView as ViewGroup
         
-        // 💡 إذا تجاوز اللاعب الخطوة 4، تنتهي التعليمات للأبد وتختفي الطبقة العازلة
-        if (GameState.tutorialStep >= 5) {
-            overlay.visibility = View.GONE
-            return
+        // إزالة أي طبقة قديمة لتجنب التكرار
+        removeTutorial(activity)
+
+        // إنشاء الحاوية الرئيسية برمجياً لتكون فوق كل شيء
+        tutorialOverlay = FrameLayout(activity).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            setBackgroundColor(Color.parseColor("#AA000000")) // عتامة سوداء خفيفة
+            isClickable = true
+            isFocusable = true
         }
 
-        overlay.visibility = View.VISIBLE
-        setupStep(activity, overlay)
+        setupCurrentStep(activity)
+        rootLayout.addView(tutorialOverlay)
     }
 
-    private fun setupStep(activity: MainActivity, overlay: View) {
-        val tvText = activity.findViewById<TextView>(R.id.tvTutorialText)
-        val imgPointer = activity.findViewById<ImageView>(R.id.imgTutorialPointer)
-        var targetView: View? = null
+    private fun setupCurrentStep(activity: MainActivity) {
+        val overlay = tutorialOverlay ?: return
+        overlay.removeAllViews()
 
-        // 💡 إعداد نصوص الشرح والزر المستهدف لكل خطوة
-        when (GameState.tutorialStep) {
+        val step = GameState.tutorialStep
+        var targetViewId = -1
+        var instructionText = ""
+
+        when (step) {
             0 -> {
-                tvText.text = "أهلاً بك يا سيدي المهيب في إمبراطوريتك!\nلتكوين جيش قوي نحتاج للغذاء، اضغط هنا للبدء بالعمل في المزرعة."
-                targetView = activity.findViewById(R.id.plotFarmR1)
+                instructionText = "أهلاً بك يا سيدي المهيب!\nإمبراطوريتك بحاجة للغذاء، اضغط على المزرعة للبدء."
+                targetViewId = R.id.plotFarmR1
             }
-            1 -> {
-                tvText.text = "ممتاز! الآن أصبح لدينا طعام.\nدعنا نجهز معسكراً لتدريب جنودنا الشجعان، اضغط هنا."
-                targetView = activity.findViewById(R.id.plotBarracksL1)
+            // سنضيف الخطوات التالية (القلعة، الثكنات) بعد نجاح الخطوة الأولى
+        }
+
+        val targetView = activity.findViewById<View>(targetViewId)
+        if (targetView != null) {
+            targetView.post {
+                addGuideCharacter(activity, overlay, instructionText)
+                addPointerHand(activity, overlay, targetView)
             }
-            2 -> {
-                tvText.text = "أحسنت!\nالقلعة هي قلب الإمبراطورية ومصدر هيبتك. اضغط لتفقدها."
-                targetView = activity.findViewById(R.id.plotCastle)
-            }
-            3 -> {
-                tvText.text = "نحتاج إلى أبطال أسطوريين لقيادة الفيلق وتدمير الأعداء!\nتفضل بزيارة قاعة الأساطير."
-                targetView = activity.findViewById(R.id.layoutTavernClick)
-            }
-            4 -> {
-                tvText.text = "الإمبراطورية الآن تحت إمرتك!\nهنا ستجد المهام اليومية، أنجزها لتحصل على الغنائم. انطلق للمجد!"
-                targetView = activity.findViewById(R.id.btnNavQuests)
+        }
+    }
+
+    private fun addGuideCharacter(activity: MainActivity, overlay: FrameLayout, text: String) {
+        // إضافة صورة المرشدة
+        val guideImg = ImageView(activity).apply {
+            setImageResource(R.drawable.img_guide_character)
+            layoutParams = FrameLayout.LayoutParams(450, 700).apply {
+                gravity = Gravity.BOTTOM or Gravity.START
+                marginStart = 20
+                bottomMargin = 50
             }
         }
 
-        if (targetView != null) {
-            // ننتظر حتى تُرسم الشاشة لنعرف إحداثيات الزر الحقيقية
-            targetView.post {
-                val location = IntArray(2)
-                targetView.getLocationOnScreen(location)
-                
-                // 💡 نقل الإصبع ليكون في منتصف الزر المستهدف بالضبط
-                val targetX = location[0] + (targetView.width / 2f)
-                val targetY = location[1] + (targetView.height / 2f)
-
-                imgPointer.x = targetX - (imgPointer.width / 2f)
-                imgPointer.y = targetY - (imgPointer.height / 2f)
-
-                // 💡 أنميشن طفو الإصبع (أعلى وأسفل لجذب الانتباه)
-                imgPointer.clearAnimation()
-                val bounce = TranslateAnimation(0f, 0f, -20f, 20f)
-                bounce.duration = 500
-                bounce.repeatMode = Animation.REVERSE
-                bounce.repeatCount = Animation.INFINITE
-                imgPointer.startAnimation(bounce)
-
-                // 💡 اعتراض لمسات اللاعب وفحصها
-                overlay.setOnTouchListener { _, event ->
-                    if (event.action == MotionEvent.ACTION_UP) {
-                        val rect = Rect()
-                        targetView.getGlobalVisibleRect(rect)
-                        
-                        // تكبير مساحة النقر قليلاً لتسهيل اللمس على اللاعب
-                        rect.inset(-50, -50)
-
-                        // هل لمس اللاعب المكان الذي توجد فيه الأيقونة؟
-                        if (rect.contains(event.rawX.toInt(), event.rawY.toInt())) {
-                            // تقدم خطوة للأمام واحفظ
-                            GameState.tutorialStep++
-                            GameState.saveGameData(activity)
-                            
-                            // 💡 محاكاة النقر على الزر الأصلي تحته لكي تفتح النافذة الخاصة به
-                            targetView.performClick()
-                            
-                            // الانتقال للخطوة التالية أو إخفاء الشرح
-                            checkAndShowTutorial(activity)
-                            
-                            // 💡 إظهار حزمة البداية فور انتهاء آخر خطوة في الشرح بنجاح!
-                            if (GameState.tutorialStep == 5 && !GameState.isStarterPackClaimed) {
-                                DialogManager.showStarterPackDialog(activity)
-                            }
-                        } else {
-                            // اللاعب لمس مكاناً خاطئاً (يمكننا تشغيل صوت خطأ إذا أردت)
-                        }
-                    }
-                    true // تمنع مرور اللمسة لباقي الشاشة
-                }
+        // إضافة فقاعة النص
+        val speechBubble = TextView(activity).apply {
+            this.text = text
+            setTextColor(Color.WHITE)
+            textSize = 15f
+            setPadding(40, 30, 40, 30)
+            setBackgroundResource(R.drawable.bg_btn_gold_border)
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.BOTTOM or Gravity.START
+                marginStart = 400
+                bottomMargin = 350
+                marginEnd = 50
             }
-        } else {
-            overlay.visibility = View.GONE
+        }
+
+        overlay.addView(guideImg)
+        overlay.addView(speechBubble)
+    }
+
+    private fun addPointerHand(activity: MainActivity, overlay: FrameLayout, target: View) {
+        val location = IntArray(2)
+        target.getLocationOnScreen(location)
+
+        val hand = ImageView(activity).apply {
+            setImageResource(R.drawable.ic_pointer_hand)
+            layoutParams = FrameLayout.LayoutParams(150, 150)
+            x = location[0].toFloat() + (target.width / 4)
+            y = location[1].toFloat() + (target.height / 4)
+        }
+
+        // أنميشن اليد (إشارة النقر)
+        val anim = TranslateAnimation(0f, 0f, 0f, -30f).apply {
+            duration = 500
+            repeatMode = Animation.REVERSE
+            repeatCount = Animation.INFINITE
+        }
+        hand.startAnimation(anim)
+
+        // 💡 أهم جزء: النقر على اليد يختفي ويسمح بالوصول للزر الحقيقي
+        overlay.setOnClickListener {
+            val rect = Rect()
+            target.getGlobalVisibleRect(rect)
+            // إذا ضغط اللاعب في نطاق الهدف، نغلق التعليمات مؤقتاً ونفذ النقر
+            removeTutorial(activity)
+            target.performClick()
+        }
+
+        overlay.addView(hand)
+    }
+
+    fun advanceTutorial(activity: MainActivity) {
+        GameState.tutorialStep++
+        GameState.saveGameData(activity)
+        // إذا لم تنتهِ الخطوات، نعيد إظهار الشرح للخطوة التالية
+        if (GameState.tutorialStep < 5) {
+            startSpotlightTutorial(activity)
+        }
+    }
+
+    fun removeTutorial(activity: MainActivity) {
+        val rootLayout = activity.window.decorView as ViewGroup
+        tutorialOverlay?.let {
+            rootLayout.removeView(it)
+            tutorialOverlay = null
         }
     }
 }
