@@ -93,6 +93,11 @@ object TutorialManager {
                             
                             // الانتقال للخطوة التالية أو إخفاء الشرح
                             checkAndShowTutorial(activity)
+                            
+                            // 💡 إظهار حزمة البداية فور انتهاء آخر خطوة في الشرح بنجاح!
+                            if (GameState.tutorialStep == 5 && !GameState.isStarterPackClaimed) {
+                                DialogManager.showStarterPackDialog(activity)
+                            }
                         } else {
                             // اللاعب لمس مكاناً خاطئاً (يمكننا تشغيل صوت خطأ إذا أردت)
                         }
