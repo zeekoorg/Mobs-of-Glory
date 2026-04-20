@@ -22,35 +22,24 @@ class SpotlightView(
     private val onTargetClicked: () -> Unit
 ) : FrameLayout(context) {
 
-    // 1. إعداد لون الظلام (تعتيم 80%)
-    private val backgroundPaint = Paint().apply {
-        color = Color.parseColor("#CC000000") 
+    // تقنية الـ Path العبقرية لحفر الثقب المضيء
+    private val path = Path()
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#CC000000") // الظلام 80%
         style = Paint.Style.FILL
-    }
-
-    // 2. إعداد أداة "الحفر" لقص الدائرة الشفافة فوق الهدف
-    private val transparentPaint = Paint().apply {
-        color = Color.TRANSPARENT
-        xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
-        isAntiAlias = true
     }
 
     private val targetRect = RectF()
 
     init {
-        // تفعيل الرسم على الـ ViewGroup
         setWillNotDraw(false)
-        // ضروري جداً لكي تعمل خاصية الـ CLEAR في الأندرويد
-        setLayerType(View.LAYER_TYPE_HARDWARE, null)
-        
         isClickable = true
         isFocusable = true
 
-        // ننتظر حتى تُرسم الشاشة لنأخذ الإحداثيات الحقيقية للزر
         post {
             calculateTargetBounds()
             addTutorialUI()
-            invalidate() // إعادة الرسم
+            invalidate()
         }
     }
 
@@ -61,12 +50,11 @@ class SpotlightView(
         val myLocation = IntArray(2)
         this.getLocationInWindow(myLocation)
 
-        // حساب الإحداثيات (X, Y) بدقة سواء كنا في الشاشة أو داخل نافذة (Dialog)
         val x = location[0].toFloat() - myLocation[0].toFloat()
         val y = location[1].toFloat() - myLocation[1].toFloat()
 
-        // إضافة مساحة (Padding) حول الزر لتبدو الدائرة المضيئة واسعة ومريحة
-        val padding = 20f
+        // توسيع الدائرة لتشمل الزر براحة تامة
+        val padding = 25f
         targetRect.set(
             x - padding,
             y - padding,
@@ -78,44 +66,46 @@ class SpotlightView(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         
-        // رسم الظلام على كامل الشاشة
-        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), backgroundPaint)
+        path.reset()
+        // 1. رسم مستطيل يغطي كامل الشاشة
+        path.addRect(0f, 0f, width.toFloat(), height.toFloat(), Path.Direction.CW)
+        // 2. حفر الدائرة (الثقب) فوق الهدف
+        val cornerRadius = 40f
+        path.addRoundRect(targetRect, cornerRadius, cornerRadius, Path.Direction.CCW)
+        // 3. تطبيق خاصية القص
+        path.fillType = Path.FillType.EVEN_ODD
         
-        // حفر الدائرة المضيئة (زوايا دائرية) فوق الهدف
-        val cornerRadius = 30f
-        canvas.drawRoundRect(targetRect, cornerRadius, cornerRadius, transparentPaint)
+        canvas.drawPath(path, paint)
     }
 
-    @SuppressLint("ClickableViewAccessibility")
-    override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (event.action == MotionEvent.ACTION_UP) {
-            // توسيع منطقة اللمس قليلاً لتسهيل النقر على اللاعب
-            val touchRect = RectF(targetRect).apply { inset(-20f, -20f) }
-            
-            if (touchRect.contains(event.x, event.y)) {
-                // إذا لمس اللاعب الدائرة المضيئة:
-                // 1. نزيل طبقة التعليمات
-                (parent as? ViewGroup)?.removeView(this)
-                // 2. ننفذ تقدم الخطوة برمجياً
+    // 💡 أهم دالة: السماح للمسة الحقيقية بالاختراق!
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        // توسيع منطقة اللمس المسموحة
+        val touchRect = RectF(targetRect).apply { inset(-30f, -30f) }
+        
+        if (touchRect.contains(event.x, event.y)) {
+            // إذا لمس اللاعب الثقب המضيء.. اسمح للمسة بالمرور للزر الحقيقي!
+            if (event.action == MotionEvent.ACTION_UP) {
                 onTargetClicked()
-                // 3. نضغط نيابة عنه على الزر الحقيقي المختفي بالأسفل!
-                targetView.performClick()
+                (parent as? ViewGroup)?.removeView(this)
             }
+            return false // false تعني "أنا لا أعترض اللمسة، مرريها للزر الموجود بالأسفل"
         }
-        return true // نمتص اللمسة لكي لا يضغط على أي شيء خارج الدائرة
+        
+        // إذا لمس منطقة الظلام، امنع اللمسة!
+        return true
     }
 
     private fun addTutorialUI() {
-        // 1. إضافة اليد المؤشرة المتحركة
         val hand = ImageView(context).apply {
             setImageResource(R.drawable.ic_pointer_hand)
             layoutParams = LayoutParams(150, 150)
-            // وضع اليد في منتصف الدائرة المضيئة
-            x = targetRect.centerX() - 40f
-            y = targetRect.centerY() - 20f
+            // وضع اليد في منتصف الثقب بدقة
+            x = targetRect.centerX() - 30f
+            y = targetRect.centerY() - 30f
         }
         
-        val bounceAnim = TranslateAnimation(0f, 0f, 0f, -30f).apply {
+        val bounceAnim = TranslateAnimation(0f, 0f, 0f, -40f).apply {
             duration = 500
             repeatMode = Animation.REVERSE
             repeatCount = Animation.INFINITE
@@ -123,7 +113,6 @@ class SpotlightView(
         hand.startAnimation(bounceAnim)
         addView(hand)
 
-        // 2. إضافة صورة المرشدة أسفل يسار الشاشة
         val guideImg = ImageView(context).apply {
             setImageResource(R.drawable.img_guide_character)
             layoutParams = LayoutParams(400, 650).apply {
@@ -134,17 +123,16 @@ class SpotlightView(
         }
         addView(guideImg)
 
-        // 3. إضافة فقاعة النص بجانب المرشدة
         val speechBubble = TextView(context).apply {
             text = instructionText
             setTextColor(Color.WHITE)
             textSize = 14f
             setPadding(40, 30, 40, 30)
-            setBackgroundResource(R.drawable.bg_btn_gold_border) // نفس تصميم أزرارك
+            setBackgroundResource(R.drawable.bg_btn_gold_border)
             layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
                 gravity = Gravity.BOTTOM or Gravity.START
-                marginStart = 380 // إبعادها عن المرشدة
-                bottomMargin = 400 // رفعها قليلاً
+                marginStart = 380
+                bottomMargin = 400
                 marginEnd = 40
             }
         }
@@ -152,7 +140,6 @@ class SpotlightView(
     }
 
     companion object {
-        // 💡 دالة سريعة لاستدعاء تسليط الضوء من أي مكان (Activity أو Dialog)
         fun show(
             activity: Activity,
             rootView: ViewGroup,
