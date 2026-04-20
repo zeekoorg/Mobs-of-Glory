@@ -610,7 +610,7 @@
             android:textSize="14sp"
             android:textStyle="bold"
             android:padding="15dp"
-            android:text="أهلاً بك يا سيدي المهيب، إمبراطوريتك بحاجة للغذاء، اضغط هنا لبناء المزرعة!"
+            android:text="مرحباً سيدي!"
             app:layout_constraintBottom_toBottomOf="@id/imgTutorialGuide"
             app:layout_constraintStart_toEndOf="@id/imgTutorialGuide"
             app:layout_constraintEnd_toEndOf="parent"
