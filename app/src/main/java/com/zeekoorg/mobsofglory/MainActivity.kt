@@ -103,16 +103,64 @@ class MainActivity : AppCompatActivity() {
         checkPendingLevelUps()
         showPendingOfflineMessages()
 
-        // 💡 النظام الجديد: استدعاء التعليمات التفاعلية (Spotlight) أو حزمة البداية
+        // 💡 إطلاق نظام Spotlight الاحترافي بعد تحميل الشاشة
         Handler(Looper.getMainLooper()).postDelayed({
-            if (GameState.tutorialStep < 5) {
-                // تشغيل نظام التعليمات الاحترافي الجديد (سيتم برمجته في الملف المنفصل)
-                TutorialManager.startSpotlightTutorial(this)
-            } else if (!GameState.isStarterPackClaimed) {
-                // إظهار حزمة البداية فوراً إذا أنهى التعليمات ولم يستلمها
-                DialogManager.showStarterPackDialog(this)
-            }
+            checkAndRunSpotlightTutorial()
         }, 1500)
+    }
+
+    // 💡 دالة التحكم بمسار التعليمات في الشاشة الرئيسية
+    fun checkAndRunSpotlightTutorial() {
+        val rootLayout = window.decorView as ViewGroup
+        
+        when (GameState.tutorialStep) {
+            0 -> {
+                // الخطوة 0: القلعة
+                val btnCastle = findViewById<View>(R.id.plotCastle)
+                SpotlightView.show(this, rootLayout, btnCastle, "أهلاً بك في إمبراطوريتك يا زعيم!\nلنبدأ بترقية القلعة، قلب الإمبراطورية.") {
+                    GameState.tutorialStep = 1 // ننتقل للخطوة 1 (داخل النافذة)
+                    GameState.saveGameData(this)
+                }
+            }
+            3 -> {
+                // الخطوة 3: المهام
+                val btnQuests = findViewById<View>(R.id.btnNavQuests)
+                SpotlightView.show(this, rootLayout, btnQuests, "أحسنت! الجيوش جاهزة.\nهنا يمكنك إنجاز المهام للحصول على جوائز قيمة.") {
+                    GameState.tutorialStep = 4 // ننتقل للخطوة 4 (إغلاق النافذة)
+                    GameState.saveGameData(this)
+                }
+            }
+            5 -> {
+                // الخطوة 5: الملف الشخصي (البروفايل)
+                val btnProfile = findViewById<View>(R.id.layoutAvatarClick)
+                SpotlightView.show(this, rootLayout, btnProfile, "إمبراطوريتك بحاجة لاسم يليق بها!\nاضغط هنا لتعديل ملفك الشخصي وصورتك.") {
+                    GameState.tutorialStep = 6 // ننتقل للخطوة 6 (إغلاق البروفايل)
+                    GameState.saveGameData(this)
+                }
+            }
+            7 -> {
+                // الخطوة 7: مكافآت القلعة
+                val btnCastleRewards = findViewById<View>(R.id.layoutCastleRewardsClick)
+                SpotlightView.show(this, rootLayout, btnCastleRewards, "مكافآت الترقية بانتظارك!\nاحصل عليها من هنا كلما طورت قلعتك.") {
+                    GameState.tutorialStep = 8 // ننتقل للخطوة 8 (إغلاق المكافآت)
+                    GameState.saveGameData(this)
+                }
+            }
+            9 -> {
+                // الخطوة 9: قاعة الأساطير
+                val btnTavern = findViewById<View>(R.id.btnNavHeroes)
+                SpotlightView.show(this, rootLayout, btnTavern, "لن تكتمل قوتك بدون أبطال ملحميين!\nافتح القائمة لتجنيد أبطال يقودون جيشك.") {
+                    GameState.tutorialStep = 10 // ننتقل للخطوة 10 (الاستدعاء)
+                    GameState.saveGameData(this)
+                }
+            }
+            11 -> {
+                // انتهاء التعليمات وإظهار حزمة البداية!
+                if (!GameState.isStarterPackClaimed) {
+                    DialogManager.showStarterPackDialog(this)
+                }
+            }
+        }
     }
 
     override fun onResume() {
@@ -120,6 +168,8 @@ class MainActivity : AppCompatActivity() {
         GameState.calculatePower()
         updateHudUI()
         SoundManager.playBGM(this, R.raw.bgm_city)
+        // التحقق من التعليمات عند العودة للشاشة
+        Handler(Looper.getMainLooper()).postDelayed({ checkAndRunSpotlightTutorial() }, 500)
     }
 
     override fun onPause() {
@@ -244,11 +294,6 @@ class MainActivity : AppCompatActivity() {
         if (plot.idCode == "HOSPITAL") { val alertIcon = ImageView(this).apply { id = alertIconId; setImageResource(R.drawable.ic_hospital_wounded); layoutParams = FrameLayout.LayoutParams(60, 60).apply { gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL; topMargin = -20 }; visibility = View.GONE }; (view as FrameLayout).addView(alertIcon); plot.collectIcon = alertIcon }
         
         img.setOnClickListener {
-            // 💡 تحديث خطوة التعليمات إذا ضغط اللاعب على المزرعة في الخطوة 0
-            if (GameState.tutorialStep == 0 && plot.idCode == "FARM_1") {
-                TutorialManager.advanceTutorial(this)
-            }
-            
             if (plot.isReady && plot.resourceType != ResourceType.NONE) { collectResources(plot) } 
             else if (plot.isUpgrading || plot.isTraining) { SoundManager.playWindowOpen(); DialogManager.showSpeedupDialog(this, plot) } 
             else if (plot.idCode == "HOSPITAL") { SoundManager.playWindowOpen(); if (GameState.isHealing) { DialogManager.showSpeedupDialog(this, null, null, true) } else if (GameState.woundedInfantry > 0 || GameState.woundedCavalry > 0) { DialogManager.showHospitalDialog(this, plot) } else { DialogManager.showUpgradeDialog(this, plot) } }
