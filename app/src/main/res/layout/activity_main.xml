@@ -224,7 +224,7 @@
             android:paddingVertical="2dp"/>
     </LinearLayout>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <FrameLayout
         android:id="@+id/layoutCastleRewardsContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -232,8 +232,7 @@
         app:layout_constraintStart_toStartOf="@id/layoutVipClick"
         app:layout_constraintEnd_toEndOf="@id/layoutVipClick"
         app:layout_constraintTop_toBottomOf="@id/layoutVipClick"
-        android:clipChildren="false"
-        android:clipToPadding="false">
+        android:clipChildren="false">
 
         <LinearLayout
             android:id="@+id/layoutCastleRewardsClick"
@@ -242,9 +241,7 @@
             android:orientation="vertical"
             android:gravity="center"
             android:clickable="true"
-            android:focusable="true"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent">
+            android:focusable="true">
 
             <ImageView
                 android:layout_width="45dp"
@@ -272,15 +269,14 @@
             android:layout_height="12dp"
             app:cardCornerRadius="6dp"
             app:cardBackgroundColor="#00FF00"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_gravity="top|end"
             android:layout_marginTop="-4dp"
             android:layout_marginEnd="-4dp"
             android:visibility="gone"
             app:cardElevation="2dp"/>
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </FrameLayout>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <FrameLayout
         android:id="@+id/layoutWeeklyQuestsContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -288,8 +284,7 @@
         app:layout_constraintStart_toStartOf="@id/layoutCastleRewardsContainer"
         app:layout_constraintEnd_toEndOf="@id/layoutCastleRewardsContainer"
         app:layout_constraintTop_toBottomOf="@id/layoutCastleRewardsContainer"
-        android:clipChildren="false"
-        android:clipToPadding="false">
+        android:clipChildren="false">
 
         <LinearLayout
             android:id="@+id/layoutWeeklyQuestsClick"
@@ -298,9 +293,7 @@
             android:orientation="vertical"
             android:gravity="center"
             android:clickable="true"
-            android:focusable="true"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent">
+            android:focusable="true">
 
             <ImageView
                 android:layout_width="45dp"
@@ -344,13 +337,12 @@
             android:layout_height="12dp"
             app:cardCornerRadius="6dp"
             app:cardBackgroundColor="#00FF00"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_gravity="top|end"
             android:layout_marginTop="-4dp"
             android:layout_marginEnd="-4dp"
             android:visibility="gone"
             app:cardElevation="2dp"/>
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </FrameLayout>
 
     <LinearLayout
         android:id="@+id/btnNavArena"
@@ -385,7 +377,7 @@
             android:paddingVertical="2dp"/>
     </LinearLayout>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <FrameLayout
         android:id="@+id/layoutTavernContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -393,8 +385,7 @@
         android:layout_marginTop="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/topHudContainer"
-        android:clipChildren="false"
-        android:clipToPadding="false">
+        android:clipChildren="false">
 
         <LinearLayout
             android:id="@+id/layoutTavernClick"
@@ -403,9 +394,7 @@
             android:orientation="vertical"
             android:gravity="center"
             android:clickable="true"
-            android:focusable="true"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent">
+            android:focusable="true">
 
             <ImageView
                 android:layout_width="45dp"
@@ -433,79 +422,116 @@
             android:layout_height="12dp"
             app:cardCornerRadius="6dp"
             app:cardBackgroundColor="#00FF00"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_gravity="top|start"
             android:layout_marginTop="-4dp"
-            android:layout_marginEnd="-4dp"
+            android:layout_marginStart="-4dp"
             android:visibility="gone"
             app:cardElevation="2dp"/>
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </FrameLayout>
 
-    <LinearLayout
-        android:id="@+id/layoutWeaponsClick"
+    <FrameLayout
+        android:id="@+id/layoutWeaponsContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
         android:layout_marginTop="8dp"
         app:layout_constraintStart_toStartOf="@id/layoutTavernContainer"
         app:layout_constraintEnd_toEndOf="@id/layoutTavernContainer"
         app:layout_constraintTop_toBottomOf="@id/layoutTavernContainer"
-        android:clickable="true"
-        android:focusable="true">
+        android:clipChildren="false">
 
-        <ImageView
-            android:layout_width="45dp"
-            android:layout_height="45dp"
-            android:src="@drawable/ic_ui_weapons" 
-            android:background="@drawable/bg_btn_gold_border"
-            android:padding="6dp"/>
-
-        <TextView
+        <LinearLayout
+            android:id="@+id/layoutWeaponsClick"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="الأسلحة"
-            android:textColor="#FFFFFF"
-            android:textSize="9sp"
-            android:textStyle="bold"
-            android:layout_marginTop="3dp"
-            android:background="@drawable/bg_level_tag"
-            android:paddingHorizontal="5dp"
-            android:paddingVertical="2dp"/>
-    </LinearLayout>
+            android:orientation="vertical"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true">
 
-    <LinearLayout
-        android:id="@+id/layoutFormationClick"
+            <ImageView
+                android:layout_width="45dp"
+                android:layout_height="45dp"
+                android:src="@drawable/ic_ui_weapons" 
+                android:background="@drawable/bg_btn_gold_border"
+                android:padding="6dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="الأسلحة"
+                android:textColor="#FFFFFF"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:layout_marginTop="3dp"
+                android:background="@drawable/bg_level_tag"
+                android:paddingHorizontal="5dp"
+                android:paddingVertical="2dp"/>
+        </LinearLayout>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/badgeWeapons"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            app:cardCornerRadius="6dp"
+            app:cardBackgroundColor="#00FF00"
+            android:layout_gravity="top|start"
+            android:layout_marginTop="-4dp"
+            android:layout_marginStart="-4dp"
+            android:visibility="gone"
+            app:cardElevation="2dp"/>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/layoutFormationContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
         android:layout_marginTop="8dp"
-        app:layout_constraintStart_toStartOf="@id/layoutWeaponsClick"
-        app:layout_constraintEnd_toEndOf="@id/layoutWeaponsClick"
-        app:layout_constraintTop_toBottomOf="@id/layoutWeaponsClick"
-        android:clickable="true"
-        android:focusable="true">
+        app:layout_constraintStart_toStartOf="@id/layoutWeaponsContainer"
+        app:layout_constraintEnd_toEndOf="@id/layoutWeaponsContainer"
+        app:layout_constraintTop_toBottomOf="@id/layoutWeaponsContainer"
+        android:clipChildren="false">
 
-        <ImageView
-            android:layout_width="45dp"
-            android:layout_height="45dp"
-            android:src="@drawable/ic_ui_formation" 
-            android:background="@drawable/bg_btn_gold_border"
-            android:padding="6dp"/>
-
-        <TextView
+        <LinearLayout
+            android:id="@+id/layoutFormationClick"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="الفيلق"
-            android:textColor="#FFFFFF"
-            android:textSize="9sp"
-            android:textStyle="bold"
-            android:layout_marginTop="3dp"
-            android:background="@drawable/bg_level_tag"
-            android:paddingHorizontal="5dp"
-            android:paddingVertical="2dp"/>
-    </LinearLayout>
+            android:orientation="vertical"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="45dp"
+                android:layout_height="45dp"
+                android:src="@drawable/ic_ui_formation" 
+                android:background="@drawable/bg_btn_gold_border"
+                android:padding="6dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="الفيلق"
+                android:textColor="#FFFFFF"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:layout_marginTop="3dp"
+                android:background="@drawable/bg_level_tag"
+                android:paddingHorizontal="5dp"
+                android:paddingVertical="2dp"/>
+        </LinearLayout>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/badgeFormation"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            app:cardCornerRadius="6dp"
+            app:cardBackgroundColor="#00FF00"
+            android:layout_gravity="top|start"
+            android:layout_marginTop="-4dp"
+            android:layout_marginStart="-4dp"
+            android:visibility="gone"
+            app:cardElevation="2dp"/>
+    </FrameLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/bottomNavBar"
@@ -536,49 +562,55 @@
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الأبطال" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
             </LinearLayout>
 
-            <androidx.constraintlayout.widget.ConstraintLayout
+            <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:layout_margin="2dp"
                 android:clipChildren="false">
+                
                 <LinearLayout android:id="@+id/btnNavQuests" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/bg_inner_frame" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
                     <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_quests" />
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المهام" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
                 </LinearLayout>
-                <androidx.cardview.widget.CardView android:id="@+id/badgeQuests" android:layout_width="10dp" android:layout_height="10dp" app:cardCornerRadius="5dp" app:cardBackgroundColor="#00FF00" app:layout_constraintTop_toTopOf="parent" app:layout_constraintEnd_toEndOf="parent" android:layout_marginTop="-2dp" android:layout_marginEnd="-2dp" android:visibility="gone" app:cardElevation="2dp"/>
-            </androidx.constraintlayout.widget.ConstraintLayout>
+                
+                <androidx.cardview.widget.CardView android:id="@+id/badgeQuests" android:layout_width="12dp" android:layout_height="12dp" app:cardCornerRadius="6dp" app:cardBackgroundColor="#00FF00" android:layout_gravity="top|end" android:layout_marginTop="-4dp" android:layout_marginEnd="-4dp" android:visibility="gone" app:cardElevation="2dp"/>
+            </FrameLayout>
 
             <LinearLayout android:id="@+id/btnNavCity" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
                 <ImageView android:layout_width="25dp" android:layout_height="25dp" android:src="@android:drawable/ic_menu_mapmode" app:tint="@color/royal_gold_light" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المدينة" android:textColor="@color/royal_gold_light" android:textSize="9sp" android:textStyle="bold" />
             </LinearLayout>
 
-            <androidx.constraintlayout.widget.ConstraintLayout
+            <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:layout_margin="2dp"
                 android:clipChildren="false">
+                
                 <LinearLayout android:id="@+id/btnNavStore" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/bg_inner_frame" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
                     <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_store" />
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المتجر" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
                 </LinearLayout>
-                <androidx.cardview.widget.CardView android:id="@+id/badgeStore" android:layout_width="10dp" android:layout_height="10dp" app:cardCornerRadius="5dp" app:cardBackgroundColor="#00FF00" app:layout_constraintTop_toTopOf="parent" app:layout_constraintEnd_toEndOf="parent" android:layout_marginTop="-2dp" android:layout_marginEnd="-2dp" android:visibility="visible" app:cardElevation="2dp"/>
-            </androidx.constraintlayout.widget.ConstraintLayout>
+                
+                <androidx.cardview.widget.CardView android:id="@+id/badgeStore" android:layout_width="12dp" android:layout_height="12dp" app:cardCornerRadius="6dp" app:cardBackgroundColor="#00FF00" android:layout_gravity="top|end" android:layout_marginTop="-4dp" android:layout_marginEnd="-4dp" android:visibility="visible" app:cardElevation="2dp"/>
+            </FrameLayout>
 
-            <androidx.constraintlayout.widget.ConstraintLayout
+            <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:layout_margin="2dp"
                 android:clipChildren="false">
+                
                 <LinearLayout android:id="@+id/btnNavBag" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/bg_inner_frame" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
                     <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_bag" />
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الحقيبة" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
                 </LinearLayout>
-                <androidx.cardview.widget.CardView android:id="@+id/badgeBag" android:layout_width="10dp" android:layout_height="10dp" app:cardCornerRadius="5dp" app:cardBackgroundColor="#00FF00" app:layout_constraintTop_toTopOf="parent" app:layout_constraintEnd_toEndOf="parent" android:layout_marginTop="-2dp" android:layout_marginEnd="-2dp" android:visibility="gone" app:cardElevation="2dp"/>
-            </androidx.constraintlayout.widget.ConstraintLayout>
+                
+                <androidx.cardview.widget.CardView android:id="@+id/badgeBag" android:layout_width="12dp" android:layout_height="12dp" app:cardCornerRadius="6dp" app:cardBackgroundColor="#00FF00" android:layout_gravity="top|end" android:layout_marginTop="-4dp" android:layout_marginEnd="-4dp" android:visibility="gone" app:cardElevation="2dp"/>
+            </FrameLayout>
 
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
