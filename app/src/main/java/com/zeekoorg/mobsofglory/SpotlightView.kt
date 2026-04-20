@@ -22,10 +22,10 @@ class SpotlightView(
     private val onTargetClicked: () -> Unit
 ) : FrameLayout(context) {
 
-    // تقنية الـ Path العبقرية لحفر الثقب المضيء
+    // تقنية الـ Path لحفر الثقب المضيء بنجاح
     private val path = Path()
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#CC000000") // الظلام 80%
+        color = Color.parseColor("#E6000000") // ظلام بنسبة 90% لتركيز أعلى
         style = Paint.Style.FILL
     }
 
@@ -67,40 +67,42 @@ class SpotlightView(
         super.onDraw(canvas)
         
         path.reset()
-        // 1. رسم مستطيل يغطي كامل الشاشة
+        // رسم مستطيل يغطي كامل الشاشة
         path.addRect(0f, 0f, width.toFloat(), height.toFloat(), Path.Direction.CW)
-        // 2. حفر الدائرة (الثقب) فوق الهدف
+        // حفر الدائرة (الثقب) فوق الهدف
         val cornerRadius = 40f
         path.addRoundRect(targetRect, cornerRadius, cornerRadius, Path.Direction.CCW)
-        // 3. تطبيق خاصية القص
+        // تطبيق خاصية القص لإظهار الزر
         path.fillType = Path.FillType.EVEN_ODD
         
         canvas.drawPath(path, paint)
     }
 
-    // 💡 أهم دالة: السماح للمسة الحقيقية بالاختراق!
-    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
-        // توسيع منطقة اللمس المسموحة
-        val touchRect = RectF(targetRect).apply { inset(-30f, -30f) }
-        
-        if (touchRect.contains(event.x, event.y)) {
-            // إذا لمس اللاعب الثقب המضيء.. اسمح للمسة بالمرور للزر الحقيقي!
-            if (event.action == MotionEvent.ACTION_UP) {
-                onTargetClicked()
+    // 💡 هنا الحل السحري لمشكلة اللمس العالق!
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (event.action == MotionEvent.ACTION_UP) {
+            // توسيع منطقة اللمس قليلاً لكي لا يضطر اللاعب للنقر بدقة بالغة
+            val touchRect = RectF(targetRect).apply { inset(-50f, -50f) }
+            
+            if (touchRect.contains(event.x, event.y)) {
+                // 1. إخفاء الشاشة المظلمة فوراً
                 (parent as? ViewGroup)?.removeView(this)
+                // 2. تحديث خطوة التعليمات (هذا ما كان مفقوداً وسبب التعليق!)
+                onTargetClicked()
+                // 3. النقر برمجياً على الزر الحقيقي
+                targetView.performClick()
             }
-            return false // false تعني "أنا لا أعترض اللمسة، مرريها للزر الموجود بالأسفل"
         }
-        
-        // إذا لمس منطقة الظلام، امنع اللمسة!
-        return true
+        // إرجاع true يعني "امتصاص اللمسة" لكي لا يتم النقر على أي شيء خارج الثقب المضيء
+        return true 
     }
 
     private fun addTutorialUI() {
         val hand = ImageView(context).apply {
             setImageResource(R.drawable.ic_pointer_hand)
             layoutParams = LayoutParams(150, 150)
-            // وضع اليد في منتصف الثقب بدقة
+            // وضع اليد في منتصف الثقب المضيء
             x = targetRect.centerX() - 30f
             y = targetRect.centerY() - 30f
         }
