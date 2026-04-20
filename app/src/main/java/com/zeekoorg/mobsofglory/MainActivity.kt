@@ -102,6 +102,17 @@ class MainActivity : AppCompatActivity() {
         
         checkPendingLevelUps()
         showPendingOfflineMessages()
+
+        // 💡 استدعاء نظام التعليمات وحزمة البداية
+        Handler(Looper.getMainLooper()).postDelayed({
+            TutorialManager.checkAndShowTutorial(this)
+            
+            // هذا الشرط يضمن ظهور الهدية إذا كان اللاعب قد أنهى الشرح ولم يستلمها
+            // مفيد جداً في حالة حذف البيانات أو إغلاق اللعبة قبل الاستلام
+            if (GameState.tutorialStep >= 5 && !GameState.isStarterPackClaimed) {
+                DialogManager.showStarterPackDialog(this)
+            }
+        }, 1500)
     }
 
     override fun onResume() {
