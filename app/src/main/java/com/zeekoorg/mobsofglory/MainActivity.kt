@@ -103,7 +103,6 @@ class MainActivity : AppCompatActivity() {
         checkPendingLevelUps()
         showPendingOfflineMessages()
 
-        // 💡 إضافة استدعاء حزمة البداية للمستخدمين الجدد
         Handler(Looper.getMainLooper()).postDelayed({
             if (!GameState.isStarterPackClaimed) {
                 DialogManager.showStarterPackDialog(this)
@@ -154,10 +153,7 @@ class MainActivity : AppCompatActivity() {
         floatAnim.repeatCount = android.view.animation.Animation.INFINITE
         imgFloatingCastleEvent.startAnimation(floatAnim)
         
-        imgFloatingCastleEvent.setOnClickListener {
-            SoundManager.playWindowOpen()
-            DialogManager.showGameMessage(this, "حدث القلعة", "أيها المهيب، قريباً سيتم تفعيل الأحداث الأسطورية هنا!", R.drawable.ic_ui_castle_rewards)
-        }
+        // 💡 تم إزالة حدث النقر من هنا كما طلبت لتصبح للزينة فقط
     }
 
     private fun setupActionListeners() {
@@ -300,6 +296,10 @@ class MainActivity : AppCompatActivity() {
                         else { p.pbUpgrade?.progress = ((p.collectTimer.toFloat() / targetTime.toFloat()) * 100).toInt(); val rem = targetTime - p.collectTimer; p.tvUpgradeTimer?.text = "%02d:%02d".format((rem/60000), (rem%60000)/1000) }
                     }
                 }
+                
+                // 💡 تحديث النقاط الذكية باستمرار
+                updateNotificationBadges()
+                
                 gameHandler.postDelayed(this, 1000)
             }
         })
@@ -352,6 +352,18 @@ class MainActivity : AppCompatActivity() {
         if (displayedPower == -1L) displayedPower = GameState.playerPower
         if (displayedPower != GameState.playerPower) { powerAnimator?.cancel(); powerAnimator = animateResourceText(tvMainTotalPower, displayedPower, GameState.playerPower, "⚔️ ") { displayedPower = it } } 
         else tvMainTotalPower.text = "⚔️ ${formatResourceNumber(GameState.playerPower)}"
+        
+        updateNotificationBadges()
+    }
+    
+    // 💡 دالة إظهار وإخفاء النقاط الخضراء بناءً على الذكاء
+    private fun updateNotificationBadges() {
+        findViewById<View>(R.id.badgeQuests)?.visibility = if (GameState.hasUnclaimedDailyQuests()) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.badgeWeeklyQuests)?.visibility = if (GameState.hasUnclaimedWeeklyQuests()) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.badgeBag)?.visibility = if (GameState.hasBagItems()) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.badgeTavern)?.visibility = if (GameState.hasSummonMedals()) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.badgeCastleRewards)?.visibility = if (GameState.hasCastleRewards()) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.badgeStore)?.visibility = View.VISIBLE // 💡 دائم الظهور للمتجر كما طلبت
     }
 
     fun changeCitySkin(skinResId: Int) { imgCityBackground.setImageResource(skinResId); getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit().putInt("SELECTED_SKIN", skinResId).apply() }
