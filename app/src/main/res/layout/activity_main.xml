@@ -224,22 +224,27 @@
             android:paddingVertical="2dp"/>
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/layoutCastleRewardsClick"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layoutCastleRewardsContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
         android:layout_marginTop="8dp"
         app:layout_constraintStart_toStartOf="@id/layoutVipClick"
         app:layout_constraintEnd_toEndOf="@id/layoutVipClick"
         app:layout_constraintTop_toBottomOf="@id/layoutVipClick"
-        android:clickable="true"
-        android:focusable="true">
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
+            android:id="@+id/layoutCastleRewardsClick"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
 
             <ImageView
                 android:layout_width="45dp"
@@ -278,22 +283,27 @@
             android:paddingVertical="2dp"/>
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/layoutWeeklyQuestsClick"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layoutWeeklyQuestsContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
         android:layout_marginTop="8dp"
-        app:layout_constraintStart_toStartOf="@id/layoutCastleRewardsClick"
-        app:layout_constraintEnd_toEndOf="@id/layoutCastleRewardsClick"
-        app:layout_constraintTop_toBottomOf="@id/layoutCastleRewardsClick"
-        android:clickable="true"
-        android:focusable="true">
+        app:layout_constraintStart_toStartOf="@id/layoutCastleRewardsContainer"
+        app:layout_constraintEnd_toEndOf="@id/layoutCastleRewardsContainer"
+        app:layout_constraintTop_toBottomOf="@id/layoutCastleRewardsContainer"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
+            android:id="@+id/layoutWeeklyQuestsClick"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
 
             <ImageView
                 android:layout_width="45dp"
@@ -346,7 +356,7 @@
                 android:textSize="9sp"
                 android:textStyle="bold"/>
         </LinearLayout>
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <LinearLayout
         android:id="@+id/btnNavArena"
@@ -355,9 +365,9 @@
         android:orientation="vertical"
         android:gravity="center"
         android:layout_marginTop="8dp"
-        app:layout_constraintStart_toStartOf="@id/layoutWeeklyQuestsClick"
-        app:layout_constraintEnd_toEndOf="@id/layoutWeeklyQuestsClick"
-        app:layout_constraintTop_toBottomOf="@id/layoutWeeklyQuestsClick"
+        app:layout_constraintStart_toStartOf="@id/layoutWeeklyQuestsContainer"
+        app:layout_constraintEnd_toEndOf="@id/layoutWeeklyQuestsContainer"
+        app:layout_constraintTop_toBottomOf="@id/layoutWeeklyQuestsContainer"
         android:clickable="true"
         android:focusable="true">
 
@@ -381,22 +391,27 @@
             android:paddingVertical="2dp"/>
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/layoutTavernClick"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layoutTavernContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
         android:layout_marginEnd="14dp"
         android:layout_marginTop="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/topHudContainer"
-        android:clickable="true"
-        android:focusable="true">
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
+            android:id="@+id/layoutTavernClick"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
 
             <ImageView
                 android:layout_width="45dp"
@@ -418,6 +433,8 @@
                 app:cardBackgroundColor="#00FF00"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
+                android:layout_marginTop="-4dp"
+                android:layout_marginStart="-4dp"
                 android:visibility="gone"
                 app:cardElevation="2dp"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
@@ -442,9 +459,9 @@
         android:orientation="vertical"
         android:gravity="center"
         android:layout_marginTop="8dp"
-        app:layout_constraintStart_toStartOf="@id/layoutTavernClick"
-        app:layout_constraintEnd_toEndOf="@id/layoutTavernClick"
-        app:layout_constraintTop_toBottomOf="@id/layoutTavernClick"
+        app:layout_constraintStart_toStartOf="@id/layoutTavernContainer"
+        app:layout_constraintEnd_toEndOf="@id/layoutTavernContainer"
+        app:layout_constraintTop_toBottomOf="@id/layoutTavernContainer"
         android:clickable="true"
         android:focusable="true">
 
@@ -576,4 +593,55 @@
 
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layoutTutorialOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#CC000000"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        android:elevation="100dp">
+
+        <ImageView
+            android:id="@+id/imgTutorialGuide"
+            android:layout_width="150dp"
+            android:layout_height="250dp"
+            android:src="@drawable/img_guide_character"
+            android:scaleType="fitCenter"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginBottom="20dp"
+            android:layout_marginStart="10dp"/>
+
+        <TextView
+            android:id="@+id/tvTutorialText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_btn_gold_border"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:padding="15dp"
+            android:text="أهلاً بك يا سيدي المهيب، إمبراطوريتك بحاجة للغذاء، اضغط هنا لبناء المزرعة!"
+            app:layout_constraintBottom_toBottomOf="@id/imgTutorialGuide"
+            app:layout_constraintStart_toEndOf="@id/imgTutorialGuide"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginEnd="20dp"
+            android:layout_marginBottom="50dp"
+            android:layout_marginStart="10dp"/>
+
+        <ImageView
+            android:id="@+id/imgTutorialPointer"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:src="@drawable/ic_pointer_hand"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginBottom="100dp"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>
