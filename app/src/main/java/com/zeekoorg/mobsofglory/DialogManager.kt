@@ -123,24 +123,12 @@ object DialogManager {
             d.findViewById<ImageView>(R.id.btnChangeName)?.setOnClickListener { SoundManager.playClick(); onChangeName(); d.dismiss() }
         } catch (e: Exception) { e.printStackTrace() }
         
-        val btnClose = d.findViewById<Button>(R.id.btnClose)
-        btnClose?.setOnClickListener { 
-            SoundManager.playClick()
-            d.dismiss() 
-            // 💡 الخطوة 9: إغلاق الملف الشخصي
-            if (GameState.tutorialStep == 9 && activity is MainActivity) {
-                GameState.tutorialStep = 10
-                GameState.saveGameData(activity)
-                activity.checkAndRunSpotlightTutorial()
-            }
-        }
+        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
 
-        d.setOnShowListener {
-            if (GameState.tutorialStep == 9 && activity is MainActivity && btnClose != null) {
-                val root = d.window?.decorView as? ViewGroup
-                root?.let {
-                    SpotlightView.show(activity, it, btnClose, "يمكنك تغيير صورتك واسمك متى شئت.\nاضغط هنا للعودة.") {}
-                }
+        // 💡 إكمال التعليمات الحرة (الخطوة 9)
+        d.setOnDismissListener {
+            if (GameState.tutorialStep == 9 && activity is MainActivity) {
+                GameState.tutorialStep = 10; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial()
             }
         }
         d.show()
@@ -217,6 +205,13 @@ object DialogManager {
             } else showGameMessage(activity, "حقيبة فارغة", "لا تملك صناديق ذهب!", R.drawable.ic_menu_bag)
         }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
+
+        // 💡 إكمال التعليمات الحرة للحقيبة (الخطوة 21)
+        d.setOnDismissListener {
+            if (GameState.tutorialStep == 21 && activity is MainActivity) {
+                GameState.tutorialStep = 22; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial()
+            }
+        }
         d.show()
     }
 
@@ -255,24 +250,12 @@ object DialogManager {
             container?.addView(view)
         }
         
-        val btnClose = d.findViewById<View>(R.id.btnClose)
-        btnClose?.setOnClickListener { 
-            SoundManager.playClick()
-            d.dismiss() 
-            // 💡 الخطوة 7: إغلاق المهام
-            if (GameState.tutorialStep == 7 && activity is MainActivity) {
-                GameState.tutorialStep = 8
-                GameState.saveGameData(activity)
-                activity.checkAndRunSpotlightTutorial()
-            }
-        }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         
-        d.setOnShowListener {
-            if (GameState.tutorialStep == 7 && activity is MainActivity && btnClose != null) {
-                val root = d.window?.decorView as? ViewGroup
-                root?.let {
-                    SpotlightView.show(activity, it, btnClose, "هنا تستلم غنائمك العظيمة.\nاضغط هنا للعودة إلى المدينة.") {}
-                }
+        // 💡 إكمال التعليمات الحرة للمهام (الخطوة 7)
+        d.setOnDismissListener {
+            if (GameState.tutorialStep == 7 && activity is MainActivity) {
+                GameState.tutorialStep = 8; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial()
             }
         }
         d.show()
@@ -353,24 +336,12 @@ object DialogManager {
             container?.addView(view)
         }
         
-        val btnClose = d.findViewById<View>(R.id.btnClose)
-        btnClose?.setOnClickListener { 
-            SoundManager.playClick()
-            d.dismiss() 
-            // 💡 الخطوة 11: إغلاق مكافآت القلعة
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
+
+        // 💡 إكمال التعليمات الحرة لمكافآت القلعة (الخطوة 11)
+        d.setOnDismissListener {
             if (GameState.tutorialStep == 11 && activity is MainActivity) {
-                GameState.tutorialStep = 12
-                GameState.saveGameData(activity)
-                activity.checkAndRunSpotlightTutorial()
-            }
-        }
-        
-        d.setOnShowListener {
-            if (GameState.tutorialStep == 11 && activity is MainActivity && btnClose != null) {
-                val root = d.window?.decorView as? ViewGroup
-                root?.let {
-                    SpotlightView.show(activity, it, btnClose, "مكافآت الترقية مهمة جداً لنمو مدينتك.\nاضغط للإغلاق الآن.") {}
-                }
+                GameState.tutorialStep = 12; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial()
             }
         }
         d.show()
@@ -432,28 +403,15 @@ object DialogManager {
         updateHeroUI(3, R.id.tvHero4Level, R.id.tvHero4Boost, R.id.btnHero4); updateHeroUI(4, R.id.tvHero5Level, R.id.tvHero5Boost, R.id.btnHero5); updateHeroUI(5, R.id.tvHero6Level, R.id.tvHero6Boost, R.id.btnHero6)
         updateHeroUI(6, R.id.tvHero7Level, R.id.tvHero7Boost, R.id.btnHero7); updateHeroUI(7, R.id.tvHero8Level, R.id.tvHero8Boost, R.id.btnHero8)
         
-        val btnClose = d.findViewById<View>(R.id.btnClose)
-        btnClose?.setOnClickListener { 
-            SoundManager.playClick()
-            d.dismiss() 
-            // 💡 الخطوة 13: إغلاق الأبطال وتشغيل حزمة البداية
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
+        
+        // 💡 إكمال التعليمات الحرة للأبطال (الخطوة 13)
+        d.setOnDismissListener { 
+            handler.removeCallbacksAndMessages(null)
             if (GameState.tutorialStep == 13 && activity is MainActivity) {
-                GameState.tutorialStep = 14
-                GameState.saveGameData(activity)
-                activity.checkAndRunSpotlightTutorial() 
+                GameState.tutorialStep = 14; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial() 
             }
         }
-        
-        d.setOnShowListener {
-            if (GameState.tutorialStep == 13 && activity is MainActivity && btnClose != null) {
-                val root = d.window?.decorView as? ViewGroup
-                root?.let {
-                    SpotlightView.show(activity, it, btnClose, "هنا جيشك الخاص، قم بتجنيد وترقية الأبطال لاحقاً.\nاضغط لإغلاق النافذة وإنهاء التدريب!") {}
-                }
-            }
-        }
-        
-        d.setOnDismissListener { handler.removeCallbacksAndMessages(null) }
         d.show()
     }
 
@@ -472,11 +430,7 @@ object DialogManager {
         d.setOnShowListener {
             if (GameState.tutorialStep == 1 && activity is MainActivity && btnUpgrade != null) {
                 val root = d.window?.decorView as? ViewGroup
-                root?.let {
-                    SpotlightView.show(activity, it, btnUpgrade, "اضغط هنا لتطوير القلعة ورفع قوتك!") {
-                        GameState.tutorialStep = 2; GameState.saveGameData(activity)
-                    }
-                }
+                root?.let { SpotlightView.show(activity, it, btnUpgrade, "اضغط هنا لتطوير القلعة ورفع قوتك!") { GameState.tutorialStep = 2; GameState.saveGameData(activity) } }
             }
         }
         d.show()
@@ -500,11 +454,7 @@ object DialogManager {
         d.setOnShowListener {
             if (GameState.tutorialStep == 4 && activity is MainActivity && btnTrainMenu != null) {
                 val root = d.window?.decorView as? ViewGroup
-                root?.let {
-                    SpotlightView.show(activity, it, btnTrainMenu, "هنا يتم إعداد الجيوش.. اختر تدريب القوات!") {
-                        GameState.tutorialStep = 5; GameState.saveGameData(activity)
-                    }
-                }
+                root?.let { SpotlightView.show(activity, it, btnTrainMenu, "هنا يتم إعداد الجيوش.. اختر تدريب القوات!") { GameState.tutorialStep = 5; GameState.saveGameData(activity) } }
             }
         }
         d.show()
@@ -599,9 +549,7 @@ object DialogManager {
                 updateUI(activity); GameState.saveGameData(activity); d.dismiss()
                 
                 if (GameState.tutorialStep == 5 && activity is MainActivity) {
-                    GameState.tutorialStep = 6
-                    GameState.saveGameData(activity)
-                    activity.checkAndRunSpotlightTutorial()
+                    GameState.tutorialStep = 6; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial()
                 }
 
                 showGameMessage(activity, "معسكر التدريب", "بدأ تدريب القوات بنجاح!", R.drawable.ic_settings_gear) 
@@ -613,9 +561,7 @@ object DialogManager {
         d.setOnShowListener {
             if (GameState.tutorialStep == 5 && activity is MainActivity && btnConfirm != null) {
                 val root = d.window?.decorView as? ViewGroup
-                root?.let {
-                    SpotlightView.show(activity, it, btnConfirm, "ممتاز! اضغط لتأكيد التدريب فوراً.") {}
-                }
+                root?.let { SpotlightView.show(activity, it, btnConfirm, "ممتاز! اضغط لتأكيد التدريب فوراً.") {} }
             }
         }
         d.show()
@@ -649,9 +595,7 @@ object DialogManager {
                 updateUI(activity); GameState.saveGameData(activity); d.dismiss()
                 
                 if (GameState.tutorialStep == 2 && activity is MainActivity) {
-                    GameState.tutorialStep = 3
-                    GameState.saveGameData(activity)
-                    activity.checkAndRunSpotlightTutorial()
+                    GameState.tutorialStep = 3; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial()
                 }
 
                 showGameMessage(activity, "أعمال البناء", "بدأ التطوير بنجاح!", R.drawable.ic_settings_gear) 
@@ -662,9 +606,7 @@ object DialogManager {
         d.setOnShowListener {
             if (GameState.tutorialStep == 2 && activity is MainActivity && btnUpgrade != null && canUpgrade) {
                 val root = d.window?.decorView as? ViewGroup
-                root?.let {
-                    SpotlightView.show(activity, it, btnUpgrade, "الآن اضغط على 'تطوير' للبدء في البناء.") {}
-                }
+                root?.let { SpotlightView.show(activity, it, btnUpgrade, "الآن اضغط على 'تطوير' للبدء في البناء.") {} }
             }
         }
         d.show()
@@ -741,6 +683,13 @@ object DialogManager {
         d.findViewById<Button>(R.id.btnAdGold)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.addQuestProgress(QuestType.WATCH_ADS, 1); GameState.totalGold += 10000; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على 10K ذهب!", R.drawable.ic_resource_gold) }, onAdClosed = {}) } }
         d.findViewById<Button>(R.id.btnAdSpeedup)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.addQuestProgress(QuestType.WATCH_ADS, 1); GameState.countSpeedup30m++; GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على تسريع 30 دقيقة!", R.drawable.ic_speedup_30m) }, onAdClosed = {}) } }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
+
+        // 💡 إكمال التعليمات الحرة للمتجر (الخطوة 23)
+        d.setOnDismissListener {
+            if (GameState.tutorialStep == 23 && activity is MainActivity) {
+                GameState.tutorialStep = 24; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial()
+            }
+        }
         d.show()
     }
 
@@ -789,6 +738,13 @@ object DialogManager {
             } else showGameMessage(activity, "عذراً", "لا تملك دعوات ملكية!", R.drawable.ic_item_legend_medal)
         }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
+
+        // 💡 إكمال التعليمات الحرة للحانة (الخطوة 19)
+        d.setOnDismissListener {
+            if (GameState.tutorialStep == 19 && activity is MainActivity) {
+                GameState.tutorialStep = 20; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial()
+            }
+        }
         d.show()
     }
 
@@ -857,7 +813,14 @@ object DialogManager {
         }
         refreshWeaponsList()
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
-        d.setOnDismissListener { handler.removeCallbacksAndMessages(null) }
+
+        // 💡 إكمال التعليمات الحرة للأسلحة (الخطوة 15)
+        d.setOnDismissListener { 
+            handler.removeCallbacksAndMessages(null)
+            if (GameState.tutorialStep == 15 && activity is MainActivity) {
+                GameState.tutorialStep = 16; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial() 
+            }
+        }
         d.show()
     }
 
@@ -968,7 +931,15 @@ object DialogManager {
         refreshFormationUI()
 
         d.findViewById<Button>(R.id.btnSaveFormation)?.setOnClickListener { SoundManager.playClick(); prefs.edit().putLong("FORMATION_INFANTRY", selectedInfantry).putLong("FORMATION_CAVALRY", selectedCavalry).apply(); showGameMessage(activity, "التشكيلة جاهزة", "تم حفظ التشكيلة الدفاعية بنجاح!", R.drawable.ic_ui_formation); updateUI(activity); d.dismiss() }
-        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }; d.show()
+        d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
+
+        // 💡 إكمال التعليمات الحرة للتشكيلة (الخطوة 17)
+        d.setOnDismissListener {
+            if (GameState.tutorialStep == 17 && activity is MainActivity) {
+                GameState.tutorialStep = 18; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial()
+            }
+        }
+        d.show()
     }
 
     private fun formatResourceNumber(num: Long): String = when { num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0); num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0); else -> num.toString() }
