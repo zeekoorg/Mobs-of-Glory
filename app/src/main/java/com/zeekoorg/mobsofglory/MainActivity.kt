@@ -103,13 +103,13 @@ class MainActivity : AppCompatActivity() {
         checkPendingLevelUps()
         showPendingOfflineMessages()
 
-        // 💡 استدعاء نظام التعليمات وحزمة البداية
+        // 💡 النظام الجديد: استدعاء التعليمات التفاعلية (Spotlight) أو حزمة البداية
         Handler(Looper.getMainLooper()).postDelayed({
-            TutorialManager.checkAndShowTutorial(this)
-            
-            // هذا الشرط يضمن ظهور الهدية إذا كان اللاعب قد أنهى الشرح ولم يستلمها
-            // مفيد جداً في حالة حذف البيانات أو إغلاق اللعبة قبل الاستلام
-            if (GameState.tutorialStep >= 5 && !GameState.isStarterPackClaimed) {
+            if (GameState.tutorialStep < 5) {
+                // تشغيل نظام التعليمات الاحترافي الجديد (سيتم برمجته في الملف المنفصل)
+                TutorialManager.startSpotlightTutorial(this)
+            } else if (!GameState.isStarterPackClaimed) {
+                // إظهار حزمة البداية فوراً إذا أنهى التعليمات ولم يستلمها
                 DialogManager.showStarterPackDialog(this)
             }
         }, 1500)
@@ -244,6 +244,11 @@ class MainActivity : AppCompatActivity() {
         if (plot.idCode == "HOSPITAL") { val alertIcon = ImageView(this).apply { id = alertIconId; setImageResource(R.drawable.ic_hospital_wounded); layoutParams = FrameLayout.LayoutParams(60, 60).apply { gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL; topMargin = -20 }; visibility = View.GONE }; (view as FrameLayout).addView(alertIcon); plot.collectIcon = alertIcon }
         
         img.setOnClickListener {
+            // 💡 تحديث خطوة التعليمات إذا ضغط اللاعب على المزرعة في الخطوة 0
+            if (GameState.tutorialStep == 0 && plot.idCode == "FARM_1") {
+                TutorialManager.advanceTutorial(this)
+            }
+            
             if (plot.isReady && plot.resourceType != ResourceType.NONE) { collectResources(plot) } 
             else if (plot.isUpgrading || plot.isTraining) { SoundManager.playWindowOpen(); DialogManager.showSpeedupDialog(this, plot) } 
             else if (plot.idCode == "HOSPITAL") { SoundManager.playWindowOpen(); if (GameState.isHealing) { DialogManager.showSpeedupDialog(this, null, null, true) } else if (GameState.woundedInfantry > 0 || GameState.woundedCavalry > 0) { DialogManager.showHospitalDialog(this, plot) } else { DialogManager.showUpgradeDialog(this, plot) } }
