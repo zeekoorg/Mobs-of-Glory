@@ -489,7 +489,111 @@ object DialogManager {
         d.show()
     }
 
-    // تم حذف showBarracksMenuDialog و showTrainTroopsDialog و showHospitalDialog في الرد هنا لاختصار المساحة، لكنها يجب أن تكون موجودة كما كانت دون تعديل في التعليمات لأنك اخترت مساراً يركز على (القلعة -> مهام -> بروفايل -> مكافآت -> أبطال). 
+    fun showBarracksMenuDialog(activity: Activity, p: MapPlot) {
+        SoundManager.playWindowOpen()
+        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_castle_main) 
+        val isInfantry = p.idCode == "BARRACKS_1"
+        d.findViewById<TextView>(R.id.tvDialogTitle)?.text = p.name; d.findViewById<TextView>(R.id.tvDialogInfo)?.text = if (isInfantry) "المشاة هم درع الإمبراطورية الصلب." else "الفرسان هم القوة الضاربة السريعة."
+        d.findViewById<Button>(R.id.btnCastleUpgrade)?.apply { text = "ترقية المبنى"; setOnClickListener { SoundManager.playClick(); d.dismiss(); showUpgradeDialog(activity, p) } }
+        d.findViewById<Button>(R.id.btnCastleDecorations)?.apply { text = "تدريب القوات"; setOnClickListener { SoundManager.playClick(); d.dismiss(); showTrainTroopsDialog(activity, p) } }
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
+        d.show()
+    }
+
+    fun showHospitalDialog(activity: Activity, p: MapPlot) {
+        SoundManager.playWindowOpen()
+        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_hospital)
+
+        fun refreshHospitalUI() {
+            d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "دار الشفاء (مستوى ${p.level})"
+            d.findViewById<TextView>(R.id.tvWoundedInfantry)?.text = "المشاة الجرحى: ${formatResourceNumber(GameState.woundedInfantry)}"
+            d.findViewById<TextView>(R.id.tvWoundedCavalry)?.text = "الفرسان الجرحى: ${formatResourceNumber(GameState.woundedCavalry)}"
+            val tvHealCostWheat = d.findViewById<TextView>(R.id.tvHealCostWheat); val tvHealCostIron = d.findViewById<TextView>(R.id.tvHealCostIron)
+            val tvHealTime = d.findViewById<TextView>(R.id.tvHealTime); val btnAction = d.findViewById<Button>(R.id.btnHealAction)
+
+            val totalWounded = GameState.woundedInfantry + GameState.woundedCavalry
+            if (totalWounded == 0L) {
+                tvHealCostWheat?.text = "0"; tvHealCostIron?.text = "0"; tvHealTime?.text = "00:00"
+                btnAction?.text = "لا يوجد جرحى"; btnAction?.isEnabled = false; btnAction?.setBackgroundColor(Color.GRAY)
+            } else {
+                val costWheat = (GameState.woundedInfantry * 10) + (GameState.woundedCavalry * 25)
+                val costIron = (GameState.woundedInfantry * 5) + (GameState.woundedCavalry * 15)
+                var healTimeSec = totalWounded * 2; if (GameState.isVipActive()) healTimeSec = (healTimeSec * 0.8).toLong()
+
+                tvHealCostWheat?.text = formatResourceNumber(costWheat); tvHealCostIron?.text = formatResourceNumber(costIron)
+                tvHealTime?.text = formatTimeSec(healTimeSec)
+                btnAction?.text = "علاج الجميع"; btnAction?.isEnabled = true; btnAction?.setBackgroundResource(R.drawable.bg_btn_gold_border)
+
+                btnAction?.setOnClickListener {
+                    SoundManager.playClick()
+                    if (GameState.totalWheat >= costWheat && GameState.totalIron >= costIron) {
+                        GameState.totalWheat -= costWheat; GameState.totalIron -= costIron
+                        GameState.isHealing = true
+                        GameState.healingInfantryAmount = GameState.woundedInfantry; GameState.healingCavalryAmount = GameState.woundedCavalry
+                        GameState.healingTotalTime = healTimeSec * 1000L; GameState.healingEndTime = System.currentTimeMillis() + GameState.healingTotalTime
+                        GameState.saveGameData(activity); updateUI(activity)
+                        showGameMessage(activity, "دار الشفاء", "بدأ علاج الجرحى. ستعود قواتك لصفوف الجيش قريباً!", R.drawable.ic_settings_gear)
+                        d.dismiss()
+                    } else showGameMessage(activity, "عذراً", "الموارد لا تكفي لعلاج الجرحى!", R.drawable.ic_resource_wheat)
+                }
+            }
+        }
+        refreshHospitalUI()
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
+        d.show()
+    }
+
+    fun showTrainTroopsDialog(activity: Activity, p: MapPlot) {
+        SoundManager.playWindowOpen()
+        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_train_troops)
+
+        val isInfantry = p.idCode == "BARRACKS_1"
+        val maxCapacity = p.getMaxTrainingCapacity()
+        var currentAmt = maxCapacity / 2 
+        val costW = if (isInfantry) 20 else 50; val costI = if (isInfantry) 10 else 30
+
+        d.findViewById<TextView>(R.id.tvTroopTitle)?.text = if (isInfantry) "تدريب المشاة" else "تدريب الفرسان"
+        d.findViewById<TextView>(R.id.tvCurrentTroops)?.text = "القوات المملوكة: " + if (isInfantry) formatResourceNumber(GameState.totalInfantry) else formatResourceNumber(GameState.totalCavalry)
+        d.findViewById<TextView>(R.id.tvTrainInfo)?.text = if (isInfantry) "قوة الوحدة: 5 | الحمولة: 10" else "قوة الوحدة: 10 | الحمولة: 25"
+
+        val seekTrain = d.findViewById<SeekBar>(R.id.seekTrainTroops)
+        val tvSelectedAmount = d.findViewById<TextView>(R.id.tvSelectedTrainAmount)
+        val tvMaxAmount = d.findViewById<TextView>(R.id.tvMaxTrainCapacity)
+
+        tvMaxAmount?.text = "الحد الأقصى: $maxCapacity"
+        seekTrain?.max = maxCapacity; seekTrain?.progress = currentAmt
+
+        fun updateCosts() {
+            tvSelectedAmount?.text = currentAmt.toString()
+            d.findViewById<TextView>(R.id.tvTrainCostWheat)?.text = formatResourceNumber((currentAmt * costW).toLong())
+            d.findViewById<TextView>(R.id.tvTrainCostIron)?.text = formatResourceNumber((currentAmt * costI).toLong())
+            d.findViewById<Button>(R.id.btnConfirmTrain)?.text = "تدريب ($currentAmt)"
+        }
+
+        seekTrain?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { currentAmt = progress; updateCosts() }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        d.findViewById<Button>(R.id.btnConfirmTrain)?.setOnClickListener {
+            if (currentAmt == 0) { SoundManager.playClick(); showGameMessage(activity, "تنبيه", "الرجاء تحديد عدد الجنود للتدريب!", R.drawable.ic_settings_gear); return@setOnClickListener }
+            val totalW = (currentAmt * costW).toLong(); val totalI = (currentAmt * costI).toLong()
+            if (GameState.totalWheat >= totalW && GameState.totalIron >= totalI) {
+                SoundManager.playTrain()
+                GameState.totalWheat -= totalW; GameState.totalIron -= totalI; p.isTraining = true; p.trainingAmount = currentAmt
+                var tTime = currentAmt * 2000L; if(GameState.isVipActive()) tTime = (tTime * 0.8).toLong()
+                p.trainingTotalTime = tTime; p.trainingEndTime = System.currentTimeMillis() + p.trainingTotalTime; p.collectTimer = 0L 
+                updateUI(activity); GameState.saveGameData(activity); d.dismiss()
+                showGameMessage(activity, "معسكر التدريب", "بدأ تدريب القوات بنجاح!", R.drawable.ic_settings_gear) 
+            } else { SoundManager.playClick(); showGameMessage(activity, "عذراً", "الموارد لا تكفي للتدريب!", R.drawable.ic_resource_wheat) }
+        }
+        updateCosts()
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
+        d.show()
+    }
 
     fun showUpgradeDialog(activity: Activity, p: MapPlot) {
         SoundManager.playWindowOpen()
