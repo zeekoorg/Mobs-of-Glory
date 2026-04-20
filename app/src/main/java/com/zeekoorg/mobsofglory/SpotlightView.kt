@@ -24,7 +24,7 @@ class SpotlightView(
 
     private val path = Path()
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#E6000000") // ظلام بنسبة 90%
+        color = Color.parseColor("#E6000000") // ظلام 90% لتركيز عالي
         style = Paint.Style.FILL
     }
     private val targetRect = RectF()
@@ -99,17 +99,23 @@ class SpotlightView(
             hand.startAnimation(bounceAnim)
         }
 
-        // 💡 الخدعة الذكية: هل الزر المستهدف موجود في النصف السفلي من الشاشة؟
-        val isTargetAtBottom = targetRect.centerY() > (height / 2f)
+        // 💡 فحص الشريط السفلي: هل الزر موجود في آخر 25% من الشاشة؟
+        val isTargetInBottomNav = targetRect.bottom > (height * 0.75f)
 
         // 2. المرشدة
         val guideImg = ImageView(context).apply {
             setImageResource(R.drawable.img_guide_character)
             layoutParams = LayoutParams(400, 650).apply {
-                gravity = Gravity.BOTTOM or Gravity.START
-                // إذا كان الزر في الأسفل، ارفع المرشدة لمنتصف الشاشة، وإلا اتركها بالأسفل
-                bottomMargin = if (isTargetAtBottom) (height / 2) - 200 else 30 
-                marginStart = 10
+                if (isTargetInBottomNav) {
+                    // 🚀 إذا كان الزر في الأسفل، انقل المرشدة لمنتصف الشاشة عمودياً
+                    gravity = Gravity.CENTER_VERTICAL or Gravity.START
+                    marginStart = 10
+                } else {
+                    // إذا كان الزر في الأعلى، ابقَ في الأسفل
+                    gravity = Gravity.BOTTOM or Gravity.START
+                    marginStart = 10
+                    bottomMargin = 30
+                }
             }
         }
         addView(guideImg)
@@ -122,24 +128,24 @@ class SpotlightView(
             setPadding(40, 30, 40, 30)
             setBackgroundResource(R.drawable.bg_btn_gold_border)
             layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
-                gravity = Gravity.BOTTOM or Gravity.START
-                // رفع الفقاعة لتتناسب مع المرشدة
-                bottomMargin = if (isTargetAtBottom) (height / 2) + 150 else 400
-                marginStart = 380
-                marginEnd = 40
+                if (isTargetInBottomNav) {
+                    // 🚀 الفقاعة تتبع المرشدة للمنتصف
+                    gravity = Gravity.CENTER_VERTICAL or Gravity.START
+                    marginStart = 380 
+                    marginEnd = 40
+                } else {
+                    gravity = Gravity.BOTTOM or Gravity.START
+                    marginStart = 380
+                    bottomMargin = 400
+                    marginEnd = 40
+                }
             }
         }
         addView(speechBubble)
     }
 
     companion object {
-        fun show(
-            activity: Activity,
-            rootView: ViewGroup,
-            targetBtn: View,
-            text: String,
-            onTargetClicked: () -> Unit
-        ) {
+        fun show(activity: Activity, rootView: ViewGroup, targetBtn: View, text: String, onTargetClicked: () -> Unit) {
             val existing = rootView.findViewWithTag<View>("SPOTLIGHT_TAG")
             if (existing != null) rootView.removeView(existing)
 
