@@ -31,8 +31,6 @@
             android:layout_width="70dp"
             android:layout_height="70dp"
             android:src="@drawable/ic_floating_event"
-            android:clickable="true"
-            android:focusable="true"
             app:layout_constraintBottom_toTopOf="@id/plotCastle"
             app:layout_constraintStart_toStartOf="@id/plotCastle"
             app:layout_constraintEnd_toEndOf="@id/plotCastle"
@@ -239,12 +237,27 @@
         android:clickable="true"
         android:focusable="true">
 
-        <ImageView
-            android:layout_width="45dp"
-            android:layout_height="45dp"
-            android:src="@drawable/ic_ui_castle_rewards" 
-            android:background="@drawable/bg_btn_gold_border"
-            android:padding="6dp"/>
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+            <ImageView
+                android:layout_width="45dp"
+                android:layout_height="45dp"
+                android:src="@drawable/ic_ui_castle_rewards" 
+                android:background="@drawable/bg_btn_gold_border"
+                android:padding="6dp"/>
+            <androidx.cardview.widget.CardView
+                android:id="@+id/badgeCastleRewards"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                app:cardCornerRadius="5dp"
+                app:cardBackgroundColor="#2ECC71"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="2dp"
+                android:layout_marginEnd="2dp"
+                android:visibility="gone"
+                app:cardElevation="2dp"/>
+        </FrameLayout>
 
         <TextView
             android:layout_width="wrap_content"
@@ -260,7 +273,7 @@
     </LinearLayout>
 
     <LinearLayout
-        android:id="@+id/btnNavArena"
+        android:id="@+id/layoutWeeklyQuestsClick"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
@@ -272,45 +285,27 @@
         android:clickable="true"
         android:focusable="true">
 
-        <ImageView
-            android:layout_width="45dp"
-            android:layout_height="45dp"
-            android:src="@drawable/ic_ui_arena" 
-            android:background="@drawable/bg_btn_gold_border"
-            android:padding="6dp"/>
-
-        <TextView
+        <FrameLayout
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="ساحة الغزوات"
-            android:textColor="#FFFFFF"
-            android:textSize="9sp"
-            android:textStyle="bold"
-            android:layout_marginTop="3dp"
-            android:background="@drawable/bg_level_tag"
-            android:paddingHorizontal="5dp"
-            android:paddingVertical="2dp"/>
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/layoutWeeklyQuestsClick"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:layout_marginTop="8dp"
-        app:layout_constraintStart_toStartOf="@id/btnNavArena"
-        app:layout_constraintEnd_toEndOf="@id/btnNavArena"
-        app:layout_constraintTop_toBottomOf="@id/btnNavArena"
-        android:clickable="true"
-        android:focusable="true">
-
-        <ImageView
-            android:layout_width="45dp"
-            android:layout_height="45dp"
-            android:src="@drawable/ic_menu_quests" 
-            android:background="@drawable/bg_btn_gold_border"
-            android:padding="6dp"/>
+            android:layout_height="wrap_content">
+            <ImageView
+                android:layout_width="45dp"
+                android:layout_height="45dp"
+                android:src="@drawable/ic_menu_quests" 
+                android:background="@drawable/bg_btn_gold_border"
+                android:padding="6dp"/>
+            <androidx.cardview.widget.CardView
+                android:id="@+id/badgeWeeklyQuests"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                app:cardCornerRadius="5dp"
+                app:cardBackgroundColor="#2ECC71"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="2dp"
+                android:layout_marginEnd="2dp"
+                android:visibility="gone"
+                app:cardElevation="2dp"/>
+        </FrameLayout>
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -342,6 +337,39 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/btnNavArena"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="@id/layoutWeeklyQuestsClick"
+        app:layout_constraintEnd_toEndOf="@id/layoutWeeklyQuestsClick"
+        app:layout_constraintTop_toBottomOf="@id/layoutWeeklyQuestsClick"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:src="@drawable/ic_ui_arena" 
+            android:background="@drawable/bg_btn_gold_border"
+            android:padding="6dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ساحة الغزوات"
+            android:textColor="#FFFFFF"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            android:layout_marginTop="3dp"
+            android:background="@drawable/bg_level_tag"
+            android:paddingHorizontal="5dp"
+            android:paddingVertical="2dp"/>
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/layoutTavernClick"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -354,12 +382,27 @@
         android:clickable="true"
         android:focusable="true">
 
-        <ImageView
-            android:layout_width="45dp"
-            android:layout_height="45dp"
-            android:src="@drawable/ic_ui_tavern" 
-            android:background="@drawable/bg_btn_gold_border"
-            android:padding="6dp"/>
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+            <ImageView
+                android:layout_width="45dp"
+                android:layout_height="45dp"
+                android:src="@drawable/ic_ui_tavern" 
+                android:background="@drawable/bg_btn_gold_border"
+                android:padding="6dp"/>
+            <androidx.cardview.widget.CardView
+                android:id="@+id/badgeTavern"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                app:cardCornerRadius="5dp"
+                app:cardBackgroundColor="#2ECC71"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="2dp"
+                android:layout_marginEnd="2dp"
+                android:visibility="gone"
+                app:cardElevation="2dp"/>
+        </FrameLayout>
 
         <TextView
             android:layout_width="wrap_content"
@@ -469,7 +512,10 @@
             </LinearLayout>
 
             <LinearLayout android:id="@+id/btnNavQuests" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
-                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_quests" />
+                <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content">
+                    <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_quests" />
+                    <androidx.cardview.widget.CardView android:id="@+id/badgeQuests" android:layout_width="10dp" android:layout_height="10dp" app:cardCornerRadius="5dp" app:cardBackgroundColor="#2ECC71" android:layout_gravity="top|end" android:visibility="gone" app:cardElevation="2dp"/>
+                </FrameLayout>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المهام" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
             </LinearLayout>
 
@@ -479,15 +525,20 @@
             </LinearLayout>
 
             <LinearLayout android:id="@+id/btnNavStore" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
-                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_store" />
+                <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content">
+                    <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_store" />
+                    <androidx.cardview.widget.CardView android:id="@+id/badgeStore" android:layout_width="10dp" android:layout_height="10dp" app:cardCornerRadius="5dp" app:cardBackgroundColor="#2ECC71" android:layout_gravity="top|end" android:visibility="visible" app:cardElevation="2dp"/>
+                </FrameLayout>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المتجر" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
             </LinearLayout>
 
             <LinearLayout android:id="@+id/btnNavBag" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/bg_inner_frame" android:layout_margin="2dp" android:gravity="center" android:orientation="vertical" android:clickable="true" android:focusable="true">
-                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_bag" />
+                <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content">
+                    <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_menu_bag" />
+                    <androidx.cardview.widget.CardView android:id="@+id/badgeBag" android:layout_width="10dp" android:layout_height="10dp" app:cardCornerRadius="5dp" app:cardBackgroundColor="#2ECC71" android:layout_gravity="top|end" android:visibility="gone" app:cardElevation="2dp"/>
+                </FrameLayout>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الحقيبة" android:textColor="#B3B3B3" android:textSize="8sp" android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
-
