@@ -16,7 +16,6 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.TextView
-import com.zeekoorg.mobsofglory.R 
 import java.util.Locale
 import kotlin.random.Random
 
@@ -397,8 +396,32 @@ object DialogManager {
         val isInfantry = p.idCode == "BARRACKS_1"
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = p.name; d.findViewById<TextView>(R.id.tvDialogInfo)?.text = if (isInfantry) "المشاة هم درع الإمبراطورية الصلب." else "الفرسان هم القوة الضاربة السريعة."
         d.findViewById<Button>(R.id.btnCastleUpgrade)?.apply { text = "ترقية المبنى"; setOnClickListener { SoundManager.playClick(); d.dismiss(); showUpgradeDialog(activity, p) } }
-        d.findViewById<Button>(R.id.btnCastleDecorations)?.apply { text = "تدريب القوات"; setOnClickListener { SoundManager.playClick(); d.dismiss(); showTrainTroopsDialog(activity, p) } }
+        
+        val btnTrain = d.findViewById<Button>(R.id.btnCastleDecorations)
+        btnTrain?.apply { 
+            text = "تدريب القوات"
+            setOnClickListener { 
+                SoundManager.playClick()
+                d.dismiss()
+                // 💡 تقدم خطوة التعليمات إذا كان اللاعب في خطوة تدريب القوات
+                if (GameState.tutorialStep == 3) {
+                    (activity as? MainActivity)?.let { TutorialManager.advanceTutorial(it) }
+                }
+                showTrainTroopsDialog(activity, p) 
+            } 
+        }
+        
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
+        
+        // 💡 نظام التعليمات: إظهار المؤشر على زر التدريب
+        if (GameState.tutorialStep == 3) {
+            d.setOnShowListener { 
+                (activity as? MainActivity)?.let { mainActivity ->
+                    TutorialManager.showDialogPointer(mainActivity, d, btnTrain, "هنا يتم إعداد الجيش.. اختر تدريب القوات!")
+                }
+            }
+        }
+        
         d.show()
     }
 
@@ -479,7 +502,8 @@ object DialogManager {
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        d.findViewById<Button>(R.id.btnConfirmTrain)?.setOnClickListener {
+        val btnConfirm = d.findViewById<Button>(R.id.btnConfirmTrain)
+        btnConfirm?.setOnClickListener {
             if (currentAmt == 0) { SoundManager.playClick(); showGameMessage(activity, "تنبيه", "الرجاء تحديد عدد الجنود للتدريب!", R.drawable.ic_settings_gear); return@setOnClickListener }
             val totalW = (currentAmt * costW).toLong(); val totalI = (currentAmt * costI).toLong()
             if (GameState.totalWheat >= totalW && GameState.totalIron >= totalI) {
@@ -487,12 +511,28 @@ object DialogManager {
                 GameState.totalWheat -= totalW; GameState.totalIron -= totalI; p.isTraining = true; p.trainingAmount = currentAmt
                 var tTime = currentAmt * 2000L; if(GameState.isVipActive()) tTime = (tTime * 0.8).toLong()
                 p.trainingTotalTime = tTime; p.trainingEndTime = System.currentTimeMillis() + p.trainingTotalTime; p.collectTimer = 0L 
+                
+                // 💡 تقدم لآخر خطوة لتكتمل التعليمات وينطلق صندوق الهدية!
+                if (GameState.tutorialStep == 4) {
+                    (activity as? MainActivity)?.let { TutorialManager.advanceTutorial(it) }
+                }
+                
                 updateUI(activity); GameState.saveGameData(activity); d.dismiss()
                 showGameMessage(activity, "معسكر التدريب", "بدأ تدريب القوات بنجاح!", R.drawable.ic_settings_gear) 
             } else { SoundManager.playClick(); showGameMessage(activity, "عذراً", "الموارد لا تكفي للتدريب!", R.drawable.ic_resource_wheat) }
         }
         updateCosts()
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
+        
+        // 💡 نظام التعليمات: إظهار المؤشر على تأكيد التدريب
+        if (GameState.tutorialStep == 4) {
+            d.setOnShowListener { 
+                (activity as? MainActivity)?.let { mainActivity ->
+                    TutorialManager.showDialogPointer(mainActivity, d, btnConfirm, "ممتاز! اضغط هنا لبدء التدريب الآن.")
+                }
+            }
+        }
+        
         d.show()
     }
 
@@ -521,11 +561,27 @@ object DialogManager {
                 SoundManager.playClick()
                 GameState.totalWheat -= cW; GameState.totalIron -= cI; GameState.totalGold -= cG
                 p.isUpgrading = true; p.totalUpgradeTime = uSec * 1000; p.upgradeEndTime = System.currentTimeMillis() + p.totalUpgradeTime; p.collectTimer = 0L
+                
+                // 💡 تقدم خطوة التعليمات عند تطوير المزرعة
+                if (GameState.tutorialStep == 1) {
+                    (activity as? MainActivity)?.let { TutorialManager.advanceTutorial(it) }
+                }
+                
                 updateUI(activity); GameState.saveGameData(activity); d.dismiss()
                 showGameMessage(activity, "أعمال البناء", "بدأ التطوير بنجاح!", R.drawable.ic_settings_gear) 
             }
         }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
+        
+        // 💡 نظام التعليمات: إظهار المؤشر على زر التطوير
+        if (GameState.tutorialStep == 1) {
+            d.setOnShowListener { 
+                (activity as? MainActivity)?.let { mainActivity ->
+                    TutorialManager.showDialogPointer(mainActivity, d, btnUpgrade, "اضغط هنا لتطوير المبنى وزيادة إنتاجك!")
+                }
+            }
+        }
+        
         d.show()
     }
 
