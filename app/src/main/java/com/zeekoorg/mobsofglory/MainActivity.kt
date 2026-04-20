@@ -116,46 +116,54 @@ class MainActivity : AppCompatActivity() {
         when (GameState.tutorialStep) {
             0 -> {
                 // الخطوة 0: القلعة
-                val btnCastle = findViewById<View>(R.id.plotCastle)
+                val btnCastle = findViewById<View>(R.id.plotCastle) ?: return
                 SpotlightView.show(this, rootLayout, btnCastle, "أهلاً بك في إمبراطوريتك يا زعيم!\nلنبدأ بترقية القلعة، قلب الإمبراطورية.") {
-                    GameState.tutorialStep = 1 // ننتقل للخطوة 1 (داخل النافذة)
+                    GameState.tutorialStep = 1 
                     GameState.saveGameData(this)
                 }
             }
-            3 -> {
-                // الخطوة 3: المهام
-                val btnQuests = findViewById<View>(R.id.btnNavQuests)
-                SpotlightView.show(this, rootLayout, btnQuests, "أحسنت! الجيوش جاهزة.\nهنا يمكنك إنجاز المهام للحصول على جوائز قيمة.") {
-                    GameState.tutorialStep = 4 // ننتقل للخطوة 4 (إغلاق النافذة)
+            2 -> {
+                // الخطوة 2: الثكنة (بعد ترقية القلعة)
+                val btnBarracks = findViewById<View>(R.id.plotBarracksL1) ?: return
+                SpotlightView.show(this, rootLayout, btnBarracks, "رائع! القلعة تطورت.\nالآن اضغط على الثكنة لإعداد جيشك.") {
+                    GameState.tutorialStep = 3 
                     GameState.saveGameData(this)
                 }
             }
-            5 -> {
-                // الخطوة 5: الملف الشخصي (البروفايل)
-                val btnProfile = findViewById<View>(R.id.layoutAvatarClick)
-                SpotlightView.show(this, rootLayout, btnProfile, "إمبراطوريتك بحاجة لاسم يليق بها!\nاضغط هنا لتعديل ملفك الشخصي وصورتك.") {
-                    GameState.tutorialStep = 6 // ننتقل للخطوة 6 (إغلاق البروفايل)
+            4 -> {
+                // الخطوة 4: المهام (بعد التدريب)
+                val btnQuests = findViewById<View>(R.id.btnNavQuests) ?: return
+                SpotlightView.show(this, rootLayout, btnQuests, "جيشك مستعد!\nهنا يمكنك إنجاز المهام للحصول على الجوائز المذهلة.") {
+                    GameState.tutorialStep = 5 
                     GameState.saveGameData(this)
                 }
             }
-            7 -> {
-                // الخطوة 7: مكافآت القلعة
-                val btnCastleRewards = findViewById<View>(R.id.layoutCastleRewardsClick)
+            6 -> {
+                // الخطوة 6: الملف الشخصي
+                val btnProfile = findViewById<View>(R.id.layoutAvatarClick) ?: return
+                SpotlightView.show(this, rootLayout, btnProfile, "يجب أن يعرف الجميع من هو الحاكم!\nاضغط هنا لتعديل اسمك وصورتك الشخصية.") {
+                    GameState.tutorialStep = 7 
+                    GameState.saveGameData(this)
+                }
+            }
+            8 -> {
+                // الخطوة 8: مكافآت القلعة
+                val btnCastleRewards = findViewById<View>(R.id.layoutCastleRewardsClick) ?: return
                 SpotlightView.show(this, rootLayout, btnCastleRewards, "مكافآت الترقية بانتظارك!\nاحصل عليها من هنا كلما طورت قلعتك.") {
-                    GameState.tutorialStep = 8 // ننتقل للخطوة 8 (إغلاق المكافآت)
+                    GameState.tutorialStep = 9 
                     GameState.saveGameData(this)
                 }
             }
-            9 -> {
-                // الخطوة 9: قاعة الأساطير
-                val btnTavern = findViewById<View>(R.id.btnNavHeroes)
+            10 -> {
+                // الخطوة 10: الأبطال
+                val btnTavern = findViewById<View>(R.id.btnNavHeroes) ?: return
                 SpotlightView.show(this, rootLayout, btnTavern, "لن تكتمل قوتك بدون أبطال ملحميين!\nافتح القائمة لتجنيد أبطال يقودون جيشك.") {
-                    GameState.tutorialStep = 10 // ننتقل للخطوة 10 (الاستدعاء)
+                    GameState.tutorialStep = 11 
                     GameState.saveGameData(this)
                 }
             }
-            11 -> {
-                // انتهاء التعليمات وإظهار حزمة البداية!
+            12 -> {
+                // الخطوة 12: إظهار حزمة البداية (النهاية)
                 if (!GameState.isStarterPackClaimed) {
                     DialogManager.showStarterPackDialog(this)
                 }
