@@ -19,6 +19,9 @@ object GameState {
     
     var isStarterPackClaimed: Boolean = false
     
+    // 💡 إضافة متغير يتتبع خطوة التعليمات الحالية (0 = لم يبدأ بعد)
+    var tutorialStep: Int = 0
+    
     var isPyramidUnlocked = false; var isDiamondUnlocked = false; var isPeacockUnlocked = false
     var countSpeedup5m: Int = 0; var countSpeedup15m: Int = 0; var countSpeedup30m: Int = 0
     var countSpeedup1Hour: Int = 0; var countSpeedup2h: Int = 0; var countSpeedup8Hour: Int = 0
@@ -59,7 +62,6 @@ object GameState {
         }
     }
 
-    // 💡 دوال المراقبة الذكية لنقاط التنبيه
     fun hasUnclaimedDailyQuests(): Boolean = dailyQuestsList.any { it.isCompleted && !it.isCollected }
     fun hasUnclaimedWeeklyQuests(): Boolean = weeklyQuestsList.any { it.isCompleted && !it.isCollected }
     fun hasBagItems(): Boolean = countResourceBox > 0 || countGoldBox > 0
@@ -196,6 +198,9 @@ object GameState {
         
         prefs.putBoolean("STARTER_PACK_CLAIMED", isStarterPackClaimed)
         
+        // 💡 حفظ رقم خطوة التعليمات
+        prefs.putInt("TUTORIAL_STEP", tutorialStep)
+        
         prefs.putBoolean("PYRAMID_UNLOCKED", isPyramidUnlocked); prefs.putBoolean("DIAMOND_UNLOCKED", isDiamondUnlocked); prefs.putBoolean("PEACOCK_UNLOCKED", isPeacockUnlocked)
         prefs.putInt("SPEEDUP_5M", countSpeedup5m); prefs.putInt("SPEEDUP_15M", countSpeedup15m); prefs.putInt("SPEEDUP_30M", countSpeedup30m)
         prefs.putInt("SPEEDUP_1H", countSpeedup1Hour); prefs.putInt("SPEEDUP_2H", countSpeedup2h); prefs.putInt("SPEEDUP_8H", countSpeedup8Hour)
@@ -247,6 +252,9 @@ object GameState {
         summonMedals = prefs.getInt("SUMMON_MEDALS", 2)
         
         isStarterPackClaimed = prefs.getBoolean("STARTER_PACK_CLAIMED", false)
+        
+        // 💡 استرجاع رقم خطوة التعليمات
+        tutorialStep = prefs.getInt("TUTORIAL_STEP", 0)
         
         isPyramidUnlocked = prefs.getBoolean("PYRAMID_UNLOCKED", false); isDiamondUnlocked = prefs.getBoolean("DIAMOND_UNLOCKED", false); isPeacockUnlocked = prefs.getBoolean("PEACOCK_UNLOCKED", false)
         countSpeedup5m = prefs.getInt("SPEEDUP_5M", 0); countSpeedup15m = prefs.getInt("SPEEDUP_15M", 0); countSpeedup30m = prefs.getInt("SPEEDUP_30M", 0)
