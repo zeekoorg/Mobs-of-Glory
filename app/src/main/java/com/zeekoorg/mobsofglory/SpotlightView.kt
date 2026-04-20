@@ -24,7 +24,7 @@ class SpotlightView(
 
     private val path = Path()
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#E6000000") // ظلام بنسبة 90% لتركيز بصري ممتاز
+        color = Color.parseColor("#E6000000") // ظلام بنسبة 90%
         style = Paint.Style.FILL
     }
     private val targetRect = RectF()
@@ -33,7 +33,7 @@ class SpotlightView(
         setWillNotDraw(false)
         isClickable = true
         isFocusable = true
-        tag = "SPOTLIGHT_TAG" // لمنع تكرار الشاشات السوداء وتكدسها
+        tag = "SPOTLIGHT_TAG"
 
         post {
             calculateTargetBounds()
@@ -52,22 +52,14 @@ class SpotlightView(
         val x = location[0].toFloat() - myLocation[0].toFloat()
         val y = location[1].toFloat() - myLocation[1].toFloat()
 
-        // مساحة مريحة حول الزر ليظهر بشكل جميل داخل الدائرة
         val padding = 20f
-        targetRect.set(
-            x - padding,
-            y - padding,
-            x + targetView.width + padding,
-            y + targetView.height + padding
-        )
+        targetRect.set(x - padding, y - padding, x + targetView.width + padding, y + targetView.height + padding)
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         path.reset()
-        // رسم الظلام على كامل الشاشة
         path.addRect(0f, 0f, width.toFloat(), height.toFloat(), Path.Direction.CW)
-        // حفر الدائرة (الثقب) فوق الهدف
         val cornerRadius = 30f
         path.addRoundRect(targetRect, cornerRadius, cornerRadius, Path.Direction.CCW)
         path.fillType = Path.FillType.EVEN_ODD
@@ -77,19 +69,13 @@ class SpotlightView(
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_UP) {
-            // توسيع منطقة اللمس المخفية لتسهيل ضغطة اللاعب
             val touchRect = RectF(targetRect).apply { inset(-40f, -40f) }
-            
             if (touchRect.contains(event.x, event.y)) {
-                // إخفاء التعليمات فوراً
                 (parent as? ViewGroup)?.removeView(this)
-                // تنفيذ الكود البرمجي للانتقال للخطوة التالية
                 onTargetClicked()
-                // النقر الحقيقي على الزر الذي كان مخفياً
                 targetView.performClick()
             }
         }
-        // امتصاص اللمسة لكي لا يضغط اللاعب بالخطأ في مكان مظلم
         return true 
     }
 
@@ -101,12 +87,10 @@ class SpotlightView(
         }
         addView(hand)
 
-        // تحديد موقع اليد فوق الدائرة المضيئة بالضبط بعد رسم الشاشة
         hand.post {
             hand.x = targetRect.centerX() - (hand.width / 2f)
             hand.y = targetRect.top - hand.height - 10f
 
-            // أنميشن القفز للأسفل للإشارة للزر
             val bounceAnim = TranslateAnimation(0f, 0f, 0f, 30f).apply {
                 duration = 500
                 repeatMode = Animation.REVERSE
@@ -115,13 +99,17 @@ class SpotlightView(
             hand.startAnimation(bounceAnim)
         }
 
+        // 💡 الخدعة الذكية: هل الزر المستهدف موجود في النصف السفلي من الشاشة؟
+        val isTargetAtBottom = targetRect.centerY() > (height / 2f)
+
         // 2. المرشدة
         val guideImg = ImageView(context).apply {
             setImageResource(R.drawable.img_guide_character)
             layoutParams = LayoutParams(400, 650).apply {
                 gravity = Gravity.BOTTOM or Gravity.START
+                // إذا كان الزر في الأسفل، ارفع المرشدة لمنتصف الشاشة، وإلا اتركها بالأسفل
+                bottomMargin = if (isTargetAtBottom) (height / 2) - 200 else 30 
                 marginStart = 10
-                bottomMargin = 30
             }
         }
         addView(guideImg)
@@ -135,8 +123,9 @@ class SpotlightView(
             setBackgroundResource(R.drawable.bg_btn_gold_border)
             layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
                 gravity = Gravity.BOTTOM or Gravity.START
+                // رفع الفقاعة لتتناسب مع المرشدة
+                bottomMargin = if (isTargetAtBottom) (height / 2) + 150 else 400
                 marginStart = 380
-                bottomMargin = 400
                 marginEnd = 40
             }
         }
@@ -151,7 +140,6 @@ class SpotlightView(
             text: String,
             onTargetClicked: () -> Unit
         ) {
-            // حذف أي تعليمات سابقة إن وجدت لمنع تداخل الشاشات السوداء
             val existing = rootView.findViewWithTag<View>("SPOTLIGHT_TAG")
             if (existing != null) rootView.removeView(existing)
 
