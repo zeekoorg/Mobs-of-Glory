@@ -5,10 +5,29 @@ import kotlin.random.Random
 
 data class PendingMessage(val title: String, val body: String, val iconResId: Int)
 
-// 💡 [الجديد] أنواع الأهداف في ساحة المعركة
+// 💡 [الجديد] أنواع الأهداف ومسيرات الجيوش
 enum class NodeType { ENEMY_CASTLE, GOLD_MINE, IRON_MINE, WHEAT_FARM }
+enum class MarchStatus { MARCHING, RETURNING }
+enum class MarchType { ATTACK, GATHER }
 
-// 💡 [الجديد] نموذج بيانات كل نقطة (حاوية) في الخريطة
+// 💡 [الجديد] كلاس لتتبع الفيالق المرسلة (الحد الأقصى 3 فيالق)
+data class ActiveMarch(
+    val id: Long,
+    val targetNodeId: Int,
+    val type: MarchType,
+    val infantryCount: Long,
+    val cavalryCount: Long,
+    val heroIds: List<Int>, 
+    val weaponIds: List<Int>, 
+    var status: MarchStatus,
+    var endTime: Long,
+    val totalTime: Long,
+    var payloadGold: Long = 0L,
+    var payloadIron: Long = 0L,
+    var payloadWheat: Long = 0L
+)
+
+// 💡 [تعديل] إضافة اسم الصورة للمحافظة على التنوع البصري للقلاع
 data class BattlefieldNode(
     val id: Int, 
     var type: NodeType,
@@ -17,7 +36,8 @@ data class BattlefieldNode(
     var level: Int,
     var isDefeated: Boolean,
     var lastAttackedTime: Long = 0L,
-    var resourceAmount: Long = 0L
+    var resourceAmount: Long = 0L,
+    var imageName: String = "" // يحفظ اسم الصورة العشوائية
 )
 
 object GameState {
@@ -62,9 +82,22 @@ object GameState {
     var isHealing: Boolean = false; var healingEndTime: Long = 0L; var healingTotalTime: Long = 0L
     var healingInfantryAmount: Long = 0; var healingCavalryAmount: Long = 0
 
-    // 💡 [الجديد] متغيرات ساحة المعركة (نظام المقاطعات)
+    // متغيرات ساحة المعركة (نظام المقاطعات)
     var currentRegionLevel: Int = 1
     val battlefieldNodes = mutableListOf<BattlefieldNode>()
+    
+    // 💡 [الجديد] قائمة تتبع الجيوش التي تسير حالياً في الخريطة
+    val activeMarches = mutableListOf<ActiveMarch>()
+
+    // 💡 [الجديد] دالة مساعدة لمعرفة هل البطل أو السلاح خارج في مهمة؟
+    fun isHeroBusy(heroId: Int): Boolean = activeMarches.any { it.heroIds.contains(heroId) }
+    fun isWeaponBusy(weaponId: Int): Boolean = activeMarches.any { it.weaponIds.contains(weaponId) }
+    
+    // 💡 [الجديد] دالة ذكية لحساب السعة القصوى لدار الشفاء (10 آلاف جريح لكل مستوى)
+    fun getHospitalCapacity(): Long {
+        val hospitalLvl = myPlots.find { it.idCode == "HOSPITAL" }?.level ?: 1
+        return hospitalLvl * 10000L 
+    }
 
     fun addQuestProgress(type: QuestType, amount: Int) {
         dailyQuestsList.filter { it.type == type }.forEach { quest ->
@@ -142,32 +175,44 @@ object GameState {
         
         if (arenaStaminaLastRegenTime == 0L) arenaStaminaLastRegenTime = System.currentTimeMillis()
 
-        // 💡 [الجديد] توليد المقاطعة الأولى إذا كانت الخريطة فارغة
         if (battlefieldNodes.isEmpty()) generateRegion(currentRegionLevel)
     }
 
-    // 💡 [الجديد] دالة توليد مقاطعة جديدة (5 قلاع + 3 مزارع) موزعة عشوائياً في الـ 8 حاويات
+    // 💡 [الجديد] توليد المقاطعة مع توزيع 5 صور قلاع مختلفة من أصل 10، وتصاعد القوة للملايين
     fun generateRegion(level: Int) {
         battlefieldNodes.clear()
         val types = mutableListOf(NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.GOLD_MINE, NodeType.IRON_MINE, NodeType.WHEAT_FARM)
         types.shuffle() 
 
+        // اختيار 5 صور قلاع مختلفة عشوائياً (من أصل 10 صور متوفرة)
+        val selectedCastleImages = (1..10).map { "img_enemy_castle_$it" }.shuffled().take(5)
+        var castleImageIndex = 0
+
         for (i in 0 until 8) {
             val t = types[i]
             if (t == NodeType.ENEMY_CASTLE) {
-                // قوة العدو ترتفع بذكاء مع كل مقاطعة
-                val basePower = (level * 80000L) + Random.nextLong(20000, 60000)
+                // تصاعد القوة بقسوة لتصل للملايين في المستويات المتقدمة
+                val basePower = (100000L * level) + (level.toLong() * level.toLong() * 15000L) + Random.nextLong(20000, 80000)
                 val nodeLevel = level + Random.nextInt(0, 3)
-                battlefieldNodes.add(BattlefieldNode(i, t, basePower, basePower, nodeLevel, false, 0L, 0L))
+                val imgName = selectedCastleImages[castleImageIndex]
+                castleImageIndex++
+                
+                battlefieldNodes.add(BattlefieldNode(i, t, basePower, basePower, nodeLevel, false, 0L, 0L, imgName))
             } else {
-                // كمية الموارد ترتفع مع تقدم المقاطعات
-                val resAmount = (level * 150000L) + Random.nextLong(30000, 80000)
-                battlefieldNodes.add(BattlefieldNode(i, t, 0L, 0L, level, false, 0L, resAmount))
+                // مستويات وموارد المزارع تزيد بشكل ملحوظ
+                val farmLevel = level + Random.nextInt(0, 3)
+                val resAmount = (farmLevel * 200000L) + Random.nextLong(50000, 150000)
+                val imgName = when(t) {
+                    NodeType.GOLD_MINE -> "img_node_gold"
+                    NodeType.IRON_MINE -> "img_node_iron"
+                    else -> "img_node_wheat"
+                }
+                
+                battlefieldNodes.add(BattlefieldNode(i, t, 0L, 0L, farmLevel, false, 0L, resAmount, imgName))
             }
         }
     }
 
-    // 💡 [الجديد] فحص إذا تم تطهير المنطقة بالكامل للعبور للمقاطعة التالية
     fun checkRegionCleared(): Boolean = battlefieldNodes.all { it.isDefeated }
     
     fun advanceToNextRegion() {
@@ -286,7 +331,6 @@ object GameState {
             prefs.putLong("TT_${it.idCode}", it.trainingEndTime); prefs.putInt("TA_${it.idCode}", it.trainingAmount)
         }
 
-        // 💡 [الجديد] حفظ بيانات ساحة المعركة بدقة لتستفز اللاعب
         prefs.putInt("CURRENT_REGION_LEVEL", currentRegionLevel)
         battlefieldNodes.forEach { n ->
             prefs.putString("BF_NODE_${n.id}_TYPE", n.type.name)
@@ -296,6 +340,25 @@ object GameState {
             prefs.putBoolean("BF_NODE_${n.id}_DEF", n.isDefeated)
             prefs.putLong("BF_NODE_${n.id}_TIME", n.lastAttackedTime)
             prefs.putLong("BF_NODE_${n.id}_RES", n.resourceAmount)
+            prefs.putString("BF_NODE_${n.id}_IMG", n.imageName) // 💡 حفظ اسم الصورة
+        }
+        
+        // 💡 [الجديد] حفظ بيانات الجيوش المسافرة
+        prefs.putInt("ACTIVE_MARCH_COUNT", activeMarches.size)
+        activeMarches.forEachIndexed { index, march ->
+            prefs.putLong("AM_${index}_ID", march.id)
+            prefs.putInt("AM_${index}_NODE", march.targetNodeId)
+            prefs.putString("AM_${index}_TYPE", march.type.name)
+            prefs.putLong("AM_${index}_INF", march.infantryCount)
+            prefs.putLong("AM_${index}_CAV", march.cavalryCount)
+            prefs.putString("AM_${index}_HEROES", march.heroIds.joinToString(","))
+            prefs.putString("AM_${index}_WEAPONS", march.weaponIds.joinToString(","))
+            prefs.putString("AM_${index}_STATUS", march.status.name)
+            prefs.putLong("AM_${index}_END", march.endTime)
+            prefs.putLong("AM_${index}_TOT", march.totalTime)
+            prefs.putLong("AM_${index}_PG", march.payloadGold)
+            prefs.putLong("AM_${index}_PI", march.payloadIron)
+            prefs.putLong("AM_${index}_PW", march.payloadWheat)
         }
         
         prefs.apply()
@@ -369,7 +432,6 @@ object GameState {
         claimedCastleRewards.clear(); if (claimedStr.isNotEmpty()) claimedCastleRewards.addAll(claimedStr.split(",").mapNotNull { it.toIntOrNull() })
         pendingOfflineMessages.clear()
 
-        // 💡 [الجديد] استرجاع بيانات ساحة المعركة وحساب "تعافي الأعداء" الإدماني
         currentRegionLevel = prefs.getInt("CURRENT_REGION_LEVEL", 1)
         battlefieldNodes.clear()
         for (i in 0 until 8) {
@@ -380,7 +442,8 @@ object GameState {
                         i, NodeType.valueOf(typeStr), prefs.getLong("BF_NODE_${i}_CUR_PWR", 0L),
                         prefs.getLong("BF_NODE_${i}_MAX_PWR", 0L), prefs.getInt("BF_NODE_${i}_LVL", 1),
                         prefs.getBoolean("BF_NODE_${i}_DEF", false), prefs.getLong("BF_NODE_${i}_TIME", 0L),
-                        prefs.getLong("BF_NODE_${i}_RES", 0L)
+                        prefs.getLong("BF_NODE_${i}_RES", 0L),
+                        prefs.getString("BF_NODE_${i}_IMG", "img_enemy_castle_1") ?: "img_enemy_castle_1"
                     )
                 )
             }
@@ -391,7 +454,6 @@ object GameState {
             if (node.lastAttackedTime > 0) {
                 val hPassed = (currentTime - node.lastAttackedTime) / 3600000L
                 if (hPassed > 0) {
-                    // العدو يستعيد 10% من قوته القصوى كل ساعة تغيب فيها!
                     val recovery = (node.maxPower * 0.10).toLong() * hPassed
                     node.currentPower += recovery
                     if (node.currentPower > node.maxPower) node.currentPower = node.maxPower
@@ -403,6 +465,29 @@ object GameState {
         
         if (enemyRecovered && offlineTime > 3600000L) {
             pendingOfflineMessages.add(PendingMessage("ساحة المعركة", "انتبه! القلاع التي لم تدمرها استعادت جزءاً من قوتها أثناء غيابك، لا تترك لهم فرصة للتعافي!", R.drawable.ic_settings_gear))
+        }
+        
+        // 💡 [الجديد] استرجاع بيانات الجيوش المسافرة
+        val marchCount = prefs.getInt("ACTIVE_MARCH_COUNT", 0)
+        activeMarches.clear()
+        for (i in 0 until marchCount) {
+            val hStr = prefs.getString("AM_${i}_HEROES", "") ?: ""
+            val wStr = prefs.getString("AM_${i}_WEAPONS", "") ?: ""
+            activeMarches.add(ActiveMarch(
+                id = prefs.getLong("AM_${i}_ID", 0L),
+                targetNodeId = prefs.getInt("AM_${i}_NODE", 0),
+                type = MarchType.valueOf(prefs.getString("AM_${i}_TYPE", "ATTACK")!!),
+                infantryCount = prefs.getLong("AM_${i}_INF", 0L),
+                cavalryCount = prefs.getLong("AM_${i}_CAV", 0L),
+                heroIds = if (hStr.isEmpty()) emptyList() else hStr.split(",").map { it.toInt() },
+                weaponIds = if (wStr.isEmpty()) emptyList() else wStr.split(",").map { it.toInt() },
+                status = MarchStatus.valueOf(prefs.getString("AM_${i}_STATUS", "MARCHING")!!),
+                endTime = prefs.getLong("AM_${i}_END", 0L),
+                totalTime = prefs.getLong("AM_${i}_TOT", 0L),
+                payloadGold = prefs.getLong("AM_${i}_PG", 0L),
+                payloadIron = prefs.getLong("AM_${i}_PI", 0L),
+                payloadWheat = prefs.getLong("AM_${i}_PW", 0L)
+            ))
         }
 
         if (isHealing && currentTime >= healingEndTime) {
