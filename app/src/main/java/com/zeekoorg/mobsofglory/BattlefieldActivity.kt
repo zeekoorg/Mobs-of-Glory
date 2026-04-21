@@ -4,12 +4,17 @@ import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.Animation
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.TranslateAnimation
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -19,6 +24,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import java.util.Locale
+import kotlin.random.Random
 
 class BattlefieldActivity : AppCompatActivity() {
 
@@ -57,6 +63,9 @@ class BattlefieldActivity : AppCompatActivity() {
         updateHudUI()
         renderBattlefield()
         startGameLoop()
+        
+        // 💡 فحص صندوق البريد فور فتح الشاشة (في حال كان هناك تقرير سابق)
+        checkPendingReports()
     }
 
     override fun onResume() {
@@ -65,6 +74,7 @@ class BattlefieldActivity : AppCompatActivity() {
         updateHudUI()
         renderBattlefield()
         SoundManager.playBGM(this, R.raw.bgm_city) 
+        checkPendingReports()
     }
 
     override fun onPause() {
@@ -106,13 +116,11 @@ class BattlefieldActivity : AppCompatActivity() {
             
             val node = GameState.battlefieldNodes.find { it.id == i } ?: continue
             
-            // 💡 التعديل البصري: تقليل الهوامش لتكبير القلعة وترك مسافة من الأعلى للنص
             val img = ImageView(this).apply {
                 layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT).apply { setMargins(0, 45, 0, 5) }
                 scaleType = ImageView.ScaleType.FIT_CENTER
             }
             
-            // 💡 التعديل البصري: نقل النص للأعلى وتكبيره وجعله باللون الأبيض الفاقع
             val badge = TextView(this).apply {
                 layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL }
                 setBackgroundResource(R.drawable.bg_level_tag)
@@ -120,6 +128,7 @@ class BattlefieldActivity : AppCompatActivity() {
                 textSize = 12f
                 setTypeface(null, android.graphics.Typeface.BOLD)
                 setPadding(20, 8, 20, 8)
+                tag = "badge_$i" // 💡 لتحديث العداد لاحقاً بدون تقطيع
             }
 
             val dynamicResId = resources.getIdentifier(node.imageName, "drawable", packageName)
@@ -143,11 +152,7 @@ class BattlefieldActivity : AppCompatActivity() {
                 } else {
                     img.alpha = 1.0f
                     img.setImageResource(if (dynamicResId != 0) dynamicResId else {
-                        when (node.type) {
-                            NodeType.GOLD_MINE -> R.drawable.ic_resource_gold
-                            NodeType.IRON_MINE -> R.drawable.ic_resource_iron
-                            else -> R.drawable.ic_resource_wheat
-                        }
+                        when (node.type) { NodeType.GOLD_MINE -> R.drawable.ic_resource_gold; NodeType.IRON_MINE -> R.drawable.ic_resource_iron; else -> R.drawable.ic_resource_wheat }
                     })
                     val prefix = when(node.type) { NodeType.GOLD_MINE -> "ذهب"; NodeType.IRON_MINE -> "حديد"; else -> "قمح" }
                     badge.text = "$prefix: ${formatResourceNumber(node.resourceAmount)}"
@@ -157,29 +162,22 @@ class BattlefieldActivity : AppCompatActivity() {
             slot.addView(img)
             slot.addView(badge)
             
-            val isTargeted = GameState.activeMarches.any { it.targetNodeId == node.id && it.status == MarchStatus.MARCHING }
-            if (isTargeted) {
-                val marchIcon = ImageView(this).apply {
-                    setImageResource(R.drawable.ic_ui_formation) 
-                    layoutParams = FrameLayout.LayoutParams(60, 60).apply { gravity = Gravity.TOP or Gravity.END } // تم نقله لليمين كي لا يغطي على النص
-                }
-                slot.addView(marchIcon)
-            }
-            
             slot.setOnClickListener {
                 SoundManager.playClick()
+                val isTargeted = GameState.activeMarches.any { it.targetNodeId == node.id && (it.status == MarchStatus.MARCHING || it.status == MarchStatus.GATHERING) }
                 if (!node.isDefeated && !isTargeted) {
-                    showMarchSetupDialog(node)
+                    showMarchSetupDialog(node, slot)
                 } else if (isTargeted) {
-                    Toast.makeText(this, "فيالقك في طريقها لهذا الهدف بالفعل!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "هذا الهدف تحت سيطرة فيالقك بالفعل!", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(this, "هذا المكان أصبح أثراً بعد عين!", Toast.LENGTH_SHORT).show()
                 }
             }
         }
+        updateDynamicTimers()
     }
 
-    private fun showMarchSetupDialog(node: BattlefieldNode) {
+    private fun showMarchSetupDialog(node: BattlefieldNode, targetSlot: FrameLayout) {
         if (GameState.activeMarches.size >= 3) {
             DialogManager.showGameMessage(this, "عذراً أيها القائد", "لقد وصلت للحد الأقصى من المسيرات (3 فيالق). انتظر عودة أحدهم!", R.drawable.ic_ui_formation)
             return
@@ -237,16 +235,13 @@ class BattlefieldActivity : AppCompatActivity() {
             val troopsPower = (selectedInfantry * 5) + (selectedCavalry * 10)
             val totalPower = heroesPower + weaponsPower + troopsPower
             val totalPayload = (selectedInfantry * 10) + (selectedCavalry * 25)
-
             tvPower?.text = if (isAttack) "قوة الفيلق: ⚔️ ${formatResourceNumber(totalPower)}" else "سعة الحمولة: 📦 ${formatResourceNumber(totalPayload)}"
         }
 
         fun refreshSlotsUI() {
             updateMarchStats()
-            
             for (i in 0..3) {
-                val (slot, imgFull, imgAdd) = heroSlots[i]
-                val lock = lockHeroes[i]; val reqLevel = unlockLevels[i]
+                val (slot, imgFull, imgAdd) = heroSlots[i]; val lock = lockHeroes[i]; val reqLevel = unlockLevels[i]
                 if (castleLevel < reqLevel) {
                     lock?.visibility = View.VISIBLE; imgFull?.visibility = View.GONE; imgAdd?.visibility = View.GONE
                     slot?.setOnClickListener { SoundManager.playClick(); Toast.makeText(this, "تحتاج لترقية القلعة للمستوى $reqLevel", Toast.LENGTH_SHORT).show() }
@@ -254,20 +249,14 @@ class BattlefieldActivity : AppCompatActivity() {
                     lock?.visibility = View.GONE
                     if (i < selectedHeroesForMarch.size) {
                         imgFull?.visibility = View.VISIBLE; imgAdd?.visibility = View.GONE
-                        val hero = selectedHeroesForMarch[i]
-                        imgFull?.setImageResource(hero.iconResId)
+                        val hero = selectedHeroesForMarch[i]; imgFull?.setImageResource(hero.iconResId)
                         slot?.setOnClickListener { SoundManager.playClick(); selectedHeroesForMarch.remove(hero); refreshSlotsUI() }
                     } else {
                         imgFull?.visibility = View.GONE; imgAdd?.visibility = View.VISIBLE
                         slot?.setOnClickListener {
-                            SoundManager.playClick()
-                            DialogManager.showHeroSelectorDialog(this) { selectedHero ->
-                                if (GameState.isHeroBusy(selectedHero.id)) {
-                                    Toast.makeText(this, "هذا البطل يقود مسيرة أخرى!", Toast.LENGTH_SHORT).show()
-                                } else if (!selectedHeroesForMarch.contains(selectedHero)) {
-                                    selectedHeroesForMarch.add(selectedHero)
-                                    refreshSlotsUI()
-                                }
+                            SoundManager.playClick(); DialogManager.showHeroSelectorDialog(this) { selectedHero ->
+                                if (GameState.isHeroBusy(selectedHero.id)) Toast.makeText(this, "هذا البطل يقود مسيرة أخرى!", Toast.LENGTH_SHORT).show()
+                                else if (!selectedHeroesForMarch.contains(selectedHero)) { selectedHeroesForMarch.add(selectedHero); refreshSlotsUI() }
                             }
                         }
                     }
@@ -275,8 +264,7 @@ class BattlefieldActivity : AppCompatActivity() {
             }
 
             for (i in 0..3) {
-                val (slot, imgFull, imgAdd) = weaponSlots[i]
-                val lock = lockWeapons[i]; val reqLevel = unlockLevels[i]
+                val (slot, imgFull, imgAdd) = weaponSlots[i]; val lock = lockWeapons[i]; val reqLevel = unlockLevels[i]
                 if (castleLevel < reqLevel) {
                     lock?.visibility = View.VISIBLE; imgFull?.visibility = View.GONE; imgAdd?.visibility = View.GONE
                     slot?.setOnClickListener { SoundManager.playClick(); Toast.makeText(this, "تحتاج لترقية القلعة للمستوى $reqLevel", Toast.LENGTH_SHORT).show() }
@@ -284,20 +272,14 @@ class BattlefieldActivity : AppCompatActivity() {
                     lock?.visibility = View.GONE
                     if (i < selectedWeaponsForMarch.size) {
                         imgFull?.visibility = View.VISIBLE; imgAdd?.visibility = View.GONE
-                        val weapon = selectedWeaponsForMarch[i]
-                        imgFull?.setImageResource(weapon.iconResId)
+                        val weapon = selectedWeaponsForMarch[i]; imgFull?.setImageResource(weapon.iconResId)
                         slot?.setOnClickListener { SoundManager.playClick(); selectedWeaponsForMarch.remove(weapon); refreshSlotsUI() }
                     } else {
                         imgFull?.visibility = View.GONE; imgAdd?.visibility = View.VISIBLE
                         slot?.setOnClickListener {
-                            SoundManager.playClick()
-                            DialogManager.showWeaponSelectorDialog(this) { selectedWeapon ->
-                                if (GameState.isWeaponBusy(selectedWeapon.id)) {
-                                    Toast.makeText(this, "هذا السلاح مستخدم في مسيرة أخرى!", Toast.LENGTH_SHORT).show()
-                                } else if (!selectedWeaponsForMarch.contains(selectedWeapon)) {
-                                    selectedWeaponsForMarch.add(selectedWeapon)
-                                    refreshSlotsUI()
-                                }
+                            SoundManager.playClick(); DialogManager.showWeaponSelectorDialog(this) { selectedWeapon ->
+                                if (GameState.isWeaponBusy(selectedWeapon.id)) Toast.makeText(this, "هذا السلاح مستخدم في مسيرة أخرى!", Toast.LENGTH_SHORT).show()
+                                else if (!selectedWeaponsForMarch.contains(selectedWeapon)) { selectedWeaponsForMarch.add(selectedWeapon); refreshSlotsUI() }
                             }
                         }
                     }
@@ -307,14 +289,12 @@ class BattlefieldActivity : AppCompatActivity() {
 
         seekInf?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(s: SeekBar?, p: Int, f: Boolean) { selectedInfantry = p.toLong(); tvInfSelected?.text = formatResourceNumber(selectedInfantry); updateMarchStats() }
-            override fun onStartTrackingTouch(s: SeekBar?) {}
-            override fun onStopTrackingTouch(s: SeekBar?) {}
+            override fun onStartTrackingTouch(s: SeekBar?) {}; override fun onStopTrackingTouch(s: SeekBar?) {}
         })
 
         seekCav?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(s: SeekBar?, p: Int, f: Boolean) { selectedCavalry = p.toLong(); tvCavSelected?.text = formatResourceNumber(selectedCavalry); updateMarchStats() }
-            override fun onStartTrackingTouch(s: SeekBar?) {}
-            override fun onStopTrackingTouch(s: SeekBar?) {}
+            override fun onStartTrackingTouch(s: SeekBar?) {}; override fun onStopTrackingTouch(s: SeekBar?) {}
         })
 
         refreshSlotsUI()
@@ -325,8 +305,8 @@ class BattlefieldActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            SoundManager.playClick()
-            val travelTime = 30000L 
+            d.dismiss()
+            val travelTime = 1500L // 💡 الوصول في ثانية ونصف
             
             val newMarch = ActiveMarch(
                 id = System.currentTimeMillis(),
@@ -346,117 +326,154 @@ class BattlefieldActivity : AppCompatActivity() {
             GameState.activeMarches.add(newMarch)
             GameState.saveGameData(this)
             
-            d.dismiss()
-            Toast.makeText(this, "تحركت الفيالق نحو الهدف!", Toast.LENGTH_LONG).show()
             updateHudUI()
-            renderBattlefield()
+            startMarchAnimation(node, newMarch, targetSlot) // 💡 بدء الأنيميشن
         }
 
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
-    private fun processActiveMarches() {
-        val now = System.currentTimeMillis()
-        val iterator = GameState.activeMarches.iterator()
-        var needsUpdate = false
+    // 💡 أنيميشن حركة الفيلق السريعة (1.5 ثانية)
+    private fun startMarchAnimation(node: BattlefieldNode, march: ActiveMarch, slot: FrameLayout) {
+        val displayMetrics = resources.displayMetrics
+        val startX = displayMetrics.widthPixels / 2f
+        val startY = displayMetrics.heightPixels.toFloat()
         
+        val loc = IntArray(2)
+        slot.getLocationInWindow(loc)
+        val targetX = loc[0].toFloat() + slot.width / 2f
+        val targetY = loc[1].toFloat() + slot.height / 2f
+
+        val marchIcon = ImageView(this).apply {
+            setImageResource(R.drawable.ic_ui_formation)
+            layoutParams = FrameLayout.LayoutParams(120, 120)
+            x = startX; y = startY
+        }
+        
+        val rootLayout = findViewById<ViewGroup>(android.R.id.content)
+        rootLayout.addView(marchIcon)
+        SoundManager.playMarch()
+
+        marchIcon.animate().x(targetX).y(targetY).scaleX(0.5f).scaleY(0.5f)
+            .setDuration(1500).setInterpolator(AccelerateInterpolator())
+            .withEndAction {
+                rootLayout.removeView(marchIcon)
+                if (march.type == MarchType.ATTACK) { triggerHitEffects(targetX, targetY) }
+                
+                // إجبار النظام على احتساب المعركة فوراً بعد الأنيميشن
+                GameState.processActiveMarches(this@BattlefieldActivity)
+                updateHudUI()
+                renderBattlefield()
+                checkRegionClearedUI()
+                checkPendingReports()
+            }.start()
+    }
+
+    // 💡 مؤثرات الدماء واهتزاز الشاشة المستوحاة من الساحة
+    private fun triggerHitEffects(targetX: Float, targetY: Float) {
+        SoundManager.playClash()
+        
+        val shake = TranslateAnimation(-15f, 15f, -5f, 5f)
+        shake.duration = 50; shake.repeatMode = Animation.REVERSE; shake.repeatCount = 3
+        findViewById<View>(R.id.mapContainer).startAnimation(shake)
+        
+        val root = findViewById<ViewGroup>(android.R.id.content)
+        for (i in 0..40) {
+            val drop = View(this).apply {
+                val size = Random.nextInt(8, 20)
+                layoutParams = FrameLayout.LayoutParams(size, size)
+                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#E74C3C")) }
+                x = targetX; y = targetY; elevation = 20f
+            }
+            root.addView(drop)
+            val angle = Math.toRadians(Random.nextDouble(0.0, 360.0))
+            val distance = Random.nextDouble(50.0, 250.0)
+            val endX = targetX + (distance * Math.cos(angle)).toFloat()
+            val endY = targetY + (distance * Math.sin(angle)).toFloat()
+            
+            drop.animate().x(endX).y(endY).alpha(0f).setDuration(Random.nextLong(300, 800))
+                .setInterpolator(DecelerateInterpolator())
+                .withEndAction { root.removeView(drop) }.start()
+        }
+    }
+
+    // 💡 فحص صندوق بريد التقارير وعرضها بشكل فخم
+    private fun checkPendingReports() {
+        val iterator = GameState.pendingBattleReports.iterator()
         while (iterator.hasNext()) {
-            val march = iterator.next()
-            if (now >= march.endTime) {
-                needsUpdate = true
-                if (march.status == MarchStatus.MARCHING) {
-                    handleMarchArrival(march)
+            val report = iterator.next()
+            val details = StringBuilder()
+            
+            if (report.damage > 0) details.append("القوة الهجومية: ⚔️ ${formatResourceNumber(report.damage)}\n")
+            if (report.dead > 0 || report.wounded > 0) details.append("القتلى: ☠️ ${formatResourceNumber(report.dead)} | الجرحى: 🩸 ${formatResourceNumber(report.wounded)}\n\n")
+            if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
+                details.append("الغنائم التي تم حصدها:\n")
+                if (report.lootGold > 0) details.append("الذهب: 💰 ${formatResourceNumber(report.lootGold)}  ")
+                if (report.lootIron > 0) details.append("الحديد: ⛓️ ${formatResourceNumber(report.lootIron)}  ")
+                if (report.lootWheat > 0) details.append("القمح: 🌾 ${formatResourceNumber(report.lootWheat)}")
+            }
+            
+            SoundManager.playWindowOpen()
+            DialogManager.showGameMessage(
+                this, 
+                report.title, 
+                report.message + "\n\n" + details.toString(), 
+                if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation
+            )
+            iterator.remove()
+        }
+        GameState.saveGameData(this)
+    }
+
+    // 💡 حلقة التحديث الذكية المستمرة (1 ثانية)
+    private fun startGameLoop() {
+        gameHandler.post(object : Runnable {
+            override fun run() {
+                val needsUpdate = GameState.processActiveMarches(this@BattlefieldActivity)
+                if (needsUpdate) {
+                    updateHudUI()
+                    renderBattlefield()
+                    checkRegionClearedUI()
+                    checkPendingReports()
                 } else {
-                    handleMarchReturn(march)
-                    iterator.remove() 
+                    updateDynamicTimers() // تحديث عداد الجمع فقط بدون إعادة رسم الخريطة (يمنع الرمش)
+                }
+                gameHandler.postDelayed(this, 1000L)
+            }
+        })
+    }
+
+    // 💡 تحديث عدادات الجمع التنازلية بسلاسة تامة
+    private fun updateDynamicTimers() {
+        val now = System.currentTimeMillis()
+        for (i in 0 until 8) {
+            val slotId = resources.getIdentifier("nodeSlot$i", "id", packageName)
+            val slot = findViewById<FrameLayout>(slotId) ?: continue
+            val badge = slot.findViewWithTag<TextView>("badge_$i") ?: continue
+            val node = GameState.battlefieldNodes.find { it.id == i } ?: continue
+
+            val activeGathering = GameState.activeMarches.find { it.targetNodeId == node.id && it.status == MarchStatus.GATHERING }
+            if (activeGathering != null) {
+                val remaining = activeGathering.gatherEndTime - now
+                if (remaining > 0) {
+                    val s = (remaining / 1000) % 60
+                    val m = (remaining / 60000)
+                    badge.text = "جاري الجمع %02d:%02d".format(m, s)
+                    badge.setTextColor(Color.parseColor("#F4D03F"))
+                } else {
+                    badge.text = "مكتمل"
+                }
+            } else if (node.type != NodeType.ENEMY_CASTLE) {
+                if (node.isDefeated) {
+                    badge.text = "تم الجمع"
+                    badge.setTextColor(Color.GRAY)
+                } else {
+                    val prefix = when(node.type) { NodeType.GOLD_MINE -> "ذهب"; NodeType.IRON_MINE -> "حديد"; else -> "قمح" }
+                    badge.text = "$prefix: ${formatResourceNumber(node.resourceAmount)}"
+                    badge.setTextColor(Color.WHITE)
                 }
             }
-        }
-        
-        if (needsUpdate) {
-            GameState.saveGameData(this)
-            updateHudUI()
-            renderBattlefield()
-            checkRegionClearedUI()
-        }
-    }
-
-    private fun handleMarchArrival(march: ActiveMarch) {
-        val node = GameState.battlefieldNodes.find { it.id == march.targetNodeId } ?: return
-        march.status = MarchStatus.RETURNING
-        march.endTime = System.currentTimeMillis() + march.totalTime 
-        
-        if (march.type == MarchType.ATTACK) {
-            var heroPwr = 0L; var wpPwr = 0L
-            march.heroIds.forEach { id -> val h = GameState.myHeroes.find { it.id == id }; if (h != null) heroPwr += h.getCurrentPower() }
-            march.weaponIds.forEach { id -> val w = GameState.arsenal.find { it.id == id }; if (w != null) wpPwr += w.getCurrentPower() }
-            val myPower = (march.infantryCount * 5) + (march.cavalryCount * 10) + heroPwr + wpPwr
-            
-            var woundedPct = 0.0
-            if (myPower >= node.currentPower) {
-                node.isDefeated = true
-                node.currentPower = 0
-                march.payloadGold = node.maxPower / 5
-                march.payloadIron = node.maxPower / 3
-                woundedPct = 0.10
-                Toast.makeText(this, "رسالة عاجلة: انتصار ساحق! القوات في طريق العودة.", Toast.LENGTH_LONG).show()
-            } else {
-                node.currentPower -= myPower
-                node.lastAttackedTime = System.currentTimeMillis()
-                woundedPct = 0.30
-                Toast.makeText(this, "رسالة عاجلة: هزيمة! قواتنا أضعفت العدو وتراجعت بخسائر.", Toast.LENGTH_LONG).show()
-            }
-            
-            val infWounded = (march.infantryCount * woundedPct).toLong()
-            val cavWounded = (march.cavalryCount * woundedPct).toLong()
-            val totalNewWounded = infWounded + cavWounded
-            
-            val hospitalCap = GameState.getHospitalCapacity()
-            val currentWoundedInHospital = GameState.woundedInfantry + GameState.woundedCavalry
-            val availableSpace = hospitalCap - currentWoundedInHospital
-            
-            if (availableSpace > 0) {
-                val spaceToUse = if (totalNewWounded <= availableSpace) totalNewWounded else availableSpace
-                val ratio = if (totalNewWounded > 0) infWounded.toDouble() / totalNewWounded.toDouble() else 0.5
-                val admittedInf = (spaceToUse * ratio).toLong()
-                val admittedCav = spaceToUse - admittedInf
-                
-                GameState.woundedInfantry += admittedInf
-                GameState.woundedCavalry += admittedCav
-            }
-            
-            march.infantryCount -= infWounded
-            march.cavalryCount -= cavWounded
-            if(march.infantryCount < 0) march.infantryCount = 0
-            if(march.cavalryCount < 0) march.cavalryCount = 0
-            
-        } else {
-            val payload = (march.infantryCount * 10) + (march.cavalryCount * 25)
-            val amountTaken = if (payload >= node.resourceAmount) node.resourceAmount else payload
-            node.resourceAmount -= amountTaken
-            if (node.resourceAmount <= 0) node.isDefeated = true
-            
-            when(node.type) {
-                NodeType.GOLD_MINE -> march.payloadGold = amountTaken
-                NodeType.IRON_MINE -> march.payloadIron = amountTaken
-                NodeType.WHEAT_FARM -> march.payloadWheat = amountTaken
-                else -> {}
-            }
-            Toast.makeText(this, "اكتمل جمع الموارد! القوات في طريق العودة.", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun handleMarchReturn(march: ActiveMarch) {
-        GameState.totalInfantry += march.infantryCount
-        GameState.totalCavalry += march.cavalryCount
-        
-        GameState.totalGold += march.payloadGold
-        GameState.totalIron += march.payloadIron
-        GameState.totalWheat += march.payloadWheat
-        
-        if (march.payloadGold > 0 || march.payloadIron > 0 || march.payloadWheat > 0) {
-            DialogManager.showGameMessage(this, "عادت الفيالق!", "الغنائم التي وصلت:\nذهب: ${formatResourceNumber(march.payloadGold)}\nحديد: ${formatResourceNumber(march.payloadIron)}\nقمح: ${formatResourceNumber(march.payloadWheat)}", R.drawable.ic_menu_bag)
         }
     }
 
@@ -481,17 +498,6 @@ class BattlefieldActivity : AppCompatActivity() {
             }
             d.show()
         }
-    }
-
-    private fun startGameLoop() {
-        gameHandler.post(object : Runnable {
-            override fun run() {
-                val now = System.currentTimeMillis()
-                updateNotificationBadges()
-                processActiveMarches() 
-                gameHandler.postDelayed(this, 1000)
-            }
-        })
     }
 
     private fun animateResourceText(tv: TextView, start: Long, end: Long, prefix: String, onUpdate: (Long) -> Unit): android.animation.ValueAnimator {
