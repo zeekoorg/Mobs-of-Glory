@@ -63,7 +63,7 @@ class BattlefieldActivity : AppCompatActivity() {
         GameState.calculatePower()
         updateHudUI()
         renderBattlefield()
-        SoundManager.playBGM(this, R.raw.bgm_city) // استبدل هذا لاحقاً بموسيقى المعركة
+        SoundManager.playBGM(this, R.raw.bgm_city) 
     }
 
     override fun onPause() {
@@ -79,7 +79,7 @@ class BattlefieldActivity : AppCompatActivity() {
         tvMainTotalPower = findViewById(R.id.tvMainTotalPower); tvVipTimerUI = findViewById(R.id.tvVipTimerUI)
         tvWeeklyTimerUI = findViewById(R.id.tvWeeklyTimerUI)
 
-        // 💡 اختيار صورة خلفية المقاطعة بشكل ديناميكي (من 3 صور)
+        // خلفيات متغيرة للمقاطعات
         val bgArray = arrayOf(
             resources.getIdentifier("bg_battlefield_1", "drawable", packageName),
             resources.getIdentifier("bg_battlefield_2", "drawable", packageName),
@@ -99,7 +99,6 @@ class BattlefieldActivity : AppCompatActivity() {
         findViewById<View>(R.id.layoutWeaponsClick)?.setOnClickListener { SoundManager.playBlacksmith(); DialogManager.showWeaponsDialog(this) }
         findViewById<View>(R.id.layoutFormationClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showFormationDialog(this) }
 
-        // ساحة الغزوات تفتح الأرينا
         findViewById<View>(R.id.btnNavArena)?.setOnClickListener { SoundManager.playClick(); startActivity(Intent(this, ArenaActivity::class.java)) }
         
         findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showHeroesDialog(this) }
@@ -107,7 +106,7 @@ class BattlefieldActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showStoreDialog(this) }
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showBagDialog(this) }
         
-        // العودة للمدينة
+        // العودة لأسوار المدينة
         findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
             SoundManager.playClick()
             finish() 
@@ -134,7 +133,6 @@ class BattlefieldActivity : AppCompatActivity() {
                 setPadding(15, 6, 15, 6)
             }
 
-            // استدعاء الصورة ديناميكياً
             val dynamicResId = resources.getIdentifier(node.imageName, "drawable", packageName)
             
             if (node.type == NodeType.ENEMY_CASTLE) {
@@ -174,11 +172,11 @@ class BattlefieldActivity : AppCompatActivity() {
             slot.addView(img)
             slot.addView(badge)
             
-            // إضافة أيقونة إذا كان هناك جيش يسير حالياً نحو هذا الهدف
+            // أيقونة جيش مسافر
             val isTargeted = GameState.activeMarches.any { it.targetNodeId == node.id && it.status == MarchStatus.MARCHING }
             if (isTargeted) {
                 val marchIcon = ImageView(this).apply {
-                    setImageResource(R.drawable.ic_ui_formation) // أيقونة سيوف أو حصان
+                    setImageResource(R.drawable.ic_ui_formation) 
                     layoutParams = FrameLayout.LayoutParams(60, 60).apply { gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL }
                 }
                 slot.addView(marchIcon)
@@ -197,90 +195,173 @@ class BattlefieldActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 نافذة تجهيز الفيلق الاحترافية قبل الإرسال
+    // 💡 نافذة تجهيز الفيلق (مرتبطة بـ dialog_arena_prepare.xml)
     private fun showMarchSetupDialog(node: BattlefieldNode) {
         if (GameState.activeMarches.size >= 3) {
             DialogManager.showGameMessage(this, "عذراً أيها القائد", "لقد وصلت للحد الأقصى من المسيرات (3 فيالق). انتظر عودة أحدهم!", R.drawable.ic_ui_formation)
             return
         }
-        
-        val maxInf = GameState.totalInfantry
-        val maxCav = GameState.totalCavalry
-        if (maxInf == 0L && maxCav == 0L) {
-            DialogManager.showGameMessage(this, "لا يوجد جيش", "ليس لديك قوات! قم بتدريب الجنود في الثكنة أولاً.", R.drawable.ic_settings_gear)
-            return
-        }
 
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
-        d.setContentView(R.layout.dialog_train_troops) 
+        d.setContentView(R.layout.dialog_arena_prepare) 
 
         val isAttack = node.type == NodeType.ENEMY_CASTLE
-        d.findViewById<TextView>(R.id.tvTroopTitle)?.text = if (isAttack) "تجهيز حملة عسكرية" else "تجهيز حملة جمع موارد"
-        d.findViewById<TextView>(R.id.tvCurrentTroops)?.text = "القوات الجاهزة: ${formatResourceNumber(maxInf + maxCav)}"
+        d.findViewById<TextView>(R.id.tvDialogTitle)?.text = if (isAttack) "التجهيز لغزوة الأعداء" else "إرسال بعثة لجمع الموارد"
+
+        val maxInf = GameState.totalInfantry
+        val maxCav = GameState.totalCavalry
+
+        val tvPower = d.findViewById<TextView>(R.id.tvFormationPower)
         
-        var selectedInf: Long = 0
-        var selectedCav: Long = 0
-        var selectedHero: Hero? = null
-        var selectedWeapon: Weapon? = null
-
-        val seekPct = d.findViewById<SeekBar>(R.id.seekTrainTroops)
-        val tvSelectedAmount = d.findViewById<TextView>(R.id.tvSelectedTrainAmount)
-        val tvMaxCapacity = d.findViewById<TextView>(R.id.tvMaxTrainCapacity)
-        val tvInfo = d.findViewById<TextView>(R.id.tvTrainInfo)
-        val btnConfirm = d.findViewById<Button>(R.id.btnConfirmTrain)
+        val seekInf = d.findViewById<SeekBar>(R.id.seekPrepInfantry)
+        val tvInfMax = d.findViewById<TextView>(R.id.tvPrepInfantryMax)
+        val tvInfSelected = d.findViewById<TextView>(R.id.tvPrepInfantrySelected)
         
-        // إخفاء نصوص الموارد لأننا نستخدم شريط النسبة المئوية
-        d.findViewById<TextView>(R.id.tvTrainCostWheat)?.visibility = View.GONE
-        d.findViewById<TextView>(R.id.tvTrainCostIron)?.visibility = View.GONE
+        val seekCav = d.findViewById<SeekBar>(R.id.seekPrepCavalry)
+        val tvCavMax = d.findViewById<TextView>(R.id.tvPrepCavalryMax)
+        val tvCavSelected = d.findViewById<TextView>(R.id.tvPrepCavalrySelected)
 
-        seekPct?.max = 100
-        seekPct?.progress = 50 // يبدأ بـ 50% من الجيش
-        tvMaxCapacity?.text = "حدد نسبة الجيش المُرسل"
+        val btnConfirm = d.findViewById<Button>(R.id.btnConfirmAttack)
+        btnConfirm?.text = if (isAttack) "بدء الهجوم ⚔️" else "الذهاب للجمع 📦"
 
-        fun refreshStats() {
-            val pct = (seekPct?.progress ?: 0) / 100.0
-            selectedInf = (maxInf * pct).toLong()
-            selectedCav = (maxCav * pct).toLong()
+        val selectedHeroesForMarch = mutableListOf<Hero>()
+        val selectedWeaponsForMarch = mutableListOf<Weapon>()
+        
+        var selectedInfantry = maxInf / 2
+        var selectedCavalry = maxCav / 2
+
+        tvInfMax?.text = "متاح: ${formatResourceNumber(maxInf)}"
+        seekInf?.max = if (maxInf > Int.MAX_VALUE) Int.MAX_VALUE else maxInf.toInt()
+        seekInf?.progress = selectedInfantry.toInt()
+        tvInfSelected?.text = formatResourceNumber(selectedInfantry)
+
+        tvCavMax?.text = "متاح: ${formatResourceNumber(maxCav)}"
+        seekCav?.max = if (maxCav > Int.MAX_VALUE) Int.MAX_VALUE else maxCav.toInt()
+        seekCav?.progress = selectedCavalry.toInt()
+        tvCavSelected?.text = formatResourceNumber(selectedCavalry)
+
+        val castleLevel = GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
+        
+        val heroSlots = listOf(Triple(d.findViewById<FrameLayout>(R.id.slotHero1), d.findViewById<ImageView>(R.id.imgHero1), d.findViewById<ImageView>(R.id.imgAddHero1)), Triple(d.findViewById<FrameLayout>(R.id.slotHero2), d.findViewById<ImageView>(R.id.imgHero2), d.findViewById<ImageView>(R.id.imgAddHero2)), Triple(d.findViewById<FrameLayout>(R.id.slotHero3), d.findViewById<ImageView>(R.id.imgHero3), d.findViewById<ImageView>(R.id.imgAddHero3)), Triple(d.findViewById<FrameLayout>(R.id.slotHero4), d.findViewById<ImageView>(R.id.imgHero4), d.findViewById<ImageView>(R.id.imgAddHero4)))
+        val lockHeroes = listOf(null, d.findViewById<View>(R.id.layoutLockHero2), d.findViewById<View>(R.id.layoutLockHero3), d.findViewById<View>(R.id.layoutLockHero4))
+        val weaponSlots = listOf(Triple(d.findViewById<FrameLayout>(R.id.slotWeapon1), d.findViewById<ImageView>(R.id.imgWeapon1), d.findViewById<ImageView>(R.id.imgAddWeapon1)), Triple(d.findViewById<FrameLayout>(R.id.slotWeapon2), d.findViewById<ImageView>(R.id.imgWeapon2), d.findViewById<ImageView>(R.id.imgAddWeapon2)), Triple(d.findViewById<FrameLayout>(R.id.slotWeapon3), d.findViewById<ImageView>(R.id.imgWeapon3), d.findViewById<ImageView>(R.id.imgAddWeapon3)), Triple(d.findViewById<FrameLayout>(R.id.slotWeapon4), d.findViewById<ImageView>(R.id.imgWeapon4), d.findViewById<ImageView>(R.id.imgAddWeapon4)))
+        val lockWeapons = listOf(null, d.findViewById<View>(R.id.layoutLockWeapon2), d.findViewById<View>(R.id.layoutLockWeapon3), d.findViewById<View>(R.id.layoutLockWeapon4))
+        val unlockLevels = listOf(1, 5, 10, 15)
+
+        fun updateMarchStats() {
+            var heroesPower = 0L; var weaponsPower = 0L
+            selectedHeroesForMarch.forEach { heroesPower += it.getCurrentPower() }
+            selectedWeaponsForMarch.forEach { weaponsPower += it.getCurrentPower() }
             
-            val totalPower = (selectedInf * 5) + (selectedCav * 10) + (selectedHero?.getCurrentPower() ?: 0) + (selectedWeapon?.getCurrentPower() ?: 0)
-            val totalPayload = (selectedInf * 10) + (selectedCav * 25)
-            
-            tvSelectedAmount?.text = "مشاة: ${formatResourceNumber(selectedInf)} | فرسان: ${formatResourceNumber(selectedCav)}"
-            tvInfo?.text = if (isAttack) "القوة الهجومية: ⚔️ ${formatResourceNumber(totalPower)}" else "سعة الحمولة: 📦 ${formatResourceNumber(totalPayload)}"
-            
-            btnConfirm?.text = if (isAttack) "إرسال الفيلق" else "بدء الجمع"
+            val troopsPower = (selectedInfantry * 5) + (selectedCavalry * 10)
+            val totalPower = heroesPower + weaponsPower + troopsPower
+            val totalPayload = (selectedInfantry * 10) + (selectedCavalry * 25)
+
+            tvPower?.text = if (isAttack) "قوة الفيلق: ⚔️ ${formatResourceNumber(totalPower)}" else "سعة الحمولة: 📦 ${formatResourceNumber(totalPayload)}"
         }
 
-        seekPct?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(s: SeekBar?, p: Int, f: Boolean) { refreshStats() }
+        fun refreshSlotsUI() {
+            updateMarchStats()
+            
+            for (i in 0..3) {
+                val (slot, imgFull, imgAdd) = heroSlots[i]
+                val lock = lockHeroes[i]; val reqLevel = unlockLevels[i]
+                if (castleLevel < reqLevel) {
+                    lock?.visibility = View.VISIBLE; imgFull?.visibility = View.GONE; imgAdd?.visibility = View.GONE
+                    slot?.setOnClickListener { SoundManager.playClick(); Toast.makeText(this, "تحتاج لترقية القلعة للمستوى $reqLevel", Toast.LENGTH_SHORT).show() }
+                } else {
+                    lock?.visibility = View.GONE
+                    if (i < selectedHeroesForMarch.size) {
+                        imgFull?.visibility = View.VISIBLE; imgAdd?.visibility = View.GONE
+                        val hero = selectedHeroesForMarch[i]
+                        imgFull?.setImageResource(hero.iconResId)
+                        slot?.setOnClickListener { SoundManager.playClick(); selectedHeroesForMarch.remove(hero); refreshSlotsUI() }
+                    } else {
+                        imgFull?.visibility = View.GONE; imgAdd?.visibility = View.VISIBLE
+                        slot?.setOnClickListener {
+                            SoundManager.playClick()
+                            DialogManager.showHeroSelectorDialog(this) { selectedHero ->
+                                if (GameState.isHeroBusy(selectedHero.id)) {
+                                    Toast.makeText(this, "هذا البطل يقود مسيرة أخرى!", Toast.LENGTH_SHORT).show()
+                                } else if (!selectedHeroesForMarch.contains(selectedHero)) {
+                                    selectedHeroesForMarch.add(selectedHero)
+                                    refreshSlotsUI()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (i in 0..3) {
+                val (slot, imgFull, imgAdd) = weaponSlots[i]
+                val lock = lockWeapons[i]; val reqLevel = unlockLevels[i]
+                if (castleLevel < reqLevel) {
+                    lock?.visibility = View.VISIBLE; imgFull?.visibility = View.GONE; imgAdd?.visibility = View.GONE
+                    slot?.setOnClickListener { SoundManager.playClick(); Toast.makeText(this, "تحتاج لترقية القلعة للمستوى $reqLevel", Toast.LENGTH_SHORT).show() }
+                } else {
+                    lock?.visibility = View.GONE
+                    if (i < selectedWeaponsForMarch.size) {
+                        imgFull?.visibility = View.VISIBLE; imgAdd?.visibility = View.GONE
+                        val weapon = selectedWeaponsForMarch[i]
+                        imgFull?.setImageResource(weapon.iconResId)
+                        slot?.setOnClickListener { SoundManager.playClick(); selectedWeaponsForMarch.remove(weapon); refreshSlotsUI() }
+                    } else {
+                        imgFull?.visibility = View.GONE; imgAdd?.visibility = View.VISIBLE
+                        slot?.setOnClickListener {
+                            SoundManager.playClick()
+                            DialogManager.showWeaponSelectorDialog(this) { selectedWeapon ->
+                                if (GameState.isWeaponBusy(selectedWeapon.id)) {
+                                    Toast.makeText(this, "هذا السلاح مستخدم في مسيرة أخرى!", Toast.LENGTH_SHORT).show()
+                                } else if (!selectedWeaponsForMarch.contains(selectedWeapon)) {
+                                    selectedWeaponsForMarch.add(selectedWeapon)
+                                    refreshSlotsUI()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        seekInf?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: SeekBar?, p: Int, f: Boolean) { selectedInfantry = p.toLong(); tvInfSelected?.text = formatResourceNumber(selectedInfantry); updateMarchStats() }
             override fun onStartTrackingTouch(s: SeekBar?) {}
             override fun onStopTrackingTouch(s: SeekBar?) {}
         })
 
+        seekCav?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: SeekBar?, p: Int, f: Boolean) { selectedCavalry = p.toLong(); tvCavSelected?.text = formatResourceNumber(selectedCavalry); updateMarchStats() }
+            override fun onStartTrackingTouch(s: SeekBar?) {}
+            override fun onStopTrackingTouch(s: SeekBar?) {}
+        })
+
+        refreshSlotsUI()
+
         btnConfirm?.setOnClickListener {
-            if (selectedInf == 0L && selectedCav == 0L) {
-                Toast.makeText(this, "يجب تحديد نسبة قوات أكبر من الصفر!", Toast.LENGTH_SHORT).show()
+            if (selectedInfantry == 0L && selectedCavalry == 0L) {
+                Toast.makeText(this, "يجب تحديد جنود للمسيرة!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            // وقت السير (مثلاً 30 ثانية ذهاب)
-            val travelTime = 30000L 
+            SoundManager.playClick()
+            val travelTime = 30000L // 30 ثانية
+            
             val newMarch = ActiveMarch(
                 id = System.currentTimeMillis(),
                 targetNodeId = node.id,
                 type = if (isAttack) MarchType.ATTACK else MarchType.GATHER,
-                infantryCount = selectedInf,
-                cavalryCount = selectedCav,
-                heroIds = if (selectedHero != null) listOf(selectedHero!!.id) else emptyList(),
-                weaponIds = if (selectedWeapon != null) listOf(selectedWeapon!!.id) else emptyList(),
+                infantryCount = selectedInfantry,
+                cavalryCount = selectedCavalry,
+                heroIds = selectedHeroesForMarch.map { it.id },
+                weaponIds = selectedWeaponsForMarch.map { it.id },
                 status = MarchStatus.MARCHING,
                 endTime = System.currentTimeMillis() + travelTime,
                 totalTime = travelTime
             )
 
-            // خصم القوات من المدينة مؤقتاً
-            GameState.totalInfantry -= selectedInf
-            GameState.totalCavalry -= selectedCav
+            GameState.totalInfantry -= selectedInfantry
+            GameState.totalCavalry -= selectedCavalry
             GameState.activeMarches.add(newMarch)
             GameState.saveGameData(this)
             
@@ -290,12 +371,10 @@ class BattlefieldActivity : AppCompatActivity() {
             renderBattlefield()
         }
 
-        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
-        refreshStats()
+        d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
-    // 💡 حلقة معالجة وقت المسيرات والمعارك
     private fun processActiveMarches() {
         val now = System.currentTimeMillis()
         val iterator = GameState.activeMarches.iterator()
@@ -309,7 +388,7 @@ class BattlefieldActivity : AppCompatActivity() {
                     handleMarchArrival(march)
                 } else {
                     handleMarchReturn(march)
-                    iterator.remove() // حذف المسيرة بعد عودتها
+                    iterator.remove() 
                 }
             }
         }
@@ -322,14 +401,12 @@ class BattlefieldActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 الرياضيات المعقدة للهجوم والجمع والجرحى
     private fun handleMarchArrival(march: ActiveMarch) {
         val node = GameState.battlefieldNodes.find { it.id == march.targetNodeId } ?: return
         march.status = MarchStatus.RETURNING
-        march.endTime = System.currentTimeMillis() + march.totalTime // وقت رحلة العودة
+        march.endTime = System.currentTimeMillis() + march.totalTime 
         
         if (march.type == MarchType.ATTACK) {
-            // حساب القوة الكاملة
             var heroPwr = 0L; var wpPwr = 0L
             march.heroIds.forEach { id -> val h = GameState.myHeroes.find { it.id == id }; if (h != null) heroPwr += h.getCurrentPower() }
             march.weaponIds.forEach { id -> val w = GameState.arsenal.find { it.id == id }; if (w != null) wpPwr += w.getCurrentPower() }
@@ -337,7 +414,6 @@ class BattlefieldActivity : AppCompatActivity() {
             
             var woundedPct = 0.0
             if (myPower >= node.currentPower) {
-                // انتصار: العدو يُدمر، 10% من قواتنا تجرح، ونأخذ الغنائم
                 node.isDefeated = true
                 node.currentPower = 0
                 march.payloadGold = node.maxPower / 5
@@ -345,14 +421,12 @@ class BattlefieldActivity : AppCompatActivity() {
                 woundedPct = 0.10
                 Toast.makeText(this, "رسالة عاجلة: انتصار ساحق! القوات في طريق العودة.", Toast.LENGTH_LONG).show()
             } else {
-                // هزيمة: العدو يتضرر، 30% من قواتنا تجرح ونعود خائبين
                 node.currentPower -= myPower
                 node.lastAttackedTime = System.currentTimeMillis()
                 woundedPct = 0.30
                 Toast.makeText(this, "رسالة عاجلة: هزيمة! قواتنا أضعفت العدو وتراجعت بخسائر.", Toast.LENGTH_LONG).show()
             }
             
-            // حساب وإرسال الجرحى للمستشفى
             val infWounded = (march.infantryCount * woundedPct).toLong()
             val cavWounded = (march.cavalryCount * woundedPct).toLong()
             val totalNewWounded = infWounded + cavWounded
@@ -363,24 +437,20 @@ class BattlefieldActivity : AppCompatActivity() {
             
             if (availableSpace > 0) {
                 val spaceToUse = if (totalNewWounded <= availableSpace) totalNewWounded else availableSpace
-                // تقسيم المساحة بين المشاة والفرسان برضا
                 val ratio = if (totalNewWounded > 0) infWounded.toDouble() / totalNewWounded.toDouble() else 0.5
                 val admittedInf = (spaceToUse * ratio).toLong()
                 val admittedCav = spaceToUse - admittedInf
                 
                 GameState.woundedInfantry += admittedInf
                 GameState.woundedCavalry += admittedCav
-                // الباقي ماتوا (لن يعودوا ولن يدخلوا المستشفى)
             }
             
-            // طرح الجرحى/الموتى من الفيلق العائد
             march.infantryCount -= infWounded
             march.cavalryCount -= cavWounded
             if(march.infantryCount < 0) march.infantryCount = 0
             if(march.cavalryCount < 0) march.cavalryCount = 0
             
         } else {
-            // الجمع: حساب الحمولة وأخذ الموارد
             val payload = (march.infantryCount * 10) + (march.cavalryCount * 25)
             val amountTaken = if (payload >= node.resourceAmount) node.resourceAmount else payload
             node.resourceAmount -= amountTaken
@@ -397,11 +467,9 @@ class BattlefieldActivity : AppCompatActivity() {
     }
 
     private fun handleMarchReturn(march: ActiveMarch) {
-        // إعادة الجنود المتبقين للمدينة
         GameState.totalInfantry += march.infantryCount
         GameState.totalCavalry += march.cavalryCount
         
-        // إضافة الغنائم
         GameState.totalGold += march.payloadGold
         GameState.totalIron += march.payloadIron
         GameState.totalWheat += march.payloadWheat
@@ -447,7 +515,7 @@ class BattlefieldActivity : AppCompatActivity() {
                 } else tvWeeklyTimerUI.text = "تحديث..."
 
                 updateNotificationBadges()
-                processActiveMarches() // 💡 تشغيل معالج الجيوش باستمرار
+                processActiveMarches() 
                 
                 gameHandler.postDelayed(this, 1000)
             }
