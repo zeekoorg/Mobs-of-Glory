@@ -108,13 +108,11 @@ class MainActivity : AppCompatActivity() {
         }, 1500)
     }
 
-    // 💡 الجولة التعريفية الشاملة والمترابطة بدون أوامر إغلاق غبية!
     fun checkAndRunSpotlightTutorial() {
         val rootLayout = window.decorView as ViewGroup
         
         when (GameState.tutorialStep) {
             0 -> {
-                // قلعة (إجباري يطورها)
                 val btnCastleContainer = findViewById<View>(R.id.plotCastle)
                 val btnCastle = btnCastleContainer?.findViewById<ImageView>(R.id.imgBuilding) ?: return
                 SpotlightView.show(this, rootLayout, btnCastle, "أهلاً بك في إمبراطوريتك يا زعيم!\nلنبدأ بترقية القلعة، قلب الإمبراطورية.") {
@@ -122,7 +120,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             3 -> {
-                // ثكنة (إجباري يدرب)
                 val btnBarracksContainer = findViewById<View>(R.id.plotBarracksL1)
                 val btnBarracks = btnBarracksContainer?.findViewById<ImageView>(R.id.imgBuilding) ?: return
                 SpotlightView.show(this, rootLayout, btnBarracks, "رائع! القلعة تطورت.\nالآن اضغط على الثكنة لإعداد جيشك.") {
@@ -130,70 +127,60 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             6 -> {
-                // مهام (حر - يقرأ براحته ويغلق)
                 val btnQuests = findViewById<View>(R.id.btnNavQuests) ?: return
                 SpotlightView.show(this, rootLayout, btnQuests, "جيشك مستعد!\nهنا تجد المهام اليومية لتستلم جوائزك المذهلة. تصفحها وأغلق النافذة للعودة.") {
                     GameState.tutorialStep = 7; GameState.saveGameData(this)
                 }
             }
             8 -> {
-                // بروفايل (حر)
                 val btnProfile = findViewById<View>(R.id.layoutAvatarClick) ?: return
                 SpotlightView.show(this, rootLayout, btnProfile, "يجب أن يعرف الجميع من هو الحاكم!\nهنا يمكنك تعديل اسمك وصورتك متى شئت. ألقِ نظرة وأغلقها.") {
                     GameState.tutorialStep = 9; GameState.saveGameData(this)
                 }
             }
             10 -> {
-                // مكافآت القلعة (حر)
                 val btnCastleRewards = findViewById<View>(R.id.layoutCastleRewardsClick) ?: return
                 SpotlightView.show(this, rootLayout, btnCastleRewards, "الترقية لها فوائد ضخمة!\nهنا تجد مكافآت كلما طورت قلعتك.") {
                     GameState.tutorialStep = 11; GameState.saveGameData(this)
                 }
             }
             12 -> {
-                // الأبطال (حر)
                 val btnHeroes = findViewById<View>(R.id.btnNavHeroes) ?: return
                 SpotlightView.show(this, rootLayout, btnHeroes, "لا قوة بلا قادة!\nهنا يمكنك ترقية وتجهيز أبطالك الملحميين.") {
                     GameState.tutorialStep = 13; GameState.saveGameData(this)
                 }
             }
             14 -> {
-                // الأسلحة (حر)
                 val btnWeapons = findViewById<View>(R.id.layoutWeaponsClick) ?: return
                 SpotlightView.show(this, rootLayout, btnWeapons, "الحديد والنار!\nهذه هي الحدادة، حيث تصنع الأسلحة الأسطورية لفيالقك.") {
                     GameState.tutorialStep = 15; GameState.saveGameData(this)
                 }
             }
             16 -> {
-                // التشكيلة (حر)
                 val btnFormation = findViewById<View>(R.id.layoutFormationClick) ?: return
                 SpotlightView.show(this, rootLayout, btnFormation, "أين يذهب كل هذا العتاد؟\nهنا تضع جنودك وأسلحتك وأبطالك في التشكيلة الدفاعية لحماية مدينتك.") {
                     GameState.tutorialStep = 17; GameState.saveGameData(this)
                 }
             }
             18 -> {
-                // قاعة الأساطير / الحانة (حر)
                 val btnTavern = findViewById<View>(R.id.layoutTavernClick) ?: return
                 SpotlightView.show(this, rootLayout, btnTavern, "هل تبحث عن أبطال جدد؟\nفي قاعة الأساطير تستخدم الدعوات الملكية لاستدعاء الأقوى!") {
                     GameState.tutorialStep = 19; GameState.saveGameData(this)
                 }
             }
             20 -> {
-                // الحقيبة (حر)
                 val btnBag = findViewById<View>(R.id.btnNavBag) ?: return
                 SpotlightView.show(this, rootLayout, btnBag, "خزانتك الخاصة!\nهنا تُحفظ صناديق الموارد وتسريعات البناء التي تجمعها.") {
                     GameState.tutorialStep = 21; GameState.saveGameData(this)
                 }
             }
             22 -> {
-                // المتجر (حر)
                 val btnStore = findViewById<View>(R.id.btnNavStore) ?: return
                 SpotlightView.show(this, rootLayout, btnStore, "وأخيراً، المتجر الإمبراطوري!\nيمكنك من هنا شراء التسريعات، الموارد، أو تغيير زينة مدينتك بالكامل.") {
                     GameState.tutorialStep = 23; GameState.saveGameData(this)
                 }
             }
             24 -> {
-                // انتهاء الجولة، انطلاق حزمة البداية!
                 if (!GameState.isStarterPackClaimed) {
                     DialogManager.showStarterPackDialog(this)
                 }
@@ -251,6 +238,8 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.layoutAvatarClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showPlayerProfileDialog(this, onPickImage = { showAvatarSelectionDialog() }, onChangeName = { showChangeNameDialog() }) }
         findViewById<View>(R.id.layoutVipClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showVipDialog(this) }
         findViewById<View>(R.id.layoutCastleRewardsClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showCastleRewardsDialog(this, GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1) }
+        
+        // 💡 ساحة الغزوات تبقى كما هي تفتح الأرينا
         findViewById<View>(R.id.btnNavArena)?.setOnClickListener { SoundManager.playClick(); startActivity(Intent(this, ArenaActivity::class.java)) }
         
         findViewById<View>(R.id.layoutWeeklyQuestsClick)?.setOnClickListener { 
@@ -265,7 +254,12 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showQuestsDialog(this) }
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showBagDialog(this) }
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showStoreDialog(this) }
-        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { SoundManager.playClick(); DialogManager.showGameMessage(this, "المدينة الرئيسية", "أنت بالفعل داخل أسوار مدينتك أيها المهيب!", R.drawable.ic_ui_castle_rewards) } 
+        
+        // 💡 التعديل هنا: زر المدينة الآن يفتح شاشة المقاطعات (BattlefieldActivity) بدلاً من الرسالة
+        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
+            SoundManager.playClick()
+            startActivity(Intent(this, BattlefieldActivity::class.java)) 
+        } 
     }
 
     private fun checkPendingLevelUps() {
