@@ -42,6 +42,8 @@ class ArenaActivity : AppCompatActivity() {
 
     private val arenaHandler = Handler(Looper.getMainLooper())
     private val REGEN_TIME_MS = 3600000L 
+    
+    private var isActivityResumed = false // 💡 حماية لعرض التقارير فقط والشاشة مفتوحة
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,18 +62,28 @@ class ArenaActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        isActivityResumed = true
         GameState.calculatePower()
         GameState.arenaLeaderboard.find { it.isRealPlayer }?.name = GameState.playerName
         refreshArenaUI()
         
         SoundManager.playBGM(this, R.raw.bgm_arena)
+        
+        // 💡 فحص صندوق البريد فور العودة للساحة
+        checkPendingReports()
     }
 
     override fun onPause() {
         super.onPause()
+        isActivityResumed = false
         GameState.saveGameData(this)
         
         SoundManager.pauseBGM()
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        isActivityResumed = false
     }
 
     private fun initViews() {
@@ -120,7 +132,6 @@ class ArenaActivity : AppCompatActivity() {
             SoundManager.playClick()
             d.dismiss()
             YandexAdsManager.showRewardedAd(this, onRewarded = {
-                // 💡 هنا تمت إضافة مستمع الإعلانات الذكي ليعمل عند شحن الطاقة
                 GameState.addQuestProgress(QuestType.WATCH_ADS, 1)
                 
                 GameState.arenaStamina = 5; GameState.arenaStaminaLastRegenTime = System.currentTimeMillis(); GameState.saveGameData(this)
@@ -245,6 +256,36 @@ class ArenaActivity : AppCompatActivity() {
         tvArenaRank.text = "المركز: $playerRank"
     }
 
+    // 💡 تفريغ صندوق البريد وإظهار التقارير الفورية للمقاطعات
+    private fun checkPendingReports() {
+        if (!isActivityResumed) return
+        
+        val iterator = GameState.pendingBattleReports.iterator()
+        while (iterator.hasNext()) {
+            val report = iterator.next()
+            val details = StringBuilder()
+            
+            if (report.damage > 0) details.append("القوة الهجومية: ⚔️ ${formatResourceNumber(report.damage)}\n")
+            if (report.dead > 0 || report.wounded > 0) details.append("القتلى: ☠️ ${formatResourceNumber(report.dead)} | الجرحى: 🩸 ${formatResourceNumber(report.wounded)}\n\n")
+            if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
+                details.append("الغنائم التي تم حصدها:\n")
+                if (report.lootGold > 0) details.append("الذهب: 💰 ${formatResourceNumber(report.lootGold)}  ")
+                if (report.lootIron > 0) details.append("الحديد: ⛓️ ${formatResourceNumber(report.lootIron)}  ")
+                if (report.lootWheat > 0) details.append("القمح: 🌾 ${formatResourceNumber(report.lootWheat)}")
+            }
+            
+            SoundManager.playWindowOpen()
+            DialogManager.showGameMessage(
+                this, 
+                report.title, 
+                report.message + "\n\n" + details.toString(), 
+                if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation
+            )
+            iterator.remove()
+        }
+        GameState.saveGameData(this)
+    }
+
     private fun startArenaLoop() {
         arenaHandler.post(object : Runnable {
             override fun run() {
@@ -273,6 +314,14 @@ class ArenaActivity : AppCompatActivity() {
                             refreshArenaUI()
                         }
                     }
+                    
+                    // 💡 التأكد من معالجة جيوش الخريطة أثناء تواجدك في الساحة لتصلك التقارير في وقتها
+                    val needsUpdate = GameState.processActiveMarches(this@ArenaActivity)
+                    if (needsUpdate) {
+                        refreshArenaUI()
+                        checkPendingReports()
+                    }
+
                 } catch (e: Exception) { e.printStackTrace() }
                 arenaHandler.postDelayed(this, 1000)
             }
