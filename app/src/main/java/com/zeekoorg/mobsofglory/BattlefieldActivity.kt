@@ -1,8 +1,8 @@
 package com.zeekoorg.mobsofglory
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.app.Dialog
-import android.content.Context
-import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -37,6 +37,7 @@ class BattlefieldActivity : AppCompatActivity() {
     private lateinit var tvMainTotalPower: TextView 
     
     private val gameHandler = Handler(Looper.getMainLooper())
+    private var isActivityResumed = false // 💡 لمعرفة هل الشاشة نشطة أم لا
 
     private var displayedGold = -1L
     private var displayedIron = -1L
@@ -63,22 +64,23 @@ class BattlefieldActivity : AppCompatActivity() {
         updateHudUI()
         renderBattlefield()
         startGameLoop()
-        
-        // 💡 فحص صندوق البريد فور فتح الشاشة (في حال كان هناك تقرير سابق)
-        checkPendingReports()
     }
 
     override fun onResume() {
         super.onResume()
+        isActivityResumed = true
         GameState.calculatePower()
         updateHudUI()
         renderBattlefield()
         SoundManager.playBGM(this, R.raw.bgm_city) 
+        
+        // 💡 فحص صندوق البريد فور العودة للشاشة
         checkPendingReports()
     }
 
     override fun onPause() {
         super.onPause()
+        isActivityResumed = false
         GameState.saveGameData(this)
         SoundManager.pauseBGM()
     }
@@ -128,7 +130,7 @@ class BattlefieldActivity : AppCompatActivity() {
                 textSize = 12f
                 setTypeface(null, android.graphics.Typeface.BOLD)
                 setPadding(20, 8, 20, 8)
-                tag = "badge_$i" // 💡 لتحديث العداد لاحقاً بدون تقطيع
+                tag = "badge_$i"
             }
 
             val dynamicResId = resources.getIdentifier(node.imageName, "drawable", packageName)
@@ -306,7 +308,7 @@ class BattlefieldActivity : AppCompatActivity() {
             }
 
             d.dismiss()
-            val travelTime = 1500L // 💡 الوصول في ثانية ونصف
+            val travelTime = 1500L
             
             val newMarch = ActiveMarch(
                 id = System.currentTimeMillis(),
@@ -327,79 +329,133 @@ class BattlefieldActivity : AppCompatActivity() {
             GameState.saveGameData(this)
             
             updateHudUI()
-            startMarchAnimation(node, newMarch, targetSlot) // 💡 بدء الأنيميشن
+            startMarchAnimation(node, newMarch, targetSlot) // 💡 بدء أنيميشن الذهاب
         }
 
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
     }
 
-    // 💡 أنيميشن حركة الفيلق السريعة (1.5 ثانية)
+    // 💡 أنيميشن حركة الفيلق الشاملة (الذهاب والرجوع مع النقاط المتلاشية والصور الصحيحة)
     private fun startMarchAnimation(node: BattlefieldNode, march: ActiveMarch, slot: FrameLayout) {
         val displayMetrics = resources.displayMetrics
-        val startX = displayMetrics.widthPixels / 2f
-        val startY = displayMetrics.heightPixels.toFloat()
+        val cityX = displayMetrics.widthPixels / 2f
+        val cityY = displayMetrics.heightPixels.toFloat()
         
         val loc = IntArray(2)
         slot.getLocationInWindow(loc)
         val targetX = loc[0].toFloat() + slot.width / 2f
         val targetY = loc[1].toFloat() + slot.height / 2f
 
-        val marchIcon = ImageView(this).apply {
-            setImageResource(R.drawable.ic_ui_formation)
-            layoutParams = FrameLayout.LayoutParams(120, 120)
-            x = startX; y = startY
+        val rootLayout = findViewById<ViewGroup>(android.R.id.content)
+
+        // 1. تحديد صورة الذهاب بناءً على النوع
+        val goImgRes = if (march.type == MarchType.ATTACK) {
+            resources.getIdentifier("ic_legion_attack_go", "drawable", packageName)
+        } else {
+            resources.getIdentifier("ic_legion_gather_go", "drawable", packageName)
         }
         
-        val rootLayout = findViewById<ViewGroup>(android.R.id.content)
+        // 2. إنشاء أيقونة فيلق الذهاب
+        val marchIcon = ImageView(this).apply {
+            setImageResource(if (goImgRes != 0) goImgRes else R.drawable.ic_ui_formation)
+            layoutParams = FrameLayout.LayoutParams(120, 120)
+            x = cityX; y = cityY; elevation = 50f
+        }
         rootLayout.addView(marchIcon)
         SoundManager.playMarch()
 
-        marchIcon.animate().x(targetX).y(targetY).scaleX(0.5f).scaleY(0.5f)
+        // 3. أنيميشن الذهاب (1.5 ثانية) مع زرع النقاط المتلاشية
+        marchIcon.animate().x(targetX).y(targetY).scaleX(0.6f).scaleY(0.6f)
             .setDuration(1500).setInterpolator(AccelerateInterpolator())
-            .withEndAction {
-                rootLayout.removeView(marchIcon)
-                if (march.type == MarchType.ATTACK) { triggerHitEffects(targetX, targetY) }
-                
-                // إجبار النظام على احتساب المعركة فوراً بعد الأنيميشن
-                GameState.processActiveMarches(this@BattlefieldActivity)
-                updateHudUI()
-                renderBattlefield()
-                checkRegionClearedUI()
-                checkPendingReports()
-            }.start()
+            .setUpdateListener { createTrailingDots(rootLayout, marchIcon) } // 💡 زرع النقاط خلف الفيلق
+            .setListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    rootLayout.removeView(marchIcon)
+                    if (march.type == MarchType.ATTACK) { triggerHitEffects(targetX, targetY) } // تكثيف الدماء
+                    
+                    // إجبار النظام على احتساب المعركة والوصول فوراً
+                    GameState.processActiveMarches(this@BattlefieldActivity)
+                    updateHudUI()
+                    renderBattlefield()
+                    checkPendingReports()
+                    checkRegionClearedUI()
+
+                    // 💡 إنشاء أنيميشن الرجوع فور الوصول واحتساب المعركة (إذا كان اللاعب لا يزال في الشاشة)
+                    if (isActivityResumed) { startReturnMarchAnimation(rootLayout, node, march, cityX, cityY, targetX, targetY) }
+                }
+            }).start()
     }
 
-    // 💡 مؤثرات الدماء واهتزاز الشاشة المستوحاة من الساحة
+    // 💡 أنيميشن فيلق الرجوع (من الهدف للمدينة)
+    private fun startReturnMarchAnimation(rootLayout: ViewGroup, node: BattlefieldNode, march: ActiveMarch, cityX: Float, cityY: Float, targetX: Float, targetY: Float) {
+        // 1. تحديد صورة الرجوع وتدويرها
+        val backImgRes = if (march.type == MarchType.ATTACK) {
+            resources.getIdentifier("ic_legion_attack_back", "drawable", packageName)
+        } else {
+            resources.getIdentifier("ic_legion_gather_back", "drawable", packageName)
+        }
+        
+        val returnIcon = ImageView(this).apply {
+            setImageResource(if (backImgRes != 0) backImgRes else R.drawable.ic_ui_formation)
+            layoutParams = FrameLayout.LayoutParams(120, 120)
+            x = targetX; y = targetY; elevation = 50f; scaleX = 0.6f; scaleY = 0.6f
+            rotationY = 180f // 💡 تدوير الصورة أفقياً لتبدو عائدة
+        }
+        rootLayout.addView(returnIcon)
+
+        // 2. أنيميشن الرجوع (1.5 ثانية) مع زرع النقاط
+        returnIcon.animate().x(cityX).y(cityY).scaleX(1.0f).scaleY(1.0f)
+            .setDuration(1500).setInterpolator(DecelerateInterpolator())
+            .setUpdateListener { createTrailingDots(rootLayout, returnIcon) } // 💡 زرع النقاط خلف العائد
+            .withEndAction { rootLayout.removeView(returnIcon) }.start()
+    }
+
+    // 💡 دالة زرع النقاط المتلاشية خلف الفيلق (trailing effect)
+    private fun createTrailingDots(rootLayout: ViewGroup, referenceView: View) {
+        val dot = View(this).apply {
+            layoutParams = FrameLayout.LayoutParams(15, 15) // حجم النقطة
+            background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#CCCCCC")) } // لون رمادي فاتح
+            x = referenceView.x + referenceView.width / 2f
+            y = referenceView.y + referenceView.height / 2f
+            elevation = 45dp
+        }
+        rootLayout.addView(dot)
+        
+        // تلاشي النقطة وحذفها بعد نصف ثانية
+        dot.animate().alpha(0f).setDuration(500).withEndAction { rootLayout.removeView(dot) }.start()
+    }
+
+    // 💡 مؤثرات الدماء المكثفة والضخمة (بدون اهتزاز) المستوحاة من الساحة
     private fun triggerHitEffects(targetX: Float, targetY: Float) {
         SoundManager.playClash()
         
-        val shake = TranslateAnimation(-15f, 15f, -5f, 5f)
-        shake.duration = 50; shake.repeatMode = Animation.REVERSE; shake.repeatCount = 3
-        findViewById<View>(R.id.mapContainer).startAnimation(shake)
-        
         val root = findViewById<ViewGroup>(android.R.id.content)
-        for (i in 0..40) {
+        for (i in 0..120) { // 💡 زيادة عدد القطرات
             val drop = View(this).apply {
-                val size = Random.nextInt(8, 20)
+                val size = Random.nextInt(20, 60) // 💡 تكبير القطرات
                 layoutParams = FrameLayout.LayoutParams(size, size)
-                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#E74C3C")) }
-                x = targetX; y = targetY; elevation = 20f
+                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#B03A2E")) } // أحمر داكن
+                x = targetX; y = targetY; elevation = 60f
             }
             root.addView(drop)
             val angle = Math.toRadians(Random.nextDouble(0.0, 360.0))
-            val distance = Random.nextDouble(50.0, 250.0)
+            val distance = Random.nextDouble(100.0, 500.0) // 💡 زيادة مسافة التناثر
             val endX = targetX + (distance * Math.cos(angle)).toFloat()
             val endY = targetY + (distance * Math.sin(angle)).toFloat()
             
-            drop.animate().x(endX).y(endY).alpha(0f).setDuration(Random.nextLong(300, 800))
+            // 💡 أنيميشن أسرع وأضخم للدماء
+            drop.animate().x(endX).y(endY).alpha(0f).scaleX(0.1f).scaleY(0.1f)
+                .setDuration(Random.nextLong(200, 600))
                 .setInterpolator(DecelerateInterpolator())
                 .withEndAction { root.removeView(drop) }.start()
         }
     }
 
-    // 💡 فحص صندوق بريد التقارير وعرضها بشكل فخم
     private fun checkPendingReports() {
+        // 💡 حل مشكلة الكراش: لا نظهر التقارير إلا إذا كانت هذه الشاشة نشطة (Resumed)
+        if (!isActivityResumed) return
+        
         val iterator = GameState.pendingBattleReports.iterator()
         while (iterator.hasNext()) {
             val report = iterator.next()
@@ -415,18 +471,12 @@ class BattlefieldActivity : AppCompatActivity() {
             }
             
             SoundManager.playWindowOpen()
-            DialogManager.showGameMessage(
-                this, 
-                report.title, 
-                report.message + "\n\n" + details.toString(), 
-                if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation
-            )
+            DialogManager.showGameMessage(this, report.title, report.message + "\n\n" + details.toString(), if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation)
             iterator.remove()
         }
         GameState.saveGameData(this)
     }
 
-    // 💡 حلقة التحديث الذكية المستمرة (1 ثانية)
     private fun startGameLoop() {
         gameHandler.post(object : Runnable {
             override fun run() {
@@ -437,14 +487,13 @@ class BattlefieldActivity : AppCompatActivity() {
                     checkRegionClearedUI()
                     checkPendingReports()
                 } else {
-                    updateDynamicTimers() // تحديث عداد الجمع فقط بدون إعادة رسم الخريطة (يمنع الرمش)
+                    updateDynamicTimers() // تحديث العدادات فقط بدون إعادة رسم (No Flicker)
                 }
                 gameHandler.postDelayed(this, 1000L)
             }
         })
     }
 
-    // 💡 تحديث عدادات الجمع التنازلية بسلاسة تامة
     private fun updateDynamicTimers() {
         val now = System.currentTimeMillis()
         for (i in 0 until 8) {
@@ -461,9 +510,7 @@ class BattlefieldActivity : AppCompatActivity() {
                     val m = (remaining / 60000)
                     badge.text = "جاري الجمع %02d:%02d".format(m, s)
                     badge.setTextColor(Color.parseColor("#F4D03F"))
-                } else {
-                    badge.text = "مكتمل"
-                }
+                } else { badge.text = "مكتمل" }
             } else if (node.type != NodeType.ENEMY_CASTLE) {
                 if (node.isDefeated) {
                     badge.text = "تم الجمع"
