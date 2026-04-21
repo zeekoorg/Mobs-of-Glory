@@ -6,7 +6,7 @@ import kotlin.random.Random
 data class PendingMessage(val title: String, val body: String, val iconResId: Int)
 
 object GameState {
-    var playerName: String = "المهيب زيكو"
+    var playerName: String = "You"
     var selectedAvatarUri: String? = null
     var totalGold: Long = 0; var totalIron: Long = 0; var totalWheat: Long = 0
     var playerLevel: Int = 1; var playerExp: Int = 0
