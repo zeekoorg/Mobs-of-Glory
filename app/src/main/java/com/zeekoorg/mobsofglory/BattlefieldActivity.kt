@@ -10,8 +10,6 @@ import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.view.animation.AccelerateDecelerateInterpolator
-import android.view.animation.AnimationUtils
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -31,8 +29,6 @@ class BattlefieldActivity : AppCompatActivity() {
     private lateinit var pbPlayerMP: ProgressBar
     private lateinit var imgBattlefieldBackground: ImageView
     private lateinit var tvMainTotalPower: TextView 
-    private lateinit var tvVipTimerUI: TextView
-    private lateinit var tvWeeklyTimerUI: TextView
     
     private val gameHandler = Handler(Looper.getMainLooper())
 
@@ -48,6 +44,12 @@ class BattlefieldActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_battlefield)
+
+        // 💡 السطر السحري: إذا كانت الخريطة فارغة من ملف الحفظ القديم، ولدها فوراً!
+        if (GameState.battlefieldNodes.isEmpty()) {
+            GameState.generateRegion(GameState.currentRegionLevel)
+            GameState.saveGameData(this)
+        }
 
         initViews()
         setupActionListeners()
@@ -76,10 +78,8 @@ class BattlefieldActivity : AppCompatActivity() {
         tvTotalGold = findViewById(R.id.tvTotalGold); tvTotalIron = findViewById(R.id.tvTotalIron)
         tvTotalWheat = findViewById(R.id.tvTotalWheat); tvPlayerLevel = findViewById(R.id.tvPlayerLevel)
         pbPlayerMP = findViewById(R.id.pbPlayerMP); imgBattlefieldBackground = findViewById(R.id.imgBattlefieldBackground)
-        tvMainTotalPower = findViewById(R.id.tvMainTotalPower); tvVipTimerUI = findViewById(R.id.tvVipTimerUI)
-        tvWeeklyTimerUI = findViewById(R.id.tvWeeklyTimerUI)
+        tvMainTotalPower = findViewById(R.id.tvMainTotalPower)
 
-        // خلفيات متغيرة للمقاطعات
         val bgArray = arrayOf(
             resources.getIdentifier("bg_battlefield_1", "drawable", packageName),
             resources.getIdentifier("bg_battlefield_2", "drawable", packageName),
@@ -92,21 +92,14 @@ class BattlefieldActivity : AppCompatActivity() {
 
     private fun setupActionListeners() {
         findViewById<View>(R.id.btnSettings)?.setOnClickListener { SoundManager.playClick(); DialogManager.showSettingsDialog(this) }
-        findViewById<View>(R.id.layoutVipClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showVipDialog(this) }
-        findViewById<View>(R.id.layoutCastleRewardsClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showCastleRewardsDialog(this, GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1) }
-        findViewById<View>(R.id.layoutWeeklyQuestsClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showWeeklyQuestsDialog(this) }
-        findViewById<View>(R.id.layoutTavernClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showSummoningTavernDialog(this) }
-        findViewById<View>(R.id.layoutWeaponsClick)?.setOnClickListener { SoundManager.playBlacksmith(); DialogManager.showWeaponsDialog(this) }
-        findViewById<View>(R.id.layoutFormationClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showFormationDialog(this) }
-
-        findViewById<View>(R.id.btnNavArena)?.setOnClickListener { SoundManager.playClick(); startActivity(Intent(this, ArenaActivity::class.java)) }
         
+        // الأزرار السفلية
         findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showHeroesDialog(this) }
         findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showQuestsDialog(this) }
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showStoreDialog(this) }
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showBagDialog(this) }
         
-        // العودة لأسوار المدينة
+        // زر العودة للمدينة
         findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
             SoundManager.playClick()
             finish() 
@@ -172,7 +165,6 @@ class BattlefieldActivity : AppCompatActivity() {
             slot.addView(img)
             slot.addView(badge)
             
-            // أيقونة جيش مسافر
             val isTargeted = GameState.activeMarches.any { it.targetNodeId == node.id && it.status == MarchStatus.MARCHING }
             if (isTargeted) {
                 val marchIcon = ImageView(this).apply {
@@ -195,7 +187,6 @@ class BattlefieldActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 نافذة تجهيز الفيلق (مرتبطة بـ dialog_arena_prepare.xml)
     private fun showMarchSetupDialog(node: BattlefieldNode) {
         if (GameState.activeMarches.size >= 3) {
             DialogManager.showGameMessage(this, "عذراً أيها القائد", "لقد وصلت للحد الأقصى من المسيرات (3 فيالق). انتظر عودة أحدهم!", R.drawable.ic_ui_formation)
@@ -212,16 +203,14 @@ class BattlefieldActivity : AppCompatActivity() {
         val maxCav = GameState.totalCavalry
 
         val tvPower = d.findViewById<TextView>(R.id.tvFormationPower)
-        
         val seekInf = d.findViewById<SeekBar>(R.id.seekPrepInfantry)
         val tvInfMax = d.findViewById<TextView>(R.id.tvPrepInfantryMax)
         val tvInfSelected = d.findViewById<TextView>(R.id.tvPrepInfantrySelected)
-        
         val seekCav = d.findViewById<SeekBar>(R.id.seekPrepCavalry)
         val tvCavMax = d.findViewById<TextView>(R.id.tvPrepCavalryMax)
         val tvCavSelected = d.findViewById<TextView>(R.id.tvPrepCavalrySelected)
-
         val btnConfirm = d.findViewById<Button>(R.id.btnConfirmAttack)
+        
         btnConfirm?.text = if (isAttack) "بدء الهجوم ⚔️" else "الذهاب للجمع 📦"
 
         val selectedHeroesForMarch = mutableListOf<Hero>()
@@ -345,7 +334,7 @@ class BattlefieldActivity : AppCompatActivity() {
             }
 
             SoundManager.playClick()
-            val travelTime = 30000L // 30 ثانية
+            val travelTime = 30000L 
             
             val newMarch = ActiveMarch(
                 id = System.currentTimeMillis(),
@@ -506,28 +495,13 @@ class BattlefieldActivity : AppCompatActivity() {
         gameHandler.post(object : Runnable {
             override fun run() {
                 val now = System.currentTimeMillis()
-                updateVipUI(now)
                 
-                val weeklyRem = GameState.weeklyQuestEndTime - now
-                if (weeklyRem > 0) {
-                    val d = weeklyRem / 86400000L; val h = (weeklyRem % 86400000L) / 3600000L; val m = (weeklyRem % 3600000L) / 60000L; val s = (weeklyRem % 60000L) / 1000L
-                    tvWeeklyTimerUI.text = if (d > 0) String.format(Locale.US, "%dيوم %02d:%02d:%02d", d, h, m, s) else String.format(Locale.US, "%02d:%02d:%02d", h, m, s)
-                } else tvWeeklyTimerUI.text = "تحديث..."
-
                 updateNotificationBadges()
                 processActiveMarches() 
                 
                 gameHandler.postDelayed(this, 1000)
             }
         })
-    }
-
-    fun updateVipUI(now: Long) {
-        if (GameState.isVipActive()) {
-            val remaining = GameState.vipEndTime - now; val hours = remaining / 3600000; val minutes = (remaining % 3600000) / 60000; val seconds = (remaining % 60000) / 1000
-            if (hours > 24) tvVipTimerUI.text = String.format(Locale.US, "%d أيام", hours / 24) else tvVipTimerUI.text = String.format(Locale.US, "%02d:%02d:%02d", hours, minutes, seconds)
-            tvVipTimerUI.setTextColor(android.graphics.Color.parseColor("#2ECC71")) 
-        } else { tvVipTimerUI.text = "VIP غير مفعل"; tvVipTimerUI.setTextColor(android.graphics.Color.parseColor("#FF5252")) }
     }
 
     private fun animateResourceText(tv: TextView, start: Long, end: Long, prefix: String, onUpdate: (Long) -> Unit): android.animation.ValueAnimator {
@@ -567,10 +541,6 @@ class BattlefieldActivity : AppCompatActivity() {
 
     private fun updateNotificationBadges() {
         findViewById<View>(R.id.badgeQuests)?.visibility = if (GameState.hasUnclaimedDailyQuests()) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.badgeWeeklyQuests)?.visibility = if (GameState.hasUnclaimedWeeklyQuests()) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.badgeBag)?.visibility = if (GameState.hasBagItems()) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.badgeTavern)?.visibility = if (GameState.hasSummonMedals()) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.badgeCastleRewards)?.visibility = if (GameState.hasCastleRewards()) View.VISIBLE else View.GONE
         findViewById<View>(R.id.badgeStore)?.visibility = View.VISIBLE
     }
 
