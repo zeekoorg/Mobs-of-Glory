@@ -45,7 +45,6 @@ class BattlefieldActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_battlefield)
 
-        // 💡 السطر السحري: إذا كانت الخريطة فارغة من ملف الحفظ القديم، ولدها فوراً!
         if (GameState.battlefieldNodes.isEmpty()) {
             GameState.generateRegion(GameState.currentRegionLevel)
             GameState.saveGameData(this)
@@ -92,18 +91,11 @@ class BattlefieldActivity : AppCompatActivity() {
 
     private fun setupActionListeners() {
         findViewById<View>(R.id.btnSettings)?.setOnClickListener { SoundManager.playClick(); DialogManager.showSettingsDialog(this) }
-        
-        // الأزرار السفلية
         findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showHeroesDialog(this) }
         findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showQuestsDialog(this) }
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showStoreDialog(this) }
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showBagDialog(this) }
-        
-        // زر العودة للمدينة
-        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
-            SoundManager.playClick()
-            finish() 
-        }
+        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { SoundManager.playClick(); finish() }
     }
 
     private fun renderBattlefield() {
@@ -114,16 +106,20 @@ class BattlefieldActivity : AppCompatActivity() {
             
             val node = GameState.battlefieldNodes.find { it.id == i } ?: continue
             
+            // 💡 التعديل البصري: تقليل الهوامش لتكبير القلعة وترك مسافة من الأعلى للنص
             val img = ImageView(this).apply {
-                layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT).apply { setMargins(10, 10, 10, 40) }
+                layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT).apply { setMargins(0, 45, 0, 5) }
+                scaleType = ImageView.ScaleType.FIT_CENTER
             }
             
+            // 💡 التعديل البصري: نقل النص للأعلى وتكبيره وجعله باللون الأبيض الفاقع
             val badge = TextView(this).apply {
-                layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL }
+                layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL }
                 setBackgroundResource(R.drawable.bg_level_tag)
                 setTextColor(Color.WHITE)
-                textSize = 10f
-                setPadding(15, 6, 15, 6)
+                textSize = 12f
+                setTypeface(null, android.graphics.Typeface.BOLD)
+                setPadding(20, 8, 20, 8)
             }
 
             val dynamicResId = resources.getIdentifier(node.imageName, "drawable", packageName)
@@ -134,19 +130,16 @@ class BattlefieldActivity : AppCompatActivity() {
                     img.setImageResource(if (ruinsId != 0) ruinsId else R.drawable.ic_ui_arena)
                     img.alpha = 0.6f
                     badge.text = "مُدمرة"
-                    badge.setTextColor(Color.parseColor("#FF5252"))
                 } else {
                     img.setImageResource(if (dynamicResId != 0) dynamicResId else R.drawable.ic_ui_arena)
                     img.alpha = 1.0f
                     badge.text = "قوة: ${formatResourceNumber(node.currentPower)}"
-                    badge.setTextColor(Color.parseColor("#FF5252"))
                 }
             } else {
                 if (node.isDefeated) {
                     img.setImageResource(R.drawable.ic_menu_bag)
                     img.alpha = 0.3f
                     badge.text = "تم الجمع"
-                    badge.setTextColor(Color.GRAY)
                 } else {
                     img.alpha = 1.0f
                     img.setImageResource(if (dynamicResId != 0) dynamicResId else {
@@ -158,7 +151,6 @@ class BattlefieldActivity : AppCompatActivity() {
                     })
                     val prefix = when(node.type) { NodeType.GOLD_MINE -> "ذهب"; NodeType.IRON_MINE -> "حديد"; else -> "قمح" }
                     badge.text = "$prefix: ${formatResourceNumber(node.resourceAmount)}"
-                    badge.setTextColor(Color.parseColor("#2ECC71"))
                 }
             }
             
@@ -169,7 +161,7 @@ class BattlefieldActivity : AppCompatActivity() {
             if (isTargeted) {
                 val marchIcon = ImageView(this).apply {
                     setImageResource(R.drawable.ic_ui_formation) 
-                    layoutParams = FrameLayout.LayoutParams(60, 60).apply { gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL }
+                    layoutParams = FrameLayout.LayoutParams(60, 60).apply { gravity = Gravity.TOP or Gravity.END } // تم نقله لليمين كي لا يغطي على النص
                 }
                 slot.addView(marchIcon)
             }
@@ -495,10 +487,8 @@ class BattlefieldActivity : AppCompatActivity() {
         gameHandler.post(object : Runnable {
             override fun run() {
                 val now = System.currentTimeMillis()
-                
                 updateNotificationBadges()
                 processActiveMarches() 
-                
                 gameHandler.postDelayed(this, 1000)
             }
         })
