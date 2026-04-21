@@ -26,13 +26,10 @@
 
         <FrameLayout android:id="@+id/nodeSlot0" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.32" app:layout_constraintHeight_percent="0.18" app:layout_constraintHorizontal_bias="0.20" app:layout_constraintVertical_bias="0.20" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
         <FrameLayout android:id="@+id/nodeSlot1" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.32" app:layout_constraintHeight_percent="0.18" app:layout_constraintHorizontal_bias="0.80" app:layout_constraintVertical_bias="0.20" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-
         <FrameLayout android:id="@+id/nodeSlot2" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.32" app:layout_constraintHeight_percent="0.18" app:layout_constraintHorizontal_bias="0.10" app:layout_constraintVertical_bias="0.40" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
         <FrameLayout android:id="@+id/nodeSlot3" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.32" app:layout_constraintHeight_percent="0.18" app:layout_constraintHorizontal_bias="0.90" app:layout_constraintVertical_bias="0.40" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-
         <FrameLayout android:id="@+id/nodeSlot4" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.32" app:layout_constraintHeight_percent="0.18" app:layout_constraintHorizontal_bias="0.25" app:layout_constraintVertical_bias="0.60" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
         <FrameLayout android:id="@+id/nodeSlot5" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.75" app:layout_constraintVertical_bias="0.60" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-
         <FrameLayout android:id="@+id/nodeSlot6" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.15" app:layout_constraintVertical_bias="0.80" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
         <FrameLayout android:id="@+id/nodeSlot7" android:layout_width="0dp" android:layout_height="0dp" android:clipChildren="false" app:layout_constraintWidth_percent="0.28" app:layout_constraintHeight_percent="0.16" app:layout_constraintHorizontal_bias="0.85" app:layout_constraintVertical_bias="0.80" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
 
@@ -132,7 +129,6 @@
                 <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_settings_gear" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الإعدادات" android:textColor="#FFFFFF" android:textSize="9sp" android:textStyle="bold"/>
             </LinearLayout>
-            
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -180,53 +176,6 @@
             android:textColor="#F4D03F"
             android:textSize="13sp"
             android:textStyle="bold" />
-    </LinearLayout>
-
-    <LinearLayout android:id="@+id/layoutVipClick" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:layout_marginTop="8dp" app:layout_constraintStart_toStartOf="@id/layoutPlayerLevel" app:layout_constraintEnd_toEndOf="@id/layoutPlayerLevel" app:layout_constraintTop_toBottomOf="@id/layoutPlayerLevel" android:clickable="true" android:focusable="true">
-        <ImageView android:id="@+id/imgVipIcon" android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_vip_crown" android:background="@drawable/bg_btn_gold_border" android:padding="6dp"/>
-        <TextView android:id="@+id/tvVipTimerUI" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="VIP غير مفعل" android:textColor="#FF5252" android:textSize="9sp" android:textStyle="bold" android:layout_marginTop="3dp" android:background="@drawable/bg_level_tag" android:paddingHorizontal="5dp" android:paddingVertical="2dp"/>
-    </LinearLayout>
-
-    <LinearLayout android:id="@+id/layoutCastleRewardsClick" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:layout_marginTop="8dp" app:layout_constraintStart_toStartOf="@id/layoutVipClick" app:layout_constraintEnd_toEndOf="@id/layoutVipClick" app:layout_constraintTop_toBottomOf="@id/layoutVipClick" android:clickable="true" android:focusable="true">
-        <androidx.constraintlayout.widget.ConstraintLayout android:layout_width="wrap_content" android:layout_height="wrap_content">
-            <ImageView android:layout_width="45dp" android:layout_height="45dp" android:layout_margin="4dp" android:src="@drawable/ic_ui_castle_rewards" android:background="@drawable/bg_btn_gold_border" android:padding="6dp" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-            <androidx.cardview.widget.CardView android:id="@+id/badgeCastleRewards" android:layout_width="12dp" android:layout_height="12dp" app:cardCornerRadius="6dp" app:cardBackgroundColor="#00FF00" app:layout_constraintTop_toTopOf="parent" app:layout_constraintEnd_toEndOf="parent" android:visibility="gone" app:cardElevation="2dp"/>
-        </androidx.constraintlayout.widget.ConstraintLayout>
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مكافآت القلعة" android:textColor="#F4D03F" android:textSize="9sp" android:textStyle="bold" android:layout_marginTop="3dp" android:background="@drawable/bg_level_tag" android:paddingHorizontal="5dp" android:paddingVertical="2dp"/>
-    </LinearLayout>
-
-    <LinearLayout android:id="@+id/layoutWeeklyQuestsClick" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:layout_marginTop="8dp" app:layout_constraintStart_toStartOf="@id/layoutCastleRewardsClick" app:layout_constraintEnd_toEndOf="@id/layoutCastleRewardsClick" app:layout_constraintTop_toBottomOf="@id/layoutCastleRewardsClick" android:clickable="true" android:focusable="true">
-        <androidx.constraintlayout.widget.ConstraintLayout android:layout_width="wrap_content" android:layout_height="wrap_content">
-            <ImageView android:layout_width="45dp" android:layout_height="45dp" android:layout_margin="4dp" android:src="@drawable/ic_menu_quests" android:background="@drawable/bg_btn_gold_border" android:padding="6dp" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-            <androidx.cardview.widget.CardView android:id="@+id/badgeWeeklyQuests" android:layout_width="12dp" android:layout_height="12dp" app:cardCornerRadius="6dp" app:cardBackgroundColor="#00FF00" app:layout_constraintTop_toTopOf="parent" app:layout_constraintEnd_toEndOf="parent" android:visibility="gone" app:cardElevation="2dp"/>
-        </androidx.constraintlayout.widget.ConstraintLayout>
-        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:layout_marginTop="3dp" android:background="@drawable/bg_level_tag" android:paddingHorizontal="5dp" android:paddingVertical="2dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المهام الأسبوعية" android:textColor="#FFFFFF" android:textSize="9sp" android:textStyle="bold"/>
-            <TextView android:id="@+id/tvWeeklyTimerUI" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="00:00:00" android:textColor="#F4D03F" android:textSize="9sp" android:textStyle="bold"/>
-        </LinearLayout>
-    </LinearLayout>
-
-    <LinearLayout android:id="@+id/btnNavArena" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:layout_marginTop="8dp" app:layout_constraintStart_toStartOf="@id/layoutWeeklyQuestsClick" app:layout_constraintEnd_toEndOf="@id/layoutWeeklyQuestsClick" app:layout_constraintTop_toBottomOf="@id/layoutWeeklyQuestsClick" android:clickable="true" android:focusable="true">
-        <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_ui_arena" android:background="@drawable/bg_btn_gold_border" android:padding="6dp"/>
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ساحة الغزوات" android:textColor="#FFFFFF" android:textSize="9sp" android:textStyle="bold" android:layout_marginTop="3dp" android:background="@drawable/bg_level_tag" android:paddingHorizontal="5dp" android:paddingVertical="2dp"/>
-    </LinearLayout>
-
-    <LinearLayout android:id="@+id/layoutTavernClick" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:layout_marginEnd="14dp" android:layout_marginTop="8dp" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toBottomOf="@id/topHudContainer" android:clickable="true" android:focusable="true">
-        <androidx.constraintlayout.widget.ConstraintLayout android:layout_width="wrap_content" android:layout_height="wrap_content">
-            <ImageView android:layout_width="45dp" android:layout_height="45dp" android:layout_margin="4dp" android:src="@drawable/ic_ui_tavern" android:background="@drawable/bg_btn_gold_border" android:padding="6dp" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-            <androidx.cardview.widget.CardView android:id="@+id/badgeTavern" android:layout_width="12dp" android:layout_height="12dp" app:cardCornerRadius="6dp" app:cardBackgroundColor="#00FF00" app:layout_constraintTop_toTopOf="parent" app:layout_constraintStart_toStartOf="parent" android:visibility="gone" app:cardElevation="2dp"/>
-        </androidx.constraintlayout.widget.ConstraintLayout>
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="قاعة الأساطير" android:textColor="#FFFFFF" android:textSize="9sp" android:textStyle="bold" android:layout_marginTop="3dp" android:background="@drawable/bg_level_tag" android:paddingHorizontal="5dp" android:paddingVertical="2dp"/>
-    </LinearLayout>
-
-    <LinearLayout android:id="@+id/layoutWeaponsClick" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:layout_marginTop="8dp" app:layout_constraintStart_toStartOf="@id/layoutTavernClick" app:layout_constraintEnd_toEndOf="@id/layoutTavernClick" app:layout_constraintTop_toBottomOf="@id/layoutTavernClick" android:clickable="true" android:focusable="true">
-        <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_ui_weapons" android:background="@drawable/bg_btn_gold_border" android:padding="6dp"/>
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الأسلحة" android:textColor="#FFFFFF" android:textSize="9sp" android:textStyle="bold" android:layout_marginTop="3dp" android:background="@drawable/bg_level_tag" android:paddingHorizontal="5dp" android:paddingVertical="2dp"/>
-    </LinearLayout>
-
-    <LinearLayout android:id="@+id/layoutFormationClick" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:layout_marginTop="8dp" app:layout_constraintStart_toStartOf="@id/layoutWeaponsClick" app:layout_constraintEnd_toEndOf="@id/layoutWeaponsClick" app:layout_constraintTop_toBottomOf="@id/layoutWeaponsClick" android:clickable="true" android:focusable="true">
-        <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_ui_formation" android:background="@drawable/bg_btn_gold_border" android:padding="6dp"/>
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الفيلق" android:textColor="#FFFFFF" android:textSize="9sp" android:textStyle="bold" android:layout_marginTop="3dp" android:background="@drawable/bg_level_tag" android:paddingHorizontal="5dp" android:paddingVertical="2dp"/>
     </LinearLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
