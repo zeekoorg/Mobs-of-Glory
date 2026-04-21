@@ -42,6 +42,7 @@ class MainActivity : AppCompatActivity() {
     
     private val gameHandler = Handler(Looper.getMainLooper())
     private var doubleBackToExitPressedOnce = false
+    private var isActivityResumed = false // 💡 حماية معمارية لمنع الانهيار (Crash)
 
     private var displayedGold = -1L
     private var displayedIron = -1L
@@ -102,6 +103,7 @@ class MainActivity : AppCompatActivity() {
         
         checkPendingLevelUps()
         showPendingOfflineMessages()
+        checkPendingReports() // 💡 فحص صندوق البريد فور التشغيل
 
         Handler(Looper.getMainLooper()).postDelayed({
             checkAndRunSpotlightTutorial()
@@ -190,20 +192,24 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        isActivityResumed = true
         GameState.calculatePower()
         updateHudUI()
         SoundManager.playBGM(this, R.raw.bgm_city)
+        checkPendingReports() // 💡 استلام التقارير فور العودة للواجهة
         Handler(Looper.getMainLooper()).postDelayed({ checkAndRunSpotlightTutorial() }, 500)
     }
 
     override fun onPause() {
         super.onPause()
+        isActivityResumed = false
         GameState.saveGameData(this)
         SoundManager.pauseBGM()
     }
     
     override fun onDestroy() {
         super.onDestroy()
+        isActivityResumed = false
         SoundManager.onDestroy()
     }
 
@@ -239,7 +245,6 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.layoutVipClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showVipDialog(this) }
         findViewById<View>(R.id.layoutCastleRewardsClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showCastleRewardsDialog(this, GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1) }
         
-        // 💡 ساحة الغزوات تبقى كما هي تفتح الأرينا
         findViewById<View>(R.id.btnNavArena)?.setOnClickListener { SoundManager.playClick(); startActivity(Intent(this, ArenaActivity::class.java)) }
         
         findViewById<View>(R.id.layoutWeeklyQuestsClick)?.setOnClickListener { 
@@ -255,11 +260,40 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showBagDialog(this) }
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showStoreDialog(this) }
         
-        // 💡 التعديل هنا: زر المدينة الآن يفتح شاشة المقاطعات (BattlefieldActivity) بدلاً من الرسالة
         findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
             SoundManager.playClick()
             startActivity(Intent(this, BattlefieldActivity::class.java)) 
         } 
+    }
+
+    // 💡 تفريغ صندوق البريد وإظهار التقارير الفورية
+    private fun checkPendingReports() {
+        if (!isActivityResumed) return
+        
+        val iterator = GameState.pendingBattleReports.iterator()
+        while (iterator.hasNext()) {
+            val report = iterator.next()
+            val details = StringBuilder()
+            
+            if (report.damage > 0) details.append("القوة الهجومية: ⚔️ ${formatResourceNumber(report.damage)}\n")
+            if (report.dead > 0 || report.wounded > 0) details.append("القتلى: ☠️ ${formatResourceNumber(report.dead)} | الجرحى: 🩸 ${formatResourceNumber(report.wounded)}\n\n")
+            if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
+                details.append("الغنائم التي تم حصدها:\n")
+                if (report.lootGold > 0) details.append("الذهب: 💰 ${formatResourceNumber(report.lootGold)}  ")
+                if (report.lootIron > 0) details.append("الحديد: ⛓️ ${formatResourceNumber(report.lootIron)}  ")
+                if (report.lootWheat > 0) details.append("القمح: 🌾 ${formatResourceNumber(report.lootWheat)}")
+            }
+            
+            SoundManager.playWindowOpen()
+            DialogManager.showGameMessage(
+                this, 
+                report.title, 
+                report.message + "\n\n" + details.toString(), 
+                if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation
+            )
+            iterator.remove()
+        }
+        GameState.saveGameData(this)
     }
 
     private fun checkPendingLevelUps() {
@@ -351,6 +385,13 @@ class MainActivity : AppCompatActivity() {
                     val d = weeklyRem / 86400000L; val h = (weeklyRem % 86400000L) / 3600000L; val m = (weeklyRem % 3600000L) / 60000L; val s = (weeklyRem % 60000L) / 1000L
                     tvWeeklyTimerUI.text = if (d > 0) String.format(Locale.US, "%dيوم %02d:%02d:%02d", d, h, m, s) else String.format(Locale.US, "%02d:%02d:%02d", h, m, s)
                 } else tvWeeklyTimerUI.text = "تحديث..."
+
+                // 💡 [الجديد] معالجة مسيرات الجيوش في الخلفية وأنت داخل مدينتك!
+                val needsUpdate = GameState.processActiveMarches(this@MainActivity)
+                if (needsUpdate) {
+                    updateHudUI()
+                    checkPendingReports()
+                }
 
                 if (GameState.isHealing) {
                     val remHeal = GameState.healingEndTime - now; val hospitalPlot = GameState.myPlots.find { it.idCode == "HOSPITAL" }
