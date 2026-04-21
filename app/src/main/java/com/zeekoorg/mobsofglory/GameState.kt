@@ -1,9 +1,24 @@
-package com.zeekoorg.mobsofglory
+herepackage com.zeekoorg.mobsofglory
 
 import android.content.Context
 import kotlin.random.Random
 
 data class PendingMessage(val title: String, val body: String, val iconResId: Int)
+
+// 💡 [الجديد] أنواع الأهداف في ساحة المعركة
+enum class NodeType { ENEMY_CASTLE, GOLD_MINE, IRON_MINE, WHEAT_FARM }
+
+// 💡 [الجديد] نموذج بيانات كل نقطة (حاوية) في الخريطة
+data class BattlefieldNode(
+    val id: Int, 
+    var type: NodeType,
+    var currentPower: Long,
+    var maxPower: Long,
+    var level: Int,
+    var isDefeated: Boolean,
+    var lastAttackedTime: Long = 0L,
+    var resourceAmount: Long = 0L
+)
 
 object GameState {
     var playerName: String = "You"
@@ -18,8 +33,6 @@ object GameState {
     var summonMedals: Int = 0
     
     var isStarterPackClaimed: Boolean = false
-    
-    // 💡 إضافة متغير يتتبع خطوة التعليمات الحالية (0 = لم يبدأ بعد)
     var tutorialStep: Int = 0
     
     var isPyramidUnlocked = false; var isDiamondUnlocked = false; var isPeacockUnlocked = false
@@ -48,6 +61,10 @@ object GameState {
 
     var isHealing: Boolean = false; var healingEndTime: Long = 0L; var healingTotalTime: Long = 0L
     var healingInfantryAmount: Long = 0; var healingCavalryAmount: Long = 0
+
+    // 💡 [الجديد] متغيرات ساحة المعركة (نظام المقاطعات)
+    var currentRegionLevel: Int = 1
+    val battlefieldNodes = mutableListOf<BattlefieldNode>()
 
     fun addQuestProgress(type: QuestType, amount: Int) {
         dailyQuestsList.filter { it.type == type }.forEach { quest ->
@@ -124,6 +141,38 @@ object GameState {
         }
         
         if (arenaStaminaLastRegenTime == 0L) arenaStaminaLastRegenTime = System.currentTimeMillis()
+
+        // 💡 [الجديد] توليد المقاطعة الأولى إذا كانت الخريطة فارغة
+        if (battlefieldNodes.isEmpty()) generateRegion(currentRegionLevel)
+    }
+
+    // 💡 [الجديد] دالة توليد مقاطعة جديدة (5 قلاع + 3 مزارع) موزعة عشوائياً في الـ 8 حاويات
+    fun generateRegion(level: Int) {
+        battlefieldNodes.clear()
+        val types = mutableListOf(NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.GOLD_MINE, NodeType.IRON_MINE, NodeType.WHEAT_FARM)
+        types.shuffle() 
+
+        for (i in 0 until 8) {
+            val t = types[i]
+            if (t == NodeType.ENEMY_CASTLE) {
+                // قوة العدو ترتفع بذكاء مع كل مقاطعة
+                val basePower = (level * 80000L) + Random.nextLong(20000, 60000)
+                val nodeLevel = level + Random.nextInt(0, 3)
+                battlefieldNodes.add(BattlefieldNode(i, t, basePower, basePower, nodeLevel, false, 0L, 0L))
+            } else {
+                // كمية الموارد ترتفع مع تقدم المقاطعات
+                val resAmount = (level * 150000L) + Random.nextLong(30000, 80000)
+                battlefieldNodes.add(BattlefieldNode(i, t, 0L, 0L, level, false, 0L, resAmount))
+            }
+        }
+    }
+
+    // 💡 [الجديد] فحص إذا تم تطهير المنطقة بالكامل للعبور للمقاطعة التالية
+    fun checkRegionCleared(): Boolean = battlefieldNodes.all { it.isDefeated }
+    
+    fun advanceToNextRegion() {
+        currentRegionLevel++
+        generateRegion(currentRegionLevel)
     }
 
     private fun generateAITiers() {
@@ -197,8 +246,6 @@ object GameState {
         prefs.putInt("SUMMON_MEDALS", summonMedals)
         
         prefs.putBoolean("STARTER_PACK_CLAIMED", isStarterPackClaimed)
-        
-        // 💡 حفظ رقم خطوة التعليمات
         prefs.putInt("TUTORIAL_STEP", tutorialStep)
         
         prefs.putBoolean("PYRAMID_UNLOCKED", isPyramidUnlocked); prefs.putBoolean("DIAMOND_UNLOCKED", isDiamondUnlocked); prefs.putBoolean("PEACOCK_UNLOCKED", isPeacockUnlocked)
@@ -238,6 +285,19 @@ object GameState {
             prefs.putBoolean("IR_${it.idCode}", it.isReady); prefs.putBoolean("TR_${it.idCode}", it.isTraining)
             prefs.putLong("TT_${it.idCode}", it.trainingEndTime); prefs.putInt("TA_${it.idCode}", it.trainingAmount)
         }
+
+        // 💡 [الجديد] حفظ بيانات ساحة المعركة بدقة لتستفز اللاعب
+        prefs.putInt("CURRENT_REGION_LEVEL", currentRegionLevel)
+        battlefieldNodes.forEach { n ->
+            prefs.putString("BF_NODE_${n.id}_TYPE", n.type.name)
+            prefs.putLong("BF_NODE_${n.id}_CUR_PWR", n.currentPower)
+            prefs.putLong("BF_NODE_${n.id}_MAX_PWR", n.maxPower)
+            prefs.putInt("BF_NODE_${n.id}_LVL", n.level)
+            prefs.putBoolean("BF_NODE_${n.id}_DEF", n.isDefeated)
+            prefs.putLong("BF_NODE_${n.id}_TIME", n.lastAttackedTime)
+            prefs.putLong("BF_NODE_${n.id}_RES", n.resourceAmount)
+        }
+        
         prefs.apply()
     }
 
@@ -252,8 +312,6 @@ object GameState {
         summonMedals = prefs.getInt("SUMMON_MEDALS", 2)
         
         isStarterPackClaimed = prefs.getBoolean("STARTER_PACK_CLAIMED", false)
-        
-        // 💡 استرجاع رقم خطوة التعليمات
         tutorialStep = prefs.getInt("TUTORIAL_STEP", 0)
         
         isPyramidUnlocked = prefs.getBoolean("PYRAMID_UNLOCKED", false); isDiamondUnlocked = prefs.getBoolean("DIAMOND_UNLOCKED", false); isPeacockUnlocked = prefs.getBoolean("PEACOCK_UNLOCKED", false)
@@ -310,6 +368,42 @@ object GameState {
         val claimedStr = prefs.getString("CLAIMED_CASTLE_REWARDS", "") ?: ""
         claimedCastleRewards.clear(); if (claimedStr.isNotEmpty()) claimedCastleRewards.addAll(claimedStr.split(",").mapNotNull { it.toIntOrNull() })
         pendingOfflineMessages.clear()
+
+        // 💡 [الجديد] استرجاع بيانات ساحة المعركة وحساب "تعافي الأعداء" الإدماني
+        currentRegionLevel = prefs.getInt("CURRENT_REGION_LEVEL", 1)
+        battlefieldNodes.clear()
+        for (i in 0 until 8) {
+            val typeStr = prefs.getString("BF_NODE_${i}_TYPE", null)
+            if (typeStr != null) {
+                battlefieldNodes.add(
+                    BattlefieldNode(
+                        i, NodeType.valueOf(typeStr), prefs.getLong("BF_NODE_${i}_CUR_PWR", 0L),
+                        prefs.getLong("BF_NODE_${i}_MAX_PWR", 0L), prefs.getInt("BF_NODE_${i}_LVL", 1),
+                        prefs.getBoolean("BF_NODE_${i}_DEF", false), prefs.getLong("BF_NODE_${i}_TIME", 0L),
+                        prefs.getLong("BF_NODE_${i}_RES", 0L)
+                    )
+                )
+            }
+        }
+        
+        var enemyRecovered = false
+        battlefieldNodes.filter { it.type == NodeType.ENEMY_CASTLE && !it.isDefeated && it.currentPower < it.maxPower }.forEach { node ->
+            if (node.lastAttackedTime > 0) {
+                val hPassed = (currentTime - node.lastAttackedTime) / 3600000L
+                if (hPassed > 0) {
+                    // العدو يستعيد 10% من قوته القصوى كل ساعة تغيب فيها!
+                    val recovery = (node.maxPower * 0.10).toLong() * hPassed
+                    node.currentPower += recovery
+                    if (node.currentPower > node.maxPower) node.currentPower = node.maxPower
+                    node.lastAttackedTime = currentTime
+                    enemyRecovered = true
+                }
+            }
+        }
+        
+        if (enemyRecovered && offlineTime > 3600000L) {
+            pendingOfflineMessages.add(PendingMessage("ساحة المعركة", "انتبه! القلاع التي لم تدمرها استعادت جزءاً من قوتها أثناء غيابك، لا تترك لهم فرصة للتعافي!", R.drawable.ic_settings_gear))
+        }
 
         if (isHealing && currentTime >= healingEndTime) {
             isHealing = false
