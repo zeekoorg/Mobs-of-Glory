@@ -5,12 +5,12 @@ import kotlin.random.Random
 
 data class PendingMessage(val title: String, val body: String, val iconResId: Int)
 
-// 💡 [الجديد] أنواع الأهداف ومسيرات الجيوش
+// 💡 [تعديل] إضافة حالة GATHERING للجمع
 enum class NodeType { ENEMY_CASTLE, GOLD_MINE, IRON_MINE, WHEAT_FARM }
-enum class MarchStatus { MARCHING, RETURNING }
+enum class MarchStatus { MARCHING, GATHERING, RETURNING }
 enum class MarchType { ATTACK, GATHER }
 
-// 💡 [الجديد] كلاس لتتبع الفيالق المرسلة (الحد الأقصى 3 فيالق)
+// 💡 [تعديل] إضافة وقت نهاية الجمع (gatherEndTime)
 data class ActiveMarch(
     val id: Long,
     val targetNodeId: Int,
@@ -22,12 +22,25 @@ data class ActiveMarch(
     var status: MarchStatus,
     var endTime: Long,
     val totalTime: Long,
+    var gatherEndTime: Long = 0L,
     var payloadGold: Long = 0L,
     var payloadIron: Long = 0L,
     var payloadWheat: Long = 0L
 )
 
-// 💡 [تعديل] إضافة اسم الصورة للمحافظة على التنوع البصري للقلاع
+// 💡 [الجديد] نموذج بيانات صندوق تقارير المعارك والجمع
+data class BattleReport(
+    val title: String,
+    val message: String,
+    val damage: Long,
+    val dead: Long,
+    val wounded: Long,
+    val lootGold: Long,
+    val lootIron: Long,
+    val lootWheat: Long,
+    val isVictory: Boolean
+)
+
 data class BattlefieldNode(
     val id: Int, 
     var type: NodeType,
@@ -37,7 +50,7 @@ data class BattlefieldNode(
     var isDefeated: Boolean,
     var lastAttackedTime: Long = 0L,
     var resourceAmount: Long = 0L,
-    var imageName: String = "" // يحفظ اسم الصورة العشوائية
+    var imageName: String = "" 
 )
 
 object GameState {
@@ -82,18 +95,17 @@ object GameState {
     var isHealing: Boolean = false; var healingEndTime: Long = 0L; var healingTotalTime: Long = 0L
     var healingInfantryAmount: Long = 0; var healingCavalryAmount: Long = 0
 
-    // متغيرات ساحة المعركة (نظام المقاطعات)
     var currentRegionLevel: Int = 1
     val battlefieldNodes = mutableListOf<BattlefieldNode>()
     
-    // 💡 [الجديد] قائمة تتبع الجيوش التي تسير حالياً في الخريطة
     val activeMarches = mutableListOf<ActiveMarch>()
+    
+    // 💡 [الجديد] صندوق بريد التقارير العالمي
+    val pendingBattleReports = mutableListOf<BattleReport>()
 
-    // 💡 [الجديد] دالة مساعدة لمعرفة هل البطل أو السلاح خارج في مهمة؟
     fun isHeroBusy(heroId: Int): Boolean = activeMarches.any { it.heroIds.contains(heroId) }
     fun isWeaponBusy(weaponId: Int): Boolean = activeMarches.any { it.weaponIds.contains(weaponId) }
     
-    // 💡 [الجديد] دالة ذكية لحساب السعة القصوى لدار الشفاء (10 آلاف جريح لكل مستوى)
     fun getHospitalCapacity(): Long {
         val hospitalLvl = myPlots.find { it.idCode == "HOSPITAL" }?.level ?: 1
         return hospitalLvl * 10000L 
@@ -178,20 +190,17 @@ object GameState {
         if (battlefieldNodes.isEmpty()) generateRegion(currentRegionLevel)
     }
 
-    // 💡 [الجديد] توليد المقاطعة مع توزيع 5 صور قلاع مختلفة من أصل 10، وتصاعد القوة للملايين
     fun generateRegion(level: Int) {
         battlefieldNodes.clear()
         val types = mutableListOf(NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.GOLD_MINE, NodeType.IRON_MINE, NodeType.WHEAT_FARM)
         types.shuffle() 
 
-        // اختيار 5 صور قلاع مختلفة عشوائياً (من أصل 10 صور متوفرة)
         val selectedCastleImages = (1..10).map { "img_enemy_castle_$it" }.shuffled().take(5)
         var castleImageIndex = 0
 
         for (i in 0 until 8) {
             val t = types[i]
             if (t == NodeType.ENEMY_CASTLE) {
-                // تصاعد القوة بقسوة لتصل للملايين في المستويات المتقدمة
                 val basePower = (100000L * level) + (level.toLong() * level.toLong() * 15000L) + Random.nextLong(20000, 80000)
                 val nodeLevel = level + Random.nextInt(0, 3)
                 val imgName = selectedCastleImages[castleImageIndex]
@@ -199,7 +208,6 @@ object GameState {
                 
                 battlefieldNodes.add(BattlefieldNode(i, t, basePower, basePower, nodeLevel, false, 0L, 0L, imgName))
             } else {
-                // مستويات وموارد المزارع تزيد بشكل ملحوظ
                 val farmLevel = level + Random.nextInt(0, 3)
                 val resAmount = (farmLevel * 200000L) + Random.nextLong(50000, 150000)
                 val imgName = when(t) {
@@ -281,6 +289,148 @@ object GameState {
         }
     }
 
+    // 💡 [الجديد] العقل المدبر للمعارك والجمع (يشتغل في أي مكان لحل مشكلة الكراش)
+    fun processActiveMarches(context: Context): Boolean {
+        val now = System.currentTimeMillis()
+        val iterator = activeMarches.iterator()
+        var needsUpdate = false
+
+        while (iterator.hasNext()) {
+            val march = iterator.next()
+
+            if (march.status == MarchStatus.MARCHING && now >= march.endTime) {
+                needsUpdate = true
+                val node = battlefieldNodes.find { it.id == march.targetNodeId }
+                if (node == null) { iterator.remove(); continue }
+
+                if (march.type == MarchType.ATTACK) {
+                    var heroPwr = 0L; var wpPwr = 0L
+                    march.heroIds.forEach { id -> myHeroes.find { it.id == id }?.let { heroPwr += it.getCurrentPower() } }
+                    march.weaponIds.forEach { id -> arsenal.find { it.id == id }?.let { wpPwr += it.getCurrentPower() } }
+                    val myPower = (march.infantryCount * 5) + (march.cavalryCount * 10) + heroPwr + wpPwr
+
+                    var woundedPct = 0.0
+                    var deadPct = 0.0
+                    var isVictory = false
+
+                    if (myPower >= node.currentPower) {
+                        isVictory = true
+                        node.isDefeated = true
+                        node.currentPower = 0
+                        march.payloadGold = node.maxPower / 5
+                        march.payloadIron = node.maxPower / 3
+                        woundedPct = 0.08
+                        deadPct = 0.02
+                    } else {
+                        node.currentPower -= myPower
+                        node.lastAttackedTime = now
+                        woundedPct = 0.20
+                        deadPct = 0.10
+                    }
+
+                    val infDead = (march.infantryCount * deadPct).toLong()
+                    val cavDead = (march.cavalryCount * deadPct).toLong()
+                    val infWounded = (march.infantryCount * woundedPct).toLong()
+                    val cavWounded = (march.cavalryCount * woundedPct).toLong()
+                    val totalNewWounded = infWounded + cavWounded
+
+                    val hospitalCap = getHospitalCapacity()
+                    val currentWounded = woundedInfantry + woundedCavalry
+                    val availableSpace = hospitalCap - currentWounded
+
+                    var admittedInf = 0L
+                    var admittedCav = 0L
+
+                    if (availableSpace > 0) {
+                        val spaceToUse = if (totalNewWounded <= availableSpace) totalNewWounded else availableSpace
+                        val ratio = if (totalNewWounded > 0) infWounded.toDouble() / totalNewWounded.toDouble() else 0.5
+                        admittedInf = (spaceToUse * ratio).toLong()
+                        admittedCav = spaceToUse - admittedInf
+
+                        woundedInfantry += admittedInf
+                        woundedCavalry += admittedCav
+                    }
+
+                    val extraDeadInf = infWounded - admittedInf
+                    val extraDeadCav = cavWounded - admittedCav
+
+                    march.infantryCount -= (infDead + infWounded)
+                    march.cavalryCount -= (cavDead + cavWounded)
+                    if(march.infantryCount < 0) march.infantryCount = 0
+                    if(march.cavalryCount < 0) march.cavalryCount = 0
+
+                    val totalDead = infDead + cavDead + extraDeadInf + extraDeadCav
+                    val totalWounded = admittedInf + admittedCav
+
+                    // 💡 تجهيز التقرير الفوري للمعركة ووضعه في صندوق البريد
+                    pendingBattleReports.add(BattleReport(
+                        title = if (isVictory) "انتصار ساحق!" else "هزيمة مريرة",
+                        message = if (isVictory) "تم تدمير القلعة ونهب الغنائم!" else "تراجعت قواتنا بعد خسائر فادحة.",
+                        damage = myPower,
+                        dead = totalDead,
+                        wounded = totalWounded,
+                        lootGold = march.payloadGold,
+                        lootIron = march.payloadIron,
+                        lootWheat = march.payloadWheat,
+                        isVictory = isVictory
+                    ))
+
+                    march.status = MarchStatus.RETURNING
+                    march.endTime = now + 1500L // رحلة العودة (ثانية ونصف)
+                } else {
+                    // 💡 تجهيز الجمع
+                    march.status = MarchStatus.GATHERING
+                    val gatherTime = 30000L // وقت الجمع 30 ثانية (يمكن تعديلها لاحقاً لتعتمد على الحمولة)
+                    march.gatherEndTime = now + gatherTime
+                }
+            }
+            else if (march.status == MarchStatus.GATHERING && now >= march.gatherEndTime) {
+                needsUpdate = true
+                val node = battlefieldNodes.find { it.id == march.targetNodeId }
+                if (node != null) {
+                    val payloadCap = (march.infantryCount * 10) + (march.cavalryCount * 25)
+                    val amountTaken = if (payloadCap >= node.resourceAmount) node.resourceAmount else payloadCap
+                    node.resourceAmount -= amountTaken
+                    if (node.resourceAmount <= 0) node.isDefeated = true
+
+                    when(node.type) {
+                        NodeType.GOLD_MINE -> march.payloadGold = amountTaken
+                        NodeType.IRON_MINE -> march.payloadIron = amountTaken
+                        NodeType.WHEAT_FARM -> march.payloadWheat = amountTaken
+                        else -> {}
+                    }
+                }
+                march.status = MarchStatus.RETURNING
+                march.endTime = now + 1500L // العودة (ثانية ونصف)
+            }
+            else if (march.status == MarchStatus.RETURNING && now >= march.endTime) {
+                needsUpdate = true
+                totalInfantry += march.infantryCount
+                totalCavalry += march.cavalryCount
+                totalGold += march.payloadGold
+                totalIron += march.payloadIron
+                totalWheat += march.payloadWheat
+
+                if (march.type == MarchType.GATHER) {
+                    // 💡 تجهيز تقرير الانتهاء من الجمع
+                    pendingBattleReports.add(BattleReport(
+                        title = "اكتمل الجمع",
+                        message = "عادت الفيالق محملة بغنائم الموارد من المقاطعة.",
+                        damage = 0, dead = 0, wounded = 0,
+                        lootGold = march.payloadGold,
+                        lootIron = march.payloadIron,
+                        lootWheat = march.payloadWheat,
+                        isVictory = true
+                    ))
+                }
+                iterator.remove()
+            }
+        }
+
+        if (needsUpdate) saveGameData(context)
+        return needsUpdate
+    }
+
     fun saveGameData(context: Context) {
         val prefs = context.getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit()
         prefs.putString("PLAYER_NAME", playerName); prefs.putString("PLAYER_AVATAR", selectedAvatarUri)
@@ -340,10 +490,9 @@ object GameState {
             prefs.putBoolean("BF_NODE_${n.id}_DEF", n.isDefeated)
             prefs.putLong("BF_NODE_${n.id}_TIME", n.lastAttackedTime)
             prefs.putLong("BF_NODE_${n.id}_RES", n.resourceAmount)
-            prefs.putString("BF_NODE_${n.id}_IMG", n.imageName) // 💡 حفظ اسم الصورة
+            prefs.putString("BF_NODE_${n.id}_IMG", n.imageName) 
         }
         
-        // 💡 [الجديد] حفظ بيانات الجيوش المسافرة
         prefs.putInt("ACTIVE_MARCH_COUNT", activeMarches.size)
         activeMarches.forEachIndexed { index, march ->
             prefs.putLong("AM_${index}_ID", march.id)
@@ -356,6 +505,7 @@ object GameState {
             prefs.putString("AM_${index}_STATUS", march.status.name)
             prefs.putLong("AM_${index}_END", march.endTime)
             prefs.putLong("AM_${index}_TOT", march.totalTime)
+            prefs.putLong("AM_${index}_GEND", march.gatherEndTime) // 💡 حفظ وقت الجمع
             prefs.putLong("AM_${index}_PG", march.payloadGold)
             prefs.putLong("AM_${index}_PI", march.payloadIron)
             prefs.putLong("AM_${index}_PW", march.payloadWheat)
@@ -467,7 +617,6 @@ object GameState {
             pendingOfflineMessages.add(PendingMessage("ساحة المعركة", "انتبه! القلاع التي لم تدمرها استعادت جزءاً من قوتها أثناء غيابك، لا تترك لهم فرصة للتعافي!", R.drawable.ic_settings_gear))
         }
         
-        // 💡 [الجديد] استرجاع بيانات الجيوش المسافرة
         val marchCount = prefs.getInt("ACTIVE_MARCH_COUNT", 0)
         activeMarches.clear()
         for (i in 0 until marchCount) {
@@ -484,11 +633,15 @@ object GameState {
                 status = MarchStatus.valueOf(prefs.getString("AM_${i}_STATUS", "MARCHING")!!),
                 endTime = prefs.getLong("AM_${i}_END", 0L),
                 totalTime = prefs.getLong("AM_${i}_TOT", 0L),
+                gatherEndTime = prefs.getLong("AM_${i}_GEND", 0L),
                 payloadGold = prefs.getLong("AM_${i}_PG", 0L),
                 payloadIron = prefs.getLong("AM_${i}_PI", 0L),
                 payloadWheat = prefs.getLong("AM_${i}_PW", 0L)
             ))
         }
+
+        // 💡 [الجديد] تشغيل المعالجة فور تحميل اللعبة لضمان إرسال التقارير إن تمت معارك أثناء الغياب
+        processActiveMarches(context)
 
         if (isHealing && currentTime >= healingEndTime) {
             isHealing = false
