@@ -1,6 +1,10 @@
 package com.zeekoorg.mobsofglory
 
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 data class PendingMessage(val title: String, val body: String, val iconResId: Int)
@@ -24,7 +28,6 @@ data class ActiveMarch(
     var payloadGold: Long = 0L,
     var payloadIron: Long = 0L,
     var payloadWheat: Long = 0L,
-    // 💡 [الجديد] ذاكرة مؤقتة لحفظ بيانات المعركة حتى يعود الفيلق
     var reportDamage: Long = 0L,
     var reportDead: Long = 0L,
     var reportWounded: Long = 0L,
@@ -57,6 +60,21 @@ data class BattlefieldNode(
 )
 
 object GameState {
+
+    // 💡 [استراتيجية SLG]: الإحصائيات الأساسية للقوات
+    const val INFANTRY_ATK = 15.0
+    const val INFANTRY_DEF = 50.0
+    const val INFANTRY_HP = 120.0
+    const val INFANTRY_LOAD = 25.0
+
+    const val CAVALRY_ATK = 40.0
+    const val CAVALRY_DEF = 20.0
+    const val CAVALRY_HP = 80.0
+    const val CAVALRY_LOAD = 10.0
+
+    // 💡 [الأداء]: معالج خلفي لمنع التقطيع (Lag) أثناء حفظ البيانات
+    private val ioScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
     var playerName: String = "You"
     var selectedAvatarUri: String? = null
     var totalGold: Long = 0; var totalIron: Long = 0; var totalWheat: Long = 0
@@ -102,7 +120,6 @@ object GameState {
     val battlefieldNodes = mutableListOf<BattlefieldNode>()
     
     val activeMarches = mutableListOf<ActiveMarch>()
-    
     val pendingBattleReports = mutableListOf<BattleReport>()
 
     fun isHeroBusy(heroId: Int): Boolean = activeMarches.any { it.heroIds.contains(heroId) }
@@ -110,7 +127,7 @@ object GameState {
     
     fun getHospitalCapacity(): Long {
         val hospitalLvl = myPlots.find { it.idCode == "HOSPITAL" }?.level ?: 1
-        return hospitalLvl * 10000L 
+        return hospitalLvl * 15000L 
     }
 
     fun addQuestProgress(type: QuestType, amount: Int) {
@@ -138,20 +155,20 @@ object GameState {
 
     fun initializeDataLists() {
         if (myHeroes.isEmpty()) {
-            myHeroes.add(Hero(1, "صقر البيداء", 1, 5000, R.drawable.img_hero_1, true, 10, 10, false, Rarity.COMMON)) 
-            myHeroes.add(Hero(2, "ضرغام الليل", 1, 10000, R.drawable.img_hero_2, false, 0, 20, false, Rarity.COMMON))
-            myHeroes.add(Hero(3, "غضب الجبال", 1, 15000, R.drawable.img_hero_3, false, 0, 30, false, Rarity.COMMON))
-            myHeroes.add(Hero(4, "رعد الصحراء", 1, 20000, R.drawable.img_hero_4, false, 0, 50, false, Rarity.RARE))
-            myHeroes.add(Hero(5, "سيف العاصفة", 1, 30000, R.drawable.img_hero_5, false, 0, 80, false, Rarity.RARE))
-            myHeroes.add(Hero(6, "كاسر الأمواج", 1, 40000, R.drawable.img_hero_6, false, 0, 100, false, Rarity.RARE))
-            myHeroes.add(Hero(7, "أميرة الحرب", 1, 50000, R.drawable.img_hero_7, false, 0, 150, false, Rarity.LEGENDARY))
-            myHeroes.add(Hero(8, "ساحرة المجد", 1, 70000, R.drawable.img_hero_8, false, 0, 200, false, Rarity.LEGENDARY))
+            myHeroes.add(Hero(id=1, name="صقر البيداء", iconResId=R.drawable.img_hero_1, isUnlocked=true, shardsOwned=10, shardsRequired=10, rarity=Rarity.COMMON, baseAttackBuff=0.05, baseDefenseBuff=0.05, baseHpBuff=0.05)) 
+            myHeroes.add(Hero(id=2, name="ضرغام الليل", iconResId=R.drawable.img_hero_2, isUnlocked=false, shardsOwned=0, shardsRequired=20, rarity=Rarity.COMMON, baseAttackBuff=0.08, baseDefenseBuff=0.02, baseHpBuff=0.04))
+            myHeroes.add(Hero(id=3, name="غضب الجبال", iconResId=R.drawable.img_hero_3, isUnlocked=false, shardsOwned=0, shardsRequired=30, rarity=Rarity.COMMON, baseAttackBuff=0.02, baseDefenseBuff=0.10, baseHpBuff=0.10))
+            myHeroes.add(Hero(id=4, name="رعد الصحراء", iconResId=R.drawable.img_hero_4, isUnlocked=false, shardsOwned=0, shardsRequired=50, rarity=Rarity.RARE, baseAttackBuff=0.15, baseDefenseBuff=0.05, baseHpBuff=0.05, baseSpeedBuff=0.10))
+            myHeroes.add(Hero(id=5, name="سيف العاصفة", iconResId=R.drawable.img_hero_5, isUnlocked=false, shardsOwned=0, shardsRequired=80, rarity=Rarity.RARE, baseAttackBuff=0.20, baseDefenseBuff=0.0, baseHpBuff=0.05))
+            myHeroes.add(Hero(id=6, name="كاسر الأمواج", iconResId=R.drawable.img_hero_6, isUnlocked=false, shardsOwned=0, shardsRequired=100, rarity=Rarity.RARE, baseAttackBuff=0.10, baseDefenseBuff=0.15, baseHpBuff=0.15))
+            myHeroes.add(Hero(id=7, name="أميرة الحرب", iconResId=R.drawable.img_hero_7, isUnlocked=false, shardsOwned=0, shardsRequired=150, rarity=Rarity.LEGENDARY, baseAttackBuff=0.25, baseDefenseBuff=0.25, baseHpBuff=0.20, baseSpeedBuff=0.15))
+            myHeroes.add(Hero(id=8, name="ساحرة المجد", iconResId=R.drawable.img_hero_8, isUnlocked=false, shardsOwned=0, shardsRequired=200, rarity=Rarity.LEGENDARY, baseAttackBuff=0.40, baseDefenseBuff=0.10, baseHpBuff=0.10))
         }
         if (arsenal.isEmpty()) {
-            arsenal.add(Weapon(1, "سيف اللهب الملعون", 15000, R.drawable.ic_weapon_flame_sword, 1, Rarity.RARE))
-            arsenal.add(Weapon(2, "فأس الجليد", 30000, R.drawable.ic_weapon_ice_axe, 1, Rarity.RARE))
-            arsenal.add(Weapon(3, "درع الجبابرة", 50000, R.drawable.ic_weapon_titan_shield, 1, Rarity.LEGENDARY))
-            arsenal.add(Weapon(4, "رمح التنين الأسطوري", 100000, R.drawable.ic_weapon_dragon_spear, 1, Rarity.LEGENDARY))
+            arsenal.add(Weapon(1, "سيف اللهب الملعون", R.drawable.ic_weapon_flame_sword, rarity=Rarity.RARE, baseWeaponAttackBuff=0.15, baseWeaponDefenseBuff=0.0))
+            arsenal.add(Weapon(2, "فأس الجليد", R.drawable.ic_weapon_ice_axe, rarity=Rarity.RARE, baseWeaponAttackBuff=0.10, baseWeaponDefenseBuff=0.05))
+            arsenal.add(Weapon(3, "درع الجبابرة", R.drawable.ic_weapon_titan_shield, rarity=Rarity.LEGENDARY, baseWeaponAttackBuff=0.0, baseWeaponDefenseBuff=0.30))
+            arsenal.add(Weapon(4, "رمح التنين الأسطوري", R.drawable.ic_weapon_dragon_spear, rarity=Rarity.LEGENDARY, baseWeaponAttackBuff=0.35, baseWeaponDefenseBuff=0.0))
         }
         
         if (dailyQuestsList.isEmpty()) {
@@ -203,7 +220,8 @@ object GameState {
         for (i in 0 until 8) {
             val t = types[i]
             if (t == NodeType.ENEMY_CASTLE) {
-                val basePower = (100000L * level) + (level.toLong() * level.toLong() * 15000L) + Random.nextLong(20000, 80000)
+                // محاكاة قوة العدو لتكون تحدياً حقيقياً
+                val basePower = (200000L * level) + (level.toLong() * level.toLong() * 25000L) + Random.nextLong(20000, 80000)
                 val nodeLevel = level + Random.nextInt(0, 3)
                 val imgName = selectedCastleImages[castleImageIndex]
                 castleImageIndex++
@@ -211,7 +229,7 @@ object GameState {
                 battlefieldNodes.add(BattlefieldNode(i, t, basePower, basePower, nodeLevel, false, 0L, 0L, imgName))
             } else {
                 val farmLevel = level + Random.nextInt(0, 3)
-                val resAmount = (farmLevel * 5000L) + Random.nextLong(2000, 8000) 
+                val resAmount = (farmLevel * 8000L) + Random.nextLong(2000, 8000) 
                 val imgName = when(t) {
                     NodeType.GOLD_MINE -> "img_node_gold"
                     NodeType.IRON_MINE -> "img_node_iron"
@@ -256,13 +274,13 @@ object GameState {
     }
 
     fun calculateLegionPower() {
-        var heroesPower: Long = 0
-        myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { heroesPower += it.getCurrentPower() }
-        var weaponsPower: Long = 0
-        arsenal.filter { it.isOwned && it.isEquipped }.forEach { weaponsPower += it.getCurrentPower() }
+        var heroAtkBuff = 0.0
+        var wpAtkBuff = 0.0
+        myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { heroAtkBuff += it.getCurrentAttackBuff() }
+        arsenal.filter { it.isOwned && it.isEquipped }.forEach { wpAtkBuff += it.getCurrentAttackBuff() }
         
-        val buffPercentage = (heroesPower + weaponsPower).toDouble() / 100000.0 
-        legionPower = (totalTroopsPower * (1.0 + buffPercentage)).toLong()
+        val totalBuff = heroAtkBuff + wpAtkBuff
+        legionPower = (totalTroopsPower * (1.0 + totalBuff)).toLong()
     }
 
     fun checkPlayerLevelUp(isOffline: Boolean = false): Boolean {
@@ -297,6 +315,7 @@ object GameState {
         }
     }
 
+    // 💡 [القلب النابض] محرك المعارك المحدث بنظام CoK والعمليات الخلفية لمنع التقطيع
     fun processActiveMarches(context: Context): Boolean {
         val now = System.currentTimeMillis()
         val iterator = activeMarches.iterator()
@@ -311,61 +330,92 @@ object GameState {
                 if (node == null) { iterator.remove(); continue }
 
                 if (march.type == MarchType.ATTACK) {
-                    var heroPwr = 0L; var wpPwr = 0L
-                    march.heroIds.forEach { id -> myHeroes.find { it.id == id }?.let { heroPwr += it.getCurrentPower() } }
-                    march.weaponIds.forEach { id -> arsenal.find { it.id == id }?.let { wpPwr += it.getCurrentPower() } }
                     
-                    val baseTroopPower = (march.infantryCount * 5) + (march.cavalryCount * 10)
-                    val buffPercentage = (heroPwr + wpPwr).toDouble() / 100000.0 
-                    val myPower = (baseTroopPower * (1.0 + buffPercentage)).toLong()
-
-                    var woundedPct = 0.0
-                    var deadPct = 0.0
-                    var isVictory = false
-
-                    if (myPower >= node.currentPower * 2) {
-                        isVictory = true
-                        woundedPct = 0.02
-                        deadPct = 0.0
-                    } else if (myPower >= node.currentPower) {
-                        isVictory = true
-                        woundedPct = 0.10
-                        deadPct = 0.05
-                    } else {
-                        isVictory = false
-                        woundedPct = 0.30
-                        deadPct = 0.10
+                    // 1. حساب الـ Buffs من الأبطال والأسلحة
+                    var heroAtkBuff = 0.0; var heroDefBuff = 0.0; var heroHpBuff = 0.0
+                    march.heroIds.forEach { id -> 
+                        myHeroes.find { it.id == id }?.let { 
+                            heroAtkBuff += it.getCurrentAttackBuff(); heroDefBuff += it.getCurrentDefenseBuff(); heroHpBuff += it.getCurrentHpBuff() 
+                        } 
                     }
+                    
+                    var wpAtkBuff = 0.0; var wpDefBuff = 0.0
+                    march.weaponIds.forEach { id -> 
+                        arsenal.find { it.id == id }?.let { 
+                            wpAtkBuff += it.getCurrentAttackBuff(); wpDefBuff += it.getCurrentDefenseBuff() 
+                        } 
+                    }
+
+                    val totalAtkBuff = 1.0 + heroAtkBuff + wpAtkBuff
+                    val totalDefBuff = 1.0 + heroDefBuff + wpDefBuff
+                    val totalHpBuff = 1.0 + heroHpBuff
+
+                    // 2. حساب إجمالي الهجوم والدفاع والصحة لفيلقك
+                    val myTotalAtk = ((march.infantryCount * INFANTRY_ATK) + (march.cavalryCount * CAVALRY_ATK)) * totalAtkBuff
+                    val myTotalDef = ((march.infantryCount * INFANTRY_DEF) + (march.cavalryCount * CAVALRY_DEF)) * totalDefBuff
+                    val myTotalHp = ((march.infantryCount * INFANTRY_HP) + (march.cavalryCount * CAVALRY_HP)) * totalHpBuff
+
+                    // 3. تقدير إحصائيات العدو بناءً على قوته (محاكاة ذكية)
+                    val enemyAtk = node.currentPower * 0.15
+                    val enemyDef = node.currentPower * 0.10
+                    val enemyHp = node.currentPower * 1.5
+
+                    // 4. معادلة "انتقام السلاطين" لتخفيف الضرر بناءً على الدفاع
+                    val dmgMultiplierToEnemy = 1.0 - (enemyDef / (enemyDef + 5000.0))
+                    val actualDmgToEnemy = myTotalAtk * dmgMultiplierToEnemy
+
+                    val dmgMultiplierToMe = 1.0 - (myTotalDef / (myTotalDef + 5000.0))
+                    val actualDmgToMe = enemyAtk * dmgMultiplierToMe
+
+                    // 5. تحديد نتيجة المعركة
+                    val isVictory = actualDmgToEnemy >= enemyHp || actualDmgToEnemy > actualDmgToMe
 
                     if (isVictory) {
                         node.isDefeated = true
                         node.currentPower = 0
-                        val survivedInf = march.infantryCount - (march.infantryCount * (woundedPct + deadPct)).toLong()
-                        val survivedCav = march.cavalryCount - (march.cavalryCount * (woundedPct + deadPct)).toLong()
-                        val maxLootCapacity = (survivedInf * 15) + (survivedCav * 10)
                         
+                        // الغنائم بناءً على سعة حمولة من تبقى من الجنود
+                        val maxLootCapacity = (march.infantryCount * INFANTRY_LOAD) + (march.cavalryCount * CAVALRY_LOAD)
                         val availableLootGold = node.maxPower / 5
                         val availableLootIron = node.maxPower / 3
                         
-                        march.payloadGold = if (maxLootCapacity / 2 >= availableLootGold) availableLootGold else maxLootCapacity / 2
-                        march.payloadIron = if (maxLootCapacity / 2 >= availableLootIron) availableLootIron else maxLootCapacity / 2
+                        march.payloadGold = if (maxLootCapacity / 2 >= availableLootGold) availableLootGold else (maxLootCapacity / 2).toLong()
+                        march.payloadIron = if (maxLootCapacity / 2 >= availableLootIron) availableLootIron else (maxLootCapacity / 2).toLong()
                     } else {
-                        node.currentPower -= myPower
+                        node.currentPower -= actualDmgToEnemy.toLong()
+                        if (node.currentPower < 0) node.currentPower = 0
                         node.lastAttackedTime = now
                     }
 
-                    val infDead = (march.infantryCount * deadPct).toLong()
-                    val cavDead = (march.cavalryCount * deadPct).toLong()
-                    val infWounded = (march.infantryCount * woundedPct).toLong()
-                    val cavWounded = (march.cavalryCount * woundedPct).toLong()
+                    // 6. حساب الخسائر (القتلى والجرحى) بدقة متناهية بناءً على فقدان الـ HP
+                    val totalSent = march.infantryCount + march.cavalryCount
+                    val avgHpPerUnit = ((INFANTRY_HP * totalHpBuff) + (CAVALRY_HP * totalHpBuff)) / 2.0
+                    var totalCasualties = (actualDmgToMe / avgHpPerUnit).toLong()
+                    
+                    if (totalCasualties > totalSent) totalCasualties = totalSent
+                    if (totalCasualties < 0) totalCasualties = 0
+
+                    val infRatio = if (totalSent > 0) march.infantryCount.toDouble() / totalSent else 0.0
+                    val cavRatio = if (totalSent > 0) march.cavalryCount.toDouble() / totalSent else 0.0
+
+                    val infCasualties = (totalCasualties * infRatio).toLong()
+                    val cavCasualties = (totalCasualties * cavRatio).toLong()
+
+                    // في حال الفوز الخسارة تكون طفيفة (معظمهم جرحى)، في حال الهزيمة الخسارة فادحة
+                    val deadRate = if (isVictory) 0.10 else 0.35 
+                    
+                    val infDead = (infCasualties * deadRate).toLong()
+                    val cavDead = (cavCasualties * deadRate).toLong()
+                    val infWounded = infCasualties - infDead
+                    val cavWounded = cavCasualties - cavDead
                     val totalNewWounded = infWounded + cavWounded
 
+                    // 7. منطق دار الشفاء (المستشفى)
                     val hospitalCap = getHospitalCapacity()
                     val currentWounded = woundedInfantry + woundedCavalry
                     val availableSpace = hospitalCap - currentWounded
 
-                    var admittedInf = 0L
-                    var admittedCav = 0L
+                    var admittedInf = 0L; var admittedCav = 0L
 
                     if (availableSpace > 0) {
                         val spaceToUse = if (totalNewWounded <= availableSpace) totalNewWounded else availableSpace
@@ -377,6 +427,7 @@ object GameState {
                         woundedCavalry += admittedCav
                     }
 
+                    // من لم يجد متسعاً في المستشفى، يموت!
                     val extraDeadInf = infWounded - admittedInf
                     val extraDeadCav = cavWounded - admittedCav
 
@@ -385,28 +436,29 @@ object GameState {
                     if(march.infantryCount < 0) march.infantryCount = 0
                     if(march.cavalryCount < 0) march.cavalryCount = 0
 
-                    val totalDead = infDead + cavDead + extraDeadInf + extraDeadCav
-                    val totalWounded = admittedInf + admittedCav
+                    val finalDead = infDead + cavDead + extraDeadInf + extraDeadCav
+                    val finalWounded = admittedInf + admittedCav
 
-                    // 💡 [الجديد] تخزين معلومات التقرير في الذاكرة المؤقتة للفيلق لحين عودته
-                    march.reportDamage = myPower
-                    march.reportDead = totalDead
-                    march.reportWounded = totalWounded
+                    // 8. حفظ التقرير في الذاكرة المؤقتة للفيلق
+                    march.reportDamage = myTotalAtk.toLong()
+                    march.reportDead = finalDead
+                    march.reportWounded = finalWounded
                     march.reportIsVictory = isVictory
                     march.hasReport = true
 
                     march.status = MarchStatus.RETURNING
                     march.endTime = now + 5000L 
+                    
                 } else {
                     march.status = MarchStatus.GATHERING
                     
-                    val payloadCap = (march.infantryCount * 15) + (march.cavalryCount * 10)
-                    val amountToGather = if (payloadCap >= node.resourceAmount) node.resourceAmount else payloadCap
+                    val payloadCap = (march.infantryCount * INFANTRY_LOAD) + (march.cavalryCount * CAVALRY_LOAD)
+                    val amountToGather = if (payloadCap >= node.resourceAmount) node.resourceAmount else payloadCap.toLong()
                     
-                    var heroBuff = 0.0
-                    march.heroIds.forEach { id -> myHeroes.find { it.id == id }?.let { heroBuff += (it.getCurrentPower() / 100000.0) } }
-                    val gatherSpeedPerSecond = (100.0 * (1.0 + heroBuff)).toLong()
+                    var heroSpeedBuff = 0.0
+                    march.heroIds.forEach { id -> myHeroes.find { it.id == id }?.let { heroSpeedBuff += it.getCurrentSpeedBuff() } }
                     
+                    val gatherSpeedPerSecond = (150.0 * (1.0 + heroSpeedBuff)).toLong()
                     var gatherTimeSeconds = amountToGather / gatherSpeedPerSecond
                     if (gatherTimeSeconds < 10) gatherTimeSeconds = 10L 
                     
@@ -417,8 +469,8 @@ object GameState {
                 needsUpdate = true
                 val node = battlefieldNodes.find { it.id == march.targetNodeId }
                 if (node != null) {
-                    val payloadCap = (march.infantryCount * 15) + (march.cavalryCount * 10)
-                    val amountTaken = if (payloadCap >= node.resourceAmount) node.resourceAmount else payloadCap
+                    val payloadCap = (march.infantryCount * INFANTRY_LOAD) + (march.cavalryCount * CAVALRY_LOAD)
+                    val amountTaken = if (payloadCap >= node.resourceAmount) node.resourceAmount else payloadCap.toLong()
                     node.resourceAmount -= amountTaken
                     if (node.resourceAmount <= 0) node.isDefeated = true
 
@@ -440,7 +492,6 @@ object GameState {
                 totalIron += march.payloadIron
                 totalWheat += march.payloadWheat
 
-                // 💡 [الجديد] إصدار التقرير فقط عند اكتمال عودة الفيلق!
                 if (march.type == MarchType.ATTACK && march.hasReport) {
                     pendingBattleReports.add(BattleReport(
                         title = if (march.reportIsVictory) "انتصار ساحق!" else "هزيمة مريرة",
@@ -468,7 +519,12 @@ object GameState {
             }
         }
 
-        if (needsUpdate) saveGameData(context)
+        // 💡 [الأداء]: إطلاق الحفظ في الخلفية دون تجميد شاشة اللاعب!
+        if (needsUpdate) {
+            ioScope.launch {
+                saveGameData(context)
+            }
+        }
         return needsUpdate
     }
 
@@ -551,7 +607,6 @@ object GameState {
             prefs.putLong("AM_${index}_PI", march.payloadIron)
             prefs.putLong("AM_${index}_PW", march.payloadWheat)
             
-            // 💡 حفظ ذاكرة التقرير لضمان عدم ضياعه عند الخروج من اللعبة
             prefs.putLong("AM_${index}_RDAM", march.reportDamage)
             prefs.putLong("AM_${index}_RDEAD", march.reportDead)
             prefs.putLong("AM_${index}_RWND", march.reportWounded)
