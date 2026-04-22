@@ -14,6 +14,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.DecelerateInterpolator
+import android.view.animation.TranslateAnimation
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -47,7 +48,6 @@ class BattlefieldActivity : AppCompatActivity() {
     private var wheatAnimator: android.animation.ValueAnimator? = null
     private var powerAnimator: android.animation.ValueAnimator? = null
 
-    // 💡 قائمة لتتبع جميع الفيالق المتحركة في الخلفية لمنع التكرار (عودة أو انتقام)
     private val animatingBackgroundMarches = mutableSetOf<Long>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -153,6 +153,7 @@ class BattlefieldActivity : AppCompatActivity() {
             val dynamicResId = resources.getIdentifier(node.imageName, "drawable", packageName)
             
             if (node.type == NodeType.ENEMY_CASTLE) {
+                slot.visibility = View.VISIBLE
                 if (node.isDefeated) {
                     val ruinsId = resources.getIdentifier("img_ruins", "drawable", packageName)
                     img.setImageResource(if (ruinsId != 0) ruinsId else R.drawable.ic_ui_arena)
@@ -165,10 +166,10 @@ class BattlefieldActivity : AppCompatActivity() {
                 }
             } else {
                 if (node.isDefeated) {
-                    img.setImageResource(R.drawable.ic_menu_bag)
-                    img.alpha = 0.3f
-                    badge.text = "تم الجمع"
+                    // 💡 [الجديد] إخفاء المزرعة أو المنجم تماماً إذا انتهت مواردها!
+                    slot.visibility = View.GONE
                 } else {
+                    slot.visibility = View.VISIBLE
                     img.alpha = 1.0f
                     img.setImageResource(if (dynamicResId != 0) dynamicResId else {
                         when (node.type) { NodeType.GOLD_MINE -> R.drawable.ic_resource_gold; NodeType.IRON_MINE -> R.drawable.ic_resource_iron; else -> R.drawable.ic_resource_wheat }
@@ -195,9 +196,9 @@ class BattlefieldActivity : AppCompatActivity() {
                     } else {
                         DialogManager.showGameMessage(this, "مسيرة نشطة", "الفيالق عائدة من هذا الهدف!", R.drawable.ic_ui_formation)
                     }
-                } else if (node.isDefeated) {
+                } else if (node.isDefeated && node.type == NodeType.ENEMY_CASTLE) {
                     DialogManager.showGameMessage(this, "أطلال", "هذا المكان أصبح أثراً بعد عين!", R.drawable.ic_settings_gear)
-                } else {
+                } else if (!node.isDefeated) {
                     showNodeInfoDialog(node, slot)
                 }
             }
@@ -431,15 +432,12 @@ class BattlefieldActivity : AppCompatActivity() {
 
     private fun startMarchAnimation(node: BattlefieldNode, march: ActiveMarch, slot: FrameLayout) {
         val iconSize = 250f 
-        
-        // 💡 [الجديد] إضافة الأنيميشن داخل حاوية الخريطة (mapContainer) لحل مشكلة التداخل (Z-Index)
         val rootLayout = findViewById<ViewGroup>(R.id.mapContainer) ?: return
         
-        // الإحداثيات بالنسبة لحاوية الخريطة
+        // 💡 [الجديد] الانطلاق من خارج الشاشة لتمر من خلف الأشرطة
         val cityX = rootLayout.width / 2f - (iconSize / 2f)
-        val cityY = rootLayout.height.toFloat() - iconSize
+        val cityY = rootLayout.height.toFloat() + 300f 
         
-        // بما أن slot هو ابن مباشر لـ mapContainer، نستخدم إحداثياته مباشرة
         val targetX = slot.x + (slot.width / 2f) - (iconSize / 2f)
         val targetY = slot.y + (slot.height / 2f) - (iconSize / 2f)
 
@@ -460,8 +458,8 @@ class BattlefieldActivity : AppCompatActivity() {
         val dotsHandler = Handler(Looper.getMainLooper())
         val dotsRunnable = object : Runnable {
             override fun run() {
-                createTrailingDots(rootLayout, marchIcon)
-                dotsHandler.postDelayed(this, 150)
+                createTrailingDots(rootLayout, marchIcon, "#DDDDDD")
+                dotsHandler.postDelayed(this, 40) // 💡 [الجديد] سرعة فائقة لتكثيف الغبار
             }
         }
         dotsHandler.post(dotsRunnable)
@@ -503,8 +501,8 @@ class BattlefieldActivity : AppCompatActivity() {
         val dotsHandler = Handler(Looper.getMainLooper())
         val dotsRunnable = object : Runnable {
             override fun run() {
-                createTrailingDots(rootLayout, returnIcon)
-                dotsHandler.postDelayed(this, 150)
+                createTrailingDots(rootLayout, returnIcon, "#DDDDDD")
+                dotsHandler.postDelayed(this, 40)
             }
         }
         dotsHandler.post(dotsRunnable)
@@ -520,7 +518,6 @@ class BattlefieldActivity : AppCompatActivity() {
             }).start()
     }
 
-    // 💡 [الجديد] أنيميشن هجوم العدو الانتقامي على مدينتك
     private fun startRevengeMarchAnimation(rootLayout: ViewGroup, march: ActiveMarch, cityX: Float, cityY: Float, nodeX: Float, nodeY: Float) {
         if (animatingBackgroundMarches.contains(march.id)) return
         animatingBackgroundMarches.add(march.id)
@@ -532,7 +529,7 @@ class BattlefieldActivity : AppCompatActivity() {
             setImageResource(if (enemyImgRes != 0) enemyImgRes else R.drawable.ic_ui_formation)
             layoutParams = ViewGroup.LayoutParams(iconSize.toInt(), iconSize.toInt())
             x = nodeX; y = nodeY; elevation = 50f; scaleX = 0.7f; scaleY = 0.7f
-            if (enemyImgRes == 0) setColorFilter(Color.RED) // صبغة حمراء في حال عدم توفر الصورة
+            if (enemyImgRes == 0) setColorFilter(Color.RED) 
         }
         rootLayout.addView(revengeIcon)
 
@@ -540,7 +537,7 @@ class BattlefieldActivity : AppCompatActivity() {
         val dotsRunnable = object : Runnable {
             override fun run() {
                 createTrailingDots(rootLayout, revengeIcon, "#8B0000") // غبار أحمر لتمييز هجوم العدو
-                dotsHandler.postDelayed(this, 150)
+                dotsHandler.postDelayed(this, 40)
             }
         }
         dotsHandler.post(dotsRunnable)
@@ -552,21 +549,25 @@ class BattlefieldActivity : AppCompatActivity() {
                 override fun onAnimationEnd(animation: Animator) {
                     dotsHandler.removeCallbacks(dotsRunnable) 
                     rootLayout.removeView(revengeIcon) 
-                    triggerHitEffects(cityX, cityY) // دماء تظهر فوق مدينتك!
+                    // 💡 [الجديد] تأثير الدماء يظهر فوق مدينتك
+                    triggerHitEffects(cityX, cityY - 200f) 
                 }
             }).start()
     }
 
     private fun createTrailingDots(rootLayout: ViewGroup, referenceView: View, colorHex: String = "#DDDDDD") {
-        val dot = View(this).apply {
-            layoutParams = ViewGroup.LayoutParams(25, 25) 
-            background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor(colorHex)) }
-            x = referenceView.x + referenceView.width / 2f - 12.5f
-            y = referenceView.y + referenceView.height / 2f - 12.5f
-            elevation = 45f
+        // 💡 [الجديد] توليد نقطتين في كل مرة بتشتت عشوائي لتكثيف سحابة الغبار
+        for (i in 0..1) {
+            val dot = View(this).apply {
+                layoutParams = ViewGroup.LayoutParams(30, 30) // تكبير حجم الغبار
+                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor(colorHex)) }
+                x = referenceView.x + referenceView.width / 2f - 15f + Random.nextInt(-30, 30)
+                y = referenceView.y + referenceView.height / 2f - 15f + Random.nextInt(-30, 30)
+                elevation = 45f
+            }
+            rootLayout.addView(dot)
+            dot.animate().alpha(0f).scaleX(0.4f).scaleY(0.4f).setDuration(500).withEndAction { rootLayout.removeView(dot) }.start()
         }
-        rootLayout.addView(dot)
-        dot.animate().alpha(0f).scaleX(0.5f).scaleY(0.5f).setDuration(600).withEndAction { rootLayout.removeView(dot) }.start()
     }
 
     private fun triggerHitEffects(targetX: Float, targetY: Float) {
@@ -604,10 +605,16 @@ class BattlefieldActivity : AppCompatActivity() {
             if (report.damage > 0) details.append("القوة الهجومية: ${formatResourceNumber(report.damage)}\n")
             if (report.dead > 0 || report.wounded > 0) details.append("القتلى: ${formatResourceNumber(report.dead)} | الجرحى: ${formatResourceNumber(report.wounded)}\n\n")
             if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
-                details.append("الغنائم التي تم حصدها:\n")
+                details.append("الغنائم:\n")
                 if (report.lootGold > 0) details.append("الذهب: ${formatResourceNumber(report.lootGold)}  ")
                 if (report.lootIron > 0) details.append("الحديد: ${formatResourceNumber(report.lootIron)}  ")
                 if (report.lootWheat > 0) details.append("القمح: ${formatResourceNumber(report.lootWheat)}")
+            } else if (report.lootGold < 0 || report.lootIron < 0 || report.lootWheat < 0) {
+                // 💡 [الجديد] عرض الموارد المنهوبة باللون الأحمر
+                details.append("الموارد المنهوبة:\n")
+                if (report.lootGold < 0) details.append("الذهب: ${formatResourceNumber(Math.abs(report.lootGold))}  ")
+                if (report.lootIron < 0) details.append("الحديد: ${formatResourceNumber(Math.abs(report.lootIron))}  ")
+                if (report.lootWheat < 0) details.append("القمح: ${formatResourceNumber(Math.abs(report.lootWheat))}")
             }
             
             SoundManager.playWindowOpen()
@@ -639,14 +646,14 @@ class BattlefieldActivity : AppCompatActivity() {
         })
     }
 
-    // 💡 [تعديل] التقاط المسيرات الخلفية (العودة أو الانتقام) وتحريكها على الخريطة
     private fun checkAndAnimateBackgroundMarches() {
         if (!isActivityResumed) return
         
         val rootLayout = findViewById<ViewGroup>(R.id.mapContainer) ?: return
         val iconSize = 250f
         val cityX = rootLayout.width / 2f - (iconSize / 2f)
-        val cityY = rootLayout.height.toFloat() - iconSize
+        // 💡 [الجديد] العودة إلى أسفل الشاشة تماماً ليمر من خلف الشريط السفلي
+        val cityY = rootLayout.height.toFloat() + 300f 
         
         GameState.activeMarches.filter { !animatingBackgroundMarches.contains(it.id) }.forEach { march ->
             val slotId = resources.getIdentifier("nodeSlot${march.targetNodeId}", "id", packageName)
@@ -684,9 +691,9 @@ class BattlefieldActivity : AppCompatActivity() {
                 } else { badge.text = "مكتمل" }
             } else if (node.type != NodeType.ENEMY_CASTLE) {
                 if (node.isDefeated) {
-                    badge.text = "تم الجمع"
-                    badge.setTextColor(Color.GRAY)
+                    slot.visibility = View.GONE // 💡 إخفاء ديناميكي للحاويات المفرغة
                 } else {
+                    slot.visibility = View.VISIBLE
                     val prefix = when(node.type) { NodeType.GOLD_MINE -> "ذهب"; NodeType.IRON_MINE -> "حديد"; else -> "قمح" }
                     badge.text = "$prefix: ${formatResourceNumber(node.resourceAmount)}"
                     badge.setTextColor(Color.WHITE)
@@ -758,7 +765,6 @@ class BattlefieldActivity : AppCompatActivity() {
         findViewById<View>(R.id.badgeStore)?.visibility = View.VISIBLE
     }
 
-    // 💡 [تحديث] دعم عرض المليارات (B) بقوة القلاع
     private fun formatResourceNumber(num: Long): String = when { 
         num >= 1_000_000_000 -> String.format(Locale.US, "%.1fB", num / 1_000_000_000.0)
         num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0)
