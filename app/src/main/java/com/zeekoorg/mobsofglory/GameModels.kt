@@ -20,38 +20,60 @@ enum class QuestType {
     WATCH_ADS // 💡 نوع جديد لمهمة الإعلانات
 }
 
-enum class Rarity(val powerMultiplier: Double, val costMultiplier: Double, val timeMultiplier: Double) {
+// 💡 تعديل الرتب لتعطي تأثيرات Buff وتكلفة ووقت مضاعف يتناسب مع نظام SLG
+enum class Rarity(val buffMultiplier: Double, val costMultiplier: Double, val timeMultiplier: Double) {
     COMMON(1.0, 1.0, 1.0),
-    RARE(1.5, 2.0, 1.5),
-    LEGENDARY(3.0, 5.0, 3.0)
+    RARE(2.5, 3.0, 2.0),
+    LEGENDARY(6.0, 8.0, 4.0)
 }
 
 data class Hero(
-    val id: Int, val name: String, var level: Int = 1, val basePower: Long, 
+    val id: Int, val name: String, var level: Int = 1, 
     val iconResId: Int, 
     var isUnlocked: Boolean, var shardsOwned: Int, val shardsRequired: Int,
     var isEquipped: Boolean = false,
     val rarity: Rarity = Rarity.COMMON,
-    var isUpgrading: Boolean = false, var upgradeEndTime: Long = 0L, var totalUpgradeTime: Long = 0L
+    var isUpgrading: Boolean = false, var upgradeEndTime: Long = 0L, var totalUpgradeTime: Long = 0L,
+    
+    // 💡 إحصائيات الأبطال بنظام الـ Buffs (نسب مئوية) بدلاً من القوة الخام
+    val baseAttackBuff: Double = 0.05,  // 5% كنسبة أساسية
+    val baseDefenseBuff: Double = 0.05,
+    val baseHpBuff: Double = 0.05,
+    val baseSpeedBuff: Double = 0.0
 ) {
-    fun getCurrentPower(): Long = (basePower + (level * 1000 * rarity.powerMultiplier)).toLong()
-    fun getUpgradeCostGold(): Long = (level.toDouble().pow(2) * 10000 * rarity.costMultiplier).toLong()
+    // دوال حساب الـ Buffs بناءً على المستوى والرتبة
+    fun getCurrentAttackBuff(): Double = baseAttackBuff + (level * 0.01 * rarity.buffMultiplier)
+    fun getCurrentDefenseBuff(): Double = baseDefenseBuff + (level * 0.01 * rarity.buffMultiplier)
+    fun getCurrentHpBuff(): Double = baseHpBuff + (level * 0.01 * rarity.buffMultiplier)
+    fun getCurrentSpeedBuff(): Double = baseSpeedBuff + (level * 0.005 * rarity.buffMultiplier)
+
+    // قوة تقديرية للعرض في الواجهات وقوائم الصدارة
+    fun getCurrentPower(): Long = (level * 2000 * rarity.buffMultiplier).toLong()
+    
+    fun getUpgradeCostGold(): Long = (level.toDouble().pow(2.2) * 10000 * rarity.costMultiplier).toLong()
     fun getUpgradeTimeSeconds(): Long = (level * 300 * rarity.timeMultiplier).toLong()
 }
 
 data class Weapon(
-    val id: Int, val name: String, val basePower: Long, val iconResId: Int,
+    val id: Int, val name: String, val iconResId: Int,
     var level: Int = 1, val rarity: Rarity = Rarity.COMMON,
     var isOwned: Boolean = false, var isEquipped: Boolean = false,
-    var isUpgrading: Boolean = false, var upgradeEndTime: Long = 0L, var totalUpgradeTime: Long = 0L
+    var isUpgrading: Boolean = false, var upgradeEndTime: Long = 0L, var totalUpgradeTime: Long = 0L,
+    
+    // 💡 إحصائيات الأسلحة بنظام الـ Buffs
+    val baseWeaponAttackBuff: Double = 0.05,
+    val baseWeaponDefenseBuff: Double = 0.05
 ) {
-    fun getCurrentPower(): Long = (basePower + (level.toDouble().pow(1.5) * 5000 * rarity.powerMultiplier)).toLong()
-    fun getCostIron(): Long = (level.toDouble().pow(2) * 50000 * rarity.costMultiplier).toLong()
-    fun getCostGold(): Long = (level.toDouble().pow(1.8) * 10000 * rarity.costMultiplier).toLong()
+    fun getCurrentAttackBuff(): Double = baseWeaponAttackBuff + (level * 0.015 * rarity.buffMultiplier)
+    fun getCurrentDefenseBuff(): Double = baseWeaponDefenseBuff + (level * 0.015 * rarity.buffMultiplier)
+    
+    fun getCurrentPower(): Long = (level.toDouble().pow(1.8) * 4000 * rarity.buffMultiplier).toLong()
+    
+    fun getCostIron(): Long = (level.toDouble().pow(2.1) * 45000 * rarity.costMultiplier).toLong()
+    fun getCostGold(): Long = (level.toDouble().pow(1.9) * 10000 * rarity.costMultiplier).toLong()
     fun getUpgradeTimeSeconds(): Long = (level * level * 120 * rarity.timeMultiplier).toLong()
 }
 
-// 💡 تعديل جوهري: إضافة الموارد المتعددة والدعوات الملكية كجوائز في المهام
 data class DynamicQuest(
     val id: Int, val title: String, val type: QuestType, val targetAmount: Int,
     val rewardGold: Long, val rewardWheat: Long = 0L, val rewardIron: Long = 0L, val rewardMedals: Int = 0,
@@ -74,35 +96,36 @@ data class MapPlot(
     var layoutUpgradeProgress: View? = null, var pbUpgrade: ProgressBar? = null, 
     var tvUpgradeTimer: TextView? = null, var collectIcon: ImageView? = null
 ) {
+    // 💡 تعديل المعادلات لتكون تصاعدية أكثر (Exponential Scaling) كلما زاد المستوى
     fun getCostWheat(): Long {
         val base = if (idCode == "CASTLE") 2500.0 else 800.0
-        val exponent = if (level >= 5) 3.2 else 2.0
+        val exponent = if (level >= 10) 3.5 else 2.5
         return (base * level.toDouble().pow(exponent)).toLong()
     }
     
     fun getCostIron(): Long {
         val base = if (idCode == "CASTLE") 2000.0 else 500.0
-        val exponent = if (level >= 5) 3.2 else 2.0
+        val exponent = if (level >= 10) 3.5 else 2.5
         return (base * level.toDouble().pow(exponent)).toLong()
     }
     
     fun getCostGold(): Long {
         val base = if (idCode == "CASTLE") 800.0 else 150.0
-        val exponent = if (level >= 5) 3.0 else 1.8
+        val exponent = if (level >= 10) 3.2 else 2.2
         return (base * level.toDouble().pow(exponent)).toLong()
     }
     
     fun getUpgradeTimeSeconds(): Long {
         val baseTime = if (idCode == "CASTLE") 180.0 else 60.0
-        val exponent = if (level >= 5) 2.5 else 1.5
+        val exponent = if (level >= 10) 2.8 else 1.8
         return (baseTime * level.toDouble().pow(exponent)).toLong()
     } 
 
     fun getReward(): Long {
         return if (resourceType == ResourceType.GOLD) {
-            (level * 100).toLong() 
+            (level * 150).toLong() 
         } else {
-            (level * 200).toLong() 
+            (level * 300).toLong() 
         }
     }
     
@@ -110,14 +133,14 @@ data class MapPlot(
         return when {
             level < 5 -> 500
             level < 10 -> 1000
-            level < 15 -> 2000
-            level < 25 -> 3000
-            else -> 5000
+            level < 15 -> 2500
+            level < 25 -> 5000
+            else -> 10000
         }
     }
 
-    fun getPowerProvided(): Long = (level * 250).toLong()
-    fun getExpReward(): Int = level * 300
+    fun getPowerProvided(): Long = (level * 500).toLong()
+    fun getExpReward(): Int = level * 400
 }
 
 data class ArenaPlayer(
