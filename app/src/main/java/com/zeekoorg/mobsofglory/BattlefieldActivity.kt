@@ -418,7 +418,7 @@ class BattlefieldActivity : AppCompatActivity() {
             background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#CCCCCC")) }
             x = referenceView.x + referenceView.width / 2f
             y = referenceView.y + referenceView.height / 2f
-            elevation = 45dp
+            elevation = 45f
         }
         rootLayout.addView(dot)
         dot.animate().alpha(0f).setDuration(500).withEndAction { rootLayout.removeView(dot) }.start()
