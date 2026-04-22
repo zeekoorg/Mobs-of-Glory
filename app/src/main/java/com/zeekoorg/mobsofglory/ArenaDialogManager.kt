@@ -168,9 +168,25 @@ object ArenaDialogManager {
         val lockWeapons = listOf(null, d.findViewById<View>(R.id.layoutLockWeapon2), d.findViewById<View>(R.id.layoutLockWeapon3), d.findViewById<View>(R.id.layoutLockWeapon4))
         val unlockLevels = listOf(1, 5, 10, 15)
 
+        fun updateFormationPower() {
+            // 💡 [تعديل] حساب القوة الهجومية الدقيقة بناءً على نسب الهجوم (Attack Buffs)
+            var heroAtkBuff = 0.0; var wpAtkBuff = 0.0
+            GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { heroAtkBuff += it.getCurrentAttackBuff() }
+            GameState.arsenal.filter { it.isOwned && it.isEquipped }.forEach { wpAtkBuff += it.getCurrentAttackBuff() }
+            
+            val totalAtkBuff = 1.0 + heroAtkBuff + wpAtkBuff
+            val baseAtkPower = (selectedInfantry * GameState.INFANTRY_ATK) + (selectedCavalry * GameState.CAVALRY_ATK)
+            val totalPower = (baseAtkPower * totalAtkBuff).toLong()
+            
+            tvFormationPower?.text = "قوة الهجوم: ⚔️ ${formatResourceNumber(totalPower)}"
+        }
+
+        seekInfantry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener { override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedInfantry = progress.toLong(); tvInfantrySelected?.text = formatResourceNumber(selectedInfantry); updateFormationPower() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
+        seekCavalry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener { override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedCavalry = progress.toLong(); tvCavalrySelected?.text = formatResourceNumber(selectedCavalry); updateFormationPower() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
+
+
         fun refreshFormationUI() {
-            GameState.calculateLegionPower()
-            tvFormationPower?.text = "قوة الفيلق: ⚔️ ${formatResourceNumber(GameState.legionPower)}"
+            updateFormationPower()
             val equippedHeroes = GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }
             val equippedWeapons = GameState.arsenal.filter { it.isOwned && it.isEquipped }
 
