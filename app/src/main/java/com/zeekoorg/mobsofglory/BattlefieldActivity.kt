@@ -13,7 +13,6 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateInterpolator
-import android.view.animation.Animation
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.TranslateAnimation
 import android.widget.Button
@@ -35,7 +34,7 @@ class BattlefieldActivity : AppCompatActivity() {
     private lateinit var pbPlayerMP: ProgressBar
     private lateinit var imgBattlefieldBackground: ImageView
     private lateinit var tvMainTotalPower: TextView 
-    private lateinit var imgMainPlayerAvatar: ImageView // 💡 [الجديد] ربط صورة اللاعب
+    private lateinit var imgMainPlayerAvatar: ImageView
     
     private val gameHandler = Handler(Looper.getMainLooper())
     private var isActivityResumed = false
@@ -49,6 +48,7 @@ class BattlefieldActivity : AppCompatActivity() {
     private var wheatAnimator: android.animation.ValueAnimator? = null
     private var powerAnimator: android.animation.ValueAnimator? = null
 
+    // 💡 قائمة لتتبع الفيالق العائدة لمنع التكرار
     private val animatingReturnMarches = mutableSetOf<Long>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,9 +74,9 @@ class BattlefieldActivity : AppCompatActivity() {
         isActivityResumed = true
         GameState.calculatePower()
         updateHudUI()
-        updateAvatarImage() // 💡 [الجديد] تحديث الصورة عند العودة
+        updateAvatarImage() 
         renderBattlefield()
-        SoundManager.playBGM(this, R.raw.bgm_arena) // 💡 [تعديل] موسيقى الحرب 
+        SoundManager.playBGM(this, R.raw.bgm_arena) 
         
         checkPendingReports()
     }
@@ -94,7 +94,6 @@ class BattlefieldActivity : AppCompatActivity() {
         pbPlayerMP = findViewById(R.id.pbPlayerMP); imgBattlefieldBackground = findViewById(R.id.imgBattlefieldBackground)
         tvMainTotalPower = findViewById(R.id.tvMainTotalPower)
         
-        // محاولة ربط صورة اللاعب (تأكد من وجود الـ id في الـ xml)
         val avatarView = findViewById<ImageView>(resources.getIdentifier("imgMainPlayerAvatar", "id", packageName))
         if(avatarView != null) imgMainPlayerAvatar = avatarView
 
@@ -110,7 +109,6 @@ class BattlefieldActivity : AppCompatActivity() {
         updateAvatarImage()
     }
     
-    // 💡 [الجديد] دالة تحديث صورة اللاعب
     private fun updateAvatarImage() {
         if (::imgMainPlayerAvatar.isInitialized && GameState.selectedAvatarUri != null) { 
             try { 
@@ -432,13 +430,16 @@ class BattlefieldActivity : AppCompatActivity() {
 
     private fun startMarchAnimation(node: BattlefieldNode, march: ActiveMarch, slot: FrameLayout) {
         val displayMetrics = resources.displayMetrics
-        val cityX = displayMetrics.widthPixels / 2f
-        val cityY = displayMetrics.heightPixels.toFloat()
+        val iconSize = 250f // 💡 [تعديل] حجم الفيلق الضخم الجديد
+
+        // 💡 [الجديد] خصم نصف الحجم للإزاحة (Offset) لضمان المركزية التامة 100%
+        val cityX = displayMetrics.widthPixels / 2f - (iconSize / 2f)
+        val cityY = displayMetrics.heightPixels.toFloat() - iconSize
         
         val loc = IntArray(2)
         slot.getLocationInWindow(loc)
-        val targetX = loc[0].toFloat() + slot.width / 2f
-        val targetY = loc[1].toFloat() + slot.height / 2f
+        val targetX = loc[0].toFloat() + (slot.width / 2f) - (iconSize / 2f)
+        val targetY = loc[1].toFloat() + (slot.height / 2f) - (iconSize / 2f)
 
         val rootLayout = findViewById<ViewGroup>(android.R.id.content)
 
@@ -450,13 +451,13 @@ class BattlefieldActivity : AppCompatActivity() {
         
         val marchIcon = ImageView(this).apply {
             setImageResource(if (goImgRes != 0) goImgRes else R.drawable.ic_ui_formation)
-            layoutParams = FrameLayout.LayoutParams(250, 250) // 💡 [تعديل] تكبير حجم الفيلق
+            layoutParams = FrameLayout.LayoutParams(iconSize.toInt(), iconSize.toInt())
             x = cityX; y = cityY; elevation = 50f
         }
         rootLayout.addView(marchIcon)
         SoundManager.playMarch()
 
-        // 💡 [الجديد] رسم النقاط المتلاشية عبر Timer منفصل
+        // 💡 [الجديد] النقاط المتلاشية تخرج من قلب الفيلق تماماً وبشكل متقطع
         val dotsHandler = Handler(Looper.getMainLooper())
         val dotsRunnable = object : Runnable {
             override fun run() {
@@ -466,11 +467,11 @@ class BattlefieldActivity : AppCompatActivity() {
         }
         dotsHandler.post(dotsRunnable)
 
-        marchIcon.animate().x(targetX).y(targetY).scaleX(0.6f).scaleY(0.6f)
+        marchIcon.animate().x(targetX).y(targetY).scaleX(0.7f).scaleY(0.7f)
             .setDuration(3000).setInterpolator(AccelerateInterpolator())
             .setListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
-                    dotsHandler.removeCallbacks(dotsRunnable) // إيقاف رسم النقاط
+                    dotsHandler.removeCallbacks(dotsRunnable) 
                     rootLayout.removeView(marchIcon)
                     if (march.type == MarchType.ATTACK) { triggerHitEffects(targetX, targetY) }
                     
@@ -486,6 +487,8 @@ class BattlefieldActivity : AppCompatActivity() {
         if (animatingReturnMarches.contains(march.id)) return
         animatingReturnMarches.add(march.id)
 
+        val iconSize = 250f
+
         val backImgRes = if (march.type == MarchType.ATTACK) {
             resources.getIdentifier("ic_legion_attack_back", "drawable", packageName)
         } else {
@@ -494,13 +497,11 @@ class BattlefieldActivity : AppCompatActivity() {
         
         val returnIcon = ImageView(this).apply {
             setImageResource(if (backImgRes != 0) backImgRes else R.drawable.ic_ui_formation)
-            layoutParams = FrameLayout.LayoutParams(250, 250) // 💡 [تعديل] تكبير حجم الفيلق العائد
-            x = targetX; y = targetY; elevation = 50f; scaleX = 0.6f; scaleY = 0.6f
-            rotationY = 180f
+            layoutParams = FrameLayout.LayoutParams(iconSize.toInt(), iconSize.toInt())
+            x = targetX; y = targetY; elevation = 50f; scaleX = 0.7f; scaleY = 0.7f
         }
         rootLayout.addView(returnIcon)
 
-        // 💡 [الجديد] رسم النقاط المتلاشية للمسيرة العائدة
         val dotsHandler = Handler(Looper.getMainLooper())
         val dotsRunnable = object : Runnable {
             override fun run() {
@@ -514,23 +515,24 @@ class BattlefieldActivity : AppCompatActivity() {
             .setDuration(5000).setInterpolator(DecelerateInterpolator())
             .setListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
-                    dotsHandler.removeCallbacks(dotsRunnable) // إيقاف رسم النقاط
+                    dotsHandler.removeCallbacks(dotsRunnable) 
                     rootLayout.removeView(returnIcon) 
-                    animatingReturnMarches.remove(march.id)
+                    // 💡 [الحل القاتل]: لا نقوم بحذف الـ ID أبداً لمنع الازدواجية والتكرار!
                 }
             }).start()
     }
 
     private fun createTrailingDots(rootLayout: ViewGroup, referenceView: View) {
         val dot = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(15, 15)
-            background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#CCCCCC")) }
-            x = referenceView.x + referenceView.width / 2f
-            y = referenceView.y + referenceView.height / 2f
+            layoutParams = FrameLayout.LayoutParams(25, 25) // 💡 تكبير الغبار ليكون واضحاً
+            background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#DDDDDD")) }
+            // 💡 إزاحة النقطة لتخرج من منتصف الصورة الضخمة
+            x = referenceView.x + referenceView.width / 2f - 12.5f
+            y = referenceView.y + referenceView.height / 2f - 12.5f
             elevation = 45f
         }
         rootLayout.addView(dot)
-        dot.animate().alpha(0f).setDuration(500).withEndAction { rootLayout.removeView(dot) }.start()
+        dot.animate().alpha(0f).scaleX(0.5f).scaleY(0.5f).setDuration(600).withEndAction { rootLayout.removeView(dot) }.start()
     }
 
     private fun triggerHitEffects(targetX: Float, targetY: Float) {
@@ -542,13 +544,14 @@ class BattlefieldActivity : AppCompatActivity() {
                 val size = Random.nextInt(20, 60)
                 layoutParams = FrameLayout.LayoutParams(size, size)
                 background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#B03A2E")) }
-                x = targetX; y = targetY; elevation = 60f
+                // 💡 تصحيح موقع الدماء ليتناسب مع المركز الجديد
+                x = targetX + 125f; y = targetY + 125f; elevation = 60f
             }
             root.addView(drop)
             val angle = Math.toRadians(Random.nextDouble(0.0, 360.0))
             val distance = Random.nextDouble(100.0, 500.0)
-            val endX = targetX + (distance * Math.cos(angle)).toFloat()
-            val endY = targetY + (distance * Math.sin(angle)).toFloat()
+            val endX = drop.x + (distance * Math.cos(angle)).toFloat()
+            val endY = drop.y + (distance * Math.sin(angle)).toFloat()
             
             drop.animate().x(endX).y(endY).alpha(0f).scaleX(0.1f).scaleY(0.1f)
                 .setDuration(Random.nextLong(200, 600))
@@ -607,8 +610,10 @@ class BattlefieldActivity : AppCompatActivity() {
         if (!isActivityResumed) return
         
         val displayMetrics = resources.displayMetrics
-        val cityX = displayMetrics.widthPixels / 2f
-        val cityY = displayMetrics.heightPixels.toFloat()
+        val iconSize = 250f
+        val cityX = displayMetrics.widthPixels / 2f - (iconSize / 2f)
+        val cityY = displayMetrics.heightPixels.toFloat() - iconSize
+        
         val rootLayout = findViewById<ViewGroup>(android.R.id.content)
 
         GameState.activeMarches.filter { it.status == MarchStatus.RETURNING && !animatingReturnMarches.contains(it.id) }.forEach { march ->
@@ -618,8 +623,9 @@ class BattlefieldActivity : AppCompatActivity() {
             if (slot != null) {
                 val loc = IntArray(2)
                 slot.getLocationInWindow(loc)
-                val targetX = loc[0].toFloat() + slot.width / 2f
-                val targetY = loc[1].toFloat() + slot.height / 2f
+                // 💡 تصحيح إحداثيات العودة لتتطابق مع الذهاب!
+                val targetX = loc[0].toFloat() + (slot.width / 2f) - (iconSize / 2f)
+                val targetY = loc[1].toFloat() + (slot.height / 2f) - (iconSize / 2f)
                 
                 startReturnMarchAnimation(rootLayout, march, cityX, cityY, targetX, targetY)
             }
