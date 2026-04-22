@@ -658,11 +658,12 @@ object DialogManager {
         d.show()
     }
 
-    fun showStoreDialog(activity: Activity) {
+        fun showStoreDialog(activity: Activity) {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_store)
 
+        // أزرار جلود المدينة (السكنات)
         val btnPyramid = d.findViewById<Button>(R.id.btnBuyPyramid); val btnPeacock = d.findViewById<Button>(R.id.btnBuyPeacock); val btnDiamond = d.findViewById<Button>(R.id.btnBuyDiamond)
         if (GameState.isPyramidUnlocked) { btnPyramid?.text = "مملوكة"; btnPyramid?.isEnabled = false }
         if (GameState.isPeacockUnlocked) { btnPeacock?.text = "مملوكة"; btnPeacock?.isEnabled = false }
@@ -672,6 +673,7 @@ object DialogManager {
         btnPeacock?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 1500000) { GameState.totalGold -= 1500000; GameState.isPeacockUnlocked = true; btnPeacock.text = "مملوكة"; btnPeacock.isEnabled = false; updateUI(activity); GameState.saveGameData(activity); if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_peacock); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
         btnDiamond?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 3000000) { GameState.totalGold -= 3000000; GameState.isDiamondUnlocked = true; btnDiamond.text = "مملوكة"; btnDiamond.isEnabled = false; updateUI(activity); GameState.saveGameData(activity); if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_diamond); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
 
+        // أزرار شراء التسريعات بالذهب
         d.findViewById<Button>(R.id.btnBuySpeedup5m)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 1000) { GameState.totalGold -= 1000; GameState.countSpeedup5m++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_5m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
         d.findViewById<Button>(R.id.btnBuySpeedup15m)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 3000) { GameState.totalGold -= 3000; GameState.countSpeedup15m++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_15m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
         d.findViewById<Button>(R.id.btnBuySpeedup30m)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 5000) { GameState.totalGold -= 5000; GameState.countSpeedup30m++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_30m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
@@ -679,9 +681,69 @@ object DialogManager {
         d.findViewById<Button>(R.id.btnBuySpeedup2h)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 28000) { GameState.totalGold -= 28000; GameState.countSpeedup2h++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_2h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
         d.findViewById<Button>(R.id.btnBuySpeedup8h)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 100000) { GameState.totalGold -= 100000; GameState.countSpeedup8Hour++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_8h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
 
-        d.findViewById<Button>(R.id.btnAdResources)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.addQuestProgress(QuestType.WATCH_ADS, 1); GameState.totalWheat += 50000; GameState.totalIron += 50000; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على 50K قمح و 50K حديد!", R.drawable.ic_resource_iron) }, onAdClosed = {}) } }
-        d.findViewById<Button>(R.id.btnAdGold)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.addQuestProgress(QuestType.WATCH_ADS, 1); GameState.totalGold += 10000; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على 10K ذهب!", R.drawable.ic_resource_gold) }, onAdClosed = {}) } }
+        // --- نظام مكافآت الإعلانات المحدث ---
+
+        // 💰 إعلان الذهب (25,000)
+        d.findViewById<Button>(R.id.btnAdGold)?.setOnClickListener { 
+            SoundManager.playClick()
+            showAdConfirmDialog(activity) { 
+                YandexAdsManager.showRewardedAd(activity, onRewarded = { 
+                    GameState.addQuestProgress(QuestType.WATCH_ADS, 1)
+                    GameState.totalGold += 25000
+                    updateUI(activity)
+                    GameState.saveGameData(activity)
+                    showGameMessage(activity, "مكافأة ملكية", "حصلت على 25K ذهب!", R.drawable.ic_resource_gold)
+                }, onAdClosed = {}) 
+            }
+        }
+
+        // ⛓️ إعلان الحديد (100,000)
+        d.findViewById<Button>(R.id.btnAdIron)?.setOnClickListener { 
+            SoundManager.playClick()
+            showAdConfirmDialog(activity) { 
+                YandexAdsManager.showRewardedAd(activity, onRewarded = { 
+                    GameState.addQuestProgress(QuestType.WATCH_ADS, 1)
+                    GameState.totalIron += 100000
+                    updateUI(activity)
+                    GameState.saveGameData(activity)
+                    showGameMessage(activity, "مكافأة ملكية", "حصلت على 100K حديد!", R.drawable.ic_resource_iron)
+                }, onAdClosed = {}) 
+            }
+        }
+
+        // 🌾 إعلان القمح (100,000)
+        d.findViewById<Button>(R.id.btnAdWheat)?.setOnClickListener { 
+            SoundManager.playClick()
+            showAdConfirmDialog(activity) { 
+                YandexAdsManager.showRewardedAd(activity, onRewarded = { 
+                    GameState.addQuestProgress(QuestType.WATCH_ADS, 1)
+                    GameState.totalWheat += 100000
+                    updateUI(activity)
+                    GameState.saveGameData(activity)
+                    showGameMessage(activity, "مكافأة ملكية", "حصلت على 100K قمح!", R.drawable.ic_resource_wheat)
+                }, onAdClosed = {}) 
+            }
+        }
+
+        // 📦 إعلان صندوق المواد (10K ذهب + 50K حديد + 50K قمح)
+        d.findViewById<Button>(R.id.btnAdMaterialBox)?.setOnClickListener { 
+            SoundManager.playClick()
+            showAdConfirmDialog(activity) { 
+                YandexAdsManager.showRewardedAd(activity, onRewarded = { 
+                    GameState.addQuestProgress(QuestType.WATCH_ADS, 1)
+                    GameState.totalGold += 10000
+                    GameState.totalIron += 50000
+                    GameState.totalWheat += 50000
+                    updateUI(activity)
+                    GameState.saveGameData(activity)
+                    showGameMessage(activity, "صندوق الغنائم", "تم إضافة 10K ذهب و 50K حديد و 50K قمح!", R.drawable.ic_menu_bag)
+                }, onAdClosed = {}) 
+            }
+        }
+
+        // إعلان التسريع
         d.findViewById<Button>(R.id.btnAdSpeedup)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.addQuestProgress(QuestType.WATCH_ADS, 1); GameState.countSpeedup30m++; GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على تسريع 30 دقيقة!", R.drawable.ic_speedup_30m) }, onAdClosed = {}) } }
+
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
 
         d.setOnDismissListener {
