@@ -14,7 +14,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.DecelerateInterpolator
-import android.view.animation.TranslateAnimation
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -48,8 +47,8 @@ class BattlefieldActivity : AppCompatActivity() {
     private var wheatAnimator: android.animation.ValueAnimator? = null
     private var powerAnimator: android.animation.ValueAnimator? = null
 
-    // 💡 قائمة لتتبع الفيالق العائدة لمنع التكرار
-    private val animatingReturnMarches = mutableSetOf<Long>()
+    // 💡 قائمة لتتبع جميع الفيالق المتحركة في الخلفية لمنع التكرار (عودة أو انتقام)
+    private val animatingBackgroundMarches = mutableSetOf<Long>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -189,8 +188,10 @@ class BattlefieldActivity : AppCompatActivity() {
                 if (activeMarch != null) {
                     if (activeMarch.status == MarchStatus.GATHERING) {
                         showRecallConfirmDialog(node, activeMarch)
-                    } else if (activeMarch.status == MarchStatus.MARCHING) {
+                    } else if (activeMarch.status == MarchStatus.MARCHING && activeMarch.type != MarchType.REVENGE) {
                         DialogManager.showGameMessage(this, "مسيرة نشطة", "فيالقك في طريقها لهذا الهدف بالفعل!", R.drawable.ic_ui_formation)
+                    } else if (activeMarch.type == MarchType.REVENGE) {
+                        DialogManager.showGameMessage(this, "هجوم معادٍ!", "هذه القلعة أرسلت جيشاً انتقامياً باتجاه مدينتك! استعد للدفاع!", R.drawable.ic_settings_gear)
                     } else {
                         DialogManager.showGameMessage(this, "مسيرة نشطة", "الفيالق عائدة من هذا الهدف!", R.drawable.ic_ui_formation)
                     }
@@ -312,7 +313,6 @@ class BattlefieldActivity : AppCompatActivity() {
         val unlockLevels = listOf(1, 5, 10, 15)
 
         fun updateMarchStats() {
-            // 💡 [الجديد] حساب النسب المئوية (Buffs) كما في محرك GameState
             var heroAtkBuff = 0.0; var wpAtkBuff = 0.0
             selectedHeroesForMarch.forEach { heroAtkBuff += it.getCurrentAttackBuff() }
             selectedWeaponsForMarch.forEach { wpAtkBuff += it.getCurrentAttackBuff() }
@@ -321,7 +321,6 @@ class BattlefieldActivity : AppCompatActivity() {
             val baseTroopAtk = (selectedInfantry * GameState.INFANTRY_ATK) + (selectedCavalry * GameState.CAVALRY_ATK)
             val totalPower = (baseTroopAtk * totalAtkBuff).toLong()
             
-            // 💡 [الجديد] حساب الحمولة بناءً على ثوابت اللعبة الجديدة
             val totalPayload = (selectedInfantry * GameState.INFANTRY_LOAD) + (selectedCavalry * GameState.CAVALRY_LOAD)
             
             if (isAttack) {
@@ -329,7 +328,7 @@ class BattlefieldActivity : AppCompatActivity() {
             } else {
                 var heroSpeedBuff = 0.0
                 selectedHeroesForMarch.forEach { heroSpeedBuff += it.getCurrentSpeedBuff() }
-                val gatherSpeed = (150.0 * (1.0 + heroSpeedBuff)).toLong() // يتطابق مع معادلة processActiveMarches
+                val gatherSpeed = (150.0 * (1.0 + heroSpeedBuff)).toLong() 
                 tvPower?.text = "سعة الحمولة: ${formatResourceNumber(totalPayload.toLong())} | السرعة: $gatherSpeed/ث"
             }
         }
@@ -431,19 +430,18 @@ class BattlefieldActivity : AppCompatActivity() {
     }
 
     private fun startMarchAnimation(node: BattlefieldNode, march: ActiveMarch, slot: FrameLayout) {
-        val displayMetrics = resources.displayMetrics
-        val iconSize = 250f // 💡 [تعديل] حجم الفيلق الضخم الجديد
-
-        // 💡 [الجديد] خصم نصف الحجم للإزاحة (Offset) لضمان المركزية التامة 100%
-        val cityX = displayMetrics.widthPixels / 2f - (iconSize / 2f)
-        val cityY = displayMetrics.heightPixels.toFloat() - iconSize
+        val iconSize = 250f 
         
-        val loc = IntArray(2)
-        slot.getLocationInWindow(loc)
-        val targetX = loc[0].toFloat() + (slot.width / 2f) - (iconSize / 2f)
-        val targetY = loc[1].toFloat() + (slot.height / 2f) - (iconSize / 2f)
-
-        val rootLayout = findViewById<ViewGroup>(android.R.id.content)
+        // 💡 [الجديد] إضافة الأنيميشن داخل حاوية الخريطة (mapContainer) لحل مشكلة التداخل (Z-Index)
+        val rootLayout = findViewById<ViewGroup>(R.id.mapContainer) ?: return
+        
+        // الإحداثيات بالنسبة لحاوية الخريطة
+        val cityX = rootLayout.width / 2f - (iconSize / 2f)
+        val cityY = rootLayout.height.toFloat() - iconSize
+        
+        // بما أن slot هو ابن مباشر لـ mapContainer، نستخدم إحداثياته مباشرة
+        val targetX = slot.x + (slot.width / 2f) - (iconSize / 2f)
+        val targetY = slot.y + (slot.height / 2f) - (iconSize / 2f)
 
         val goImgRes = if (march.type == MarchType.ATTACK) {
             resources.getIdentifier("ic_legion_attack_go", "drawable", packageName)
@@ -453,13 +451,12 @@ class BattlefieldActivity : AppCompatActivity() {
         
         val marchIcon = ImageView(this).apply {
             setImageResource(if (goImgRes != 0) goImgRes else R.drawable.ic_ui_formation)
-            layoutParams = FrameLayout.LayoutParams(iconSize.toInt(), iconSize.toInt())
+            layoutParams = ViewGroup.LayoutParams(iconSize.toInt(), iconSize.toInt())
             x = cityX; y = cityY; elevation = 50f
         }
         rootLayout.addView(marchIcon)
         SoundManager.playMarch()
 
-        // 💡 [الجديد] النقاط المتلاشية تخرج من قلب الفيلق تماماً وبشكل متقطع
         val dotsHandler = Handler(Looper.getMainLooper())
         val dotsRunnable = object : Runnable {
             override fun run() {
@@ -485,12 +482,11 @@ class BattlefieldActivity : AppCompatActivity() {
             }).start()
     }
 
-    private fun startReturnMarchAnimation(rootLayout: ViewGroup, march: ActiveMarch, cityX: Float, cityY: Float, targetX: Float, targetY: Float) {
-        if (animatingReturnMarches.contains(march.id)) return
-        animatingReturnMarches.add(march.id)
+    private fun startReturnMarchAnimation(rootLayout: ViewGroup, march: ActiveMarch, cityX: Float, cityY: Float, nodeX: Float, nodeY: Float) {
+        if (animatingBackgroundMarches.contains(march.id)) return
+        animatingBackgroundMarches.add(march.id)
 
         val iconSize = 250f
-
         val backImgRes = if (march.type == MarchType.ATTACK) {
             resources.getIdentifier("ic_legion_attack_back", "drawable", packageName)
         } else {
@@ -499,8 +495,8 @@ class BattlefieldActivity : AppCompatActivity() {
         
         val returnIcon = ImageView(this).apply {
             setImageResource(if (backImgRes != 0) backImgRes else R.drawable.ic_ui_formation)
-            layoutParams = FrameLayout.LayoutParams(iconSize.toInt(), iconSize.toInt())
-            x = targetX; y = targetY; elevation = 50f; scaleX = 0.7f; scaleY = 0.7f
+            layoutParams = ViewGroup.LayoutParams(iconSize.toInt(), iconSize.toInt())
+            x = nodeX; y = nodeY; elevation = 50f; scaleX = 0.7f; scaleY = 0.7f
         }
         rootLayout.addView(returnIcon)
 
@@ -513,22 +509,58 @@ class BattlefieldActivity : AppCompatActivity() {
         }
         dotsHandler.post(dotsRunnable)
 
+        val remainingTime = maxOf(100L, march.endTime - System.currentTimeMillis())
         returnIcon.animate().x(cityX).y(cityY).scaleX(1.0f).scaleY(1.0f)
-            .setDuration(5000).setInterpolator(DecelerateInterpolator())
+            .setDuration(remainingTime).setInterpolator(DecelerateInterpolator())
             .setListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
                     dotsHandler.removeCallbacks(dotsRunnable) 
                     rootLayout.removeView(returnIcon) 
-                    // 💡 [الحل القاتل]: لا نقوم بحذف الـ ID أبداً لمنع الازدواجية والتكرار!
                 }
             }).start()
     }
 
-    private fun createTrailingDots(rootLayout: ViewGroup, referenceView: View) {
+    // 💡 [الجديد] أنيميشن هجوم العدو الانتقامي على مدينتك
+    private fun startRevengeMarchAnimation(rootLayout: ViewGroup, march: ActiveMarch, cityX: Float, cityY: Float, nodeX: Float, nodeY: Float) {
+        if (animatingBackgroundMarches.contains(march.id)) return
+        animatingBackgroundMarches.add(march.id)
+
+        val iconSize = 250f
+        val enemyImgRes = resources.getIdentifier("ic_legion_enemy_attack", "drawable", packageName)
+        
+        val revengeIcon = ImageView(this).apply {
+            setImageResource(if (enemyImgRes != 0) enemyImgRes else R.drawable.ic_ui_formation)
+            layoutParams = ViewGroup.LayoutParams(iconSize.toInt(), iconSize.toInt())
+            x = nodeX; y = nodeY; elevation = 50f; scaleX = 0.7f; scaleY = 0.7f
+            if (enemyImgRes == 0) setColorFilter(Color.RED) // صبغة حمراء في حال عدم توفر الصورة
+        }
+        rootLayout.addView(revengeIcon)
+
+        val dotsHandler = Handler(Looper.getMainLooper())
+        val dotsRunnable = object : Runnable {
+            override fun run() {
+                createTrailingDots(rootLayout, revengeIcon, "#8B0000") // غبار أحمر لتمييز هجوم العدو
+                dotsHandler.postDelayed(this, 150)
+            }
+        }
+        dotsHandler.post(dotsRunnable)
+
+        val remainingTime = maxOf(100L, march.endTime - System.currentTimeMillis())
+        revengeIcon.animate().x(cityX).y(cityY).scaleX(1.0f).scaleY(1.0f)
+            .setDuration(remainingTime).setInterpolator(AccelerateInterpolator())
+            .setListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    dotsHandler.removeCallbacks(dotsRunnable) 
+                    rootLayout.removeView(revengeIcon) 
+                    triggerHitEffects(cityX, cityY) // دماء تظهر فوق مدينتك!
+                }
+            }).start()
+    }
+
+    private fun createTrailingDots(rootLayout: ViewGroup, referenceView: View, colorHex: String = "#DDDDDD") {
         val dot = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(25, 25) // 💡 تكبير الغبار ليكون واضحاً
-            background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#DDDDDD")) }
-            // 💡 إزاحة النقطة لتخرج من منتصف الصورة الضخمة
+            layoutParams = ViewGroup.LayoutParams(25, 25) 
+            background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor(colorHex)) }
             x = referenceView.x + referenceView.width / 2f - 12.5f
             y = referenceView.y + referenceView.height / 2f - 12.5f
             elevation = 45f
@@ -540,13 +572,12 @@ class BattlefieldActivity : AppCompatActivity() {
     private fun triggerHitEffects(targetX: Float, targetY: Float) {
         SoundManager.playClash()
         
-        val root = findViewById<ViewGroup>(android.R.id.content)
+        val root = findViewById<ViewGroup>(R.id.mapContainer) ?: return
         for (i in 0..120) {
             val drop = View(this).apply {
                 val size = Random.nextInt(20, 60)
-                layoutParams = FrameLayout.LayoutParams(size, size)
+                layoutParams = ViewGroup.LayoutParams(size, size)
                 background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#B03A2E")) }
-                // 💡 تصحيح موقع الدماء ليتناسب مع المركز الجديد
                 x = targetX + 125f; y = targetY + 125f; elevation = 60f
             }
             root.addView(drop)
@@ -591,7 +622,7 @@ class BattlefieldActivity : AppCompatActivity() {
             override fun run() {
                 val needsUpdate = GameState.processActiveMarches(this@BattlefieldActivity)
                 
-                checkAndAnimateReturningMarches()
+                checkAndAnimateBackgroundMarches()
 
                 if (needsUpdate) {
                     updateHudUI()
@@ -608,28 +639,28 @@ class BattlefieldActivity : AppCompatActivity() {
         })
     }
 
-    private fun checkAndAnimateReturningMarches() {
+    // 💡 [تعديل] التقاط المسيرات الخلفية (العودة أو الانتقام) وتحريكها على الخريطة
+    private fun checkAndAnimateBackgroundMarches() {
         if (!isActivityResumed) return
         
-        val displayMetrics = resources.displayMetrics
+        val rootLayout = findViewById<ViewGroup>(R.id.mapContainer) ?: return
         val iconSize = 250f
-        val cityX = displayMetrics.widthPixels / 2f - (iconSize / 2f)
-        val cityY = displayMetrics.heightPixels.toFloat() - iconSize
+        val cityX = rootLayout.width / 2f - (iconSize / 2f)
+        val cityY = rootLayout.height.toFloat() - iconSize
         
-        val rootLayout = findViewById<ViewGroup>(android.R.id.content)
-
-        GameState.activeMarches.filter { it.status == MarchStatus.RETURNING && !animatingReturnMarches.contains(it.id) }.forEach { march ->
+        GameState.activeMarches.filter { !animatingBackgroundMarches.contains(it.id) }.forEach { march ->
             val slotId = resources.getIdentifier("nodeSlot${march.targetNodeId}", "id", packageName)
             val slot = findViewById<FrameLayout>(slotId)
             
             if (slot != null) {
-                val loc = IntArray(2)
-                slot.getLocationInWindow(loc)
-                // 💡 تصحيح إحداثيات العودة لتتطابق مع الذهاب!
-                val targetX = loc[0].toFloat() + (slot.width / 2f) - (iconSize / 2f)
-                val targetY = loc[1].toFloat() + (slot.height / 2f) - (iconSize / 2f)
+                val nodeX = slot.x + (slot.width / 2f) - (iconSize / 2f)
+                val nodeY = slot.y + (slot.height / 2f) - (iconSize / 2f)
                 
-                startReturnMarchAnimation(rootLayout, march, cityX, cityY, targetX, targetY)
+                if (march.status == MarchStatus.RETURNING) {
+                    startReturnMarchAnimation(rootLayout, march, cityX, cityY, nodeX, nodeY)
+                } else if (march.type == MarchType.REVENGE && march.status == MarchStatus.MARCHING) {
+                    startRevengeMarchAnimation(rootLayout, march, cityX, cityY, nodeX, nodeY)
+                }
             }
         }
     }
@@ -727,5 +758,11 @@ class BattlefieldActivity : AppCompatActivity() {
         findViewById<View>(R.id.badgeStore)?.visibility = View.VISIBLE
     }
 
-    private fun formatResourceNumber(num: Long): String = when { num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0); num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0); else -> num.toString() }
+    // 💡 [تحديث] دعم عرض المليارات (B) بقوة القلاع
+    private fun formatResourceNumber(num: Long): String = when { 
+        num >= 1_000_000_000 -> String.format(Locale.US, "%.1fB", num / 1_000_000_000.0)
+        num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0)
+        num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0)
+        else -> num.toString() 
+    }
 }
