@@ -158,15 +158,15 @@ class BattlefieldActivity : AppCompatActivity() {
                     val ruinsId = resources.getIdentifier("img_ruins", "drawable", packageName)
                     img.setImageResource(if (ruinsId != 0) ruinsId else R.drawable.ic_ui_arena)
                     img.alpha = 0.6f
-                    badge.text = "مُدمرة"
+                    badge.text = "أطلال"
                 } else {
                     img.setImageResource(if (dynamicResId != 0) dynamicResId else R.drawable.ic_ui_arena)
                     img.alpha = 1.0f
-                    badge.text = "قوة: ${formatResourceNumber(node.currentPower)}"
+                    // 💡 [الجديد] عرض اسم اللاعب الوهمي على الخريطة
+                    badge.text = node.playerName
                 }
             } else {
                 if (node.isDefeated) {
-                    // 💡 [الجديد] إخفاء المزرعة أو المنجم تماماً إذا انتهت مواردها!
                     slot.visibility = View.GONE
                 } else {
                     slot.visibility = View.VISIBLE
@@ -217,9 +217,7 @@ class BattlefieldActivity : AppCompatActivity() {
         val btnAction = d.findViewById<Button>(R.id.btnMessageOk)
         
         if (node.type == NodeType.ENEMY_CASTLE) {
-            val fakeNames = listOf("جلاد السلاطين", "فارس الظلام", "شبح الصحراء", "قاهر الجيوش", "ملك الشمال")
-            val fakeName = fakeNames[node.id % fakeNames.size]
-            titleTv?.text = "قلعة العدو: $fakeName"
+            titleTv?.text = "قلعة: [${node.playerName}]"
             bodyTv?.text = "المستوى: ${node.level}\nالقوة: ${formatResourceNumber(node.currentPower)}"
             iconImg?.setImageResource(R.drawable.ic_ui_arena)
             btnAction?.text = "هجوم ⚔️"
@@ -434,7 +432,6 @@ class BattlefieldActivity : AppCompatActivity() {
         val iconSize = 250f 
         val rootLayout = findViewById<ViewGroup>(R.id.mapContainer) ?: return
         
-        // 💡 [الجديد] الانطلاق من خارج الشاشة لتمر من خلف الأشرطة
         val cityX = rootLayout.width / 2f - (iconSize / 2f)
         val cityY = rootLayout.height.toFloat() + 300f 
         
@@ -459,7 +456,7 @@ class BattlefieldActivity : AppCompatActivity() {
         val dotsRunnable = object : Runnable {
             override fun run() {
                 createTrailingDots(rootLayout, marchIcon, "#DDDDDD")
-                dotsHandler.postDelayed(this, 40) // 💡 [الجديد] سرعة فائقة لتكثيف الغبار
+                dotsHandler.postDelayed(this, 40)
             }
         }
         dotsHandler.post(dotsRunnable)
@@ -536,7 +533,7 @@ class BattlefieldActivity : AppCompatActivity() {
         val dotsHandler = Handler(Looper.getMainLooper())
         val dotsRunnable = object : Runnable {
             override fun run() {
-                createTrailingDots(rootLayout, revengeIcon, "#8B0000") // غبار أحمر لتمييز هجوم العدو
+                createTrailingDots(rootLayout, revengeIcon, "#8B0000") 
                 dotsHandler.postDelayed(this, 40)
             }
         }
@@ -549,17 +546,16 @@ class BattlefieldActivity : AppCompatActivity() {
                 override fun onAnimationEnd(animation: Animator) {
                     dotsHandler.removeCallbacks(dotsRunnable) 
                     rootLayout.removeView(revengeIcon) 
-                    // 💡 [الجديد] تأثير الدماء يظهر فوق مدينتك
-                    triggerHitEffects(cityX, cityY - 200f) 
+                    // 💡 [الجديد] تأثير التصادم الدموي فوق مدينتك!
+                    triggerHitEffects(cityX, cityY) 
                 }
             }).start()
     }
 
     private fun createTrailingDots(rootLayout: ViewGroup, referenceView: View, colorHex: String = "#DDDDDD") {
-        // 💡 [الجديد] توليد نقطتين في كل مرة بتشتت عشوائي لتكثيف سحابة الغبار
         for (i in 0..1) {
             val dot = View(this).apply {
-                layoutParams = ViewGroup.LayoutParams(30, 30) // تكبير حجم الغبار
+                layoutParams = ViewGroup.LayoutParams(30, 30) 
                 background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor(colorHex)) }
                 x = referenceView.x + referenceView.width / 2f - 15f + Random.nextInt(-30, 30)
                 y = referenceView.y + referenceView.height / 2f - 15f + Random.nextInt(-30, 30)
@@ -572,7 +568,6 @@ class BattlefieldActivity : AppCompatActivity() {
 
     private fun triggerHitEffects(targetX: Float, targetY: Float) {
         SoundManager.playClash()
-        
         val root = findViewById<ViewGroup>(R.id.mapContainer) ?: return
         for (i in 0..120) {
             val drop = View(this).apply {
@@ -594,34 +589,85 @@ class BattlefieldActivity : AppCompatActivity() {
         }
     }
 
+    // 💡 [الجديد] معالجة التقارير بشكل متسلسل ومستقل لمنع التداخل والانهيار
     private fun checkPendingReports() {
         if (!isActivityResumed) return
         
-        val iterator = GameState.pendingBattleReports.iterator()
-        while (iterator.hasNext()) {
-            val report = iterator.next()
-            val details = StringBuilder()
-            
-            if (report.damage > 0) details.append("القوة الهجومية: ${formatResourceNumber(report.damage)}\n")
-            if (report.dead > 0 || report.wounded > 0) details.append("القتلى: ${formatResourceNumber(report.dead)} | الجرحى: ${formatResourceNumber(report.wounded)}\n\n")
-            if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
-                details.append("الغنائم:\n")
-                if (report.lootGold > 0) details.append("الذهب: ${formatResourceNumber(report.lootGold)}  ")
-                if (report.lootIron > 0) details.append("الحديد: ${formatResourceNumber(report.lootIron)}  ")
-                if (report.lootWheat > 0) details.append("القمح: ${formatResourceNumber(report.lootWheat)}")
-            } else if (report.lootGold < 0 || report.lootIron < 0 || report.lootWheat < 0) {
-                // 💡 [الجديد] عرض الموارد المنهوبة باللون الأحمر
-                details.append("الموارد المنهوبة:\n")
-                if (report.lootGold < 0) details.append("الذهب: ${formatResourceNumber(Math.abs(report.lootGold))}  ")
-                if (report.lootIron < 0) details.append("الحديد: ${formatResourceNumber(Math.abs(report.lootIron))}  ")
-                if (report.lootWheat < 0) details.append("القمح: ${formatResourceNumber(Math.abs(report.lootWheat))}")
-            }
-            
-            SoundManager.playWindowOpen()
-            DialogManager.showGameMessage(this, report.title, report.message + "\n\n" + details.toString(), if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation)
-            iterator.remove()
+        if (GameState.pendingBattleReports.isNotEmpty()) {
+            val report = GameState.pendingBattleReports.removeAt(0) // سحب أول تقرير فقط
+            GameState.saveGameData(this)
+            showBattleReportDialog(report)
         }
-        GameState.saveGameData(this)
+    }
+
+    // 💡 [الجديد] نافذة التقرير المخصصة مع المستمعات الذكية للتحذير والانتقام
+    private fun showBattleReportDialog(report: BattleReport) {
+        SoundManager.playWindowOpen()
+        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_game_message)
+        
+        val details = StringBuilder()
+        if (report.damage > 0) details.append("القوة الهجومية: ${formatResourceNumber(report.damage)}\n")
+        if (report.dead > 0 || report.wounded > 0) details.append("القتلى: ${formatResourceNumber(report.dead)} | الجرحى: ${formatResourceNumber(report.wounded)}\n\n")
+        
+        if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
+            details.append("الغنائم:\n")
+            if (report.lootIron > 0) details.append("الحديد: ${formatResourceNumber(report.lootIron)}  ")
+            if (report.lootWheat > 0) details.append("القمح: ${formatResourceNumber(report.lootWheat)}")
+        } else if (report.lootGold < 0 || report.lootIron < 0 || report.lootWheat < 0) {
+            details.append("الموارد المنهوبة:\n")
+            if (report.lootIron < 0) details.append("الحديد: ${formatResourceNumber(Math.abs(report.lootIron))}  ")
+            if (report.lootWheat < 0) details.append("القمح: ${formatResourceNumber(Math.abs(report.lootWheat))}")
+        }
+        
+        d.findViewById<TextView>(R.id.tvMessageTitle)?.text = report.title
+        d.findViewById<TextView>(R.id.tvMessageBody)?.text = report.message + "\n\n" + details.toString()
+        d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation)
+        
+        d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener { 
+            SoundManager.playClick()
+            d.dismiss() 
+        }
+        
+        d.setOnDismissListener {
+            // 💡 المستمع: إذا كان التقرير يشير لوجود انتقام، نعرض التحذير، وإلا نكمل فحص باقي التقارير
+            if (report.hasRevenge && report.revengeNodeId != -1) {
+                showRevengeWarningDialog(report.revengeNodeId)
+            } else {
+                checkPendingReports()
+            }
+        }
+        d.show()
+    }
+
+    // 💡 [الجديد] نافذة التحذير المرعبة تظهر قبل إطلاق الفيلق الانتقامي
+    private fun showRevengeWarningDialog(nodeId: Int) {
+        SoundManager.playWindowOpen()
+        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_game_message)
+        
+        val tvTitle = d.findViewById<TextView>(R.id.tvMessageTitle)
+        tvTitle?.text = "⚠️ تحذير هجوم وشيك ⚠️"
+        tvTitle?.setTextColor(Color.parseColor("#FF5252")) // لون أحمر للتهديد
+        
+        d.findViewById<TextView>(R.id.tvMessageBody)?.text = "العدو لم يُهزم! لقد قام بحشد قواته المتبقية وهو في طريقه الآن للانتقام من مدينتك!\n\nتجهز للدفاع فوراً!"
+        d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(R.drawable.ic_settings_gear) // يمكن استخدام أيقونة تحذير
+        
+        val btn = d.findViewById<Button>(R.id.btnMessageOk)
+        btn?.text = "حسناً، لنجعله يندم!"
+        btn?.setBackgroundResource(R.drawable.bg_btn_gold_border)
+        
+        btn?.setOnClickListener {
+            SoundManager.playClick()
+            d.dismiss()
+        }
+        
+        d.setOnDismissListener {
+            // 💡 المستمع: ينطلق الفيلق بمجرد إغلاق نافذة التحذير!
+            GameState.triggerRevengeMarch(nodeId)
+            checkPendingReports() // نكمل مع أي تقارير أخرى متأخرة
+        }
+        d.show()
     }
 
     private fun startGameLoop() {
@@ -639,7 +685,10 @@ class BattlefieldActivity : AppCompatActivity() {
                     updateDynamicTimers()
                 }
                 
-                checkPendingReports()
+                // الفحص يتم دورياً للتقارير التي لم يتم التقاطها (كالهجوم الذي تتعرض له وأنت هنا)
+                if(GameState.pendingBattleReports.isNotEmpty() && isActivityResumed) {
+                   checkPendingReports() 
+                }
                 
                 gameHandler.postDelayed(this, 1000L)
             }
@@ -652,7 +701,6 @@ class BattlefieldActivity : AppCompatActivity() {
         val rootLayout = findViewById<ViewGroup>(R.id.mapContainer) ?: return
         val iconSize = 250f
         val cityX = rootLayout.width / 2f - (iconSize / 2f)
-        // 💡 [الجديد] العودة إلى أسفل الشاشة تماماً ليمر من خلف الشريط السفلي
         val cityY = rootLayout.height.toFloat() + 300f 
         
         GameState.activeMarches.filter { !animatingBackgroundMarches.contains(it.id) }.forEach { march ->
@@ -691,7 +739,7 @@ class BattlefieldActivity : AppCompatActivity() {
                 } else { badge.text = "مكتمل" }
             } else if (node.type != NodeType.ENEMY_CASTLE) {
                 if (node.isDefeated) {
-                    slot.visibility = View.GONE // 💡 إخفاء ديناميكي للحاويات المفرغة
+                    slot.visibility = View.GONE 
                 } else {
                     slot.visibility = View.VISIBLE
                     val prefix = when(node.type) { NodeType.GOLD_MINE -> "ذهب"; NodeType.IRON_MINE -> "حديد"; else -> "قمح" }
