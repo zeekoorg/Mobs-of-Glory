@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity() {
     
     private val gameHandler = Handler(Looper.getMainLooper())
     private var doubleBackToExitPressedOnce = false
-    private var isActivityResumed = false // 💡 حماية معمارية لمنع الانهيار (Crash)
+    private var isActivityResumed = false 
 
     private var displayedGold = -1L
     private var displayedIron = -1L
@@ -103,7 +103,6 @@ class MainActivity : AppCompatActivity() {
         
         checkPendingLevelUps()
         showPendingOfflineMessages()
-        checkPendingReports() // 💡 فحص صندوق البريد فور التشغيل
 
         Handler(Looper.getMainLooper()).postDelayed({
             checkAndRunSpotlightTutorial()
@@ -196,7 +195,7 @@ class MainActivity : AppCompatActivity() {
         GameState.calculatePower()
         updateHudUI()
         SoundManager.playBGM(this, R.raw.bgm_city)
-        checkPendingReports() // 💡 استلام التقارير فور العودة للواجهة
+        checkPendingReports() 
         Handler(Looper.getMainLooper()).postDelayed({ checkAndRunSpotlightTutorial() }, 500)
     }
 
@@ -266,7 +265,6 @@ class MainActivity : AppCompatActivity() {
         } 
     }
 
-    // 💡 تفريغ صندوق البريد وإظهار التقارير الفورية
     private fun checkPendingReports() {
         if (!isActivityResumed) return
         
@@ -386,12 +384,13 @@ class MainActivity : AppCompatActivity() {
                     tvWeeklyTimerUI.text = if (d > 0) String.format(Locale.US, "%dيوم %02d:%02d:%02d", d, h, m, s) else String.format(Locale.US, "%02d:%02d:%02d", h, m, s)
                 } else tvWeeklyTimerUI.text = "تحديث..."
 
-                // 💡 [الجديد] معالجة مسيرات الجيوش في الخلفية وأنت داخل مدينتك!
                 val needsUpdate = GameState.processActiveMarches(this@MainActivity)
                 if (needsUpdate) {
                     updateHudUI()
-                    checkPendingReports()
                 }
+
+                // 💡 [الجديد] الفحص المستمر الذكي لصندوق التقارير
+                checkPendingReports()
 
                 if (GameState.isHealing) {
                     val remHeal = GameState.healingEndTime - now; val hospitalPlot = GameState.myPlots.find { it.idCode == "HOSPITAL" }
