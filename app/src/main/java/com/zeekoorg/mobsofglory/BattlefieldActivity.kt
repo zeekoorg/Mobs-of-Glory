@@ -312,23 +312,25 @@ class BattlefieldActivity : AppCompatActivity() {
         val unlockLevels = listOf(1, 5, 10, 15)
 
         fun updateMarchStats() {
-            var heroPwr = 0L; var wpPwr = 0L
-            selectedHeroesForMarch.forEach { heroPwr += it.getCurrentPower() }
-            selectedWeaponsForMarch.forEach { wpPwr += it.getCurrentPower() }
+            // 💡 [الجديد] حساب النسب المئوية (Buffs) كما في محرك GameState
+            var heroAtkBuff = 0.0; var wpAtkBuff = 0.0
+            selectedHeroesForMarch.forEach { heroAtkBuff += it.getCurrentAttackBuff() }
+            selectedWeaponsForMarch.forEach { wpAtkBuff += it.getCurrentAttackBuff() }
             
-            val baseTroopPower = (selectedInfantry * 5) + (selectedCavalry * 10)
-            val buffPercentage = (heroPwr + wpPwr).toDouble() / 100000.0 
-            val totalPower = (baseTroopPower * (1.0 + buffPercentage)).toLong()
+            val totalAtkBuff = 1.0 + heroAtkBuff + wpAtkBuff
+            val baseTroopAtk = (selectedInfantry * GameState.INFANTRY_ATK) + (selectedCavalry * GameState.CAVALRY_ATK)
+            val totalPower = (baseTroopAtk * totalAtkBuff).toLong()
             
-            val totalPayload = (selectedInfantry * 15) + (selectedCavalry * 10)
+            // 💡 [الجديد] حساب الحمولة بناءً على ثوابت اللعبة الجديدة
+            val totalPayload = (selectedInfantry * GameState.INFANTRY_LOAD) + (selectedCavalry * GameState.CAVALRY_LOAD)
             
             if (isAttack) {
                 tvPower?.text = "القوة الهجومية: ${formatResourceNumber(totalPower)}"
             } else {
-                var heroBuff = 0.0
-                selectedHeroesForMarch.forEach { heroBuff += (it.getCurrentPower() / 100000.0) }
-                val gatherSpeed = (100.0 * (1.0 + heroBuff)).toLong()
-                tvPower?.text = "سعة الحمولة: ${formatResourceNumber(totalPayload)} | السرعة: $gatherSpeed/ث"
+                var heroSpeedBuff = 0.0
+                selectedHeroesForMarch.forEach { heroSpeedBuff += it.getCurrentSpeedBuff() }
+                val gatherSpeed = (150.0 * (1.0 + heroSpeedBuff)).toLong() // يتطابق مع معادلة processActiveMarches
+                tvPower?.text = "سعة الحمولة: ${formatResourceNumber(totalPayload.toLong())} | السرعة: $gatherSpeed/ث"
             }
         }
 
