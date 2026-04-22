@@ -23,7 +23,13 @@ data class ActiveMarch(
     var gatherEndTime: Long = 0L,
     var payloadGold: Long = 0L,
     var payloadIron: Long = 0L,
-    var payloadWheat: Long = 0L
+    var payloadWheat: Long = 0L,
+    // 💡 [الجديد] ذاكرة مؤقتة لحفظ بيانات المعركة حتى يعود الفيلق
+    var reportDamage: Long = 0L,
+    var reportDead: Long = 0L,
+    var reportWounded: Long = 0L,
+    var reportIsVictory: Boolean = false,
+    var hasReport: Boolean = false
 )
 
 data class BattleReport(
@@ -217,7 +223,6 @@ object GameState {
         }
     }
 
-    // 💡 [الجديد] التعديل العبقري: المقاطعة تتطهر فقط إذا دمرت كل قلاع العدو (المزارع والمناجم غير مطلوبة)
     fun checkRegionCleared(): Boolean {
         val enemyCastles = battlefieldNodes.filter { it.type == NodeType.ENEMY_CASTLE }
         return enemyCastles.isNotEmpty() && enemyCastles.all { it.isDefeated }
@@ -383,17 +388,12 @@ object GameState {
                     val totalDead = infDead + cavDead + extraDeadInf + extraDeadCav
                     val totalWounded = admittedInf + admittedCav
 
-                    pendingBattleReports.add(BattleReport(
-                        title = if (isVictory) "انتصار ساحق!" else "هزيمة مريرة",
-                        message = if (isVictory) "تم تدمير القلعة ونهب الغنائم!" else "تراجعت قواتنا بعد خسائر فادحة.",
-                        damage = myPower,
-                        dead = totalDead,
-                        wounded = totalWounded,
-                        lootGold = march.payloadGold,
-                        lootIron = march.payloadIron,
-                        lootWheat = march.payloadWheat,
-                        isVictory = isVictory
-                    ))
+                    // 💡 [الجديد] تخزين معلومات التقرير في الذاكرة المؤقتة للفيلق لحين عودته
+                    march.reportDamage = myPower
+                    march.reportDead = totalDead
+                    march.reportWounded = totalWounded
+                    march.reportIsVictory = isVictory
+                    march.hasReport = true
 
                     march.status = MarchStatus.RETURNING
                     march.endTime = now + 5000L 
@@ -440,7 +440,20 @@ object GameState {
                 totalIron += march.payloadIron
                 totalWheat += march.payloadWheat
 
-                if (march.type == MarchType.GATHER) {
+                // 💡 [الجديد] إصدار التقرير فقط عند اكتمال عودة الفيلق!
+                if (march.type == MarchType.ATTACK && march.hasReport) {
+                    pendingBattleReports.add(BattleReport(
+                        title = if (march.reportIsVictory) "انتصار ساحق!" else "هزيمة مريرة",
+                        message = if (march.reportIsVictory) "تم تدمير القلعة ونهب الغنائم!" else "تراجعت قواتنا بعد خسائر فادحة.",
+                        damage = march.reportDamage,
+                        dead = march.reportDead,
+                        wounded = march.reportWounded,
+                        lootGold = march.payloadGold,
+                        lootIron = march.payloadIron,
+                        lootWheat = march.payloadWheat,
+                        isVictory = march.reportIsVictory
+                    ))
+                } else if (march.type == MarchType.GATHER) {
                     pendingBattleReports.add(BattleReport(
                         title = "اكتمل الجمع",
                         message = "عادت الفيالق محملة بغنائم الموارد من المقاطعة.",
@@ -537,6 +550,13 @@ object GameState {
             prefs.putLong("AM_${index}_PG", march.payloadGold)
             prefs.putLong("AM_${index}_PI", march.payloadIron)
             prefs.putLong("AM_${index}_PW", march.payloadWheat)
+            
+            // 💡 حفظ ذاكرة التقرير لضمان عدم ضياعه عند الخروج من اللعبة
+            prefs.putLong("AM_${index}_RDAM", march.reportDamage)
+            prefs.putLong("AM_${index}_RDEAD", march.reportDead)
+            prefs.putLong("AM_${index}_RWND", march.reportWounded)
+            prefs.putBoolean("AM_${index}_RVIC", march.reportIsVictory)
+            prefs.putBoolean("AM_${index}_HR", march.hasReport)
         }
         
         prefs.apply()
@@ -664,7 +684,12 @@ object GameState {
                 gatherEndTime = prefs.getLong("AM_${i}_GEND", 0L),
                 payloadGold = prefs.getLong("AM_${i}_PG", 0L),
                 payloadIron = prefs.getLong("AM_${i}_PI", 0L),
-                payloadWheat = prefs.getLong("AM_${i}_PW", 0L)
+                payloadWheat = prefs.getLong("AM_${i}_PW", 0L),
+                reportDamage = prefs.getLong("AM_${i}_RDAM", 0L),
+                reportDead = prefs.getLong("AM_${i}_RDEAD", 0L),
+                reportWounded = prefs.getLong("AM_${i}_RWND", 0L),
+                reportIsVictory = prefs.getBoolean("AM_${i}_RVIC", false),
+                hasReport = prefs.getBoolean("AM_${i}_HR", false)
             ))
         }
 
