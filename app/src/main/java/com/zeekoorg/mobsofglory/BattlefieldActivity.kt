@@ -5,6 +5,7 @@ import android.animation.AnimatorListenerAdapter
 import android.app.Dialog
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -34,6 +35,7 @@ class BattlefieldActivity : AppCompatActivity() {
     private lateinit var pbPlayerMP: ProgressBar
     private lateinit var imgBattlefieldBackground: ImageView
     private lateinit var tvMainTotalPower: TextView 
+    private lateinit var imgMainPlayerAvatar: ImageView // 💡 [الجديد] ربط صورة اللاعب
     
     private val gameHandler = Handler(Looper.getMainLooper())
     private var isActivityResumed = false
@@ -72,8 +74,9 @@ class BattlefieldActivity : AppCompatActivity() {
         isActivityResumed = true
         GameState.calculatePower()
         updateHudUI()
+        updateAvatarImage() // 💡 [الجديد] تحديث الصورة عند العودة
         renderBattlefield()
-        SoundManager.playBGM(this, R.raw.bgm_city) 
+        SoundManager.playBGM(this, R.raw.bgm_arena) // 💡 [تعديل] موسيقى الحرب 
         
         checkPendingReports()
     }
@@ -90,6 +93,10 @@ class BattlefieldActivity : AppCompatActivity() {
         tvTotalWheat = findViewById(R.id.tvTotalWheat); tvPlayerLevel = findViewById(R.id.tvPlayerLevel)
         pbPlayerMP = findViewById(R.id.pbPlayerMP); imgBattlefieldBackground = findViewById(R.id.imgBattlefieldBackground)
         tvMainTotalPower = findViewById(R.id.tvMainTotalPower)
+        
+        // محاولة ربط صورة اللاعب (تأكد من وجود الـ id في الـ xml)
+        val avatarView = findViewById<ImageView>(resources.getIdentifier("imgMainPlayerAvatar", "id", packageName))
+        if(avatarView != null) imgMainPlayerAvatar = avatarView
 
         val bgArray = arrayOf(
             resources.getIdentifier("bg_battlefield_1", "drawable", packageName),
@@ -99,6 +106,19 @@ class BattlefieldActivity : AppCompatActivity() {
         val bgIndex = (GameState.currentRegionLevel - 1) % bgArray.size
         val selectedBg = if (bgArray[bgIndex] != 0) bgArray[bgIndex] else R.drawable.bg_mobs_city_isometric
         imgBattlefieldBackground.setImageResource(selectedBg)
+        
+        updateAvatarImage()
+    }
+    
+    // 💡 [الجديد] دالة تحديث صورة اللاعب
+    private fun updateAvatarImage() {
+        if (::imgMainPlayerAvatar.isInitialized && GameState.selectedAvatarUri != null) { 
+            try { 
+                imgMainPlayerAvatar.setImageURI(Uri.parse(GameState.selectedAvatarUri)) 
+            } catch (e: Exception) { 
+                imgMainPlayerAvatar.setImageResource(R.drawable.img_default_avatar) 
+            } 
+        }
     }
 
     private fun setupActionListeners() {
@@ -382,7 +402,7 @@ class BattlefieldActivity : AppCompatActivity() {
             }
 
             d.dismiss()
-            val travelTime = 3000L // 💡 الذهاب تم ضبطه على 3 ثواني
+            val travelTime = 3000L 
             
             val newMarch = ActiveMarch(
                 id = System.currentTimeMillis(),
@@ -430,18 +450,27 @@ class BattlefieldActivity : AppCompatActivity() {
         
         val marchIcon = ImageView(this).apply {
             setImageResource(if (goImgRes != 0) goImgRes else R.drawable.ic_ui_formation)
-            layoutParams = FrameLayout.LayoutParams(120, 120)
+            layoutParams = FrameLayout.LayoutParams(250, 250) // 💡 [تعديل] تكبير حجم الفيلق
             x = cityX; y = cityY; elevation = 50f
         }
         rootLayout.addView(marchIcon)
         SoundManager.playMarch()
 
-        // 💡 الأنيميشن للذهاب يأخذ 3 ثواني (3000ms)
+        // 💡 [الجديد] رسم النقاط المتلاشية عبر Timer منفصل
+        val dotsHandler = Handler(Looper.getMainLooper())
+        val dotsRunnable = object : Runnable {
+            override fun run() {
+                createTrailingDots(rootLayout, marchIcon)
+                dotsHandler.postDelayed(this, 150)
+            }
+        }
+        dotsHandler.post(dotsRunnable)
+
         marchIcon.animate().x(targetX).y(targetY).scaleX(0.6f).scaleY(0.6f)
             .setDuration(3000).setInterpolator(AccelerateInterpolator())
-            .setUpdateListener { createTrailingDots(rootLayout, marchIcon) }
             .setListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
+                    dotsHandler.removeCallbacks(dotsRunnable) // إيقاف رسم النقاط
                     rootLayout.removeView(marchIcon)
                     if (march.type == MarchType.ATTACK) { triggerHitEffects(targetX, targetY) }
                     
@@ -449,7 +478,6 @@ class BattlefieldActivity : AppCompatActivity() {
                     updateHudUI()
                     renderBattlefield()
                     checkRegionClearedUI()
-                    // 💡 تم إزالة استدعاء الأنيميشن المزدوج من هنا ليكتفي بالمراقب الذكي
                 }
             }).start()
     }
@@ -466,20 +494,31 @@ class BattlefieldActivity : AppCompatActivity() {
         
         val returnIcon = ImageView(this).apply {
             setImageResource(if (backImgRes != 0) backImgRes else R.drawable.ic_ui_formation)
-            layoutParams = FrameLayout.LayoutParams(120, 120)
+            layoutParams = FrameLayout.LayoutParams(250, 250) // 💡 [تعديل] تكبير حجم الفيلق العائد
             x = targetX; y = targetY; elevation = 50f; scaleX = 0.6f; scaleY = 0.6f
             rotationY = 180f
         }
         rootLayout.addView(returnIcon)
 
-        // 💡 العودة تستغرق 5 ثواني (5000ms)
+        // 💡 [الجديد] رسم النقاط المتلاشية للمسيرة العائدة
+        val dotsHandler = Handler(Looper.getMainLooper())
+        val dotsRunnable = object : Runnable {
+            override fun run() {
+                createTrailingDots(rootLayout, returnIcon)
+                dotsHandler.postDelayed(this, 150)
+            }
+        }
+        dotsHandler.post(dotsRunnable)
+
         returnIcon.animate().x(cityX).y(cityY).scaleX(1.0f).scaleY(1.0f)
             .setDuration(5000).setInterpolator(DecelerateInterpolator())
-            .setUpdateListener { createTrailingDots(rootLayout, returnIcon) }
-            .withEndAction { 
-                rootLayout.removeView(returnIcon) 
-                animatingReturnMarches.remove(march.id)
-            }.start()
+            .setListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    dotsHandler.removeCallbacks(dotsRunnable) // إيقاف رسم النقاط
+                    rootLayout.removeView(returnIcon) 
+                    animatingReturnMarches.remove(march.id)
+                }
+            }).start()
     }
 
     private fun createTrailingDots(rootLayout: ViewGroup, referenceView: View) {
@@ -564,7 +603,6 @@ class BattlefieldActivity : AppCompatActivity() {
         })
     }
 
-    // 💡 [الجديد] المراقب الموحد لجميع المسيرات العائدة (يمنع الازدواجية تماماً)
     private fun checkAndAnimateReturningMarches() {
         if (!isActivityResumed) return
         
