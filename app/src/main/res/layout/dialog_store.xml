@@ -51,13 +51,7 @@
                 android:orientation="vertical"
                 android:paddingBottom="10dp">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:weightSum="2"
-                    android:layout_marginBottom="8dp">
-
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:weightSum="2" android:layout_marginBottom="8dp">
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
                         <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_castle_pyramid"/>
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="زينة الهرم" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
@@ -79,13 +73,7 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:weightSum="2"
-                    android:layout_marginBottom="8dp">
-
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:weightSum="2" android:layout_marginBottom="8dp">
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
                         <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_castle_diamond"/>
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الألماس" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
@@ -107,13 +95,70 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:weightSum="2"
-                    android:layout_marginBottom="8dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:weightSum="2" android:layout_marginBottom="8dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
+                        <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_speedup_15m"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="تسريع (15 دقيقة)" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="4dp"/>
+                        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginTop="4dp">
+                            <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_resource_gold"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="3K" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginStart="4dp"/>
+                        </LinearLayout>
+                        <Button android:id="@+id/btnBuySpeedup15m" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="شراء" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold" android:gravity="center" android:padding="0dp"/>
+                    </LinearLayout>
 
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
+                        <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_speedup_30m"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="تسريع (30 دقيقة)" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="4dp"/>
+                        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginTop="4dp">
+                            <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_resource_gold"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="5K" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginStart="4dp"/>
+                        </LinearLayout>
+                        <Button android:id="@+id/btnBuySpeedup30m" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="شراء" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold" android:gravity="center" android:padding="0dp"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:weightSum="2" android:layout_marginBottom="8dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
+                        <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_speedup_1h"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="تسريع (ساعة)" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginTop="4dp">
+                            <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_resource_gold"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="15K" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginStart="4dp"/>
+                        </LinearLayout>
+                        <Button android:id="@+id/btnBuySpeedup1h" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="شراء" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold" android:gravity="center" android:padding="0dp"/>
+                    </LinearLayout>
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
+                        <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_speedup_2h"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="تسريع (ساعتين)" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginTop="4dp">
+                            <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_resource_gold"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="28K" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginStart="4dp"/>
+                        </LinearLayout>
+                        <Button android:id="@+id/btnBuySpeedup2h" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="شراء" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold" android:gravity="center" android:padding="0dp"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:weightSum="2" android:layout_marginBottom="8dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
+                        <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_speedup_8h"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="تسريع (8 ساعات)" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="4dp"/>
+                        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginTop="4dp">
+                            <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_resource_gold"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="100K" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp" android:layout_marginStart="4dp"/>
+                        </LinearLayout>
+                        <Button android:id="@+id/btnBuySpeedup8h" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="شراء" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold" android:gravity="center" android:padding="0dp"/>
+                    </LinearLayout>
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginStart="4dp" android:padding="10dp">
+                        <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_speedup_30m"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="تسريع (30 دقيقة)" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="4dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مجانًا" android:textColor="#2ECC71" android:textStyle="bold" android:textSize="12sp" android:layout_marginTop="4dp"/>
+                        <Button android:id="@+id/btnAdSpeedup" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="إعلان" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold" android:drawableStart="@drawable/ic_ui_ad_video" android:paddingStart="12dp" android:paddingEnd="12dp" android:gravity="center"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:weightSum="2" android:layout_marginBottom="8dp">
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
                         <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_resource_gold"/>
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="25K ذهب" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
@@ -129,13 +174,7 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:weightSum="2"
-                    android:layout_marginBottom="8dp">
-
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:weightSum="2" android:layout_marginBottom="8dp">
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
                         <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_resource_wheat"/>
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="100K قمح" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
@@ -149,20 +188,6 @@
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مجانًا" android:textColor="#2ECC71" android:textStyle="bold" android:textSize="12sp" android:layout_marginTop="4dp"/>
                         <Button android:id="@+id/btnAdMaterialBox" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="إعلان" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold" android:drawableStart="@drawable/ic_ui_ad_video" android:paddingStart="12dp" android:paddingEnd="12dp" android:gravity="center"/>
                     </LinearLayout>
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:weightSum="2">
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_inner_frame" android:layout_marginEnd="4dp" android:padding="10dp">
-                        <ImageView android:layout_width="45dp" android:layout_height="45dp" android:src="@drawable/ic_speedup_30m"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="تسريع (30 دقيقة)" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="4dp"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مجانًا" android:textColor="#2ECC71" android:textStyle="bold" android:textSize="12sp" android:layout_marginTop="4dp"/>
-                        <Button android:id="@+id/btnAdSpeedup" android:layout_width="100dp" android:layout_height="35dp" android:layout_marginTop="8dp" android:background="@drawable/bg_btn_gold_border" android:text="إعلان" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold" android:drawableStart="@drawable/ic_ui_ad_video" android:paddingStart="12dp" android:paddingEnd="12dp" android:gravity="center"/>
-                    </LinearLayout>
-                    <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
                 </LinearLayout>
 
             </LinearLayout>
