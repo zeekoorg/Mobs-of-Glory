@@ -489,5 +489,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun changeCitySkin(skinResId: Int) { imgCityBackground.setImageResource(skinResId); getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit().putInt("SELECTED_SKIN", skinResId).apply() }
-    private fun formatResourceNumber(num: Long): String = when { num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0); num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0); else -> num.toString() }
+    
+    // 💡 [تحديث] دالة عرض الأرقام لتدعم المليارات (B)
+    private fun formatResourceNumber(num: Long): String = when { 
+        num >= 1_000_000_000 -> String.format(Locale.US, "%.1fB", num / 1_000_000_000.0)
+        num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0)
+        num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0)
+        else -> num.toString() 
+    }
 }
