@@ -125,7 +125,6 @@ object DialogManager {
         
         d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
 
-        // 💡 إكمال التعليمات الحرة (الخطوة 9)
         d.setOnDismissListener {
             if (GameState.tutorialStep == 9 && activity is MainActivity) {
                 GameState.tutorialStep = 10; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial()
@@ -206,7 +205,6 @@ object DialogManager {
         }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
 
-        // 💡 إكمال التعليمات الحرة للحقيبة (الخطوة 21)
         d.setOnDismissListener {
             if (GameState.tutorialStep == 21 && activity is MainActivity) {
                 GameState.tutorialStep = 22; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial()
@@ -252,7 +250,6 @@ object DialogManager {
         
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         
-        // 💡 إكمال التعليمات الحرة للمهام (الخطوة 7)
         d.setOnDismissListener {
             if (GameState.tutorialStep == 7 && activity is MainActivity) {
                 GameState.tutorialStep = 8; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial()
@@ -338,7 +335,6 @@ object DialogManager {
         
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
 
-        // 💡 إكمال التعليمات الحرة لمكافآت القلعة (الخطوة 11)
         d.setOnDismissListener {
             if (GameState.tutorialStep == 11 && activity is MainActivity) {
                 GameState.tutorialStep = 12; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial()
@@ -405,7 +401,6 @@ object DialogManager {
         
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         
-        // 💡 إكمال التعليمات الحرة للأبطال (الخطوة 13)
         d.setOnDismissListener { 
             handler.removeCallbacksAndMessages(null)
             if (GameState.tutorialStep == 13 && activity is MainActivity) {
@@ -684,7 +679,6 @@ object DialogManager {
         d.findViewById<Button>(R.id.btnAdSpeedup)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.addQuestProgress(QuestType.WATCH_ADS, 1); GameState.countSpeedup30m++; GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على تسريع 30 دقيقة!", R.drawable.ic_speedup_30m) }, onAdClosed = {}) } }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
 
-        // 💡 إكمال التعليمات الحرة للمتجر (الخطوة 23)
         d.setOnDismissListener {
             if (GameState.tutorialStep == 23 && activity is MainActivity) {
                 GameState.tutorialStep = 24; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial()
@@ -739,7 +733,6 @@ object DialogManager {
         }
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
 
-        // 💡 إكمال التعليمات الحرة للحانة (الخطوة 19)
         d.setOnDismissListener {
             if (GameState.tutorialStep == 19 && activity is MainActivity) {
                 GameState.tutorialStep = 20; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial()
@@ -786,7 +779,7 @@ object DialogManager {
                 
                 view.findViewById<TextView>(R.id.tvWeaponName).apply { text = "${weapon.name} (مستوى ${weapon.level})"; setTextColor(Color.parseColor(rarityColor)) }
                 view.findViewById<TextView>(R.id.tvWeaponPower).text = "قوة الفيلق: +${formatResourceNumber(weapon.getCurrentPower())}"
-                view.findViewById<TextView>(R.id.tvWeaponCost).text = "التكلفة: ${formatResourceNumber(weapon.getCostIron())} حديد + ${formatResourceNumber(weapon.getCostGold())} ذهب"
+                view.findViewById<TextView>(R.id.tvWeaponCost).text = "الت تكلفة: ${formatResourceNumber(weapon.getCostIron())} حديد + ${formatResourceNumber(weapon.getCostGold())} ذهب"
                 
                 val btnAction = view.findViewById<Button>(R.id.btnUpgradeWeapon)
                 if (weapon.isUpgrading) {
@@ -814,7 +807,6 @@ object DialogManager {
         refreshWeaponsList()
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
 
-        // 💡 إكمال التعليمات الحرة للأسلحة (الخطوة 15)
         d.setOnDismissListener { 
             handler.removeCallbacksAndMessages(null)
             if (GameState.tutorialStep == 15 && activity is MainActivity) {
@@ -824,6 +816,7 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 [تعديل] تصفية الأبطال والأسلحة. أصبحنا نسمح بعرض الأبطال والأسلحة المجهزة للدفاع (isEquipped) هنا!
     fun showHeroSelectorDialog(activity: Activity, onSelected: (Hero) -> Unit) {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
@@ -831,17 +824,22 @@ object DialogManager {
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "اختر بطلاً للفيلق"
         val container = d.findViewById<LinearLayout>(R.id.layoutQuestsContainer); container?.removeAllViews()
 
-        val availableHeroes = GameState.myHeroes.filter { it.isUnlocked && !it.isEquipped }
+        val availableHeroes = GameState.myHeroes.filter { it.isUnlocked } // 💡 تم حذف !it.isEquipped
         if (availableHeroes.isEmpty()) {
             val tv = TextView(activity).apply { text = "لا يوجد أبطال متاحين أو جميعهم في الفيلق!"; setTextColor(Color.GRAY); textSize = 14f; setPadding(20,20,20,20) }
             container?.addView(tv)
         } else {
             availableHeroes.forEach { hero ->
                 val btn = Button(activity).apply {
-                    text = "${hero.name} (قوة: ${formatResourceNumber(hero.getCurrentPower())})"
-                    setTextColor(Color.WHITE); setBackgroundResource(R.drawable.bg_btn_gold_border)
+                    val statusText = if (GameState.isHeroBusy(hero.id)) " (مشغول في مسيرة)" else ""
+                    text = "${hero.name} (قوة: ${formatResourceNumber(hero.getCurrentPower())})$statusText"
+                    if (GameState.isHeroBusy(hero.id)) {
+                        setTextColor(Color.GRAY); setBackgroundResource(R.drawable.bg_inner_frame)
+                    } else {
+                        setTextColor(Color.WHITE); setBackgroundResource(R.drawable.bg_btn_gold_border)
+                        setOnClickListener { SoundManager.playClick(); onSelected(hero); d.dismiss() }
+                    }
                     layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 10, 0, 10) }
-                    setOnClickListener { SoundManager.playClick(); onSelected(hero); d.dismiss() }
                 }
                 container?.addView(btn)
             }
@@ -857,17 +855,22 @@ object DialogManager {
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "اختر سلاحاً للفيلق"
         val container = d.findViewById<LinearLayout>(R.id.layoutQuestsContainer); container?.removeAllViews()
 
-        val availableWeapons = GameState.arsenal.filter { it.isOwned && !it.isEquipped }
+        val availableWeapons = GameState.arsenal.filter { it.isOwned } // 💡 تم حذف !it.isEquipped
         if (availableWeapons.isEmpty()) {
             val tv = TextView(activity).apply { text = "لا يوجد أسلحة متاحة أو جميعها مجهزة!"; setTextColor(Color.GRAY); textSize = 14f; setPadding(20,20,20,20) }
             container?.addView(tv)
         } else {
             availableWeapons.forEach { weapon ->
                 val btn = Button(activity).apply {
-                    text = "${weapon.name} (قوة: ${formatResourceNumber(weapon.getCurrentPower())})"
-                    setTextColor(Color.WHITE); setBackgroundResource(R.drawable.bg_btn_gold_border)
+                    val statusText = if (GameState.isWeaponBusy(weapon.id)) " (مشغول في مسيرة)" else ""
+                    text = "${weapon.name} (قوة: ${formatResourceNumber(weapon.getCurrentPower())})$statusText"
+                    if (GameState.isWeaponBusy(weapon.id)) {
+                        setTextColor(Color.GRAY); setBackgroundResource(R.drawable.bg_inner_frame)
+                    } else {
+                        setTextColor(Color.WHITE); setBackgroundResource(R.drawable.bg_btn_gold_border)
+                        setOnClickListener { SoundManager.playClick(); onSelected(weapon); d.dismiss() }
+                    }
                     layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 10, 0, 10) }
-                    setOnClickListener { SoundManager.playClick(); onSelected(weapon); d.dismiss() }
                 }
                 container?.addView(btn)
             }
@@ -900,11 +903,18 @@ object DialogManager {
         val lockWeapons = listOf(null, d.findViewById<View>(R.id.layoutLockWeapon2), d.findViewById<View>(R.id.layoutLockWeapon3), d.findViewById<View>(R.id.layoutLockWeapon4))
         val unlockLevels = listOf(1, 5, 10, 15)
 
+        // 💡 [تعديل] هنا نقوم بتحديث قوة التشكيلة لتطابق النظام الجديد (Buff System) للمدينة
         fun updateFormationPower() {
-            var lPower: Long = 0
-            GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { lPower += it.getCurrentPower() }
-            GameState.arsenal.filter { it.isOwned && it.isEquipped }.forEach { lPower += it.getCurrentPower() }
-            val troopsPower = (selectedInfantry * 5) + (selectedCavalry * 10); tvPower?.text = "قوة التشكيلة: ⚔️ ${formatResourceNumber(lPower + troopsPower)}"
+            var heroesPower: Long = 0
+            GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { heroesPower += it.getCurrentPower() }
+            var weaponsPower: Long = 0
+            GameState.arsenal.filter { it.isOwned && it.isEquipped }.forEach { weaponsPower += it.getCurrentPower() }
+            
+            val buffPercentage = (heroesPower + weaponsPower).toDouble() / 100000.0 
+            val troopsPower = (selectedInfantry * 5) + (selectedCavalry * 10)
+            val totalPower = (troopsPower * (1.0 + buffPercentage)).toLong()
+            
+            tvPower?.text = "قوة التشكيلة: ⚔️ ${formatResourceNumber(totalPower)}"
         }
 
         seekInfantry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener { override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedInfantry = progress.toLong(); tvInfantrySelected?.text = formatResourceNumber(selectedInfantry); updateFormationPower() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
@@ -933,7 +943,6 @@ object DialogManager {
         d.findViewById<Button>(R.id.btnSaveFormation)?.setOnClickListener { SoundManager.playClick(); prefs.edit().putLong("FORMATION_INFANTRY", selectedInfantry).putLong("FORMATION_CAVALRY", selectedCavalry).apply(); showGameMessage(activity, "التشكيلة جاهزة", "تم حفظ التشكيلة الدفاعية بنجاح!", R.drawable.ic_ui_formation); updateUI(activity); d.dismiss() }
         d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
 
-        // 💡 إكمال التعليمات الحرة للتشكيلة (الخطوة 17)
         d.setOnDismissListener {
             if (GameState.tutorialStep == 17 && activity is MainActivity) {
                 GameState.tutorialStep = 18; GameState.saveGameData(activity); activity.checkAndRunSpotlightTutorial()
