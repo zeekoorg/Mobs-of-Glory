@@ -48,6 +48,9 @@ class BattlefieldActivity : AppCompatActivity() {
     private var wheatAnimator: android.animation.ValueAnimator? = null
     private var powerAnimator: android.animation.ValueAnimator? = null
 
+    // 💡 [الجديد] قائمة لتتبع الفيالق العائدة حالياً لمنع تكرار الأنيميشن
+    private val animatingReturnMarches = mutableSetOf<Long>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_battlefield)
@@ -228,7 +231,6 @@ class BattlefieldActivity : AppCompatActivity() {
         val lockWeapons = listOf(null, d.findViewById<View>(R.id.layoutLockWeapon2), d.findViewById<View>(R.id.layoutLockWeapon3), d.findViewById<View>(R.id.layoutLockWeapon4))
         val unlockLevels = listOf(1, 5, 10, 15)
 
-        // 💡 [تعديل] قراءة النظام الرياضي الجديد (الـ Buff) من GameState لعرضه هنا!
         fun updateMarchStats() {
             var heroPwr = 0L; var wpPwr = 0L
             selectedHeroesForMarch.forEach { heroPwr += it.getCurrentPower() }
@@ -252,6 +254,7 @@ class BattlefieldActivity : AppCompatActivity() {
 
         fun refreshSlotsUI() {
             updateMarchStats()
+            // 💡 [تعديل 3] تم حل مشكلة "البطل مشغول". الآن لا يتحقق من isEquipped، بل من isHeroBusy فقط
             for (i in 0..3) {
                 val (slot, imgFull, imgAdd) = heroSlots[i]; val lock = lockHeroes[i]; val reqLevel = unlockLevels[i]
                 if (castleLevel < reqLevel) {
@@ -267,7 +270,7 @@ class BattlefieldActivity : AppCompatActivity() {
                         imgFull?.visibility = View.GONE; imgAdd?.visibility = View.VISIBLE
                         slot?.setOnClickListener {
                             SoundManager.playClick(); DialogManager.showHeroSelectorDialog(this) { selectedHero ->
-                                if (GameState.isHeroBusy(selectedHero.id)) Toast.makeText(this, "هذا البطل يقود مسيرة أخرى!", Toast.LENGTH_SHORT).show()
+                                if (GameState.isHeroBusy(selectedHero.id)) Toast.makeText(this, "هذا البطل في مسيرة هجومية أو جمع حالياً!", Toast.LENGTH_SHORT).show()
                                 else if (!selectedHeroesForMarch.contains(selectedHero)) { selectedHeroesForMarch.add(selectedHero); refreshSlotsUI() }
                             }
                         }
@@ -318,7 +321,7 @@ class BattlefieldActivity : AppCompatActivity() {
             }
 
             d.dismiss()
-            val travelTime = 1500L
+            val travelTime = 2000L // 💡 [تعديل 2] الذهاب الآن 2 ثانية
             
             val newMarch = ActiveMarch(
                 id = System.currentTimeMillis(),
@@ -372,26 +375,37 @@ class BattlefieldActivity : AppCompatActivity() {
         rootLayout.addView(marchIcon)
         SoundManager.playMarch()
 
+        // 💡 [تعديل 2] الأنيميشن يأخذ 2 ثانية (2000ms)
         marchIcon.animate().x(targetX).y(targetY).scaleX(0.6f).scaleY(0.6f)
-            .setDuration(1500).setInterpolator(AccelerateInterpolator())
+            .setDuration(2000).setInterpolator(AccelerateInterpolator())
             .setUpdateListener { createTrailingDots(rootLayout, marchIcon) }
             .setListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
                     rootLayout.removeView(marchIcon)
                     if (march.type == MarchType.ATTACK) { triggerHitEffects(targetX, targetY) }
                     
+                    // إجبار النظام على احتساب المعركة فوراً
                     GameState.processActiveMarches(this@BattlefieldActivity)
                     updateHudUI()
                     renderBattlefield()
-                    checkPendingReports()
+                    
+                    // 💡 [تعديل 1] فصل التقارير عن الحركة ليقرأها المستمع الذكي لاحقاً
+                    // checkPendingReports() <-- تمت إزالتها من هنا لتجنب التداخل
                     checkRegionClearedUI()
 
-                    if (isActivityResumed) { startReturnMarchAnimation(rootLayout, node, march, cityX, cityY, targetX, targetY) }
+                    // 💡 [تعديل 2] إذا كانت المسيرة هجوم (تخلص بسرعة وتعود). أما لو كانت للجمع، تختفي ويبقى العداد فقط!
+                    if (isActivityResumed && march.type == MarchType.ATTACK) { 
+                        startReturnMarchAnimation(rootLayout, march, cityX, cityY, targetX, targetY) 
+                    }
                 }
             }).start()
     }
 
-    private fun startReturnMarchAnimation(rootLayout: ViewGroup, node: BattlefieldNode, march: ActiveMarch, cityX: Float, cityY: Float, targetX: Float, targetY: Float) {
+    private fun startReturnMarchAnimation(rootLayout: ViewGroup, march: ActiveMarch, cityX: Float, cityY: Float, targetX: Float, targetY: Float) {
+        // إذا قمنا برسم العودة مسبقاً، لا داعي لتكرارها
+        if (animatingReturnMarches.contains(march.id)) return
+        animatingReturnMarches.add(march.id)
+
         val backImgRes = if (march.type == MarchType.ATTACK) {
             resources.getIdentifier("ic_legion_attack_back", "drawable", packageName)
         } else {
@@ -402,14 +416,17 @@ class BattlefieldActivity : AppCompatActivity() {
             setImageResource(if (backImgRes != 0) backImgRes else R.drawable.ic_ui_formation)
             layoutParams = FrameLayout.LayoutParams(120, 120)
             x = targetX; y = targetY; elevation = 50f; scaleX = 0.6f; scaleY = 0.6f
-            rotationY = 180f
         }
         rootLayout.addView(returnIcon)
 
+        // 💡 [تعديل 2] العودة تستغرق 3 ثواني لتبدو القوات محملة ومثقلة بالغنائم
         returnIcon.animate().x(cityX).y(cityY).scaleX(1.0f).scaleY(1.0f)
-            .setDuration(1500).setInterpolator(DecelerateInterpolator())
+            .setDuration(3000).setInterpolator(DecelerateInterpolator())
             .setUpdateListener { createTrailingDots(rootLayout, returnIcon) }
-            .withEndAction { rootLayout.removeView(returnIcon) }.start()
+            .withEndAction { 
+                rootLayout.removeView(returnIcon) 
+                animatingReturnMarches.remove(march.id)
+            }.start()
     }
 
     private fun createTrailingDots(rootLayout: ViewGroup, referenceView: View) {
@@ -448,7 +465,6 @@ class BattlefieldActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 [تعديل] تنظيف الرسائل من الإيموجي واستخدام أيقونة النافذة الحقيقية (Dialog)
     private fun checkPendingReports() {
         if (!isActivityResumed) return
         
@@ -467,7 +483,6 @@ class BattlefieldActivity : AppCompatActivity() {
             }
             
             SoundManager.playWindowOpen()
-            // استخدام أيقونة التاج في الانتصار، وأيقونة الفيلق في الهزيمة
             DialogManager.showGameMessage(this, report.title, report.message + "\n\n" + details.toString(), if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation)
             iterator.remove()
         }
@@ -478,17 +493,48 @@ class BattlefieldActivity : AppCompatActivity() {
         gameHandler.post(object : Runnable {
             override fun run() {
                 val needsUpdate = GameState.processActiveMarches(this@BattlefieldActivity)
+                
+                // 💡 [الجديد] مراقبة الفيالق التي انتهت من الجمع لإنشاء أنيميشن عودة حقيقي لها
+                checkAndAnimateReturningGatherers()
+
                 if (needsUpdate) {
                     updateHudUI()
                     renderBattlefield()
                     checkRegionClearedUI()
-                    checkPendingReports()
                 } else {
                     updateDynamicTimers()
                 }
+                
+                // 💡 [الجديد] استدعاء التقارير بشكل ذكي ومنفصل (النافذة الذكية)
+                checkPendingReports()
+                
                 gameHandler.postDelayed(this, 1000L)
             }
         })
+    }
+
+    // 💡 [الجديد] دالة تراقب الفيالق العائدة (وخاصة فيالق الجمع) لتطلق أنيميشن العودة بشكل منطقي
+    private fun checkAndAnimateReturningGatherers() {
+        if (!isActivityResumed) return
+        
+        val displayMetrics = resources.displayMetrics
+        val cityX = displayMetrics.widthPixels / 2f
+        val cityY = displayMetrics.heightPixels.toFloat()
+        val rootLayout = findViewById<ViewGroup>(android.R.id.content)
+
+        GameState.activeMarches.filter { it.status == MarchStatus.RETURNING && !animatingReturnMarches.contains(it.id) }.forEach { march ->
+            val slotId = resources.getIdentifier("nodeSlot${march.targetNodeId}", "id", packageName)
+            val slot = findViewById<FrameLayout>(slotId)
+            
+            if (slot != null) {
+                val loc = IntArray(2)
+                slot.getLocationInWindow(loc)
+                val targetX = loc[0].toFloat() + slot.width / 2f
+                val targetY = loc[1].toFloat() + slot.height / 2f
+                
+                startReturnMarchAnimation(rootLayout, march, cityX, cityY, targetX, targetY)
+            }
+        }
     }
 
     private fun updateDynamicTimers() {
