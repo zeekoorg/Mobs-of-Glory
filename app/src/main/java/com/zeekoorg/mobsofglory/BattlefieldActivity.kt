@@ -21,7 +21,6 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import java.util.Locale
 import kotlin.random.Random
@@ -48,7 +47,6 @@ class BattlefieldActivity : AppCompatActivity() {
     private var wheatAnimator: android.animation.ValueAnimator? = null
     private var powerAnimator: android.animation.ValueAnimator? = null
 
-    // 💡 [الجديد] قائمة لتتبع الفيالق العائدة حالياً لمنع تكرار الأنيميشن
     private val animatingReturnMarches = mutableSetOf<Long>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -168,17 +166,81 @@ class BattlefieldActivity : AppCompatActivity() {
             
             slot.setOnClickListener {
                 SoundManager.playClick()
-                val isTargeted = GameState.activeMarches.any { it.targetNodeId == node.id && (it.status == MarchStatus.MARCHING || it.status == MarchStatus.GATHERING) }
-                if (!node.isDefeated && !isTargeted) {
-                    showMarchSetupDialog(node, slot)
-                } else if (isTargeted) {
-                    Toast.makeText(this, "هذا الهدف تحت سيطرة فيالقك بالفعل!", Toast.LENGTH_SHORT).show()
+                val activeMarch = GameState.activeMarches.find { it.targetNodeId == node.id }
+                
+                if (activeMarch != null) {
+                    if (activeMarch.status == MarchStatus.GATHERING) {
+                        showRecallConfirmDialog(node, activeMarch)
+                    } else if (activeMarch.status == MarchStatus.MARCHING) {
+                        DialogManager.showGameMessage(this, "مسيرة نشطة", "فيالقك في طريقها لهذا الهدف بالفعل!", R.drawable.ic_ui_formation)
+                    } else {
+                        DialogManager.showGameMessage(this, "مسيرة نشطة", "الفيالق عائدة من هذا الهدف!", R.drawable.ic_ui_formation)
+                    }
+                } else if (node.isDefeated) {
+                    DialogManager.showGameMessage(this, "أطلال", "هذا المكان أصبح أثراً بعد عين!", R.drawable.ic_settings_gear)
                 } else {
-                    Toast.makeText(this, "هذا المكان أصبح أثراً بعد عين!", Toast.LENGTH_SHORT).show()
+                    showNodeInfoDialog(node, slot)
                 }
             }
         }
         updateDynamicTimers()
+    }
+
+    private fun showNodeInfoDialog(node: BattlefieldNode, targetSlot: FrameLayout) {
+        SoundManager.playWindowOpen()
+        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_game_message)
+        
+        val titleTv = d.findViewById<TextView>(R.id.tvMessageTitle)
+        val bodyTv = d.findViewById<TextView>(R.id.tvMessageBody)
+        val iconImg = d.findViewById<ImageView>(R.id.imgMessageIcon)
+        val btnAction = d.findViewById<Button>(R.id.btnMessageOk)
+        
+        if (node.type == NodeType.ENEMY_CASTLE) {
+            val fakeNames = listOf("جلاد السلاطين", "فارس الظلام", "شبح الصحراء", "قاهر الجيوش", "ملك الشمال")
+            val fakeName = fakeNames[node.id % fakeNames.size]
+            titleTv?.text = "قلعة العدو: $fakeName"
+            bodyTv?.text = "المستوى: ${node.level}\nالقوة: ${formatResourceNumber(node.currentPower)}"
+            iconImg?.setImageResource(R.drawable.ic_ui_arena)
+            btnAction?.text = "هجوم ⚔️"
+        } else {
+            val resName = when(node.type) { NodeType.GOLD_MINE -> "ذهب"; NodeType.IRON_MINE -> "حديد"; else -> "قمح" }
+            titleTv?.text = "منجم/مزرعة $resName"
+            bodyTv?.text = "المستوى: ${node.level}\nالموارد المتبقية: ${formatResourceNumber(node.resourceAmount)}"
+            val iconRes = when(node.type) { NodeType.GOLD_MINE -> R.drawable.ic_resource_gold; NodeType.IRON_MINE -> R.drawable.ic_resource_iron; else -> R.drawable.ic_resource_wheat }
+            iconImg?.setImageResource(iconRes)
+            btnAction?.text = "جمع 📦"
+        }
+        
+        btnAction?.setOnClickListener {
+            SoundManager.playClick()
+            d.dismiss()
+            showMarchSetupDialog(node, targetSlot)
+        }
+        d.show()
+    }
+
+    private fun showRecallConfirmDialog(node: BattlefieldNode, march: ActiveMarch) {
+        SoundManager.playWindowOpen()
+        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_game_message)
+        
+        d.findViewById<TextView>(R.id.tvMessageTitle)?.text = "سحب القوات"
+        d.findViewById<TextView>(R.id.tvMessageBody)?.text = "هل تريد سحب قواتك والعودة بما جمعوه حتى الآن؟"
+        d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(R.drawable.ic_ui_formation)
+        
+        val btnAction = d.findViewById<Button>(R.id.btnMessageOk)
+        btnAction?.text = "تأكيد الانسحاب"
+        btnAction?.setBackgroundResource(R.drawable.bg_btn_gold_border)
+        
+        btnAction?.setOnClickListener {
+            SoundManager.playClick()
+            march.gatherEndTime = System.currentTimeMillis()
+            GameState.saveGameData(this@BattlefieldActivity)
+            d.dismiss()
+            DialogManager.showGameMessage(this@BattlefieldActivity, "أوامر الانسحاب", "القوات استجابت للنداء وهي في طريقها للعودة الآن!", R.drawable.ic_ui_formation)
+        }
+        d.show()
     }
 
     private fun showMarchSetupDialog(node: BattlefieldNode, targetSlot: FrameLayout) {
@@ -254,12 +316,11 @@ class BattlefieldActivity : AppCompatActivity() {
 
         fun refreshSlotsUI() {
             updateMarchStats()
-            // 💡 [تعديل 3] تم حل مشكلة "البطل مشغول". الآن لا يتحقق من isEquipped، بل من isHeroBusy فقط
             for (i in 0..3) {
                 val (slot, imgFull, imgAdd) = heroSlots[i]; val lock = lockHeroes[i]; val reqLevel = unlockLevels[i]
                 if (castleLevel < reqLevel) {
                     lock?.visibility = View.VISIBLE; imgFull?.visibility = View.GONE; imgAdd?.visibility = View.GONE
-                    slot?.setOnClickListener { SoundManager.playClick(); Toast.makeText(this, "تحتاج لترقية القلعة للمستوى $reqLevel", Toast.LENGTH_SHORT).show() }
+                    slot?.setOnClickListener { SoundManager.playClick(); DialogManager.showGameMessage(this@BattlefieldActivity, "خانة مقفلة", "تحتاج لترقية القلعة للمستوى $reqLevel لفتح الخانة!", R.drawable.ic_settings_gear) }
                 } else {
                     lock?.visibility = View.GONE
                     if (i < selectedHeroesForMarch.size) {
@@ -270,7 +331,7 @@ class BattlefieldActivity : AppCompatActivity() {
                         imgFull?.visibility = View.GONE; imgAdd?.visibility = View.VISIBLE
                         slot?.setOnClickListener {
                             SoundManager.playClick(); DialogManager.showHeroSelectorDialog(this) { selectedHero ->
-                                if (GameState.isHeroBusy(selectedHero.id)) Toast.makeText(this, "هذا البطل في مسيرة هجومية أو جمع حالياً!", Toast.LENGTH_SHORT).show()
+                                if (GameState.isHeroBusy(selectedHero.id)) DialogManager.showGameMessage(this@BattlefieldActivity, "بطل مشغول", "هذا البطل في مسيرة هجومية أو جمع حالياً!", R.drawable.ic_ui_formation)
                                 else if (!selectedHeroesForMarch.contains(selectedHero)) { selectedHeroesForMarch.add(selectedHero); refreshSlotsUI() }
                             }
                         }
@@ -282,7 +343,7 @@ class BattlefieldActivity : AppCompatActivity() {
                 val (slot, imgFull, imgAdd) = weaponSlots[i]; val lock = lockWeapons[i]; val reqLevel = unlockLevels[i]
                 if (castleLevel < reqLevel) {
                     lock?.visibility = View.VISIBLE; imgFull?.visibility = View.GONE; imgAdd?.visibility = View.GONE
-                    slot?.setOnClickListener { SoundManager.playClick(); Toast.makeText(this, "تحتاج لترقية القلعة للمستوى $reqLevel", Toast.LENGTH_SHORT).show() }
+                    slot?.setOnClickListener { SoundManager.playClick(); DialogManager.showGameMessage(this@BattlefieldActivity, "خانة مقفلة", "تحتاج لترقية القلعة للمستوى $reqLevel لفتح الخانة!", R.drawable.ic_settings_gear) }
                 } else {
                     lock?.visibility = View.GONE
                     if (i < selectedWeaponsForMarch.size) {
@@ -293,7 +354,7 @@ class BattlefieldActivity : AppCompatActivity() {
                         imgFull?.visibility = View.GONE; imgAdd?.visibility = View.VISIBLE
                         slot?.setOnClickListener {
                             SoundManager.playClick(); DialogManager.showWeaponSelectorDialog(this) { selectedWeapon ->
-                                if (GameState.isWeaponBusy(selectedWeapon.id)) Toast.makeText(this, "هذا السلاح مستخدم في مسيرة أخرى!", Toast.LENGTH_SHORT).show()
+                                if (GameState.isWeaponBusy(selectedWeapon.id)) DialogManager.showGameMessage(this@BattlefieldActivity, "سلاح مشغول", "هذا السلاح مستخدم في مسيرة أخرى!", R.drawable.ic_ui_weapons)
                                 else if (!selectedWeaponsForMarch.contains(selectedWeapon)) { selectedWeaponsForMarch.add(selectedWeapon); refreshSlotsUI() }
                             }
                         }
@@ -316,12 +377,12 @@ class BattlefieldActivity : AppCompatActivity() {
 
         btnConfirm?.setOnClickListener {
             if (selectedInfantry == 0L && selectedCavalry == 0L) {
-                Toast.makeText(this, "يجب تحديد جنود للمسيرة!", Toast.LENGTH_SHORT).show()
+                DialogManager.showGameMessage(this, "تنبيه", "يجب تحديد جنود للمسيرة!", R.drawable.ic_ui_formation)
                 return@setOnClickListener
             }
 
             d.dismiss()
-            val travelTime = 2000L // 💡 [تعديل 2] الذهاب الآن 2 ثانية
+            val travelTime = 3000L // 💡 الذهاب تم ضبطه على 3 ثواني
             
             val newMarch = ActiveMarch(
                 id = System.currentTimeMillis(),
@@ -375,34 +436,25 @@ class BattlefieldActivity : AppCompatActivity() {
         rootLayout.addView(marchIcon)
         SoundManager.playMarch()
 
-        // 💡 [تعديل 2] الأنيميشن يأخذ 2 ثانية (2000ms)
+        // 💡 الأنيميشن للذهاب يأخذ 3 ثواني (3000ms)
         marchIcon.animate().x(targetX).y(targetY).scaleX(0.6f).scaleY(0.6f)
-            .setDuration(2000).setInterpolator(AccelerateInterpolator())
+            .setDuration(3000).setInterpolator(AccelerateInterpolator())
             .setUpdateListener { createTrailingDots(rootLayout, marchIcon) }
             .setListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
                     rootLayout.removeView(marchIcon)
                     if (march.type == MarchType.ATTACK) { triggerHitEffects(targetX, targetY) }
                     
-                    // إجبار النظام على احتساب المعركة فوراً
                     GameState.processActiveMarches(this@BattlefieldActivity)
                     updateHudUI()
                     renderBattlefield()
-                    
-                    // 💡 [تعديل 1] فصل التقارير عن الحركة ليقرأها المستمع الذكي لاحقاً
-                    // checkPendingReports() <-- تمت إزالتها من هنا لتجنب التداخل
                     checkRegionClearedUI()
-
-                    // 💡 [تعديل 2] إذا كانت المسيرة هجوم (تخلص بسرعة وتعود). أما لو كانت للجمع، تختفي ويبقى العداد فقط!
-                    if (isActivityResumed && march.type == MarchType.ATTACK) { 
-                        startReturnMarchAnimation(rootLayout, march, cityX, cityY, targetX, targetY) 
-                    }
+                    // 💡 تم إزالة استدعاء الأنيميشن المزدوج من هنا ليكتفي بالمراقب الذكي
                 }
             }).start()
     }
 
     private fun startReturnMarchAnimation(rootLayout: ViewGroup, march: ActiveMarch, cityX: Float, cityY: Float, targetX: Float, targetY: Float) {
-        // إذا قمنا برسم العودة مسبقاً، لا داعي لتكرارها
         if (animatingReturnMarches.contains(march.id)) return
         animatingReturnMarches.add(march.id)
 
@@ -416,12 +468,13 @@ class BattlefieldActivity : AppCompatActivity() {
             setImageResource(if (backImgRes != 0) backImgRes else R.drawable.ic_ui_formation)
             layoutParams = FrameLayout.LayoutParams(120, 120)
             x = targetX; y = targetY; elevation = 50f; scaleX = 0.6f; scaleY = 0.6f
+            rotationY = 180f
         }
         rootLayout.addView(returnIcon)
 
-        // 💡 [تعديل 2] العودة تستغرق 3 ثواني لتبدو القوات محملة ومثقلة بالغنائم
+        // 💡 العودة تستغرق 5 ثواني (5000ms)
         returnIcon.animate().x(cityX).y(cityY).scaleX(1.0f).scaleY(1.0f)
-            .setDuration(3000).setInterpolator(DecelerateInterpolator())
+            .setDuration(5000).setInterpolator(DecelerateInterpolator())
             .setUpdateListener { createTrailingDots(rootLayout, returnIcon) }
             .withEndAction { 
                 rootLayout.removeView(returnIcon) 
@@ -494,8 +547,7 @@ class BattlefieldActivity : AppCompatActivity() {
             override fun run() {
                 val needsUpdate = GameState.processActiveMarches(this@BattlefieldActivity)
                 
-                // 💡 [الجديد] مراقبة الفيالق التي انتهت من الجمع لإنشاء أنيميشن عودة حقيقي لها
-                checkAndAnimateReturningGatherers()
+                checkAndAnimateReturningMarches()
 
                 if (needsUpdate) {
                     updateHudUI()
@@ -505,7 +557,6 @@ class BattlefieldActivity : AppCompatActivity() {
                     updateDynamicTimers()
                 }
                 
-                // 💡 [الجديد] استدعاء التقارير بشكل ذكي ومنفصل (النافذة الذكية)
                 checkPendingReports()
                 
                 gameHandler.postDelayed(this, 1000L)
@@ -513,8 +564,8 @@ class BattlefieldActivity : AppCompatActivity() {
         })
     }
 
-    // 💡 [الجديد] دالة تراقب الفيالق العائدة (وخاصة فيالق الجمع) لتطلق أنيميشن العودة بشكل منطقي
-    private fun checkAndAnimateReturningGatherers() {
+    // 💡 [الجديد] المراقب الموحد لجميع المسيرات العائدة (يمنع الازدواجية تماماً)
+    private fun checkAndAnimateReturningMarches() {
         if (!isActivityResumed) return
         
         val displayMetrics = resources.displayMetrics
