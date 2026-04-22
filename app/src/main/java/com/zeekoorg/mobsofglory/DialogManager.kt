@@ -343,6 +343,7 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 [تعديل] تحديث نافذة الأبطال لعرض النسب المئوية (Buffs)
     fun showHeroesDialog(activity: Activity) {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
@@ -353,7 +354,11 @@ object DialogManager {
             val h = GameState.myHeroes[i]; val tvLevel = d.findViewById<TextView>(tvL); val tvBoost = d.findViewById<TextView>(tvB); val btnAct = d.findViewById<Button>(btn)
             val rarityColor = when(h.rarity) { Rarity.COMMON -> "#BDC3C7"; Rarity.RARE -> "#3498DB"; Rarity.LEGENDARY -> "#9B59B6" }
             val rarityName = when(h.rarity) { Rarity.COMMON -> "شائع"; Rarity.RARE -> "نادر"; Rarity.LEGENDARY -> "أسطوري" }
-            tvBoost?.text = "قوة: ${formatResourceNumber(h.getCurrentPower())}"
+            
+            // عرض الـ Buff الأهم كنسبة مئوية واضحة
+            val atkBuffPercent = (h.getCurrentAttackBuff() * 100).toInt()
+            val defBuffPercent = (h.getCurrentDefenseBuff() * 100).toInt()
+            tvBoost?.text = "الخصائص: هجوم +$atkBuffPercent% | دفاع +$defBuffPercent%"
             
             if (h.isUnlocked) { 
                 if (h.isUpgrading) {
@@ -511,7 +516,7 @@ object DialogManager {
 
         d.findViewById<TextView>(R.id.tvTroopTitle)?.text = if (isInfantry) "تدريب المشاة" else "تدريب الفرسان"
         d.findViewById<TextView>(R.id.tvCurrentTroops)?.text = "القوات المملوكة: " + if (isInfantry) formatResourceNumber(GameState.totalInfantry) else formatResourceNumber(GameState.totalCavalry)
-        d.findViewById<TextView>(R.id.tvTrainInfo)?.text = if (isInfantry) "قوة الوحدة: 5 | الحمولة: 10" else "قوة الوحدة: 10 | الحمولة: 25"
+        d.findViewById<TextView>(R.id.tvTrainInfo)?.text = if (isInfantry) "هجوم: ${GameState.INFANTRY_ATK} | دفاع: ${GameState.INFANTRY_DEF} | حمولة: ${GameState.INFANTRY_LOAD}" else "هجوم: ${GameState.CAVALRY_ATK} | دفاع: ${GameState.CAVALRY_DEF} | حمولة: ${GameState.CAVALRY_LOAD}"
 
         val seekTrain = d.findViewById<SeekBar>(R.id.seekTrainTroops)
         val tvSelectedAmount = d.findViewById<TextView>(R.id.tvSelectedTrainAmount)
@@ -761,6 +766,7 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 [تعديل] تحديث نافذة الأسلحة لعرض النسب المئوية (Buffs)
     fun showWeaponsDialog(activity: Activity) {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
@@ -778,8 +784,13 @@ object DialogManager {
                 val rarityColor = when(weapon.rarity) { Rarity.COMMON -> "#BDC3C7"; Rarity.RARE -> "#3498DB"; Rarity.LEGENDARY -> "#9B59B6" }
                 
                 view.findViewById<TextView>(R.id.tvWeaponName).apply { text = "${weapon.name} (مستوى ${weapon.level})"; setTextColor(Color.parseColor(rarityColor)) }
-                view.findViewById<TextView>(R.id.tvWeaponPower).text = "قوة الفيلق: +${formatResourceNumber(weapon.getCurrentPower())}"
-                view.findViewById<TextView>(R.id.tvWeaponCost).text = "الت تكلفة: ${formatResourceNumber(weapon.getCostIron())} حديد + ${formatResourceNumber(weapon.getCostGold())} ذهب"
+                
+                // عرض الـ Buff للأسلحة كنسبة مئوية
+                val atkBuffPercent = (weapon.getCurrentAttackBuff() * 100).toInt()
+                val defBuffPercent = (weapon.getCurrentDefenseBuff() * 100).toInt()
+                view.findViewById<TextView>(R.id.tvWeaponPower).text = "هجوم: +$atkBuffPercent% | دفاع: +$defBuffPercent%"
+                
+                view.findViewById<TextView>(R.id.tvWeaponCost).text = "التكلفة: ${formatResourceNumber(weapon.getCostIron())} حديد + ${formatResourceNumber(weapon.getCostGold())} ذهب"
                 
                 val btnAction = view.findViewById<Button>(R.id.btnUpgradeWeapon)
                 if (weapon.isUpgrading) {
@@ -816,7 +827,6 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 [تعديل] تصفية الأبطال والأسلحة. أصبحنا نسمح بعرض الأبطال والأسلحة المجهزة للدفاع (isEquipped) هنا!
     fun showHeroSelectorDialog(activity: Activity, onSelected: (Hero) -> Unit) {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
@@ -824,15 +834,18 @@ object DialogManager {
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "اختر بطلاً للفيلق"
         val container = d.findViewById<LinearLayout>(R.id.layoutQuestsContainer); container?.removeAllViews()
 
-        val availableHeroes = GameState.myHeroes.filter { it.isUnlocked } // 💡 تم حذف !it.isEquipped
+        val availableHeroes = GameState.myHeroes.filter { it.isUnlocked }
         if (availableHeroes.isEmpty()) {
-            val tv = TextView(activity).apply { text = "لا يوجد أبطال متاحين أو جميعهم في الفيلق!"; setTextColor(Color.GRAY); textSize = 14f; setPadding(20,20,20,20) }
+            val tv = TextView(activity).apply { text = "لا يوجد أبطال متاحين!"; setTextColor(Color.GRAY); textSize = 14f; setPadding(20,20,20,20) }
             container?.addView(tv)
         } else {
             availableHeroes.forEach { hero ->
                 val btn = Button(activity).apply {
-                    val statusText = if (GameState.isHeroBusy(hero.id)) " (مشغول في مسيرة)" else ""
-                    text = "${hero.name} (قوة: ${formatResourceNumber(hero.getCurrentPower())})$statusText"
+                    val statusText = if (GameState.isHeroBusy(hero.id)) " (مشغول)" else ""
+                    val atkBuffPercent = (hero.getCurrentAttackBuff() * 100).toInt()
+                    // 💡 [تعديل] النص يوضح تأثير البطل الحقيقي
+                    text = "${hero.name} (هجوم +$atkBuffPercent%)$statusText"
+                    
                     if (GameState.isHeroBusy(hero.id)) {
                         setTextColor(Color.GRAY); setBackgroundResource(R.drawable.bg_inner_frame)
                     } else {
@@ -855,15 +868,18 @@ object DialogManager {
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "اختر سلاحاً للفيلق"
         val container = d.findViewById<LinearLayout>(R.id.layoutQuestsContainer); container?.removeAllViews()
 
-        val availableWeapons = GameState.arsenal.filter { it.isOwned } // 💡 تم حذف !it.isEquipped
+        val availableWeapons = GameState.arsenal.filter { it.isOwned } 
         if (availableWeapons.isEmpty()) {
-            val tv = TextView(activity).apply { text = "لا يوجد أسلحة متاحة أو جميعها مجهزة!"; setTextColor(Color.GRAY); textSize = 14f; setPadding(20,20,20,20) }
+            val tv = TextView(activity).apply { text = "لا يوجد أسلحة متاحة!"; setTextColor(Color.GRAY); textSize = 14f; setPadding(20,20,20,20) }
             container?.addView(tv)
         } else {
             availableWeapons.forEach { weapon ->
                 val btn = Button(activity).apply {
-                    val statusText = if (GameState.isWeaponBusy(weapon.id)) " (مشغول في مسيرة)" else ""
-                    text = "${weapon.name} (قوة: ${formatResourceNumber(weapon.getCurrentPower())})$statusText"
+                    val statusText = if (GameState.isWeaponBusy(weapon.id)) " (مشغول)" else ""
+                    val atkBuffPercent = (weapon.getCurrentAttackBuff() * 100).toInt()
+                    // 💡 [تعديل] النص يوضح تأثير السلاح الحقيقي
+                    text = "${weapon.name} (هجوم +$atkBuffPercent%)$statusText"
+                    
                     if (GameState.isWeaponBusy(weapon.id)) {
                         setTextColor(Color.GRAY); setBackgroundResource(R.drawable.bg_inner_frame)
                     } else {
@@ -879,6 +895,7 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 [تعديل] حساب القوة الحقيقية لجيش الدفاع في المدينة بناءً على النظام الجديد
     fun showFormationDialog(activity: Activity) {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
@@ -903,18 +920,18 @@ object DialogManager {
         val lockWeapons = listOf(null, d.findViewById<View>(R.id.layoutLockWeapon2), d.findViewById<View>(R.id.layoutLockWeapon3), d.findViewById<View>(R.id.layoutLockWeapon4))
         val unlockLevels = listOf(1, 5, 10, 15)
 
-        // 💡 [تعديل] هنا نقوم بتحديث قوة التشكيلة لتطابق النظام الجديد (Buff System) للمدينة
         fun updateFormationPower() {
-            var heroesPower: Long = 0
-            GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { heroesPower += it.getCurrentPower() }
-            var weaponsPower: Long = 0
-            GameState.arsenal.filter { it.isOwned && it.isEquipped }.forEach { weaponsPower += it.getCurrentPower() }
+            var heroDefBuff = 0.0; var wpDefBuff = 0.0
+            GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { heroDefBuff += it.getCurrentDefenseBuff() }
+            GameState.arsenal.filter { it.isOwned && it.isEquipped }.forEach { wpDefBuff += it.getCurrentDefenseBuff() }
             
-            val buffPercentage = (heroesPower + weaponsPower).toDouble() / 100000.0 
-            val troopsPower = (selectedInfantry * 5) + (selectedCavalry * 10)
-            val totalPower = (troopsPower * (1.0 + buffPercentage)).toLong()
+            val totalDefBuff = 1.0 + heroDefBuff + wpDefBuff
             
-            tvPower?.text = "قوة التشكيلة: ⚔️ ${formatResourceNumber(totalPower)}"
+            // لحساب قوة الدفاع نستعين بخصائص الدفاع للوحدات
+            val baseDefPower = (selectedInfantry * GameState.INFANTRY_DEF) + (selectedCavalry * GameState.CAVALRY_DEF)
+            val totalPower = (baseDefPower * totalDefBuff).toLong()
+            
+            tvPower?.text = "قوة الدفاع الإجمالية: 🛡️ ${formatResourceNumber(totalPower)}"
         }
 
         seekInfantry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener { override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedInfantry = progress.toLong(); tvInfantrySelected?.text = formatResourceNumber(selectedInfantry); updateFormationPower() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
