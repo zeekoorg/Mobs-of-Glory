@@ -5,6 +5,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import java.util.Locale
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.pow
 import kotlin.random.Random
