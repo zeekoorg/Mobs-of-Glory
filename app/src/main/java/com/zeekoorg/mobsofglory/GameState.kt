@@ -99,7 +99,6 @@ object GameState {
     
     val pendingBattleReports = mutableListOf<BattleReport>()
 
-    // 💡 [تعديل] البطل لا يعتبر مشغولاً إلا إذا كان في مسيرة خارجية!
     fun isHeroBusy(heroId: Int): Boolean = activeMarches.any { it.heroIds.contains(heroId) }
     fun isWeaponBusy(weaponId: Int): Boolean = activeMarches.any { it.weaponIds.contains(weaponId) }
     
@@ -247,14 +246,12 @@ object GameState {
         calculateLegionPower()
     }
 
-    // 💡 [تعديل] تحديث طريقة حساب قوة المدينة (ليست للمسيرات)
     fun calculateLegionPower() {
         var heroesPower: Long = 0
         myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { heroesPower += it.getCurrentPower() }
         var weaponsPower: Long = 0
         arsenal.filter { it.isOwned && it.isEquipped }.forEach { weaponsPower += it.getCurrentPower() }
         
-        // المدينة تدافع بكل جنودها وكل أبطالها
         val buffPercentage = (heroesPower + weaponsPower).toDouble() / 100000.0 
         legionPower = (totalTroopsPower * (1.0 + buffPercentage)).toLong()
     }
@@ -291,7 +288,6 @@ object GameState {
         }
     }
 
-    // 💡 [تعديل كبير] نظام المعارك والجمع الخاص بانتقام السلاطين
     fun processActiveMarches(context: Context): Boolean {
         val now = System.currentTimeMillis()
         val iterator = activeMarches.iterator()
@@ -306,12 +302,10 @@ object GameState {
                 if (node == null) { iterator.remove(); continue }
 
                 if (march.type == MarchType.ATTACK) {
-                    // 1. حساب قوة البَف (Buff) للأبطال والأسلحة في هذه المسيرة فقط
                     var heroPwr = 0L; var wpPwr = 0L
                     march.heroIds.forEach { id -> myHeroes.find { it.id == id }?.let { heroPwr += it.getCurrentPower() } }
                     march.weaponIds.forEach { id -> arsenal.find { it.id == id }?.let { wpPwr += it.getCurrentPower() } }
                     
-                    // 2. تطبيق المعادلة الاستراتيجية (قوة الجنود الأساسية مضروبة في بَف الأبطال)
                     val baseTroopPower = (march.infantryCount * 5) + (march.cavalryCount * 10)
                     val buffPercentage = (heroPwr + wpPwr).toDouble() / 100000.0 
                     val myPower = (baseTroopPower * (1.0 + buffPercentage)).toLong()
@@ -320,19 +314,15 @@ object GameState {
                     var deadPct = 0.0
                     var isVictory = false
 
-                    // 3. نظام الخسائر حسب فارق القوة (Power Gap)
                     if (myPower >= node.currentPower * 2) {
-                        // انتصار ساحق (لا يوجد قتلى، جرحى طفيفون جداً)
                         isVictory = true
                         woundedPct = 0.02
                         deadPct = 0.0
                     } else if (myPower >= node.currentPower) {
-                        // انتصار بصعوبة
                         isVictory = true
                         woundedPct = 0.10
                         deadPct = 0.05
                     } else {
-                        // هزيمة (انسحاب وليس إبادة كاملة)
                         isVictory = false
                         woundedPct = 0.30
                         deadPct = 0.10
@@ -341,7 +331,6 @@ object GameState {
                     if (isVictory) {
                         node.isDefeated = true
                         node.currentPower = 0
-                        // 4. نهب الموارد حسب حمولة الجنود الناجين فقط (المشاة=15, الفرسان=10)
                         val survivedInf = march.infantryCount - (march.infantryCount * (woundedPct + deadPct)).toLong()
                         val survivedCav = march.cavalryCount - (march.cavalryCount * (woundedPct + deadPct)).toLong()
                         val maxLootCapacity = (survivedInf * 15) + (survivedCav * 10)
@@ -349,7 +338,6 @@ object GameState {
                         val availableLootGold = node.maxPower / 5
                         val availableLootIron = node.maxPower / 3
                         
-                        // تقسيم الحمولة بين الذهب والحديد
                         march.payloadGold = if (maxLootCapacity / 2 >= availableLootGold) availableLootGold else maxLootCapacity / 2
                         march.payloadIron = if (maxLootCapacity / 2 >= availableLootIron) availableLootIron else maxLootCapacity / 2
                     } else {
@@ -391,7 +379,6 @@ object GameState {
                     val totalDead = infDead + cavDead + extraDeadInf + extraDeadCav
                     val totalWounded = admittedInf + admittedCav
 
-                    // 💡 تجهيز تقرير المعركة النظيف
                     pendingBattleReports.add(BattleReport(
                         title = if (isVictory) "انتصار ساحق!" else "هزيمة مريرة",
                         message = if (isVictory) "تم تدمير القلعة ونهب الغنائم!" else "تراجعت قواتنا بعد خسائر فادحة.",
@@ -405,23 +392,19 @@ object GameState {
                     ))
 
                     march.status = MarchStatus.RETURNING
-                    march.endTime = now + 1500L 
+                    march.endTime = now + 3000L // 💡 [تعديل] 3 ثواني لعودة الفيلق الهجومي!
                 } else {
-                    // 💡 نظام الجمع الحقيقي لانتقام السلاطين
                     march.status = MarchStatus.GATHERING
                     
-                    // الحمولة (المشاة=15, الفرسان=10)
                     val payloadCap = (march.infantryCount * 15) + (march.cavalryCount * 10)
                     val amountToGather = if (payloadCap >= node.resourceAmount) node.resourceAmount else payloadCap
                     
-                    // سرعة الجمع: 100 مورد في الثانية (تزيد بوجود الأبطال)
                     var heroBuff = 0.0
                     march.heroIds.forEach { id -> myHeroes.find { it.id == id }?.let { heroBuff += (it.getCurrentPower() / 100000.0) } }
                     val gatherSpeedPerSecond = (100.0 * (1.0 + heroBuff)).toLong()
                     
-                    // حساب الوقت الحقيقي بالثواني
                     var gatherTimeSeconds = amountToGather / gatherSpeedPerSecond
-                    if (gatherTimeSeconds < 10) gatherTimeSeconds = 10L // الحد الأدنى 10 ثوانٍ
+                    if (gatherTimeSeconds < 10) gatherTimeSeconds = 10L 
                     
                     march.gatherEndTime = now + (gatherTimeSeconds * 1000L)
                 }
@@ -443,7 +426,7 @@ object GameState {
                     }
                 }
                 march.status = MarchStatus.RETURNING
-                march.endTime = now + 1500L
+                march.endTime = now + 3000L // 💡 [تعديل] 3 ثواني لعودة الفيلق الجامع!
             }
             else if (march.status == MarchStatus.RETURNING && now >= march.endTime) {
                 needsUpdate = true
