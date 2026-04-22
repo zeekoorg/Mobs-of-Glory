@@ -19,6 +19,10 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.random.Random
 
@@ -43,7 +47,7 @@ class ArenaActivity : AppCompatActivity() {
     private val arenaHandler = Handler(Looper.getMainLooper())
     private val REGEN_TIME_MS = 3600000L 
     
-    private var isActivityResumed = false // 💡 حماية لعرض التقارير فقط والشاشة مفتوحة
+    private var isActivityResumed = false 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,7 +73,6 @@ class ArenaActivity : AppCompatActivity() {
         
         SoundManager.playBGM(this, R.raw.bgm_arena)
         
-        // 💡 فحص صندوق البريد فور العودة للساحة
         checkPendingReports()
     }
 
@@ -196,48 +199,100 @@ class ArenaActivity : AppCompatActivity() {
         layoutAttackPrompt.visibility = View.VISIBLE 
     }
 
+    // 💡 [الجديد] محرك قتال الساحة بنظام الـ SLG في مسار خلفي
     private fun executeBattleCalculations(sentInfantry: Long, sentCavalry: Long) {
-        val troopsPower = (sentInfantry * 5) + (sentCavalry * 10)
-        var equippedPower: Long = 0
-        GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { equippedPower += it.getCurrentPower() }
-        GameState.arsenal.filter { it.isOwned && it.isEquipped }.forEach { equippedPower += it.getCurrentPower() }
-        
-        val damageMultiplier = Random.nextDouble(0.9, 1.1)
-        val damageDealt = ((troopsPower + equippedPower) * damageMultiplier).toLong()
-
-        val earnedScore = maxOf(10L, damageDealt / 150)
-        GameState.arenaScore += earnedScore
-        GameState.arenaLeaderboard.find { it.isRealPlayer }?.score = GameState.arenaScore
-
-        var hasBonusLoot = false
-        if (damageDealt >= 250000) {
-            GameState.totalIron += 50000; GameState.totalWheat += 50000; GameState.totalGold += 30000
-            hasBonusLoot = true
-        }
-
-        val deadRatio = 0.02
-        val woundedRatio = 0.02
-
-        val deadInfantry = (sentInfantry * deadRatio).toLong(); val woundedInf = (sentInfantry * woundedRatio).toLong()
-        val deadCavalry = (sentCavalry * deadRatio).toLong(); val woundedCav = (sentCavalry * woundedRatio).toLong()
-
-        GameState.totalInfantry -= (deadInfantry + woundedInf); GameState.totalCavalry -= (deadCavalry + woundedCav)
-        GameState.woundedInfantry += woundedInf; GameState.woundedCavalry += woundedCav
-
-        GameState.calculatePower()
-        GameState.saveGameData(this)
-        refreshArenaUI()
-
-        Handler(Looper.getMainLooper()).postDelayed({
-            ArenaDialogManager.showBattleReportDialog(this, damageDealt, earnedScore, deadInfantry + deadCavalry, woundedInf + woundedCav)
+        CoroutineScope(Dispatchers.Default).launch {
             
-            if (hasBonusLoot) {
-                Handler(Looper.getMainLooper()).postDelayed({
-                    SoundManager.playWindowOpen()
-                    DialogManager.showGameMessage(this, "دمار أسطوري!", "لقد ألحقت ضرراً تجاوز 250,000 بالقلعة!\n\nمكافأة فورية:\n+ 50K حديد\n+ 50K قمح\n+ 30K ذهب", R.drawable.ic_ui_castle_rewards)
-                }, 500)
+            // 1. حساب الـ Buffs من الأبطال والأسلحة المجهزة
+            var heroAtkBuff = 0.0; var heroDefBuff = 0.0; var heroHpBuff = 0.0
+            GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { 
+                heroAtkBuff += it.getCurrentAttackBuff()
+                heroDefBuff += it.getCurrentDefenseBuff()
+                heroHpBuff += it.getCurrentHpBuff()
             }
-        }, 800)
+            
+            var wpAtkBuff = 0.0; var wpDefBuff = 0.0
+            GameState.arsenal.filter { it.isOwned && it.isEquipped }.forEach { 
+                wpAtkBuff += it.getCurrentAttackBuff()
+                wpDefBuff += it.getCurrentDefenseBuff()
+            }
+
+            val totalAtkBuff = 1.0 + heroAtkBuff + wpAtkBuff
+            val totalDefBuff = 1.0 + heroDefBuff + wpDefBuff
+            val totalHpBuff = 1.0 + heroHpBuff
+
+            // 2. حساب هجوم ودفاع وصحة الفيلق المرسل للساحة
+            val baseAtk = (sentInfantry * GameState.INFANTRY_ATK) + (sentCavalry * GameState.CAVALRY_ATK)
+            val myTotalAtk = baseAtk * totalAtkBuff
+            
+            val baseDef = (sentInfantry * GameState.INFANTRY_DEF) + (sentCavalry * GameState.CAVALRY_DEF)
+            val myTotalDef = baseDef * totalDefBuff
+
+            // 3. حساب الضرر المُلحق بالقلعة الشبحية
+            val damageMultiplier = Random.nextDouble(0.9, 1.1)
+            val damageDealt = (myTotalAtk * damageMultiplier).toLong()
+            val earnedScore = maxOf(10L, damageDealt / 150)
+
+            // 4. القلعة الشبحية ترد الهجوم! (محاكاة هجوم العدو المجهول)
+            val enemyAtk = 15000.0 + (GameState.playerLevel * 2000.0) // تزداد شراسة القلعة الشبحية مع تقدم مستواك
+            val dmgMultiplierToMe = 1.0 - (myTotalDef / (myTotalDef + 5000.0))
+            val actualDmgToMe = enemyAtk * dmgMultiplierToMe
+
+            // 5. حساب الخسائر بناءً على الـ HP المفقود بدقة
+            val avgHpPerUnit = ((GameState.INFANTRY_HP * totalHpBuff) + (GameState.CAVALRY_HP * totalHpBuff)) / 2.0
+            var totalCasualties = (actualDmgToMe / avgHpPerUnit).toLong()
+
+            val totalSent = sentInfantry + sentCavalry
+            if (totalCasualties > totalSent) totalCasualties = totalSent
+            if (totalCasualties < 0) totalCasualties = 0
+
+            val infRatio = if (totalSent > 0) sentInfantry.toDouble() / totalSent.toDouble() else 0.0
+            val cavRatio = if (totalSent > 0) sentCavalry.toDouble() / totalSent.toDouble() else 0.0
+
+            val infCasualties = (totalCasualties * infRatio).toLong()
+            val cavCasualties = (totalCasualties * cavRatio).toLong()
+
+            // 💡 في غزوات الساحة التدريبية، معظم الإصابات تكون جروح (10% قتلى فقط، 90% جرحى)
+            val deadInfantry = (infCasualties * 0.10).toLong()
+            val woundedInf = infCasualties - deadInfantry
+            val deadCavalry = (cavCasualties * 0.10).toLong()
+            val woundedCav = cavCasualties - deadCavalry
+
+            var hasBonusLoot = false
+            if (damageDealt >= 250000) {
+                hasBonusLoot = true
+            }
+
+            // 6. العودة لواجهة المستخدم (Main Thread) لتحديث العدادات والنوافذ
+            withContext(Dispatchers.Main) {
+                GameState.arenaScore += earnedScore
+                GameState.arenaLeaderboard.find { it.isRealPlayer }?.score = GameState.arenaScore
+
+                if (hasBonusLoot) {
+                    GameState.totalIron += 50000; GameState.totalWheat += 50000; GameState.totalGold += 30000
+                }
+
+                GameState.totalInfantry -= (deadInfantry + woundedInf)
+                GameState.totalCavalry -= (deadCavalry + woundedCav)
+                GameState.woundedInfantry += woundedInf
+                GameState.woundedCavalry += woundedCav
+
+                GameState.calculatePower()
+                GameState.saveGameData(this@ArenaActivity)
+                refreshArenaUI()
+
+                Handler(Looper.getMainLooper()).postDelayed({
+                    ArenaDialogManager.showBattleReportDialog(this@ArenaActivity, damageDealt, earnedScore, deadInfantry + deadCavalry, woundedInf + woundedCav)
+                    
+                    if (hasBonusLoot) {
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            SoundManager.playWindowOpen()
+                            DialogManager.showGameMessage(this@ArenaActivity, "دمار أسطوري!", "لقد ألحقت ضرراً تجاوز 250,000 بالقلعة!\n\nمكافأة فورية:\n+ 50K حديد\n+ 50K قمح\n+ 30K ذهب", R.drawable.ic_ui_castle_rewards)
+                        }, 500)
+                    }
+                }, 800)
+            }
+        }
     }
 
     fun refreshArenaUI() {
@@ -256,7 +311,6 @@ class ArenaActivity : AppCompatActivity() {
         tvArenaRank.text = "المركز: $playerRank"
     }
 
-    // 💡 تفريغ صندوق البريد وإظهار التقارير الفورية للمقاطعات
     private fun checkPendingReports() {
         if (!isActivityResumed) return
         
@@ -315,7 +369,6 @@ class ArenaActivity : AppCompatActivity() {
                         }
                     }
                     
-                    // 💡 التأكد من معالجة جيوش الخريطة أثناء تواجدك في الساحة لتصلك التقارير في وقتها
                     val needsUpdate = GameState.processActiveMarches(this@ArenaActivity)
                     if (needsUpdate) {
                         refreshArenaUI()
