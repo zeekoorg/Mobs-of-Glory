@@ -204,7 +204,6 @@ object GameState {
                 
                 battlefieldNodes.add(BattlefieldNode(i, t, basePower, basePower, nodeLevel, false, 0L, 0L, imgName))
             } else {
-                // 💡 [تعديل 2] موازنة كميات الموارد لتبدأ بمنطقية وتتصاعد
                 val farmLevel = level + Random.nextInt(0, 3)
                 val resAmount = (farmLevel * 5000L) + Random.nextLong(2000, 8000) 
                 val imgName = when(t) {
@@ -218,7 +217,11 @@ object GameState {
         }
     }
 
-    fun checkRegionCleared(): Boolean = battlefieldNodes.all { it.isDefeated }
+    // 💡 [الجديد] التعديل العبقري: المقاطعة تتطهر فقط إذا دمرت كل قلاع العدو (المزارع والمناجم غير مطلوبة)
+    fun checkRegionCleared(): Boolean {
+        val enemyCastles = battlefieldNodes.filter { it.type == NodeType.ENEMY_CASTLE }
+        return enemyCastles.isNotEmpty() && enemyCastles.all { it.isDefeated }
+    }
     
     fun advanceToNextRegion() {
         currentRegionLevel++
@@ -393,7 +396,7 @@ object GameState {
                     ))
 
                     march.status = MarchStatus.RETURNING
-                    march.endTime = now + 5000L // 💡 [تعديل 6] 5 ثواني للعودة
+                    march.endTime = now + 5000L 
                 } else {
                     march.status = MarchStatus.GATHERING
                     
@@ -427,7 +430,7 @@ object GameState {
                     }
                 }
                 march.status = MarchStatus.RETURNING
-                march.endTime = now + 5000L // 💡 [تعديل 6] 5 ثواني للعودة 
+                march.endTime = now + 5000L 
             }
             else if (march.status == MarchStatus.RETURNING && now >= march.endTime) {
                 needsUpdate = true
