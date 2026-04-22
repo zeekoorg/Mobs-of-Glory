@@ -204,8 +204,9 @@ object GameState {
                 
                 battlefieldNodes.add(BattlefieldNode(i, t, basePower, basePower, nodeLevel, false, 0L, 0L, imgName))
             } else {
+                // 💡 [تعديل 2] موازنة كميات الموارد لتبدأ بمنطقية وتتصاعد
                 val farmLevel = level + Random.nextInt(0, 3)
-                val resAmount = (farmLevel * 200000L) + Random.nextLong(50000, 150000)
+                val resAmount = (farmLevel * 5000L) + Random.nextLong(2000, 8000) 
                 val imgName = when(t) {
                     NodeType.GOLD_MINE -> "img_node_gold"
                     NodeType.IRON_MINE -> "img_node_iron"
@@ -392,7 +393,7 @@ object GameState {
                     ))
 
                     march.status = MarchStatus.RETURNING
-                    march.endTime = now + 3000L // 💡 [تعديل] 3 ثواني لعودة الفيلق الهجومي!
+                    march.endTime = now + 5000L // 💡 [تعديل 6] 5 ثواني للعودة
                 } else {
                     march.status = MarchStatus.GATHERING
                     
@@ -426,7 +427,7 @@ object GameState {
                     }
                 }
                 march.status = MarchStatus.RETURNING
-                march.endTime = now + 3000L // 💡 [تعديل] 3 ثواني لعودة الفيلق الجامع!
+                march.endTime = now + 5000L // 💡 [تعديل 6] 5 ثواني للعودة 
             }
             else if (march.status == MarchStatus.RETURNING && now >= march.endTime) {
                 needsUpdate = true
