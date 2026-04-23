@@ -24,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
+import kotlin.math.pow
 import kotlin.random.Random
 
 class ArenaActivity : AppCompatActivity() {
@@ -73,7 +74,8 @@ class ArenaActivity : AppCompatActivity() {
         
         SoundManager.playBGM(this, R.raw.bgm_arena)
         
-        checkPendingReports()
+        // 💡 فحص التقارير بشكل آمن فور الدخول
+        arenaHandler.post { checkPendingReports() }
     }
 
     override fun onPause() {
@@ -199,11 +201,10 @@ class ArenaActivity : AppCompatActivity() {
         layoutAttackPrompt.visibility = View.VISIBLE 
     }
 
-    // 💡 [الجديد] محرك قتال الساحة بنظام الـ SLG في مسار خلفي
+    // 💡 [الجديد] محرك قتال الساحة معدل ليستخدم "رياضيات آينشتاين" أيضاً!
     private fun executeBattleCalculations(sentInfantry: Long, sentCavalry: Long) {
         CoroutineScope(Dispatchers.Default).launch {
             
-            // 1. حساب الـ Buffs من الأبطال والأسلحة المجهزة
             var heroAtkBuff = 0.0; var heroDefBuff = 0.0; var heroHpBuff = 0.0
             GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { 
                 heroAtkBuff += it.getCurrentAttackBuff()
@@ -221,24 +222,24 @@ class ArenaActivity : AppCompatActivity() {
             val totalDefBuff = 1.0 + heroDefBuff + wpDefBuff
             val totalHpBuff = 1.0 + heroHpBuff
 
-            // 2. حساب هجوم ودفاع وصحة الفيلق المرسل للساحة
             val baseAtk = (sentInfantry * GameState.INFANTRY_ATK) + (sentCavalry * GameState.CAVALRY_ATK)
             val myTotalAtk = baseAtk * totalAtkBuff
             
             val baseDef = (sentInfantry * GameState.INFANTRY_DEF) + (sentCavalry * GameState.CAVALRY_DEF)
             val myTotalDef = baseDef * totalDefBuff
 
-            // 3. حساب الضرر المُلحق بالقلعة الشبحية
-            val damageMultiplier = Random.nextDouble(0.9, 1.1)
-            val damageDealt = (myTotalAtk * damageMultiplier).toLong()
+            // 💡 [رياضيات آينشتاين] القلعة الشبحية تمتلك دفاعاً الآن يمتص هجومك
+            val enemyAtk = 15000.0 + (GameState.playerLevel * 2000.0) 
+            val enemyDef = 10000.0 + (GameState.playerLevel * 1500.0)
+            
+            // Damage = (Attack^2) / (Attack + Defense)
+            val damageDealtDouble = (myTotalAtk.pow(2.0) / (myTotalAtk + enemyDef)) * Random.nextDouble(0.9, 1.1)
+            val damageDealt = damageDealtDouble.toLong()
             val earnedScore = maxOf(10L, damageDealt / 150)
 
-            // 4. القلعة الشبحية ترد الهجوم! (محاكاة هجوم العدو المجهول)
-            val enemyAtk = 15000.0 + (GameState.playerLevel * 2000.0) // تزداد شراسة القلعة الشبحية مع تقدم مستواك
-            val dmgMultiplierToMe = 1.0 - (myTotalDef / (myTotalDef + 5000.0))
-            val actualDmgToMe = enemyAtk * dmgMultiplierToMe
+            // العدو يرد بضربة مركزة
+            val actualDmgToMe = (enemyAtk.pow(2.0) / (enemyAtk + myTotalDef)) * Random.nextDouble(0.9, 1.1)
 
-            // 5. حساب الخسائر بناءً على الـ HP المفقود بدقة
             val avgHpPerUnit = ((GameState.INFANTRY_HP * totalHpBuff) + (GameState.CAVALRY_HP * totalHpBuff)) / 2.0
             var totalCasualties = (actualDmgToMe / avgHpPerUnit).toLong()
 
@@ -252,7 +253,6 @@ class ArenaActivity : AppCompatActivity() {
             val infCasualties = (totalCasualties * infRatio).toLong()
             val cavCasualties = (totalCasualties * cavRatio).toLong()
 
-            // 💡 في غزوات الساحة التدريبية، معظم الإصابات تكون جروح (10% قتلى فقط، 90% جرحى)
             val deadInfantry = (infCasualties * 0.10).toLong()
             val woundedInf = infCasualties - deadInfantry
             val deadCavalry = (cavCasualties * 0.10).toLong()
@@ -263,7 +263,6 @@ class ArenaActivity : AppCompatActivity() {
                 hasBonusLoot = true
             }
 
-            // 6. العودة لواجهة المستخدم (Main Thread) لتحديث العدادات والنوافذ
             withContext(Dispatchers.Main) {
                 GameState.arenaScore += earnedScore
                 GameState.arenaLeaderboard.find { it.isRealPlayer }?.score = GameState.arenaScore
@@ -282,6 +281,7 @@ class ArenaActivity : AppCompatActivity() {
                 refreshArenaUI()
 
                 Handler(Looper.getMainLooper()).postDelayed({
+                    // التقرير الخاص بالساحة (يستخدم ArenaDialogManager)
                     ArenaDialogManager.showBattleReportDialog(this@ArenaActivity, damageDealt, earnedScore, deadInfantry + deadCavalry, woundedInf + woundedCav)
                     
                     if (hasBonusLoot) {
@@ -311,33 +311,91 @@ class ArenaActivity : AppCompatActivity() {
         tvArenaRank.text = "المركز: $playerRank"
     }
 
+    // 💡 [الجديد] التقاط وعرض التقارير السينمائية المفصلة داخل الساحة أيضاً
     private fun checkPendingReports() {
         if (!isActivityResumed) return
         
-        val iterator = GameState.pendingBattleReports.iterator()
-        while (iterator.hasNext()) {
-            val report = iterator.next()
-            val details = StringBuilder()
-            
-            if (report.damage > 0) details.append("القوة الهجومية: ⚔️ ${formatResourceNumber(report.damage)}\n")
-            if (report.dead > 0 || report.wounded > 0) details.append("القتلى: ☠️ ${formatResourceNumber(report.dead)} | الجرحى: 🩸 ${formatResourceNumber(report.wounded)}\n\n")
-            if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
-                details.append("الغنائم التي تم حصدها:\n")
-                if (report.lootGold > 0) details.append("الذهب: 💰 ${formatResourceNumber(report.lootGold)}  ")
-                if (report.lootIron > 0) details.append("الحديد: ⛓️ ${formatResourceNumber(report.lootIron)}  ")
-                if (report.lootWheat > 0) details.append("القمح: 🌾 ${formatResourceNumber(report.lootWheat)}")
-            }
-            
-            SoundManager.playWindowOpen()
-            DialogManager.showGameMessage(
-                this, 
-                report.title, 
-                report.message + "\n\n" + details.toString(), 
-                if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation
-            )
-            iterator.remove()
+        if (GameState.pendingBattleReports.isNotEmpty()) {
+            val report = GameState.pendingBattleReports.removeAt(0) 
+            GameState.saveGameData(this)
+            showBattleReportDialog(report)
         }
-        GameState.saveGameData(this)
+    }
+
+    private fun showBattleReportDialog(report: BattleReport) {
+        SoundManager.playWindowOpen()
+        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_game_message)
+        
+        val details = StringBuilder()
+        
+        if (report.enemyPowerBefore > 0) {
+            details.append("==== [قوات العدو: ${report.enemyName}] ====\n")
+            details.append("القوة السابقة: ${formatResourceNumber(report.enemyPowerBefore)}\n")
+            details.append("القوة المتبقية: ${formatResourceNumber(report.enemyPowerAfter)}\n")
+            details.append("الخسائر: ${formatResourceNumber(report.enemyPowerBefore - report.enemyPowerAfter)}\n\n")
+            
+            details.append("==== [قواتك الإمبراطورية] ====\n")
+            details.append("القوة الهجومية: ${formatResourceNumber(report.myDamage)}\n")
+            details.append("القتلى: ${formatResourceNumber(report.myDead)}\n")
+            details.append("الجرحى: ${formatResourceNumber(report.myWounded)}\n\n")
+        }
+        
+        if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
+            details.append("==== [الغنائم المكتسبة] ====\n")
+            if (report.lootIron > 0) details.append("الحديد: ${formatResourceNumber(report.lootIron)}  ")
+            if (report.lootWheat > 0) details.append("القمح: ${formatResourceNumber(report.lootWheat)}")
+        } else if (report.lootGold < 0 || report.lootIron < 0 || report.lootWheat < 0) {
+            details.append("==== [الموارد المنهوبة من مدينتك!] ====\n")
+            if (report.lootIron < 0) details.append("الحديد: ${formatResourceNumber(Math.abs(report.lootIron))}  ")
+            if (report.lootWheat < 0) details.append("القمح: ${formatResourceNumber(Math.abs(report.lootWheat))}")
+        }
+        
+        d.findViewById<TextView>(R.id.tvMessageTitle)?.text = report.title
+        d.findViewById<TextView>(R.id.tvMessageBody)?.text = report.message + "\n\n" + details.toString()
+        d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation)
+        
+        d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener { 
+            SoundManager.playClick()
+            d.dismiss() 
+        }
+        
+        d.setOnDismissListener {
+            if (report.hasRevenge && report.revengeNodeId != -1) {
+                showRevengeWarningDialog(report.revengeNodeId)
+            } else {
+                checkPendingReports()
+            }
+        }
+        d.show()
+    }
+
+    private fun showRevengeWarningDialog(nodeId: Int) {
+        SoundManager.playWindowOpen()
+        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_game_message)
+        
+        val tvTitle = d.findViewById<TextView>(R.id.tvMessageTitle)
+        tvTitle?.text = "⚠️ تحذير هجوم وشيك ⚠️"
+        tvTitle?.setTextColor(Color.parseColor("#FF5252")) 
+        
+        d.findViewById<TextView>(R.id.tvMessageBody)?.text = "العدو لم يُهزم! لقد قام بحشد قواته المتبقية وهو في طريقه الآن للانتقام من مدينتك!\n\nتجهز للدفاع فوراً!"
+        d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(R.drawable.ic_settings_gear)
+        
+        val btn = d.findViewById<Button>(R.id.btnMessageOk)
+        btn?.text = "حسناً، لنجعله يندم!"
+        btn?.setBackgroundResource(R.drawable.bg_btn_gold_border)
+        
+        btn?.setOnClickListener {
+            SoundManager.playClick()
+            d.dismiss()
+        }
+        
+        d.setOnDismissListener {
+            GameState.triggerRevengeMarch(nodeId)
+            checkPendingReports()
+        }
+        d.show()
     }
 
     private fun startArenaLoop() {
@@ -372,6 +430,9 @@ class ArenaActivity : AppCompatActivity() {
                     val needsUpdate = GameState.processActiveMarches(this@ArenaActivity)
                     if (needsUpdate) {
                         refreshArenaUI()
+                    }
+                    // 💡 فحص التقارير المستمر لالتقاط هجمات العدو المفاجئة
+                    if (GameState.pendingBattleReports.isNotEmpty() && isActivityResumed) {
                         checkPendingReports()
                     }
 
@@ -381,5 +442,10 @@ class ArenaActivity : AppCompatActivity() {
         })
     }
 
-    private fun formatResourceNumber(num: Long): String = when { num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0); num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0); else -> num.toString() }
+    private fun formatResourceNumber(num: Long): String = when { 
+        num >= 1_000_000_000 -> String.format(Locale.US, "%.1fB", num / 1_000_000_000.0)
+        num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0)
+        num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0)
+        else -> num.toString() 
+    }
 }
