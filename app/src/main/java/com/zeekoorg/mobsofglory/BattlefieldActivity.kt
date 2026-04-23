@@ -38,7 +38,6 @@ class BattlefieldActivity : AppCompatActivity() {
     private val gameHandler = Handler(Looper.getMainLooper())
     private var isActivityResumed = false
     
-    // 💡 منع تداخل النوافذ والانهيار
     private var isReportDialogOpen = false
 
     private var displayedGold = -1L
@@ -482,7 +481,6 @@ class BattlefieldActivity : AppCompatActivity() {
                     rootLayout.removeView(marchIcon)
                     if (march.type == MarchType.ATTACK) { triggerHitEffects(targetX, targetY) }
                     
-                    // تحديث الحالة الفوري
                     GameState.processActiveMarches(this@BattlefieldActivity)
                     updateHudUI()
                     renderBattlefield()
@@ -525,9 +523,12 @@ class BattlefieldActivity : AppCompatActivity() {
                 override fun onAnimationEnd(animation: Animator) {
                     dotsHandler.removeCallbacks(dotsRunnable) 
                     rootLayout.removeView(returnIcon) 
-                    animatingBackgroundMarches.remove(march.id)
                     
-                    // 💡 [تأكيد التنفيذ]: نجبر المحرك على التنظيف الفوري ونطلب التقرير!
+                    // 💡 [الضربة القاضية للخطأ]: 
+                    // 1. لا نزيل الـ ID من المجموعة لكي لا يتكرر الأنيميشن!
+                    // 2. نجبر العقل المدبر على قبول وقت الوصول فوراً لمنع أي تأخير في التقرير.
+                    march.endTime = System.currentTimeMillis() - 100
+                    
                     GameState.processActiveMarches(this@BattlefieldActivity)
                     checkPendingReports()
                 }
@@ -567,9 +568,10 @@ class BattlefieldActivity : AppCompatActivity() {
                     rootLayout.removeView(revengeIcon) 
                     triggerHitEffects(cityX, cityY) 
                     showRedFlashOverlay()
-                    animatingBackgroundMarches.remove(march.id)
                     
-                    // 💡 تفريغ الهجوم الانتقامي فوراً واستدعاء التقرير
+                    // 💡 [الضربة القاضية للخطأ]: 
+                    march.endTime = System.currentTimeMillis() - 100
+                    
                     GameState.processActiveMarches(this@BattlefieldActivity)
                     checkPendingReports()
                 }
@@ -630,7 +632,6 @@ class BattlefieldActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 الفحص الآمن لمنع تداخل التقارير
     private fun checkPendingReports() {
         if (!isActivityResumed || isReportDialogOpen) return
         
@@ -643,7 +644,7 @@ class BattlefieldActivity : AppCompatActivity() {
 
     private fun showBattleReportDialog(report: BattleReport) {
         if (!isActivityResumed) return
-        isReportDialogOpen = true // 💡 قفل النافذة
+        isReportDialogOpen = true 
         
         SoundManager.playWindowOpen()
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
@@ -683,11 +684,11 @@ class BattlefieldActivity : AppCompatActivity() {
         }
         
         d.setOnDismissListener {
-            isReportDialogOpen = false // 💡 فتح القفل بعد الإغلاق
+            isReportDialogOpen = false 
             if (report.hasRevenge && report.revengeNodeId != -1) {
                 showRevengeWarningDialog(report.revengeNodeId)
             } else {
-                checkPendingReports() // فحص ما إذا كان هناك تقارير أخرى تنتظر
+                checkPendingReports()
             }
         }
         d.show()
@@ -695,7 +696,7 @@ class BattlefieldActivity : AppCompatActivity() {
 
     private fun showRevengeWarningDialog(nodeId: Int) {
         if (!isActivityResumed) return
-        isReportDialogOpen = true // 💡 قفل
+        isReportDialogOpen = true 
         
         SoundManager.playWindowOpen()
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
@@ -718,7 +719,7 @@ class BattlefieldActivity : AppCompatActivity() {
         }
         
         d.setOnDismissListener {
-            isReportDialogOpen = false // 💡 فتح القفل
+            isReportDialogOpen = false 
             GameState.triggerRevengeMarch(nodeId)
         }
         d.show()
@@ -727,9 +728,8 @@ class BattlefieldActivity : AppCompatActivity() {
     private fun startGameLoop() {
         gameHandler.post(object : Runnable {
             override fun run() {
-                // 💡 [الجديد] قفل الخلفية لمنع استنزاف البطارية والانهيارات المخفية!
                 if (!isActivityResumed) {
-                    gameHandler.postDelayed(this, 1000)
+                    gameHandler.postDelayed(this, 1000L)
                     return
                 }
 
@@ -756,6 +756,10 @@ class BattlefieldActivity : AppCompatActivity() {
 
     private fun checkAndAnimateBackgroundMarches() {
         if (!isActivityResumed) return
+        
+        // 💡 تنظيف ذكي للذاكرة: مسح أقفال الأنيميشن للفيالق التي لم تعد موجودة
+        val activeIds = GameState.activeMarches.map { it.id }.toSet()
+        animatingBackgroundMarches.retainAll(activeIds)
         
         val rootLayout = findViewById<ViewGroup>(R.id.mapContainer) ?: return
         val iconSize = 250f
