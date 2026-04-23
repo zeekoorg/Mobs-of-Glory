@@ -13,7 +13,8 @@ import kotlin.random.Random
 data class PendingMessage(val title: String, val body: String, val iconResId: Int)
 
 enum class NodeType { ENEMY_CASTLE, GOLD_MINE, IRON_MINE, WHEAT_FARM }
-enum class MarchStatus { MARCHING, GATHERING, RETURNING }
+// 💡 أضفنا حالة COMPLETED لحل مشكلة الانهيار والتزامن مع الواجهة
+enum class MarchStatus { WAITING, MARCHING, GATHERING, RETURNING, COMPLETED }
 enum class MarchType { ATTACK, GATHER, REVENGE }
 
 data class ActiveMarch(
@@ -40,17 +41,21 @@ data class ActiveMarch(
     var reportEnemyPowerStr: String = ""
 )
 
+// 💡 التقرير الشامل المفصل
 data class BattleReport(
+    val marchId: Long,
     val title: String,
     val message: String,
-    val damage: Long,
-    val dead: Long,
-    val wounded: Long,
+    val enemyName: String,
+    val enemyPowerBefore: Long,
+    val enemyPowerAfter: Long,
+    val myDamage: Long,
+    val myDead: Long,
+    val myWounded: Long,
     val lootGold: Long,
     val lootIron: Long,
     val lootWheat: Long,
     val isVictory: Boolean,
-    // 💡 الإضافات الخاصة بسيناريو الانتقام التسلسلي الذي طلبته
     val hasRevenge: Boolean = false,
     val revengeNodeId: Int = -1
 )
@@ -129,8 +134,8 @@ object GameState {
     val activeMarches = CopyOnWriteArrayList<ActiveMarch>()
     val pendingBattleReports = CopyOnWriteArrayList<BattleReport>()
 
-    fun isHeroBusy(heroId: Int): Boolean = activeMarches.any { it.heroIds.contains(heroId) }
-    fun isWeaponBusy(weaponId: Int): Boolean = activeMarches.any { it.weaponIds.contains(weaponId) }
+    fun isHeroBusy(heroId: Int): Boolean = activeMarches.any { it.heroIds.contains(heroId) && it.status != MarchStatus.COMPLETED }
+    fun isWeaponBusy(weaponId: Int): Boolean = activeMarches.any { it.weaponIds.contains(weaponId) && it.status != MarchStatus.COMPLETED }
     
     fun getHospitalCapacity(): Long {
         val hospitalLvl = myPlots.find { it.idCode == "HOSPITAL" }?.level ?: 1
@@ -228,7 +233,6 @@ object GameState {
         for (i in 0 until 8) {
             val t = types[i]
             if (t == NodeType.ENEMY_CASTLE) {
-                // 💡 [تعديل] توازن القلاع: مستوى 10 = ~2.5 مليون. مستوى 20 = ~17.5 مليون. 
                 val basePower = 150_000L + (level.toDouble().pow(2.8) * 4000L).toLong() + Random.nextLong(10000, 50000)
                 val nodeLevel = level + Random.nextInt(0, 3)
                 val imgName = selectedCastleImages[castleImageIndex]
@@ -324,7 +328,6 @@ object GameState {
         }
     }
 
-    // 💡 [الجديد] الدالة التي تستدعيها الشاشة لإطلاق هجوم العدو عند إغلاق التحذير!
     fun triggerRevengeMarch(nodeId: Int) {
         val node = battlefieldNodes.find { it.id == nodeId } ?: return
         if (node.currentPower <= 0) return
@@ -341,21 +344,38 @@ object GameState {
             endTime = System.currentTimeMillis() + travelTime,
             totalTime = travelTime
         ))
-        // لا حاجة لانتظار الـ Timer، أطلق الحفظ مباشرة
+        ioScope.launch { saveGameData(null) }
+    }
+
+    // 💡 دالة جديدة للحذف الآمن
+    fun completeMarch(marchId: Long) {
+        activeMarches.removeAll { it.id == marchId }
         ioScope.launch { saveGameData(null) }
     }
 
     fun processActiveMarches(context: Context?): Boolean {
         val now = System.currentTimeMillis()
         var needsUpdate = false
-        val marchesToRemove = mutableListOf<ActiveMarch>()
-
+        val newMarchesToAdd = mutableListOf<ActiveMarch>() 
+        
         for (march in activeMarches) {
+
+            // الفيلق المنتهي سيتجاهل المحرك، في انتظار مسحه من الشاشة
+            if (march.status == MarchStatus.COMPLETED) continue
+
+            if (march.status == MarchStatus.WAITING) {
+                if (now >= march.gatherEndTime) {
+                    needsUpdate = true
+                    march.status = MarchStatus.MARCHING
+                    march.endTime = now + march.totalTime
+                }
+                continue
+            }
 
             if (march.status == MarchStatus.MARCHING && now >= march.endTime) {
                 needsUpdate = true
                 val node = battlefieldNodes.find { it.id == march.targetNodeId }
-                if (node == null && march.type != MarchType.REVENGE) { marchesToRemove.add(march); continue }
+                if (node == null && march.type != MarchType.REVENGE) { march.status = MarchStatus.COMPLETED; continue }
 
                 if (march.type == MarchType.ATTACK) {
                     
@@ -387,7 +407,6 @@ object GameState {
                     
                     val initialEnemyPower = node.currentPower
 
-                    // 💡 [رياضيات آينشتاين] نظام القتال الدقيق الجولة بجولة
                     var rounds = 0
                     val maxRounds = 20
                     var actualDmgToMeTotal = 0.0
@@ -395,7 +414,6 @@ object GameState {
 
                     while (myTotalHp > 0 && enemyHp > 0 && rounds < maxRounds) {
                         rounds++
-                        // Damage = (Attack^2) / (Attack + Defense)
                         val dmgToEnemy = (myTotalAtk.pow(2.0) / (myTotalAtk + enemyDef)) * Random.nextDouble(0.9, 1.1)
                         val dmgToMe = (enemyAtk.pow(2.0) / (enemyAtk + myTotalDef)) * Random.nextDouble(0.9, 1.1)
 
@@ -416,7 +434,6 @@ object GameState {
                         
                         val maxLootCapacity = (march.infantryCount * INFANTRY_LOAD) + (march.cavalryCount * CAVALRY_LOAD)
                         
-                        // 💡 [الجديد] لا ذهب في النهب، والموارد عشوائية ثابتة النطاق 10k لـ 50k
                         march.payloadGold = 0L 
                         val availableLootIron = Random.nextLong(10000, 50000)
                         val availableLootWheat = Random.nextLong(10000, 50000)
@@ -426,7 +443,6 @@ object GameState {
                     } else {
                         node.currentPower = maxOf(0L, (enemyHp / 2.0).toLong())
                         node.lastAttackedTime = now
-                        // لا نطلق هجوم الانتقام هنا. سنطلقه في الشاشة بعد غلق التقرير!
                     }
 
                     val totalSent = march.infantryCount + march.cavalryCount
@@ -482,7 +498,7 @@ object GameState {
                     march.reportWounded = finalWounded
                     march.reportIsVictory = isVictory
                     march.reportRounds = rounds 
-                    march.reportEnemyPowerStr = "القلعة كانت بقوة ${formatResourceNumber(initialEnemyPower)}، وأصبحت ${formatResourceNumber(node.currentPower)}."
+                    march.reportEnemyPowerStr = initialEnemyPower.toString() // نحفظ القوة القديمة فقط للتقرير
                     march.hasReport = true
 
                     march.status = MarchStatus.RETURNING
@@ -508,12 +524,16 @@ object GameState {
                     
                     if (isCityDefended) {
                         pendingBattleReports.add(BattleReport(
+                            marchId = march.id,
                             title = "دفاع أسطوري!",
-                            message = "حاولت قلعة [${node?.playerName}] الانتقام منا، لكن أسوار مدينتنا صامدة وجيوشنا دحرت العدو!",
-                            damage = 0, dead = 0, wounded = 0, lootGold = 0, lootIron = 0, lootWheat = 0, isVictory = true
+                            message = "قوات العدو تحطمت على أسوارنا الحصينة!",
+                            enemyName = node?.playerName ?: "العدو",
+                            enemyPowerBefore = enemyAtk.toLong(),
+                            enemyPowerAfter = 0L,
+                            myDamage = cityDef.toLong(),
+                            myDead = 0, myWounded = 0, lootGold = 0, lootIron = 0, lootWheat = 0, isVictory = true
                         ))
                     } else {
-                        // نهب عشوائي، لا ذهب، ولا توجد نسب مئوية خيالية
                         val lostGold = 0L 
                         val lostIron = Random.nextLong(10000, 50000) 
                         val lostWheat = Random.nextLong(10000, 50000)
@@ -522,12 +542,17 @@ object GameState {
                         totalWheat = maxOf(0L, totalWheat - lostWheat)
                         
                         pendingBattleReports.add(BattleReport(
+                            marchId = march.id,
                             title = "هجوم انتقامي مدمر!",
-                            message = "تعرضنا لهجوم مباغت من [${node?.playerName}]! دفاعاتنا لم تصمد وتم نهب خزائننا!\nالخسائر: ${formatResourceNumber(lostIron)} حديد، ${formatResourceNumber(lostWheat)} قمح.",
-                            damage = 0, dead = 0, wounded = 0, lootGold = -lostGold, lootIron = -lostIron, lootWheat = -lostWheat, isVictory = false
+                            message = "دفاعاتنا لم تصمد وتم نهب خزائننا!",
+                            enemyName = node?.playerName ?: "العدو",
+                            enemyPowerBefore = enemyAtk.toLong(),
+                            enemyPowerAfter = enemyAtk.toLong(),
+                            myDamage = cityDef.toLong(),
+                            myDead = 0, myWounded = 0, lootGold = -lostGold, lootIron = -lostIron, lootWheat = -lostWheat, isVictory = false
                         ))
                     }
-                    marchesToRemove.add(march) 
+                    march.status = MarchStatus.COMPLETED 
                     continue
 
                 } else {
@@ -572,16 +597,21 @@ object GameState {
                 totalIron += march.payloadIron
                 totalWheat += march.payloadWheat
 
+                val node = battlefieldNodes.find { it.id == march.targetNodeId }
+
                 if (march.type == MarchType.ATTACK && march.hasReport) {
-                    // 💡 [الجديد] إذا لم ننتصر، نرسل إشارة للواجهة أن هناك انتقاماً يجب تشغيله
-                    val willRevenge = !march.reportIsVictory && battlefieldNodes.find { it.id == march.targetNodeId }?.currentPower!! > 0
+                    val willRevenge = !march.reportIsVictory && node != null && node.currentPower > 0
                     
                     pendingBattleReports.add(BattleReport(
+                        marchId = march.id,
                         title = if (march.reportIsVictory) "انتصار ساحق!" else "هزيمة مريرة",
-                        message = if (march.reportIsVictory) "تم تدمير القلعة بعد قتال استمر ${march.reportRounds} جولة!\n\n${march.reportEnemyPowerStr}" else "تراجعت قواتنا بعد ${march.reportRounds} جولة قاسية.\n\n${march.reportEnemyPowerStr}",
-                        damage = march.reportDamage,
-                        dead = march.reportDead,
-                        wounded = march.reportWounded,
+                        message = if (march.reportIsVictory) "تم تدمير القلعة بعد قتال استمر ${march.reportRounds} جولة!" else "تراجعت قواتنا بعد ${march.reportRounds} جولة قاسية.",
+                        enemyName = node?.playerName ?: "العدو",
+                        enemyPowerBefore = march.reportEnemyPowerStr.toLongOrNull() ?: 0L,
+                        enemyPowerAfter = node?.currentPower ?: 0L,
+                        myDamage = march.reportDamage,
+                        myDead = march.reportDead,
+                        myWounded = march.reportWounded,
                         lootGold = march.payloadGold,
                         lootIron = march.payloadIron,
                         lootWheat = march.payloadWheat,
@@ -590,22 +620,25 @@ object GameState {
                         revengeNodeId = if (willRevenge) march.targetNodeId else -1
                     ))
                 } else if (march.type == MarchType.GATHER) {
+                    val resName = when(node?.type) { NodeType.GOLD_MINE -> "الذهب"; NodeType.IRON_MINE -> "الحديد"; else -> "القمح" }
+                    val amountCollected = march.payloadGold + march.payloadIron + march.payloadWheat
+                    
                     pendingBattleReports.add(BattleReport(
+                        marchId = march.id,
                         title = "اكتمل الجمع",
-                        message = "عادت الفيالق محملة بغنائم الموارد من المقاطعة.",
-                        damage = 0, dead = 0, wounded = 0,
-                        lootGold = march.payloadGold,
-                        lootIron = march.payloadIron,
-                        lootWheat = march.payloadWheat,
-                        isVictory = true
+                        message = "عادت الفيالق وحملت معها ${formatResourceNumber(amountCollected)} من $resName.",
+                        enemyName = "", enemyPowerBefore = 0, enemyPowerAfter = 0, myDamage = 0, myDead = 0, myWounded = 0,
+                        lootGold = march.payloadGold, lootIron = march.payloadIron, lootWheat = march.payloadWheat, isVictory = true
                     ))
                 }
-                marchesToRemove.add(march) 
+                
+                // الفيلق لم يعد يمسح نفسه لكي لا يفجر اللعبة. الشاشة ستمسحه بعد الأنيميشن!
+                march.status = MarchStatus.COMPLETED 
             }
         }
 
-        if (marchesToRemove.isNotEmpty()) {
-            activeMarches.removeAll(marchesToRemove)
+        if (newMarchesToAdd.isNotEmpty()) {
+            activeMarches.addAll(newMarchesToAdd)
             needsUpdate = true
         }
 
