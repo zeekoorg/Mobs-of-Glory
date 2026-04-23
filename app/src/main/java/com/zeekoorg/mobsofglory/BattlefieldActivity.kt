@@ -657,23 +657,23 @@ class BattlefieldActivity : AppCompatActivity() {
         val details = StringBuilder()
         
         if (report.enemyPowerBefore > 0) {
-            details.append("==== [قوات العدو: ${report.enemyName}] ====\n")
+            details.append("⚔️قوات العدو: ${report.enemyName}\n")
             details.append("القوة السابقة: ${formatResourceNumber(report.enemyPowerBefore)}\n")
             details.append("القوة المتبقية: ${formatResourceNumber(report.enemyPowerAfter)}\n")
             details.append("الخسائر: ${formatResourceNumber(report.enemyPowerBefore - report.enemyPowerAfter)}\n\n")
             
-            details.append("==== [قواتك الإمبراطورية] ====\n")
+            details.append("قواتك ⚔️\n")
             details.append("القوة الهجومية: ${formatResourceNumber(report.myDamage)}\n")
             details.append("القتلى: ${formatResourceNumber(report.myDead)}\n")
             details.append("الجرحى: ${formatResourceNumber(report.myWounded)}\n\n")
         }
         
         if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
-            details.append("==== [الغنائم المكتسبة] ====\n")
+            details.append("الغنائم المكتسبة\n")
             if (report.lootIron > 0) details.append("الحديد: ${formatResourceNumber(report.lootIron)}  ")
             if (report.lootWheat > 0) details.append("القمح: ${formatResourceNumber(report.lootWheat)}")
         } else if (report.lootGold < 0 || report.lootIron < 0 || report.lootWheat < 0) {
-            details.append("==== [الموارد المنهوبة من مدينتك!] ====\n")
+            details.append("الموارد المنهوبة من مدينتك!\n")
             if (report.lootIron < 0) details.append("الحديد: ${formatResourceNumber(Math.abs(report.lootIron))}  ")
             if (report.lootWheat < 0) details.append("القمح: ${formatResourceNumber(Math.abs(report.lootWheat))}")
         }
@@ -714,7 +714,7 @@ class BattlefieldActivity : AppCompatActivity() {
         d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(R.drawable.ic_settings_gear)
         
         val btn = d.findViewById<Button>(R.id.btnMessageOk)
-        btn?.text = "حسناً، لنجعله يندم!"
+        btn?.text = "حسناً!"
         btn?.setBackgroundResource(R.drawable.bg_btn_gold_border)
         
         btn?.setOnClickListener {
@@ -755,7 +755,7 @@ class BattlefieldActivity : AppCompatActivity() {
             }
             text = newsText
             setTextColor(Color.parseColor("#FFD700")) 
-            textSize = 14f // 💡 تصغير الخط
+            textSize = 12f // 💡 تصغير الخط
             setSingleLine(true)
             setTypeface(null, android.graphics.Typeface.BOLD)
             setPadding(30, 0, 30, 0) 
