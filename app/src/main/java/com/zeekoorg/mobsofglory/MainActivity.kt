@@ -43,6 +43,9 @@ class MainActivity : AppCompatActivity() {
     private val gameHandler = Handler(Looper.getMainLooper())
     private var doubleBackToExitPressedOnce = false
     private var isActivityResumed = false 
+    
+    // 💡 [الجديد] متغير لمنع تداخل النوافذ (Dialog Stacking)
+    private var isReportDialogOpen = false
 
     private var displayedGold = -1L
     private var displayedIron = -1L
@@ -110,6 +113,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun checkAndRunSpotlightTutorial() {
+        if (!isActivityResumed) return // 💡 منع التشغيل في الخلفية
+        
         val rootLayout = window.decorView as ViewGroup
         
         when (GameState.tutorialStep) {
@@ -195,7 +200,6 @@ class MainActivity : AppCompatActivity() {
         GameState.calculatePower()
         updateHudUI()
         SoundManager.playBGM(this, R.raw.bgm_city)
-        // 💡 فحص التقارير فور الدخول للشاشة
         gameHandler.post { checkPendingReports() }
         Handler(Looper.getMainLooper()).postDelayed({ checkAndRunSpotlightTutorial() }, 500)
     }
@@ -266,9 +270,9 @@ class MainActivity : AppCompatActivity() {
         } 
     }
 
-    // 💡 [تحديث جذري] تقرير مفصل ومنظم يتوافق مع التعديلات
+    // 💡 [الجديد] الفحص الآمن للتقارير مع منع التداخل
     private fun checkPendingReports() {
-        if (!isActivityResumed) return
+        if (!isActivityResumed || isReportDialogOpen) return
         
         if (GameState.pendingBattleReports.isNotEmpty()) {
             val report = GameState.pendingBattleReports.removeAt(0) 
@@ -278,13 +282,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showBattleReportDialog(report: BattleReport) {
+        if (!isActivityResumed) return
+        isReportDialogOpen = true // قفل النوافذ الأخرى
+        
         SoundManager.playWindowOpen()
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_game_message)
         
         val details = StringBuilder()
         
-        // تقرير الهجوم على قلعة
         if (report.enemyPowerBefore > 0) {
             details.append("==== [قوات العدو: ${report.enemyName}] ====\n")
             details.append("القوة السابقة: ${formatResourceNumber(report.enemyPowerBefore)}\n")
@@ -297,7 +303,6 @@ class MainActivity : AppCompatActivity() {
             details.append("الجرحى: ${formatResourceNumber(report.myWounded)}\n\n")
         }
         
-        // الغنائم أو النهب
         if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
             details.append("==== [الغنائم المكتسبة] ====\n")
             if (report.lootIron > 0) details.append("الحديد: ${formatResourceNumber(report.lootIron)}  ")
@@ -318,7 +323,7 @@ class MainActivity : AppCompatActivity() {
         }
         
         d.setOnDismissListener {
-            // 💡 المستمع: إذا كان التقرير يشير لوجود انتقام، نعرض التحذير
+            isReportDialogOpen = false // فتح القفل
             if (report.hasRevenge && report.revengeNodeId != -1) {
                 showRevengeWarningDialog(report.revengeNodeId)
             } else {
@@ -329,6 +334,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showRevengeWarningDialog(nodeId: Int) {
+        if (!isActivityResumed) return
+        isReportDialogOpen = true // قفل
+        
         SoundManager.playWindowOpen()
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_game_message)
@@ -350,13 +358,18 @@ class MainActivity : AppCompatActivity() {
         }
         
         d.setOnDismissListener {
-            // 💡 المستمع: ينطلق الفيلق بمجرد إغلاق نافذة التحذير!
+            isReportDialogOpen = false // فتح القفل
             GameState.triggerRevengeMarch(nodeId)
         }
         d.show()
     }
 
     private fun checkPendingLevelUps() {
+        if (!isActivityResumed) {
+            gameHandler.postDelayed({ checkPendingLevelUps() }, 1000)
+            return
+        }
+        
         if (GameState.pendingLevelUpCount > 0) {
             GameState.pendingLevelUpCount--; GameState.saveGameData(this)
             DialogManager.showLevelUpDialog(this, GameState.playerLevel - GameState.pendingLevelUpCount)
@@ -365,6 +378,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showPendingOfflineMessages() {
+        if (!isActivityResumed) {
+            gameHandler.postDelayed({ showPendingOfflineMessages() }, 1000)
+            return
+        }
+        
         if (GameState.pendingOfflineMessages.isNotEmpty()) {
             val msg = GameState.pendingOfflineMessages.removeAt(0)
             val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar); d.setContentView(R.layout.dialog_game_message)
@@ -437,6 +455,12 @@ class MainActivity : AppCompatActivity() {
     private fun startGameLoop() {
         gameHandler.post(object : Runnable {
             override fun run() {
+                // 💡 [الجديد] منع تنفيذ الحلقة وإصدار الأصوات في الخلفية!
+                if (!isActivityResumed) {
+                    gameHandler.postDelayed(this, 1000)
+                    return
+                }
+
                 val now = System.currentTimeMillis()
                 updateVipUI(now)
                 
@@ -451,8 +475,7 @@ class MainActivity : AppCompatActivity() {
                     updateHudUI()
                 }
 
-                // 💡 الفحص المستمر الذكي لصندوق التقارير
-                if(GameState.pendingBattleReports.isNotEmpty() && isActivityResumed) {
+                if(GameState.pendingBattleReports.isNotEmpty()) {
                    checkPendingReports() 
                 }
 
