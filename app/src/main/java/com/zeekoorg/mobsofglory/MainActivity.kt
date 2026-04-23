@@ -113,7 +113,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun checkAndRunSpotlightTutorial() {
-        if (!isActivityResumed) return // 💡 منع التشغيل في الخلفية
+        if (!isActivityResumed) return 
         
         val rootLayout = window.decorView as ViewGroup
         
@@ -197,9 +197,18 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isActivityResumed = true
+        
+        // 💡 [الإصلاح الجذري] إعادة إحياء محرك الصوت وتحديث الإعدادات لتجنب كتم الصوت عند العودة من الخلفية
+        SoundManager.init(this)
+        val prefs = getSharedPreferences("MobsOfGlorySettings", Context.MODE_PRIVATE)
+        val isMusicOn = prefs.getBoolean("MUSIC", true)
+        val isSfxOn = prefs.getBoolean("SFX", true)
+        SoundManager.updateSettings(isMusicOn, isSfxOn)
+        
         GameState.calculatePower()
         updateHudUI()
         SoundManager.playBGM(this, R.raw.bgm_city)
+        
         gameHandler.post { checkPendingReports() }
         Handler(Looper.getMainLooper()).postDelayed({ checkAndRunSpotlightTutorial() }, 500)
     }
@@ -270,7 +279,6 @@ class MainActivity : AppCompatActivity() {
         } 
     }
 
-    // 💡 [الجديد] الفحص الآمن للتقارير مع منع التداخل
     private fun checkPendingReports() {
         if (!isActivityResumed || isReportDialogOpen) return
         
@@ -283,7 +291,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showBattleReportDialog(report: BattleReport) {
         if (!isActivityResumed) return
-        isReportDialogOpen = true // قفل النوافذ الأخرى
+        isReportDialogOpen = true 
         
         SoundManager.playWindowOpen()
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
@@ -323,7 +331,7 @@ class MainActivity : AppCompatActivity() {
         }
         
         d.setOnDismissListener {
-            isReportDialogOpen = false // فتح القفل
+            isReportDialogOpen = false 
             if (report.hasRevenge && report.revengeNodeId != -1) {
                 showRevengeWarningDialog(report.revengeNodeId)
             } else {
@@ -335,7 +343,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showRevengeWarningDialog(nodeId: Int) {
         if (!isActivityResumed) return
-        isReportDialogOpen = true // قفل
+        isReportDialogOpen = true 
         
         SoundManager.playWindowOpen()
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
@@ -358,7 +366,7 @@ class MainActivity : AppCompatActivity() {
         }
         
         d.setOnDismissListener {
-            isReportDialogOpen = false // فتح القفل
+            isReportDialogOpen = false 
             GameState.triggerRevengeMarch(nodeId)
         }
         d.show()
@@ -455,7 +463,6 @@ class MainActivity : AppCompatActivity() {
     private fun startGameLoop() {
         gameHandler.post(object : Runnable {
             override fun run() {
-                // 💡 [الجديد] منع تنفيذ الحلقة وإصدار الأصوات في الخلفية!
                 if (!isActivityResumed) {
                     gameHandler.postDelayed(this, 1000)
                     return
