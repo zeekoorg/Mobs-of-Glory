@@ -81,15 +81,16 @@ data class BattlefieldNode(
 
 object GameState {
 
-    const val INFANTRY_ATK = 15.0
-    const val INFANTRY_DEF = 50.0
-    const val INFANTRY_HP = 120.0
-    const val INFANTRY_LOAD = 25.0
+    // ⚔️ [موازنة احترافية] إحصائيات القوات المعدلة لنظام SLG متوازن
+    const val INFANTRY_ATK = 25.0    // رفع من 15 → 25
+    const val INFANTRY_DEF = 60.0    // رفع من 50 → 60
+    const val INFANTRY_HP = 150.0    // رفع من 120 → 150
+    const val INFANTRY_LOAD = 30.0   // رفع من 25 → 30
 
-    const val CAVALRY_ATK = 40.0
-    const val CAVALRY_DEF = 20.0
-    const val CAVALRY_HP = 80.0
-    const val CAVALRY_LOAD = 10.0
+    const val CAVALRY_ATK = 65.0     // رفع من 40 → 65
+    const val CAVALRY_DEF = 25.0     // رفع من 20 → 25
+    const val CAVALRY_HP = 100.0     // رفع من 80 → 100
+    const val CAVALRY_LOAD = 15.0    // رفع من 10 → 15
 
     private val ioScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -146,9 +147,11 @@ object GameState {
     fun isHeroBusy(heroId: Int): Boolean = activeMarches.any { it.heroIds.contains(heroId) && it.status != MarchStatus.COMPLETED }
     fun isWeaponBusy(weaponId: Int): Boolean = activeMarches.any { it.weaponIds.contains(weaponId) && it.status != MarchStatus.COMPLETED }
     
+    // 🏥 [موازنة احترافية] سعة مستشفى أسّية تمنع الموت الجماعي
     fun getHospitalCapacity(): Long {
         val hospitalLvl = myPlots.find { it.idCode == "HOSPITAL" }?.level ?: 1
-        return hospitalLvl * 15000L 
+        return (hospitalLvl.toDouble().pow(2.0) * 8000).toLong()
+        // المستوى 1: 8,000 | 5: 200,000 | 10: 800,000 | 15: 1,800,000
     }
 
     fun addQuestProgress(type: QuestType, amount: Int) {
@@ -292,7 +295,8 @@ object GameState {
 
     fun calculatePower() {
         totalBuildingsPower = 0L; myPlots.forEach { totalBuildingsPower += it.getPowerProvided() }
-        totalTroopsPower = (totalInfantry * 5) + (totalCavalry * 10)
+        // ⚔️ تحديث قوة القوات بناءً على الإحصائيات الجديدة
+        totalTroopsPower = (totalInfantry * 8) + (totalCavalry * 15)
         totalHeroesPower = 0L; myHeroes.filter { it.isUnlocked }.forEach { totalHeroesPower += it.getCurrentPower() }
         totalWeaponsPower = 0L; arsenal.filter { it.isOwned }.forEach { totalWeaponsPower += it.getCurrentPower() }
         
@@ -413,11 +417,14 @@ object GameState {
                     val myTotalDef = ((march.infantryCount * INFANTRY_DEF) + (march.cavalryCount * CAVALRY_DEF)) * totalDefBuff
                     var myTotalHp = ((march.infantryCount * INFANTRY_HP) + (march.cavalryCount * CAVALRY_HP)) * totalHpBuff
 
-                    var enemyAtk = node!!.currentPower * 0.20 
-                    val enemyDef = node.currentPower * 0.15
-                    var enemyHp = node.currentPower * 2.0
+                    // 🔧 [إصلاح جذري] معادلات العدو المتوازنة
+                    var enemyAtk = node!!.currentPower * 0.025  // كان 0.20 - خطأ كارثي!
+                    val enemyDef = node.currentPower * 0.015    // كان 0.15
+                    var enemyHp = node.currentPower * 3.0       // زدنا الـHP للتوازن
                     
                     val initialEnemyPower = node.currentPower
+                    val initialEnemyAtk = enemyAtk
+                    val initialEnemyHp = enemyHp
 
                     var rounds = 0
                     val maxRounds = 20
@@ -426,8 +433,10 @@ object GameState {
 
                     while (myTotalHp > 0 && enemyHp > 0 && rounds < maxRounds) {
                         rounds++
-                        val dmgToEnemy = (myTotalAtk.pow(2.0) / (myTotalAtk + enemyDef)) * Random.nextDouble(0.9, 1.1)
-                        val dmgToMe = (enemyAtk.pow(2.0) / (enemyAtk + myTotalDef)) * Random.nextDouble(0.9, 1.1)
+                        
+                        // 🔧 [معادلة لانشيستر المعدلة] ATK²/(ATK + DEF/100) لتوحيد الوحدات
+                        val dmgToEnemy = (myTotalAtk * myTotalAtk) / (myTotalAtk + (enemyDef / 100.0)) * Random.nextDouble(0.95, 1.05)
+                        val dmgToMe = (enemyAtk * enemyAtk) / (enemyAtk + (myTotalDef / 100.0)) * Random.nextDouble(0.95, 1.05)
 
                         enemyHp -= dmgToEnemy
                         myTotalHp -= dmgToMe
@@ -435,7 +444,10 @@ object GameState {
                         actualDmgToEnemyTotal += dmgToEnemy
                         actualDmgToMeTotal += dmgToMe
                         
-                        enemyAtk *= 0.95 
+                        // 🔧 [نظام التعب الواقعي] هجوم العدو ينخفض تدريجياً مع نسبة الـHP المفقودة
+                        val hpRatio = enemyHp / initialEnemyHp
+                        enemyAtk = initialEnemyAtk * (0.4 + (0.6 * hpRatio))  // يبدأ من 100% وينخفض تدريجياً حتى 40% كحد أدنى
+                        if (enemyAtk < initialEnemyAtk * 0.4) enemyAtk = initialEnemyAtk * 0.4
                     }
 
                     val isVictory = enemyHp <= 0
@@ -451,14 +463,17 @@ object GameState {
                         
                         val maxLootCapacity = (march.infantryCount * INFANTRY_LOAD) + (march.cavalryCount * CAVALRY_LOAD)
                         
+                        // 🔧 [غنائم مرتبطة بقوة ومستوى العدو]
+                        val lootMultiplier = node.level * node.maxPower / 150000.0
                         march.payloadGold = 0L 
-                        val availableLootIron = Random.nextLong(10000, 50000)
-                        val availableLootWheat = Random.nextLong(10000, 50000)
+                        val availableLootIron = (Random.nextLong(15000, 70000) * lootMultiplier).toLong()
+                        val availableLootWheat = (Random.nextLong(15000, 70000) * lootMultiplier).toLong()
                         
                         march.payloadIron = minOf(maxLootCapacity / 2, availableLootIron.toDouble()).toLong()
                         march.payloadWheat = minOf(maxLootCapacity / 2, availableLootWheat.toDouble()).toLong()
                     } else {
-                        node.currentPower = maxOf(0L, (enemyHp / 2.0).toLong())
+                        // 🔧 العدو الباقي يحتفظ بقوته بشكل واقعي
+                        node.currentPower = maxOf(0L, (enemyHp / 3.0).toLong())
                         node.lastAttackedTime = now
                     }
 
@@ -475,7 +490,8 @@ object GameState {
                     val infCasualties = (totalCasualties * infRatio).toLong()
                     val cavCasualties = (totalCasualties * cavRatio).toLong()
 
-                    val deadRate = if (isVictory) 0.10 else 0.40 
+                    // 🔧 [نظام قتلى/جرحى] المنتصر يخسر 8% قتلى فقط، الخاسر 35%
+                    val deadRate = if (isVictory) 0.08 else 0.35 
                     
                     val infDead = (infCasualties * deadRate).toLong()
                     val cavDead = (cavCasualties * deadRate).toLong()
@@ -483,6 +499,7 @@ object GameState {
                     val cavWounded = cavCasualties - cavDead
                     val totalNewWounded = infWounded + cavWounded
 
+                    // 🏥 استخدام سعة المستشفى الجديدة (الأسّية)
                     val hospitalCap = getHospitalCapacity()
                     val currentWounded = woundedInfantry + woundedCavalry
                     val availableSpace = hospitalCap - currentWounded
@@ -535,7 +552,8 @@ object GameState {
                     
                     val enemyAtk = (march.infantryCount * INFANTRY_ATK) + (march.cavalryCount * CAVALRY_ATK)
                     
-                    val actualDmgToCity = (enemyAtk.pow(2.0) / (enemyAtk + cityDef)) * Random.nextDouble(0.9, 1.1)
+                    // 🔧 استخدام نفس معادلة لانشيستر للدفاع
+                    val actualDmgToCity = (enemyAtk * enemyAtk) / (enemyAtk + (cityDef / 100.0)) * Random.nextDouble(0.95, 1.05)
                     
                     val isCityDefended = cityHp > actualDmgToCity
                     
@@ -553,9 +571,11 @@ object GameState {
                             lootGold = 0, lootIron = 0, lootWheat = 0, isVictory = true
                         ))
                     } else {
+                        // 🔧 نهب مرتبط بقوة العدو المنتقم
+                        val revengeLootMultiplier = enemyAtk / 50000.0
                         val lostGold = 0L 
-                        val lostIron = Random.nextLong(10000, 50000) 
-                        val lostWheat = Random.nextLong(10000, 50000)
+                        val lostIron = (Random.nextLong(15000, 60000) * revengeLootMultiplier).toLong()
+                        val lostWheat = (Random.nextLong(15000, 60000) * revengeLootMultiplier).toLong()
                         
                         totalIron = maxOf(0L, totalIron - lostIron)
                         totalWheat = maxOf(0L, totalWheat - lostWheat)
