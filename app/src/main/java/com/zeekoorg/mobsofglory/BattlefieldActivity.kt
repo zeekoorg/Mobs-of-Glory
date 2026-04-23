@@ -179,7 +179,8 @@ class BattlefieldActivity : AppCompatActivity() {
                 } else {
                     img.setImageResource(if (dynamicResId != 0) dynamicResId else R.drawable.ic_ui_arena)
                     img.alpha = 1.0f
-                    badge.text = node.playerName
+                    // ⚔️ [عرض قوة القلعة مع الاسم]
+                    badge.text = "${node.playerName}\n⚔️ ${formatResourceNumber(node.currentPower)}"
                 }
             } else {
                 if (node.isDefeated) {
@@ -236,7 +237,15 @@ class BattlefieldActivity : AppCompatActivity() {
         
         if (node.type == NodeType.ENEMY_CASTLE) {
             titleTv?.text = "قلعة: [${node.playerName}]"
-            bodyTv?.text = "المستوى: ${node.level}\nالقوة: ${formatResourceNumber(node.currentPower)}"
+            // ⚔️ [عرض تفصيلي لقوة العدو] مع تحذير للمبتدئين
+            val powerComparison = if (node.currentPower > GameState.legionPower * 1.5) {
+                "\n⚠️ خطر! العدو أقوى من فيلقك بكثير!"
+            } else if (node.currentPower > GameState.legionPower) {
+                "\n⚔️ العدو أقوى قليلاً.. معركة صعبة!"
+            } else {
+                "\n✅ فيلقك أقوى! النصر قريب!"
+            }
+            bodyTv?.text = "المستوى: ${node.level}\nالقوة: ${formatResourceNumber(node.currentPower)}\nقوة فيلقك: ${formatResourceNumber(GameState.legionPower)}${powerComparison}"
             iconImg?.setImageResource(R.drawable.ic_ui_arena)
             btnAction?.text = "هجوم ⚔️"
         } else {
@@ -334,23 +343,53 @@ class BattlefieldActivity : AppCompatActivity() {
         val unlockLevels = listOf(1, 5, 10, 15)
 
         fun updateMarchStats() {
-            var heroAtkBuff = 0.0; var wpAtkBuff = 0.0
-            selectedHeroesForMarch.forEach { heroAtkBuff += it.getCurrentAttackBuff() }
-            selectedWeaponsForMarch.forEach { wpAtkBuff += it.getCurrentAttackBuff() }
+            var heroAtkBuff = 0.0; var heroDefBuff = 0.0; var heroHpBuff = 0.0; var wpAtkBuff = 0.0; var wpDefBuff = 0.0
+            selectedHeroesForMarch.forEach { 
+                heroAtkBuff += it.getCurrentAttackBuff()
+                heroDefBuff += it.getCurrentDefenseBuff()
+                heroHpBuff += it.getCurrentHpBuff()
+            }
+            selectedWeaponsForMarch.forEach { 
+                wpAtkBuff += it.getCurrentAttackBuff()
+                wpDefBuff += it.getCurrentDefenseBuff()
+            }
             
             val totalAtkBuff = 1.0 + heroAtkBuff + wpAtkBuff
+            val totalDefBuff = 1.0 + heroDefBuff + wpDefBuff
+            val totalHpBuff = 1.0 + heroHpBuff
+            
             val baseTroopAtk = (selectedInfantry * GameState.INFANTRY_ATK) + (selectedCavalry * GameState.CAVALRY_ATK)
-            val totalPower = (baseTroopAtk * totalAtkBuff).toLong()
+            val totalAtkPower = (baseTroopAtk * totalAtkBuff).toLong()
+            
+            val baseTroopDef = (selectedInfantry * GameState.INFANTRY_DEF) + (selectedCavalry * GameState.CAVALRY_DEF)
+            val totalDefPower = (baseTroopDef * totalDefBuff).toLong()
+            
+            val baseTroopHp = (selectedInfantry * GameState.INFANTRY_HP) + (selectedCavalry * GameState.CAVALRY_HP)
+            val totalHp = (baseTroopHp * totalHpBuff).toLong()
             
             val totalPayload = (selectedInfantry * GameState.INFANTRY_LOAD) + (selectedCavalry * GameState.CAVALRY_LOAD)
             
             if (isAttack) {
-                tvPower?.text = "القوة الهجومية: ${formatResourceNumber(totalPower)}"
+                // ⚔️ [عرض شامل للقوة] هجوم + دفاع + HP
+                tvPower?.text = "⚔️ هجوم: ${formatResourceNumber(totalAtkPower)}\n🛡️ دفاع: ${formatResourceNumber(totalDefPower)}\n❤️ حياة: ${formatResourceNumber(totalHp)}"
+                
+                // تحذير إذا كانت القوة أقل من العدو
+                if (node.currentPower > totalAtkPower * 1.2) {
+                    tvPower?.append("\n⚠️ العدو أقوى بكثير!")
+                    tvPower?.setTextColor(Color.parseColor("#FF5252"))
+                } else if (node.currentPower > totalAtkPower) {
+                    tvPower?.append("\n⚔️ معركة متكافئة!")
+                    tvPower?.setTextColor(Color.parseColor("#F4D03F"))
+                } else {
+                    tvPower?.append("\n✅ النصر شبه مضمون!")
+                    tvPower?.setTextColor(Color.parseColor("#2ECC71"))
+                }
             } else {
                 var heroSpeedBuff = 0.0
                 selectedHeroesForMarch.forEach { heroSpeedBuff += it.getCurrentSpeedBuff() }
                 val gatherSpeed = (150.0 * (1.0 + heroSpeedBuff)).toLong() 
-                tvPower?.text = "سعة الحمولة: ${formatResourceNumber(totalPayload.toLong())} | السرعة: $gatherSpeed/ث"
+                tvPower?.text = "📦 سعة الحمولة: ${formatResourceNumber(totalPayload.toLong())}\n⏱️ سرعة الجمع: $gatherSpeed/ثانية"
+                tvPower?.setTextColor(Color.WHITE)
             }
         }
 
@@ -666,17 +705,20 @@ class BattlefieldActivity : AppCompatActivity() {
             details.append("==== [قواتك الإمبراطورية] ====\n")
             details.append("القوة الهجومية: ${formatResourceNumber(report.myDamage)}\n")
             details.append("القتلى: ${formatResourceNumber(report.myDead)}\n")
-            details.append("الجرحى: ${formatResourceNumber(report.myWounded)}\n\n")
+            details.append("الجرحى: ${formatResourceNumber(report.myWounded)}\n")
+            details.append("الناجون: ${formatResourceNumber(report.mySurviving)}\n\n")
         }
         
         if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
             details.append("==== [الغنائم المكتسبة] ====\n")
-            if (report.lootIron > 0) details.append("الحديد: ${formatResourceNumber(report.lootIron)}  ")
-            if (report.lootWheat > 0) details.append("القمح: ${formatResourceNumber(report.lootWheat)}")
+            if (report.lootGold > 0) details.append("💰 الذهب: ${formatResourceNumber(report.lootGold)}  ")
+            if (report.lootIron > 0) details.append("⛓️ الحديد: ${formatResourceNumber(report.lootIron)}  ")
+            if (report.lootWheat > 0) details.append("🌾 القمح: ${formatResourceNumber(report.lootWheat)}")
         } else if (report.lootGold < 0 || report.lootIron < 0 || report.lootWheat < 0) {
             details.append("==== [الموارد المنهوبة من مدينتك!] ====\n")
-            if (report.lootIron < 0) details.append("الحديد: ${formatResourceNumber(Math.abs(report.lootIron))}  ")
-            if (report.lootWheat < 0) details.append("القمح: ${formatResourceNumber(Math.abs(report.lootWheat))}")
+            if (report.lootGold < 0) details.append("💰 الذهب: ${formatResourceNumber(Math.abs(report.lootGold))}  ")
+            if (report.lootIron < 0) details.append("⛓️ الحديد: ${formatResourceNumber(Math.abs(report.lootIron))}  ")
+            if (report.lootWheat < 0) details.append("🌾 القمح: ${formatResourceNumber(Math.abs(report.lootWheat))}")
         }
         
         d.findViewById<TextView>(R.id.tvMessageTitle)?.text = report.title
@@ -947,8 +989,8 @@ class BattlefieldActivity : AppCompatActivity() {
         else tvTotalWheat.text = formatResourceNumber(GameState.totalWheat)
 
         if (displayedPower == -1L) displayedPower = GameState.playerPower
-        if (displayedPower != GameState.playerPower) { powerAnimator?.cancel(); powerAnimator = animateResourceText(tvMainTotalPower, displayedPower, GameState.playerPower, "") { displayedPower = it } } 
-        else tvMainTotalPower.text = formatResourceNumber(GameState.playerPower)
+        if (displayedPower != GameState.playerPower) { powerAnimator?.cancel(); powerAnimator = animateResourceText(tvMainTotalPower, displayedPower, GameState.playerPower, "⚔️ ") { displayedPower = it } } 
+        else tvMainTotalPower.text = "⚔️ ${formatResourceNumber(GameState.playerPower)}"
         
         updateNotificationBadges()
     }
