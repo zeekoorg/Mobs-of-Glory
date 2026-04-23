@@ -13,8 +13,7 @@ import kotlin.random.Random
 data class PendingMessage(val title: String, val body: String, val iconResId: Int)
 
 enum class NodeType { ENEMY_CASTLE, GOLD_MINE, IRON_MINE, WHEAT_FARM }
-// 💡 أزلنا COMPLETED ليعود المحرك للتنظيف الآلي والفوري
-enum class MarchStatus { WAITING, MARCHING, GATHERING, RETURNING }
+enum class MarchStatus { WAITING, MARCHING, GATHERING, RETURNING, COMPLETED }
 enum class MarchType { ATTACK, GATHER, REVENGE }
 
 data class ActiveMarch(
@@ -41,24 +40,21 @@ data class ActiveMarch(
     var reportEnemyPowerStr: String = ""
 )
 
-// 💡 تقرير حرب شامل واحترافي مقسم لجزأين
 data class BattleReport(
     val marchId: Long,
     val title: String,
     val message: String,
     
-    // معلومات العدو
     val enemyName: String,
     val enemyPowerBefore: Long,
     val enemyPowerAfter: Long,
     
-    // معلومات قواتك
     val myTotalSent: Long,
     val myDead: Long,
     val myWounded: Long,
     val mySurviving: Long,
+    val myDamage: Long, // 💡 تم إرجاعه لتتمكن الشاشات من قراءته
     
-    // الغنائم والنهب
     val lootGold: Long,
     val lootIron: Long,
     val lootWheat: Long,
@@ -142,8 +138,8 @@ object GameState {
     val activeMarches = CopyOnWriteArrayList<ActiveMarch>()
     val pendingBattleReports = CopyOnWriteArrayList<BattleReport>()
 
-    fun isHeroBusy(heroId: Int): Boolean = activeMarches.any { it.heroIds.contains(heroId) }
-    fun isWeaponBusy(weaponId: Int): Boolean = activeMarches.any { it.weaponIds.contains(weaponId) }
+    fun isHeroBusy(heroId: Int): Boolean = activeMarches.any { it.heroIds.contains(heroId) && it.status != MarchStatus.COMPLETED }
+    fun isWeaponBusy(weaponId: Int): Boolean = activeMarches.any { it.weaponIds.contains(weaponId) && it.status != MarchStatus.COMPLETED }
     
     fun getHospitalCapacity(): Long {
         val hospitalLvl = myPlots.find { it.idCode == "HOSPITAL" }?.level ?: 1
@@ -336,6 +332,12 @@ object GameState {
         }
     }
 
+    // 💡 [تم الإرجاع] دالة الحذف الآمن للمسيرة بعد انتهاء الأنيميشن
+    fun completeMarch(marchId: Long) {
+        activeMarches.removeAll { it.id == marchId }
+        ioScope.launch { saveGameData(null) }
+    }
+
     fun triggerRevengeMarch(nodeId: Int) {
         val node = battlefieldNodes.find { it.id == nodeId } ?: return
         if (node.currentPower <= 0) return
@@ -359,11 +361,10 @@ object GameState {
         val now = System.currentTimeMillis()
         var needsUpdate = false
         val newMarchesToAdd = mutableListOf<ActiveMarch>() 
-        
-        // 💡 [الحل القاتل] المحرك يقوم بتنظيف نفسه ذاتياً فور انتهاء المهمة ليمنع الكراش والشبحية!
-        val marchesToRemove = mutableListOf<ActiveMarch>()
 
         for (march in activeMarches) {
+
+            if (march.status == MarchStatus.COMPLETED) continue
 
             if (march.status == MarchStatus.WAITING) {
                 if (now >= march.gatherEndTime) {
@@ -377,7 +378,7 @@ object GameState {
             if (march.status == MarchStatus.MARCHING && now >= march.endTime) {
                 needsUpdate = true
                 val node = battlefieldNodes.find { it.id == march.targetNodeId }
-                if (node == null && march.type != MarchType.REVENGE) { marchesToRemove.add(march); continue }
+                if (node == null && march.type != MarchType.REVENGE) { march.status = MarchStatus.COMPLETED; continue }
 
                 if (march.type == MarchType.ATTACK) {
                     
@@ -534,6 +535,7 @@ object GameState {
                             enemyPowerAfter = 0L,
                             myTotalSent = defInfantry + defCavalry,
                             myDead = 0, myWounded = 0, mySurviving = defInfantry + defCavalry,
+                            myDamage = cityDef.toLong(), // 💡 إضافة القوة لدفاع المدينة
                             lootGold = 0, lootIron = 0, lootWheat = 0, isVictory = true
                         ))
                     } else {
@@ -550,13 +552,14 @@ object GameState {
                             message = "دفاعاتنا لم تصمد وتم نهب خزائننا!",
                             enemyName = node?.playerName ?: "العدو",
                             enemyPowerBefore = enemyAtk.toLong(),
-                            enemyPowerAfter = enemyAtk.toLong(), // القوة المتبقية للعدو
+                            enemyPowerAfter = enemyAtk.toLong(), 
                             myTotalSent = defInfantry + defCavalry,
                             myDead = 0, myWounded = 0, mySurviving = defInfantry + defCavalry,
+                            myDamage = cityDef.toLong(), // 💡 إضافة القوة لدفاع المدينة
                             lootGold = -lostGold, lootIron = -lostIron, lootWheat = -lostWheat, isVictory = false
                         ))
                     }
-                    marchesToRemove.add(march) // مسح الفيلق فوراً وبلا كراش
+                    march.status = MarchStatus.COMPLETED 
                     continue
 
                 } else {
@@ -619,6 +622,7 @@ object GameState {
                         myDead = march.reportDead,
                         myWounded = march.reportWounded,
                         mySurviving = march.infantryCount + march.cavalryCount,
+                        myDamage = march.reportDamage, // 💡 إضافة قوة الهجوم
                         lootGold = march.payloadGold,
                         lootIron = march.payloadIron,
                         lootWheat = march.payloadWheat,
@@ -636,17 +640,13 @@ object GameState {
                         message = "عادت الفيالق وحملت معها ${formatResourceNumber(amountCollected)} من $resName.",
                         enemyName = "", enemyPowerBefore = 0, enemyPowerAfter = 0, 
                         myTotalSent = march.infantryCount + march.cavalryCount, myDead = 0, myWounded = 0, mySurviving = march.infantryCount + march.cavalryCount,
+                        myDamage = 0L, // 💡 الجمع لا يحمل قوة هجوم
                         lootGold = march.payloadGold, lootIron = march.payloadIron, lootWheat = march.payloadWheat, isVictory = true
                     ))
                 }
                 
-                marchesToRemove.add(march) // التنظيف الفوري يمنع التكرار والكراش
+                march.status = MarchStatus.COMPLETED 
             }
-        }
-
-        if (marchesToRemove.isNotEmpty()) {
-            activeMarches.removeAll(marchesToRemove)
-            needsUpdate = true
         }
 
         if (newMarchesToAdd.isNotEmpty()) {
@@ -708,18 +708,12 @@ object GameState {
             prefs.putBoolean("W_${i}_UPG", w.isUpgrading); prefs.putLong("W_${i}_UEND", w.upgradeEndTime); prefs.putLong("W_${i}_UTOT", w.totalUpgradeTime)
         }
 
+        // 💡 [تم الإصلاح الجذري] كود الحفظ الآمن للـ Plots 
         myPlots.forEach { 
-            it.level = prefs.getInt("L_${it.idCode}", 1); it.isUpgrading = prefs.getBoolean("U_${it.idCode}", false)
-            it.upgradeEndTime = prefs.getLong("UT_${it.idCode}", 0L); it.isTraining = prefs.getBoolean("TR_${it.idCode}", false)
-            it.trainingEndTime = prefs.getLong("TT_${it.idCode}", 0L); it.trainingAmount = prefs.getInt("TA_${it.idCode}", 0)
-            it.collectTimer = prefs.getLong("CT_${it.idCode}", 0L); it.isReady = prefs.getBoolean("IR_${it.idCode}", false)
-            
-            if (it.isUpgrading && currentTime >= it.upgradeEndTime) { it.isUpgrading = false; it.level++; playerExp += it.getExpReward(); pendingOfflineMessages.add(PendingMessage("أعمال البناء", "تم تطوير ${it.name} بنجاح!", R.drawable.ic_settings_gear)) }
-            if (it.isTraining && currentTime >= it.trainingEndTime) { it.isTraining = false; if (it.idCode == "BARRACKS_1") totalInfantry += it.trainingAmount else totalCavalry += it.trainingAmount; pendingOfflineMessages.add(PendingMessage("معسكر التدريب", "تم تدريب ${it.trainingAmount} قوات بنجاح!", R.drawable.ic_settings_gear)) }
-            if (!it.isUpgrading && !it.isTraining && it.resourceType != ResourceType.NONE && !it.isReady) {
-                it.collectTimer += offlineTime; val targetTime = if(isVipActive()) 45000L else 60000L
-                if (it.collectTimer >= targetTime) { it.isReady = true; it.collectTimer = targetTime }
-            }
+            prefs.putInt("L_${it.idCode}", it.level); prefs.putBoolean("U_${it.idCode}", it.isUpgrading)
+            prefs.putLong("UT_${it.idCode}", it.upgradeEndTime); prefs.putLong("CT_${it.idCode}", it.collectTimer)
+            prefs.putBoolean("IR_${it.idCode}", it.isReady); prefs.putBoolean("TR_${it.idCode}", it.isTraining)
+            prefs.putLong("TT_${it.idCode}", it.trainingEndTime); prefs.putInt("TA_${it.idCode}", it.trainingAmount)
         }
 
         prefs.putInt("CURRENT_REGION_LEVEL", currentRegionLevel)
