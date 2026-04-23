@@ -40,8 +40,10 @@ class BattlefieldActivity : AppCompatActivity() {
     private var isActivityResumed = false
     
     private var isReportDialogOpen = false
-    
     private var isNewsPlaying = false
+    
+    // 💡 [الجديد] قفل لمنع تكرار ظهور نافذة تقدم المقاطعة
+    private var isRegionClearDialogOpen = false
 
     private var displayedGold = -1L
     private var displayedIron = -1L
@@ -81,7 +83,11 @@ class BattlefieldActivity : AppCompatActivity() {
         renderBattlefield()
         SoundManager.playBGM(this, R.raw.bgm_arena) 
         
-        gameHandler.post { checkPendingReports() }
+        gameHandler.post { 
+            checkPendingReports() 
+            // 💡 [الجديد] فحص حالة المقاطعة فور دخول الشاشة
+            checkRegionClearedUI()
+        }
     }
 
     override fun onPause() {
@@ -487,7 +493,6 @@ class BattlefieldActivity : AppCompatActivity() {
                     GameState.processActiveMarches(this@BattlefieldActivity)
                     updateHudUI()
                     renderBattlefield()
-                    checkRegionClearedUI()
                 }
             }).start()
     }
@@ -724,7 +729,6 @@ class BattlefieldActivity : AppCompatActivity() {
         d.show()
     }
 
-    // 💡 [الجديد] دالة فحص وعرض الأخبار العاجلة على شكل شريط سينمائي متحرك
     private fun checkAndPlayGlobalNews() {
         if (!isActivityResumed || isNewsPlaying || GameState.globalNewsQueue.isEmpty()) return
         
@@ -734,9 +738,9 @@ class BattlefieldActivity : AppCompatActivity() {
         val rootLayout = findViewById<ViewGroup>(android.R.id.content) ?: return
         
         val tickerBg = FrameLayout(this).apply {
-            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 110).apply { // زدت الارتفاع قليلا ليكون متناسقا
+            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 110).apply { 
                 gravity = Gravity.TOP
-                topMargin = 260 // 💡 تم إنزاله ليكون تحت الشريط العلوي تماماً
+                topMargin = 260 
             }
             setBackgroundColor(Color.parseColor("#CC000000")) 
         }
@@ -750,7 +754,7 @@ class BattlefieldActivity : AppCompatActivity() {
             textSize = 16f
             setSingleLine(true)
             setTypeface(null, android.graphics.Typeface.BOLD)
-            setPadding(30, 0, 30, 0) // إضافة هوامش داخلية لجمالية النص
+            setPadding(30, 0, 30, 0) 
         }
         
         tickerBg.addView(tvNews)
@@ -760,12 +764,10 @@ class BattlefieldActivity : AppCompatActivity() {
             val screenWidth = rootLayout.width.toFloat()
             val textWidth = tvNews.paint.measureText(newsText)
             
-            // 💡 التعديل: يبدأ من اليسار
             tvNews.translationX = -textWidth - 100f
             
             val duration = ((screenWidth + textWidth) * 6L).toLong() 
             
-            // 💡 التعديل: يتحرك نحو اليمين
             tvNews.animate()
                 .translationX(screenWidth + 100f)
                 .setDuration(duration)
@@ -795,7 +797,6 @@ class BattlefieldActivity : AppCompatActivity() {
                 if (needsUpdate) {
                     updateHudUI()
                     renderBattlefield()
-                    checkRegionClearedUI()
                 } else {
                     updateDynamicTimers()
                 }
@@ -804,10 +805,12 @@ class BattlefieldActivity : AppCompatActivity() {
                     checkPendingReports()
                 }
                 
-                // استدعاء فحص الأخبار العاجلة في كل ثانية
                 if (GameState.globalNewsQueue.isNotEmpty()) {
                     checkAndPlayGlobalNews()
                 }
+
+                // 💡 [الجديد] الفحص المستمر والدائم لتطهير المقاطعة لمنع التعليق
+                checkRegionClearedUI()
                 
                 gameHandler.postDelayed(this, 1000L)
             }
@@ -872,8 +875,15 @@ class BattlefieldActivity : AppCompatActivity() {
         }
     }
 
+    // 💡 [إصلاح قاتل] تعديل دالة فحص تقدم المقاطعة لتصبح مستقلة وصارمة
     private fun checkRegionClearedUI() {
-        if (GameState.checkRegionCleared() && GameState.activeMarches.isEmpty()) {
+        if (isRegionClearDialogOpen || !isActivityResumed) return
+        
+        // 💡 نتحقق من عدم وجود مسيرات هجومية أو انتقامية تعيق التقدم (لحل مشكلة التعليق القديمة)
+        val noAttackMarches = GameState.activeMarches.none { it.type == MarchType.ATTACK || it.type == MarchType.REVENGE }
+        
+        if (GameState.checkRegionCleared() && noAttackMarches) {
+            isRegionClearDialogOpen = true
             val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
             d.setContentView(R.layout.dialog_game_message)
             d.setCancelable(false)
@@ -885,7 +895,12 @@ class BattlefieldActivity : AppCompatActivity() {
             btnAction?.text = "تقدم للأمام"
             btnAction?.setOnClickListener {
                 SoundManager.playClick()
+                isRegionClearDialogOpen = false
                 d.dismiss()
+                
+                // مسح أي مسيرات عالقة (جمع مثلاً) قبل التقدم لمقاطعة جديدة
+                GameState.activeMarches.clear()
+                
                 GameState.advanceToNextRegion()
                 GameState.saveGameData(this)
                 initViews() 
