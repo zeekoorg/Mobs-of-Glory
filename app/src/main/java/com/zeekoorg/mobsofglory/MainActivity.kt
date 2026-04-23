@@ -195,7 +195,8 @@ class MainActivity : AppCompatActivity() {
         GameState.calculatePower()
         updateHudUI()
         SoundManager.playBGM(this, R.raw.bgm_city)
-        checkPendingReports() 
+        // 💡 فحص التقارير فور الدخول للشاشة
+        gameHandler.post { checkPendingReports() }
         Handler(Looper.getMainLooper()).postDelayed({ checkAndRunSpotlightTutorial() }, 500)
     }
 
@@ -265,33 +266,94 @@ class MainActivity : AppCompatActivity() {
         } 
     }
 
+    // 💡 [تحديث جذري] تقرير مفصل ومنظم يتوافق مع التعديلات
     private fun checkPendingReports() {
         if (!isActivityResumed) return
         
-        val iterator = GameState.pendingBattleReports.iterator()
-        while (iterator.hasNext()) {
-            val report = iterator.next()
-            val details = StringBuilder()
-            
-            if (report.damage > 0) details.append("القوة الهجومية: ⚔️ ${formatResourceNumber(report.damage)}\n")
-            if (report.dead > 0 || report.wounded > 0) details.append("القتلى: ☠️ ${formatResourceNumber(report.dead)} | الجرحى: 🩸 ${formatResourceNumber(report.wounded)}\n\n")
-            if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
-                details.append("الغنائم التي تم حصدها:\n")
-                if (report.lootGold > 0) details.append("الذهب: 💰 ${formatResourceNumber(report.lootGold)}  ")
-                if (report.lootIron > 0) details.append("الحديد: ⛓️ ${formatResourceNumber(report.lootIron)}  ")
-                if (report.lootWheat > 0) details.append("القمح: 🌾 ${formatResourceNumber(report.lootWheat)}")
-            }
-            
-            SoundManager.playWindowOpen()
-            DialogManager.showGameMessage(
-                this, 
-                report.title, 
-                report.message + "\n\n" + details.toString(), 
-                if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation
-            )
-            iterator.remove()
+        if (GameState.pendingBattleReports.isNotEmpty()) {
+            val report = GameState.pendingBattleReports.removeAt(0) 
+            GameState.saveGameData(this)
+            showBattleReportDialog(report)
         }
-        GameState.saveGameData(this)
+    }
+
+    private fun showBattleReportDialog(report: BattleReport) {
+        SoundManager.playWindowOpen()
+        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_game_message)
+        
+        val details = StringBuilder()
+        
+        // تقرير الهجوم على قلعة
+        if (report.enemyPowerBefore > 0) {
+            details.append("==== [قوات العدو: ${report.enemyName}] ====\n")
+            details.append("القوة السابقة: ${formatResourceNumber(report.enemyPowerBefore)}\n")
+            details.append("القوة المتبقية: ${formatResourceNumber(report.enemyPowerAfter)}\n")
+            details.append("الخسائر: ${formatResourceNumber(report.enemyPowerBefore - report.enemyPowerAfter)}\n\n")
+            
+            details.append("==== [قواتك الإمبراطورية] ====\n")
+            details.append("القوة الهجومية: ${formatResourceNumber(report.myDamage)}\n")
+            details.append("القتلى: ${formatResourceNumber(report.myDead)}\n")
+            details.append("الجرحى: ${formatResourceNumber(report.myWounded)}\n\n")
+        }
+        
+        // الغنائم أو النهب
+        if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
+            details.append("==== [الغنائم المكتسبة] ====\n")
+            if (report.lootIron > 0) details.append("الحديد: ${formatResourceNumber(report.lootIron)}  ")
+            if (report.lootWheat > 0) details.append("القمح: ${formatResourceNumber(report.lootWheat)}")
+        } else if (report.lootGold < 0 || report.lootIron < 0 || report.lootWheat < 0) {
+            details.append("==== [الموارد المنهوبة من مدينتك!] ====\n")
+            if (report.lootIron < 0) details.append("الحديد: ${formatResourceNumber(Math.abs(report.lootIron))}  ")
+            if (report.lootWheat < 0) details.append("القمح: ${formatResourceNumber(Math.abs(report.lootWheat))}")
+        }
+        
+        d.findViewById<TextView>(R.id.tvMessageTitle)?.text = report.title
+        d.findViewById<TextView>(R.id.tvMessageBody)?.text = report.message + "\n\n" + details.toString()
+        d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation)
+        
+        d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener { 
+            SoundManager.playClick()
+            d.dismiss() 
+        }
+        
+        d.setOnDismissListener {
+            // 💡 المستمع: إذا كان التقرير يشير لوجود انتقام، نعرض التحذير
+            if (report.hasRevenge && report.revengeNodeId != -1) {
+                showRevengeWarningDialog(report.revengeNodeId)
+            } else {
+                checkPendingReports()
+            }
+        }
+        d.show()
+    }
+
+    private fun showRevengeWarningDialog(nodeId: Int) {
+        SoundManager.playWindowOpen()
+        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_game_message)
+        
+        val tvTitle = d.findViewById<TextView>(R.id.tvMessageTitle)
+        tvTitle?.text = "⚠️ تحذير هجوم وشيك ⚠️"
+        tvTitle?.setTextColor(android.graphics.Color.parseColor("#FF5252")) 
+        
+        d.findViewById<TextView>(R.id.tvMessageBody)?.text = "العدو لم يُهزم! لقد قام بحشد قواته المتبقية وهو في طريقه الآن للانتقام من مدينتك!\n\nتجهز للدفاع فوراً!"
+        d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(R.drawable.ic_settings_gear)
+        
+        val btn = d.findViewById<Button>(R.id.btnMessageOk)
+        btn?.text = "حسناً، لنجعله يندم!"
+        btn?.setBackgroundResource(R.drawable.bg_btn_gold_border)
+        
+        btn?.setOnClickListener {
+            SoundManager.playClick()
+            d.dismiss()
+        }
+        
+        d.setOnDismissListener {
+            // 💡 المستمع: ينطلق الفيلق بمجرد إغلاق نافذة التحذير!
+            GameState.triggerRevengeMarch(nodeId)
+        }
+        d.show()
     }
 
     private fun checkPendingLevelUps() {
@@ -389,8 +451,10 @@ class MainActivity : AppCompatActivity() {
                     updateHudUI()
                 }
 
-                // 💡 [الجديد] الفحص المستمر الذكي لصندوق التقارير
-                checkPendingReports()
+                // 💡 الفحص المستمر الذكي لصندوق التقارير
+                if(GameState.pendingBattleReports.isNotEmpty() && isActivityResumed) {
+                   checkPendingReports() 
+                }
 
                 if (GameState.isHealing) {
                     val remHeal = GameState.healingEndTime - now; val hospitalPlot = GameState.myPlots.find { it.idCode == "HOSPITAL" }
@@ -490,7 +554,6 @@ class MainActivity : AppCompatActivity() {
 
     fun changeCitySkin(skinResId: Int) { imgCityBackground.setImageResource(skinResId); getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit().putInt("SELECTED_SKIN", skinResId).apply() }
     
-    // 💡 [تحديث] دالة عرض الأرقام لتدعم المليارات (B)
     private fun formatResourceNumber(num: Long): String = when { 
         num >= 1_000_000_000 -> String.format(Locale.US, "%.1fB", num / 1_000_000_000.0)
         num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0)
