@@ -13,7 +13,7 @@ import kotlin.random.Random
 data class PendingMessage(val title: String, val body: String, val iconResId: Int)
 
 enum class NodeType { ENEMY_CASTLE, GOLD_MINE, IRON_MINE, WHEAT_FARM }
-enum class MarchStatus { WAITING, MARCHING, GATHERING, RETURNING, COMPLETED }
+enum class MarchStatus { WAITING, MARCHING, GATHERING, RETURNING }
 enum class MarchType { ATTACK, GATHER, REVENGE }
 
 data class ActiveMarch(
@@ -40,6 +40,7 @@ data class ActiveMarch(
     var reportEnemyPowerStr: String = ""
 )
 
+// 💡 التقرير الحربي الشامل
 data class BattleReport(
     val marchId: Long,
     val title: String,
@@ -53,7 +54,7 @@ data class BattleReport(
     val myDead: Long,
     val myWounded: Long,
     val mySurviving: Long,
-    val myDamage: Long, // 💡 تم إرجاعه لتتمكن الشاشات من قراءته
+    val myDamage: Long, 
     
     val lootGold: Long,
     val lootIron: Long,
@@ -138,8 +139,8 @@ object GameState {
     val activeMarches = CopyOnWriteArrayList<ActiveMarch>()
     val pendingBattleReports = CopyOnWriteArrayList<BattleReport>()
 
-    fun isHeroBusy(heroId: Int): Boolean = activeMarches.any { it.heroIds.contains(heroId) && it.status != MarchStatus.COMPLETED }
-    fun isWeaponBusy(weaponId: Int): Boolean = activeMarches.any { it.weaponIds.contains(weaponId) && it.status != MarchStatus.COMPLETED }
+    fun isHeroBusy(heroId: Int): Boolean = activeMarches.any { it.heroIds.contains(heroId) }
+    fun isWeaponBusy(weaponId: Int): Boolean = activeMarches.any { it.weaponIds.contains(weaponId) }
     
     fun getHospitalCapacity(): Long {
         val hospitalLvl = myPlots.find { it.idCode == "HOSPITAL" }?.level ?: 1
@@ -332,12 +333,6 @@ object GameState {
         }
     }
 
-    // 💡 [تم الإرجاع] دالة الحذف الآمن للمسيرة بعد انتهاء الأنيميشن
-    fun completeMarch(marchId: Long) {
-        activeMarches.removeAll { it.id == marchId }
-        ioScope.launch { saveGameData(null) }
-    }
-
     fun triggerRevengeMarch(nodeId: Int) {
         val node = battlefieldNodes.find { it.id == nodeId } ?: return
         if (node.currentPower <= 0) return
@@ -361,10 +356,11 @@ object GameState {
         val now = System.currentTimeMillis()
         var needsUpdate = false
         val newMarchesToAdd = mutableListOf<ActiveMarch>() 
+        
+        // 💡 [التنظيف الذاتي] المحرك ينظف الفيالق المكتملة بأمان 100% 
+        val marchesToRemove = mutableListOf<ActiveMarch>()
 
         for (march in activeMarches) {
-
-            if (march.status == MarchStatus.COMPLETED) continue
 
             if (march.status == MarchStatus.WAITING) {
                 if (now >= march.gatherEndTime) {
@@ -378,7 +374,7 @@ object GameState {
             if (march.status == MarchStatus.MARCHING && now >= march.endTime) {
                 needsUpdate = true
                 val node = battlefieldNodes.find { it.id == march.targetNodeId }
-                if (node == null && march.type != MarchType.REVENGE) { march.status = MarchStatus.COMPLETED; continue }
+                if (node == null && march.type != MarchType.REVENGE) { marchesToRemove.add(march); continue }
 
                 if (march.type == MarchType.ATTACK) {
                     
@@ -535,7 +531,7 @@ object GameState {
                             enemyPowerAfter = 0L,
                             myTotalSent = defInfantry + defCavalry,
                             myDead = 0, myWounded = 0, mySurviving = defInfantry + defCavalry,
-                            myDamage = cityDef.toLong(), // 💡 إضافة القوة لدفاع المدينة
+                            myDamage = cityDef.toLong(), 
                             lootGold = 0, lootIron = 0, lootWheat = 0, isVictory = true
                         ))
                     } else {
@@ -555,11 +551,11 @@ object GameState {
                             enemyPowerAfter = enemyAtk.toLong(), 
                             myTotalSent = defInfantry + defCavalry,
                             myDead = 0, myWounded = 0, mySurviving = defInfantry + defCavalry,
-                            myDamage = cityDef.toLong(), // 💡 إضافة القوة لدفاع المدينة
+                            myDamage = cityDef.toLong(), 
                             lootGold = -lostGold, lootIron = -lostIron, lootWheat = -lostWheat, isVictory = false
                         ))
                     }
-                    march.status = MarchStatus.COMPLETED 
+                    marchesToRemove.add(march) // مسح الفيلق فوراً وبلا كراش
                     continue
 
                 } else {
@@ -622,7 +618,7 @@ object GameState {
                         myDead = march.reportDead,
                         myWounded = march.reportWounded,
                         mySurviving = march.infantryCount + march.cavalryCount,
-                        myDamage = march.reportDamage, // 💡 إضافة قوة الهجوم
+                        myDamage = march.reportDamage, 
                         lootGold = march.payloadGold,
                         lootIron = march.payloadIron,
                         lootWheat = march.payloadWheat,
@@ -640,13 +636,18 @@ object GameState {
                         message = "عادت الفيالق وحملت معها ${formatResourceNumber(amountCollected)} من $resName.",
                         enemyName = "", enemyPowerBefore = 0, enemyPowerAfter = 0, 
                         myTotalSent = march.infantryCount + march.cavalryCount, myDead = 0, myWounded = 0, mySurviving = march.infantryCount + march.cavalryCount,
-                        myDamage = 0L, // 💡 الجمع لا يحمل قوة هجوم
+                        myDamage = 0L, 
                         lootGold = march.payloadGold, lootIron = march.payloadIron, lootWheat = march.payloadWheat, isVictory = true
                     ))
                 }
                 
-                march.status = MarchStatus.COMPLETED 
+                marchesToRemove.add(march) // 💡 الحل النهائي: يمسح الفيلق ذاتياً، لا حاجة لتدخل الواجهة!
             }
+        }
+
+        if (marchesToRemove.isNotEmpty()) {
+            activeMarches.removeAll(marchesToRemove)
+            needsUpdate = true
         }
 
         if (newMarchesToAdd.isNotEmpty()) {
@@ -708,7 +709,6 @@ object GameState {
             prefs.putBoolean("W_${i}_UPG", w.isUpgrading); prefs.putLong("W_${i}_UEND", w.upgradeEndTime); prefs.putLong("W_${i}_UTOT", w.totalUpgradeTime)
         }
 
-        // 💡 [تم الإصلاح الجذري] كود الحفظ الآمن للـ Plots 
         myPlots.forEach { 
             prefs.putInt("L_${it.idCode}", it.level); prefs.putBoolean("U_${it.idCode}", it.isUpgrading)
             prefs.putLong("UT_${it.idCode}", it.upgradeEndTime); prefs.putLong("CT_${it.idCode}", it.collectTimer)
