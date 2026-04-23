@@ -657,23 +657,23 @@ class BattlefieldActivity : AppCompatActivity() {
         val details = StringBuilder()
         
         if (report.enemyPowerBefore > 0) {
-            details.append("⚔️قوات العدو: ${report.enemyName}\n")
+            details.append("==== [قوات العدو: ${report.enemyName}] ====\n")
             details.append("القوة السابقة: ${formatResourceNumber(report.enemyPowerBefore)}\n")
             details.append("القوة المتبقية: ${formatResourceNumber(report.enemyPowerAfter)}\n")
             details.append("الخسائر: ${formatResourceNumber(report.enemyPowerBefore - report.enemyPowerAfter)}\n\n")
             
-            details.append("قواتك ⚔️\n")
+            details.append("==== [قواتك الإمبراطورية] ====\n")
             details.append("القوة الهجومية: ${formatResourceNumber(report.myDamage)}\n")
             details.append("القتلى: ${formatResourceNumber(report.myDead)}\n")
             details.append("الجرحى: ${formatResourceNumber(report.myWounded)}\n\n")
         }
         
         if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
-            details.append("الغنائم المكتسبة\n")
+            details.append("==== [الغنائم المكتسبة] ====\n")
             if (report.lootIron > 0) details.append("الحديد: ${formatResourceNumber(report.lootIron)}  ")
             if (report.lootWheat > 0) details.append("القمح: ${formatResourceNumber(report.lootWheat)}")
         } else if (report.lootGold < 0 || report.lootIron < 0 || report.lootWheat < 0) {
-            details.append("الموارد المنهوبة من مدينتك!\n")
+            details.append("==== [الموارد المنهوبة من مدينتك!] ====\n")
             if (report.lootIron < 0) details.append("الحديد: ${formatResourceNumber(Math.abs(report.lootIron))}  ")
             if (report.lootWheat < 0) details.append("القمح: ${formatResourceNumber(Math.abs(report.lootWheat))}")
         }
@@ -714,7 +714,7 @@ class BattlefieldActivity : AppCompatActivity() {
         d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(R.drawable.ic_settings_gear)
         
         val btn = d.findViewById<Button>(R.id.btnMessageOk)
-        btn?.text = "حسناً!"
+        btn?.text = "حسناً، لنجعله يندم!"
         btn?.setBackgroundResource(R.drawable.bg_btn_gold_border)
         
         btn?.setOnClickListener {
@@ -741,24 +741,25 @@ class BattlefieldActivity : AppCompatActivity() {
         
         val tickerBg = FrameLayout(this).apply {
             layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 80).apply { 
-                gravity = Gravity.TOP
+                gravity = Gravity.CENTER_HORIZONTAL or Gravity.TOP
                 topMargin = 260 
             }
-            setBackgroundColor(Color.parseColor("#33000000")) // 💡 شفاف جداً 
-            elevation = 2000f // 💡 طبقة فائقة الارتفاع 
+            setBackgroundColor(Color.parseColor("#80000000")) 
+            elevation = 2000f 
             translationZ = 2000f
         }
         
         val tvNews = TextView(this).apply {
             layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT).apply {
-                gravity = Gravity.CENTER_VERTICAL
+                gravity = Gravity.CENTER
             }
             text = newsText
-            setTextColor(Color.parseColor("#FFD700")) 
-            textSize = 12f // 💡 تصغير الخط
+            setTextColor(Color.WHITE) 
+            textSize = 12f 
             setSingleLine(true)
             setTypeface(null, android.graphics.Typeface.BOLD)
-            setPadding(30, 0, 30, 0) 
+            setPadding(30, 0, 30, 0)
+            setShadowLayer(10f, 0f, 0f, Color.parseColor("#FFD700"))
         }
         
         tickerBg.addView(tvNews)
@@ -768,19 +769,17 @@ class BattlefieldActivity : AppCompatActivity() {
             val screenWidth = rootLayout.width.toFloat()
             val textWidth = tvNews.paint.measureText(newsText)
             
-            // 💡 نجبر المربع على احتواء النص بالكامل لمنع القص
             tvNews.layoutParams.width = textWidth.toInt() + 100
             tvNews.requestLayout()
             
-            tvNews.translationX = -textWidth - 50f // يبدأ من اليسار (خارج الشاشة)
+            tvNews.translationX = -textWidth - 50f
             
             val duration = ((screenWidth + textWidth) * 8L).toLong() 
             
-            // 💡 استخدام ObjectAnimator للتحكم بالدوران (يمشي مرتين)
             val animator = ObjectAnimator.ofFloat(tvNews, "translationX", -textWidth - 50f, screenWidth + 50f)
             animator.duration = duration
             animator.interpolator = LinearInterpolator()
-            animator.repeatCount = 1 // 💡 الإعادة مرة واحدة = المجموع مرتين
+            animator.repeatCount = 1 
             animator.repeatMode = ValueAnimator.RESTART
             
             animator.addListener(object : AnimatorListenerAdapter() {
