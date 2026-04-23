@@ -2,6 +2,8 @@ package com.zeekoorg.mobsofglory
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.app.Dialog
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
@@ -42,17 +44,16 @@ class BattlefieldActivity : AppCompatActivity() {
     private var isReportDialogOpen = false
     private var isNewsPlaying = false
     
-    // 💡 [الجديد] قفل لمنع تكرار ظهور نافذة تقدم المقاطعة
     private var isRegionClearDialogOpen = false
 
     private var displayedGold = -1L
     private var displayedIron = -1L
     private var displayedWheat = -1L
     private var displayedPower = -1L
-    private var goldAnimator: android.animation.ValueAnimator? = null
-    private var ironAnimator: android.animation.ValueAnimator? = null
-    private var wheatAnimator: android.animation.ValueAnimator? = null
-    private var powerAnimator: android.animation.ValueAnimator? = null
+    private var goldAnimator: ValueAnimator? = null
+    private var ironAnimator: ValueAnimator? = null
+    private var wheatAnimator: ValueAnimator? = null
+    private var powerAnimator: ValueAnimator? = null
 
     private val animatingBackgroundMarches = mutableSetOf<Long>()
 
@@ -85,7 +86,6 @@ class BattlefieldActivity : AppCompatActivity() {
         
         gameHandler.post { 
             checkPendingReports() 
-            // 💡 [الجديد] فحص حالة المقاطعة فور دخول الشاشة
             checkRegionClearedUI()
         }
     }
@@ -729,20 +729,24 @@ class BattlefieldActivity : AppCompatActivity() {
         d.show()
     }
 
+    // 💡 [تعديل] شريط أخبار ذكي وشفاف يطفو فوق كل شيء
     private fun checkAndPlayGlobalNews() {
         if (!isActivityResumed || isNewsPlaying || GameState.globalNewsQueue.isEmpty()) return
         
         isNewsPlaying = true
         val newsText = GameState.globalNewsQueue.removeAt(0)
         
-        val rootLayout = findViewById<ViewGroup>(android.R.id.content) ?: return
+        // 💡 استخدام decorView يجعله يطفو كطبقة نهائية فوق الشاشة الأساسية
+        val rootLayout = window.decorView as ViewGroup
         
         val tickerBg = FrameLayout(this).apply {
-            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 110).apply { 
+            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 80).apply { 
                 gravity = Gravity.TOP
                 topMargin = 260 
             }
-            setBackgroundColor(Color.parseColor("#CC000000")) 
+            setBackgroundColor(Color.parseColor("#33000000")) // 💡 شفاف جداً 
+            elevation = 2000f // 💡 طبقة فائقة الارتفاع 
+            translationZ = 2000f
         }
         
         val tvNews = TextView(this).apply {
@@ -751,7 +755,7 @@ class BattlefieldActivity : AppCompatActivity() {
             }
             text = newsText
             setTextColor(Color.parseColor("#FFD700")) 
-            textSize = 16f
+            textSize = 14f // 💡 تصغير الخط
             setSingleLine(true)
             setTypeface(null, android.graphics.Typeface.BOLD)
             setPadding(30, 0, 30, 0) 
@@ -764,21 +768,28 @@ class BattlefieldActivity : AppCompatActivity() {
             val screenWidth = rootLayout.width.toFloat()
             val textWidth = tvNews.paint.measureText(newsText)
             
-            tvNews.translationX = -textWidth - 100f
+            // 💡 نجبر المربع على احتواء النص بالكامل لمنع القص
+            tvNews.layoutParams.width = textWidth.toInt() + 100
+            tvNews.requestLayout()
             
-            val duration = ((screenWidth + textWidth) * 6L).toLong() 
+            tvNews.translationX = -textWidth - 50f // يبدأ من اليسار (خارج الشاشة)
             
-            tvNews.animate()
-                .translationX(screenWidth + 100f)
-                .setDuration(duration)
-                .setInterpolator(LinearInterpolator())
-                .setListener(object : AnimatorListenerAdapter() {
-                    override fun onAnimationEnd(animation: Animator) {
-                        rootLayout.removeView(tickerBg)
-                        isNewsPlaying = false
-                    }
-                })
-                .start()
+            val duration = ((screenWidth + textWidth) * 8L).toLong() 
+            
+            // 💡 استخدام ObjectAnimator للتحكم بالدوران (يمشي مرتين)
+            val animator = ObjectAnimator.ofFloat(tvNews, "translationX", -textWidth - 50f, screenWidth + 50f)
+            animator.duration = duration
+            animator.interpolator = LinearInterpolator()
+            animator.repeatCount = 1 // 💡 الإعادة مرة واحدة = المجموع مرتين
+            animator.repeatMode = ValueAnimator.RESTART
+            
+            animator.addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    rootLayout.removeView(tickerBg)
+                    isNewsPlaying = false
+                }
+            })
+            animator.start()
         }
     }
 
@@ -809,7 +820,6 @@ class BattlefieldActivity : AppCompatActivity() {
                     checkAndPlayGlobalNews()
                 }
 
-                // 💡 [الجديد] الفحص المستمر والدائم لتطهير المقاطعة لمنع التعليق
                 checkRegionClearedUI()
                 
                 gameHandler.postDelayed(this, 1000L)
@@ -875,11 +885,9 @@ class BattlefieldActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 [إصلاح قاتل] تعديل دالة فحص تقدم المقاطعة لتصبح مستقلة وصارمة
     private fun checkRegionClearedUI() {
         if (isRegionClearDialogOpen || !isActivityResumed) return
         
-        // 💡 نتحقق من عدم وجود مسيرات هجومية أو انتقامية تعيق التقدم (لحل مشكلة التعليق القديمة)
         val noAttackMarches = GameState.activeMarches.none { it.type == MarchType.ATTACK || it.type == MarchType.REVENGE }
         
         if (GameState.checkRegionCleared() && noAttackMarches) {
@@ -898,7 +906,6 @@ class BattlefieldActivity : AppCompatActivity() {
                 isRegionClearDialogOpen = false
                 d.dismiss()
                 
-                // مسح أي مسيرات عالقة (جمع مثلاً) قبل التقدم لمقاطعة جديدة
                 GameState.activeMarches.clear()
                 
                 GameState.advanceToNextRegion()
