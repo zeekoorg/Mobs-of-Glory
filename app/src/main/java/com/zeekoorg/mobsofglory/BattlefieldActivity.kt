@@ -41,7 +41,6 @@ class BattlefieldActivity : AppCompatActivity() {
     
     private var isReportDialogOpen = false
     
-    // 💡 [الجديد] متغير لمنع تداخل الأخبار العاجلة
     private var isNewsPlaying = false
 
     private var displayedGold = -1L
@@ -735,11 +734,11 @@ class BattlefieldActivity : AppCompatActivity() {
         val rootLayout = findViewById<ViewGroup>(android.R.id.content) ?: return
         
         val tickerBg = FrameLayout(this).apply {
-            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 100).apply {
+            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 110).apply { // زدت الارتفاع قليلا ليكون متناسقا
                 gravity = Gravity.TOP
-                topMargin = 120 // يظهر تحت شريط الموارد العلوي مباشرة
+                topMargin = 260 // 💡 تم إنزاله ليكون تحت الشريط العلوي تماماً
             }
-            setBackgroundColor(Color.parseColor("#CC000000")) // أسود شفاف أنيق
+            setBackgroundColor(Color.parseColor("#CC000000")) 
         }
         
         val tvNews = TextView(this).apply {
@@ -747,28 +746,28 @@ class BattlefieldActivity : AppCompatActivity() {
                 gravity = Gravity.CENTER_VERTICAL
             }
             text = newsText
-            setTextColor(Color.parseColor("#FFD700")) // لون ذهبي للأخبار الملكية
+            setTextColor(Color.parseColor("#FFD700")) 
             textSize = 16f
             setSingleLine(true)
             setTypeface(null, android.graphics.Typeface.BOLD)
+            setPadding(30, 0, 30, 0) // إضافة هوامش داخلية لجمالية النص
         }
         
         tickerBg.addView(tvNews)
         rootLayout.addView(tickerBg)
         
-        // 💡 منطق الحركة (Marquee Animation)
         tickerBg.post {
             val screenWidth = rootLayout.width.toFloat()
             val textWidth = tvNews.paint.measureText(newsText)
             
-            // يبدأ من أقصى يمين الشاشة (خارج الإطار)
-            tvNews.translationX = screenWidth
+            // 💡 التعديل: يبدأ من اليسار
+            tvNews.translationX = -textWidth - 100f
             
-            // يتحرك إلى أقصى يسار الشاشة (خارج الإطار تماماً)
-            val duration = ((screenWidth + textWidth) * 6L).toLong() // سرعة انسيابية ومناسبة للقراءة
+            val duration = ((screenWidth + textWidth) * 6L).toLong() 
             
+            // 💡 التعديل: يتحرك نحو اليمين
             tvNews.animate()
-                .translationX(-textWidth - 100f)
+                .translationX(screenWidth + 100f)
                 .setDuration(duration)
                 .setInterpolator(LinearInterpolator())
                 .setListener(object : AnimatorListenerAdapter() {
@@ -805,7 +804,7 @@ class BattlefieldActivity : AppCompatActivity() {
                     checkPendingReports()
                 }
                 
-                // 💡 [الجديد] استدعاء فحص الأخبار العاجلة في كل ثانية
+                // استدعاء فحص الأخبار العاجلة في كل ثانية
                 if (GameState.globalNewsQueue.isNotEmpty()) {
                     checkAndPlayGlobalNews()
                 }
