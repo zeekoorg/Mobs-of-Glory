@@ -13,7 +13,8 @@ import kotlin.random.Random
 data class PendingMessage(val title: String, val body: String, val iconResId: Int)
 
 enum class NodeType { ENEMY_CASTLE, GOLD_MINE, IRON_MINE, WHEAT_FARM }
-enum class MarchStatus { WAITING, MARCHING, GATHERING, RETURNING }
+// 💡 أضفنا COMPLETED للتنظيف الآمن
+enum class MarchStatus { WAITING, MARCHING, GATHERING, RETURNING, COMPLETED }
 enum class MarchType { ATTACK, GATHER, REVENGE }
 
 data class ActiveMarch(
@@ -139,11 +140,11 @@ object GameState {
     val activeMarches = CopyOnWriteArrayList<ActiveMarch>()
     val pendingBattleReports = CopyOnWriteArrayList<BattleReport>()
     
-    // 💡 [الجديد] طابور الأخبار العاجلة على مستوى التطبيق
+    // 💡 طابور الأخبار العاجلة على مستوى التطبيق
     val globalNewsQueue = CopyOnWriteArrayList<String>()
 
-    fun isHeroBusy(heroId: Int): Boolean = activeMarches.any { it.heroIds.contains(heroId) }
-    fun isWeaponBusy(weaponId: Int): Boolean = activeMarches.any { it.weaponIds.contains(weaponId) }
+    fun isHeroBusy(heroId: Int): Boolean = activeMarches.any { it.heroIds.contains(heroId) && it.status != MarchStatus.COMPLETED }
+    fun isWeaponBusy(weaponId: Int): Boolean = activeMarches.any { it.weaponIds.contains(weaponId) && it.status != MarchStatus.COMPLETED }
     
     fun getHospitalCapacity(): Long {
         val hospitalLvl = myPlots.find { it.idCode == "HOSPITAL" }?.level ?: 1
@@ -171,6 +172,11 @@ object GameState {
         val castleLvl = myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
         val milestones = listOf(5, 10, 15, 20)
         return milestones.any { castleLvl >= it && !claimedCastleRewards.contains(it) }
+    }
+
+    fun completeMarch(marchId: Long) {
+        activeMarches.removeAll { it.id == marchId }
+        ioScope.launch { saveGameData(null) }
     }
 
     fun initializeDataLists() {
@@ -359,9 +365,15 @@ object GameState {
         val now = System.currentTimeMillis()
         var needsUpdate = false
         val newMarchesToAdd = mutableListOf<ActiveMarch>() 
+        
         val marchesToRemove = mutableListOf<ActiveMarch>()
 
         for (march in activeMarches) {
+
+            if (march.status == MarchStatus.COMPLETED) {
+                marchesToRemove.add(march)
+                continue
+            }
 
             if (march.status == MarchStatus.WAITING) {
                 if (now >= march.gatherEndTime) {
@@ -375,7 +387,7 @@ object GameState {
             if (march.status == MarchStatus.MARCHING && now >= march.endTime) {
                 needsUpdate = true
                 val node = battlefieldNodes.find { it.id == march.targetNodeId }
-                if (node == null && march.type != MarchType.REVENGE) { marchesToRemove.add(march); continue }
+                if (node == null && march.type != MarchType.REVENGE) { march.status = MarchStatus.COMPLETED; continue }
 
                 if (march.type == MarchType.ATTACK) {
                     
@@ -432,9 +444,9 @@ object GameState {
                         node.isDefeated = true
                         node.currentPower = 0
                         
-                        // 💡 [الجديد] إضافة الخبر العاجل للانتصار الساحق
-                        if (rounds <= 2) {
-                            globalNewsQueue.add("🔥 عاجل: هجم القائد [$playerName] على [${node.playerName}] وحقق إنتصاراً ساحقاً بضربة خاطفة!")
+                        // 💡 [الجديد] إضافة الخبر العاجل للانتصار الساحق فقط إذا تم التدمير بهجمة واحدة (من القوة الكاملة إلى الصفر)
+                        if (initialEnemyPower == node.maxPower) {
+                            globalNewsQueue.add("🔥 عاجل: هجم القائد [$playerName] على [${node.playerName}] وحقق إنتصاراً ساحقاً بضربة واحدة!")
                         }
                         
                         val maxLootCapacity = (march.infantryCount * INFANTRY_LOAD) + (march.cavalryCount * CAVALRY_LOAD)
@@ -548,7 +560,6 @@ object GameState {
                         totalIron = maxOf(0L, totalIron - lostIron)
                         totalWheat = maxOf(0L, totalWheat - lostWheat)
                         
-                        // 💡 [الجديد] إضافة الخبر العاجل للانتقام المدمر
                         globalNewsQueue.add("⚠️ عاجل: انتقم [${node?.playerName ?: "العدو"}] من القائد [$playerName] وألحق دماراً بقلعته!")
                         
                         pendingBattleReports.add(BattleReport(
@@ -564,7 +575,7 @@ object GameState {
                             lootGold = -lostGold, lootIron = -lostIron, lootWheat = -lostWheat, isVictory = false
                         ))
                     }
-                    marchesToRemove.add(march) 
+                    march.status = MarchStatus.COMPLETED 
                     continue
 
                 } else {
@@ -650,7 +661,7 @@ object GameState {
                     ))
                 }
                 
-                marchesToRemove.add(march) 
+                march.status = MarchStatus.COMPLETED 
             }
         }
 
