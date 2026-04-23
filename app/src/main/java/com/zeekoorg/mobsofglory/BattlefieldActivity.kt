@@ -44,6 +44,7 @@ class BattlefieldActivity : AppCompatActivity() {
     private var isReportDialogOpen = false
     private var isNewsPlaying = false
     
+    // 💡 [الجديد] قفل لمنع تكرار ظهور نافذة تقدم المقاطعة
     private var isRegionClearDialogOpen = false
 
     private var displayedGold = -1L
@@ -753,13 +754,14 @@ class BattlefieldActivity : AppCompatActivity() {
             layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT).apply {
                 gravity = Gravity.CENTER
             }
+            gravity = Gravity.CENTER_VERTICAL // 💡 محاذاة النص نفسه في منتصف المربع عمودياً
             text = newsText
             setTextColor(Color.WHITE) 
             textSize = 12f 
             setSingleLine(true)
             setTypeface(null, android.graphics.Typeface.BOLD)
             setPadding(30, 0, 30, 0)
-            setShadowLayer(10f, 0f, 0f, Color.parseColor("#FFD700"))
+            setShadowLayer(10f, 2f, 2f, Color.BLACK) // 💡 ظل وتوهج أسود لبروز فخم
         }
         
         tickerBg.addView(tvNews)
