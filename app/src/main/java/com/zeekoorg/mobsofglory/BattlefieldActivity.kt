@@ -14,6 +14,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.DecelerateInterpolator
+import android.view.animation.LinearInterpolator
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -39,6 +40,9 @@ class BattlefieldActivity : AppCompatActivity() {
     private var isActivityResumed = false
     
     private var isReportDialogOpen = false
+    
+    // 💡 [الجديد] متغير لمنع تداخل الأخبار العاجلة
+    private var isNewsPlaying = false
 
     private var displayedGold = -1L
     private var displayedIron = -1L
@@ -524,9 +528,6 @@ class BattlefieldActivity : AppCompatActivity() {
                     dotsHandler.removeCallbacks(dotsRunnable) 
                     rootLayout.removeView(returnIcon) 
                     
-                    // 💡 [الضربة القاضية للخطأ]: 
-                    // 1. لا نزيل الـ ID من المجموعة لكي لا يتكرر الأنيميشن!
-                    // 2. نجبر العقل المدبر على قبول وقت الوصول فوراً لمنع أي تأخير في التقرير.
                     march.endTime = System.currentTimeMillis() - 100
                     
                     GameState.processActiveMarches(this@BattlefieldActivity)
@@ -569,7 +570,6 @@ class BattlefieldActivity : AppCompatActivity() {
                     triggerHitEffects(cityX, cityY) 
                     showRedFlashOverlay()
                     
-                    // 💡 [الضربة القاضية للخطأ]: 
                     march.endTime = System.currentTimeMillis() - 100
                     
                     GameState.processActiveMarches(this@BattlefieldActivity)
@@ -725,6 +725,62 @@ class BattlefieldActivity : AppCompatActivity() {
         d.show()
     }
 
+    // 💡 [الجديد] دالة فحص وعرض الأخبار العاجلة على شكل شريط سينمائي متحرك
+    private fun checkAndPlayGlobalNews() {
+        if (!isActivityResumed || isNewsPlaying || GameState.globalNewsQueue.isEmpty()) return
+        
+        isNewsPlaying = true
+        val newsText = GameState.globalNewsQueue.removeAt(0)
+        
+        val rootLayout = findViewById<ViewGroup>(android.R.id.content) ?: return
+        
+        val tickerBg = FrameLayout(this).apply {
+            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 100).apply {
+                gravity = Gravity.TOP
+                topMargin = 120 // يظهر تحت شريط الموارد العلوي مباشرة
+            }
+            setBackgroundColor(Color.parseColor("#CC000000")) // أسود شفاف أنيق
+        }
+        
+        val tvNews = TextView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT).apply {
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            text = newsText
+            setTextColor(Color.parseColor("#FFD700")) // لون ذهبي للأخبار الملكية
+            textSize = 16f
+            setSingleLine(true)
+            setTypeface(null, android.graphics.Typeface.BOLD)
+        }
+        
+        tickerBg.addView(tvNews)
+        rootLayout.addView(tickerBg)
+        
+        // 💡 منطق الحركة (Marquee Animation)
+        tickerBg.post {
+            val screenWidth = rootLayout.width.toFloat()
+            val textWidth = tvNews.paint.measureText(newsText)
+            
+            // يبدأ من أقصى يمين الشاشة (خارج الإطار)
+            tvNews.translationX = screenWidth
+            
+            // يتحرك إلى أقصى يسار الشاشة (خارج الإطار تماماً)
+            val duration = ((screenWidth + textWidth) * 6L).toLong() // سرعة انسيابية ومناسبة للقراءة
+            
+            tvNews.animate()
+                .translationX(-textWidth - 100f)
+                .setDuration(duration)
+                .setInterpolator(LinearInterpolator())
+                .setListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        rootLayout.removeView(tickerBg)
+                        isNewsPlaying = false
+                    }
+                })
+                .start()
+        }
+    }
+
     private fun startGameLoop() {
         gameHandler.post(object : Runnable {
             override fun run() {
@@ -749,6 +805,11 @@ class BattlefieldActivity : AppCompatActivity() {
                     checkPendingReports()
                 }
                 
+                // 💡 [الجديد] استدعاء فحص الأخبار العاجلة في كل ثانية
+                if (GameState.globalNewsQueue.isNotEmpty()) {
+                    checkAndPlayGlobalNews()
+                }
+                
                 gameHandler.postDelayed(this, 1000L)
             }
         })
@@ -757,7 +818,6 @@ class BattlefieldActivity : AppCompatActivity() {
     private fun checkAndAnimateBackgroundMarches() {
         if (!isActivityResumed) return
         
-        // 💡 تنظيف ذكي للذاكرة: مسح أقفال الأنيميشن للفيالق التي لم تعد موجودة
         val activeIds = GameState.activeMarches.map { it.id }.toSet()
         animatingBackgroundMarches.retainAll(activeIds)
         
