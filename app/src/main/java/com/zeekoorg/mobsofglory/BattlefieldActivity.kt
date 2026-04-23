@@ -76,7 +76,6 @@ class BattlefieldActivity : AppCompatActivity() {
         renderBattlefield()
         SoundManager.playBGM(this, R.raw.bgm_arena) 
         
-        // 💡 نعطي أولوية لفحص التقارير فور الدخول للشاشة
         gameHandler.post { checkPendingReports() }
     }
 
@@ -158,7 +157,7 @@ class BattlefieldActivity : AppCompatActivity() {
                     val ruinsId = resources.getIdentifier("img_ruins", "drawable", packageName)
                     img.setImageResource(if (ruinsId != 0) ruinsId else R.drawable.ic_ui_arena)
                     img.alpha = 0.6f
-                    badge.text = "تم التدمير" // 💡 كما طلبت
+                    badge.text = "تم التدمير"
                 } else {
                     img.setImageResource(if (dynamicResId != 0) dynamicResId else R.drawable.ic_ui_arena)
                     img.alpha = 1.0f
@@ -510,8 +509,10 @@ class BattlefieldActivity : AppCompatActivity() {
                 override fun onAnimationEnd(animation: Animator) {
                     dotsHandler.removeCallbacks(dotsRunnable) 
                     rootLayout.removeView(returnIcon) 
-                    // 💡 [الحل القاتل]: نأمر GameState بحذف الفيلق وإظهار التقرير بعد انتهاء الأنيميشن!
-                    GameState.completeMarch(march.id)
+                    animatingBackgroundMarches.remove(march.id)
+                    
+                    // 💡 [الحل القاتل]: نأمر GameState بالمعالجة الفورية ليضيف التقرير ويمسح الفيلق الآن!
+                    GameState.processActiveMarches(this@BattlefieldActivity)
                     checkPendingReports()
                 }
             }).start()
@@ -548,22 +549,22 @@ class BattlefieldActivity : AppCompatActivity() {
                 override fun onAnimationEnd(animation: Animator) {
                     dotsHandler.removeCallbacks(dotsRunnable) 
                     rootLayout.removeView(revengeIcon) 
-                    // 💡 [الجديد] تأثير التصادم الدموي فوق مدينتك!
                     triggerHitEffects(cityX, cityY) 
                     showRedFlashOverlay()
-                    // إنهاء مسيرة الانتقام بأمان
-                    GameState.completeMarch(march.id)
+                    animatingBackgroundMarches.remove(march.id)
+                    
+                    // 💡 تفريغ الهجوم الانتقامي فوراً
+                    GameState.processActiveMarches(this@BattlefieldActivity)
                     checkPendingReports()
                 }
             }).start()
     }
 
-    // 💡 [الجديد] تأثير الوميض الأحمر الشفاف عند الهجوم عليك
     private fun showRedFlashOverlay() {
         val rootLayout = findViewById<ViewGroup>(android.R.id.content) ?: return
         val flashView = View(this).apply {
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-            setBackgroundColor(Color.parseColor("#66FF0000")) // أحمر شفاف
+            setBackgroundColor(Color.parseColor("#66FF0000")) 
             elevation = 100f
             alpha = 0f
         }
@@ -613,7 +614,6 @@ class BattlefieldActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 [تحديث جذري] تقرير مفصل ومنظم
     private fun checkPendingReports() {
         if (!isActivityResumed) return
         
@@ -631,7 +631,6 @@ class BattlefieldActivity : AppCompatActivity() {
         
         val details = StringBuilder()
         
-        // تقرير الهجوم على قلعة
         if (report.enemyPowerBefore > 0) {
             details.append("==== [قوات العدو: ${report.enemyName}] ====\n")
             details.append("القوة السابقة: ${formatResourceNumber(report.enemyPowerBefore)}\n")
@@ -644,7 +643,6 @@ class BattlefieldActivity : AppCompatActivity() {
             details.append("الجرحى: ${formatResourceNumber(report.myWounded)}\n\n")
         }
         
-        // الغنائم أو النهب
         if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
             details.append("==== [الغنائم المكتسبة] ====\n")
             if (report.lootIron > 0) details.append("الحديد: ${formatResourceNumber(report.lootIron)}  ")
@@ -665,7 +663,6 @@ class BattlefieldActivity : AppCompatActivity() {
         }
         
         d.setOnDismissListener {
-            // 💡 المستمع: إذا كان التقرير يشير لوجود انتقام، نعرض التحذير
             if (report.hasRevenge && report.revengeNodeId != -1) {
                 showRevengeWarningDialog(report.revengeNodeId)
             } else {
@@ -697,9 +694,7 @@ class BattlefieldActivity : AppCompatActivity() {
         }
         
         d.setOnDismissListener {
-            // 💡 المستمع: ينطلق الفيلق بمجرد إغلاق نافذة التحذير!
             GameState.triggerRevengeMarch(nodeId)
-            // الفيلق انطلق الآن! لا نعرض التقرير التالي إلا بعد انتهاء هجوم العدو
         }
         d.show()
     }
@@ -740,7 +735,6 @@ class BattlefieldActivity : AppCompatActivity() {
                 val nodeX = slot.x + (slot.width / 2f) - (iconSize / 2f)
                 val nodeY = slot.y + (slot.height / 2f) - (iconSize / 2f)
                 
-                // الأنيميشن يُرسم مرة واحدة فقط لكل مسيرة
                 if (march.status == MarchStatus.RETURNING) {
                     startReturnMarchAnimation(rootLayout, march, cityX, cityY, nodeX, nodeY)
                 } else if (march.type == MarchType.REVENGE && march.status == MarchStatus.MARCHING) {
