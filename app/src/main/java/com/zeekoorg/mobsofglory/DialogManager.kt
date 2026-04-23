@@ -343,7 +343,6 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 [تعديل] تحديث نافذة الأبطال لعرض النسب المئوية (Buffs)
     fun showHeroesDialog(activity: Activity) {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
@@ -355,7 +354,6 @@ object DialogManager {
             val rarityColor = when(h.rarity) { Rarity.COMMON -> "#BDC3C7"; Rarity.RARE -> "#3498DB"; Rarity.LEGENDARY -> "#9B59B6" }
             val rarityName = when(h.rarity) { Rarity.COMMON -> "شائع"; Rarity.RARE -> "نادر"; Rarity.LEGENDARY -> "أسطوري" }
             
-            // عرض الـ Buff الأهم كنسبة مئوية واضحة
             val atkBuffPercent = (h.getCurrentAttackBuff() * 100).toInt()
             val defBuffPercent = (h.getCurrentDefenseBuff() * 100).toInt()
             tvBoost?.text = "الخصائص: هجوم +$atkBuffPercent% | دفاع +$defBuffPercent%"
@@ -828,7 +826,7 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 [تعديل] تحديث نافذة الأسلحة لعرض النسب المئوية (Buffs)
+    // 💡 [تعديل جذري] إصلاح ورشة الحدادة: السلاح الأسطوري أصبح الأغلى، وتم منع التكرار
     fun showWeaponsDialog(activity: Activity) {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
@@ -847,7 +845,6 @@ object DialogManager {
                 
                 view.findViewById<TextView>(R.id.tvWeaponName).apply { text = "${weapon.name} (مستوى ${weapon.level})"; setTextColor(Color.parseColor(rarityColor)) }
                 
-                // عرض الـ Buff للأسلحة كنسبة مئوية
                 val atkBuffPercent = (weapon.getCurrentAttackBuff() * 100).toInt()
                 val defBuffPercent = (weapon.getCurrentDefenseBuff() * 100).toInt()
                 view.findViewById<TextView>(R.id.tvWeaponPower).text = "هجوم: +$atkBuffPercent% | دفاع: +$defBuffPercent%"
@@ -859,25 +856,55 @@ object DialogManager {
                     val remaining = weapon.upgradeEndTime - System.currentTimeMillis()
                     if (remaining > 0) {
                         btnAction.text = formatTimeMillis(remaining); btnAction.setTextColor(Color.parseColor("#F4D03F"))
-                        btnAction.setOnClickListener { SoundManager.playClick(); d.dismiss(); showSpeedupDialog(activity, null, weapon) }
+                        
+                        // 💡 [التعديل]: أزلنا d.dismiss() هنا لكي لا تُغلق القائمة فوراً عند محاولة التسريع، بل تفتح نافذة التسريع فوقها
+                        btnAction.setOnClickListener { 
+                            SoundManager.playClick()
+                            showSpeedupDialog(activity, null, weapon) 
+                        }
+                        
+                        // تحديث الوقت في الشاشة كل ثانية
                         handler.postDelayed({ refreshWeaponsList() }, 1000)
-                    } else { weapon.isUpgrading = false; weapon.level++; GameState.calculatePower(); GameState.saveGameData(activity); refreshWeaponsList() }
+                    } else { 
+                        weapon.isUpgrading = false; weapon.level++; GameState.calculatePower(); GameState.saveGameData(activity)
+                        refreshWeaponsList() 
+                    }
                 } else {
-                    btnAction.text = if (weapon.isOwned) "ترقية" else "صناعة"; btnAction.setTextColor(Color.WHITE)
+                    // 💡 [إصلاح التكرار]: هنا نحدث الزر نفسه بدلاً من استنساخ العنصر
+                    btnAction.text = if (weapon.isOwned) "ترقية" else "صناعة"
+                    btnAction.setTextColor(Color.WHITE)
+                    
                     btnAction.setOnClickListener {
-                        if (GameState.totalIron >= weapon.getCostIron() && GameState.totalGold >= weapon.getCostGold()) {
+                        val costIron = weapon.getCostIron()
+                        val costGold = weapon.getCostGold()
+                        
+                        if (GameState.totalIron >= costIron && GameState.totalGold >= costGold) {
                             SoundManager.playBlacksmith()
-                            GameState.totalIron -= weapon.getCostIron(); GameState.totalGold -= weapon.getCostGold()
-                            weapon.isOwned = true; weapon.isUpgrading = true; weapon.totalUpgradeTime = weapon.getUpgradeTimeSeconds() * 1000
+                            GameState.totalIron -= costIron; GameState.totalGold -= costGold
+                            
+                            // 💡 السلاح يصبح مملوكاً ويدخل حالة الترقية فوراً
+                            weapon.isOwned = true
+                            weapon.isUpgrading = true
+                            weapon.totalUpgradeTime = weapon.getUpgradeTimeSeconds() * 1000
                             weapon.upgradeEndTime = System.currentTimeMillis() + weapon.totalUpgradeTime
-                            updateUI(activity); GameState.saveGameData(activity); refreshWeaponsList()
-                        } else { SoundManager.playClick(); showGameMessage(activity, "موارد غير كافية", "تنقصك الموارد لصناعة/ترقية السلاح!", R.drawable.ic_resource_iron) }
+                            
+                            updateUI(activity)
+                            GameState.saveGameData(activity)
+                            
+                            // 💡 إعادة رسم القائمة فوراً ليظهر العداد في نفس الزر
+                            refreshWeaponsList()
+                        } else { 
+                            SoundManager.playClick()
+                            showGameMessage(activity, "موارد غير كافية", "تنقصك الموارد لصناعة أو ترقية السلاح!", R.drawable.ic_resource_iron) 
+                        }
                     }
                 }
+                // 💡 إضافة النسخة الأصلية والمحدثة إلى الحاوية (بدون تكرار)
                 container?.addView(view)
             }
         }
         refreshWeaponsList()
+        
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
 
         d.setOnDismissListener { 
@@ -905,7 +932,6 @@ object DialogManager {
                 val btn = Button(activity).apply {
                     val statusText = if (GameState.isHeroBusy(hero.id)) " (مشغول)" else ""
                     val atkBuffPercent = (hero.getCurrentAttackBuff() * 100).toInt()
-                    // 💡 [تعديل] النص يوضح تأثير البطل الحقيقي
                     text = "${hero.name} (هجوم +$atkBuffPercent%)$statusText"
                     
                     if (GameState.isHeroBusy(hero.id)) {
@@ -939,7 +965,6 @@ object DialogManager {
                 val btn = Button(activity).apply {
                     val statusText = if (GameState.isWeaponBusy(weapon.id)) " (مشغول)" else ""
                     val atkBuffPercent = (weapon.getCurrentAttackBuff() * 100).toInt()
-                    // 💡 [تعديل] النص يوضح تأثير السلاح الحقيقي
                     text = "${weapon.name} (هجوم +$atkBuffPercent%)$statusText"
                     
                     if (GameState.isWeaponBusy(weapon.id)) {
@@ -957,7 +982,6 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 [تعديل] حساب القوة الحقيقية لجيش الدفاع في المدينة بناءً على النظام الجديد
     fun showFormationDialog(activity: Activity) {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
@@ -989,7 +1013,6 @@ object DialogManager {
             
             val totalDefBuff = 1.0 + heroDefBuff + wpDefBuff
             
-            // لحساب قوة الدفاع نستعين بخصائص الدفاع للوحدات
             val baseDefPower = (selectedInfantry * GameState.INFANTRY_DEF) + (selectedCavalry * GameState.CAVALRY_DEF)
             val totalPower = (baseDefPower * totalDefBuff).toLong()
             
