@@ -139,40 +139,25 @@ object ArenaDialogManager {
         d.show()
     }
 
-    // 💡 تم التحديث لتعيد قائمة من الجنود بدلاً من أرقام خام
     fun showPreparationDialog(activity: Activity, onConfirm: (List<TroopData>) -> Unit) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_arena_prepare)
 
-        val tvInfantryMax = d.findViewById<TextView>(R.id.tvPrepInfantryMax); val tvInfantrySelected = d.findViewById<TextView>(R.id.tvPrepInfantrySelected); val seekInfantry = d.findViewById<SeekBar>(R.id.seekPrepInfantry)
-        val tvCavalryMax = d.findViewById<TextView>(R.id.tvPrepCavalryMax); val tvCavalrySelected = d.findViewById<TextView>(R.id.tvPrepCavalrySelected); val seekCavalry = d.findViewById<SeekBar>(R.id.seekPrepCavalry)
+        val tvInfantryMax = d.findViewById<TextView>(R.id.tvPrepInfantryMax)
+        val tvInfantrySelected = d.findViewById<TextView>(R.id.tvPrepInfantrySelected)
+        val seekInfantry = d.findViewById<SeekBar>(R.id.seekPrepInfantry)
+        val tvCavalryMax = d.findViewById<TextView>(R.id.tvPrepCavalryMax)
+        val tvCavalrySelected = d.findViewById<TextView>(R.id.tvPrepCavalrySelected)
+        val seekCavalry = d.findViewById<SeekBar>(R.id.seekPrepCavalry)
         val tvFormationPower = d.findViewById<TextView>(R.id.tvFormationPower)
-        var selectedInfantry = 0L; var selectedCavalry = 0L
+        
+        var selectedInfantry = 0L
+        var selectedCavalry = 0L
 
-        // إحضار القوات المتاحة للنظام الجديد
         val maxInf = GameState.playerTroops.filter { it.type == TroopType.INFANTRY }.sumOf { it.count }
-        tvInfantryMax?.text = "متاح: ${formatResourceNumber(maxInf)}"
-        seekInfantry?.max = if (maxInf > Int.MAX_VALUE) Int.MAX_VALUE else maxInf.toInt()
-        seekInfantry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedInfantry = progress.toLong(); tvInfantrySelected?.text = formatResourceNumber(selectedInfantry); updateFormationPower() }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
-
         val maxCav = GameState.playerTroops.filter { it.type == TroopType.CAVALRY }.sumOf { it.count }
-        tvCavalryMax?.text = "متاح: ${formatResourceNumber(maxCav)}"
-        seekCavalry?.max = if (maxCav > Int.MAX_VALUE) Int.MAX_VALUE else maxCav.toInt()
-        seekCavalry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedCavalry = progress.toLong(); tvCavalrySelected?.text = formatResourceNumber(selectedCavalry); updateFormationPower() }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
 
-        val castleLevel = GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
-        val heroSlots = listOf(Triple(d.findViewById<FrameLayout>(R.id.slotHero1), d.findViewById<ImageView>(R.id.imgHero1), d.findViewById<ImageView>(R.id.imgAddHero1)), Triple(d.findViewById<FrameLayout>(R.id.slotHero2), d.findViewById<ImageView>(R.id.imgHero2), d.findViewById<ImageView>(R.id.imgAddHero2)), Triple(d.findViewById<FrameLayout>(R.id.slotHero3), d.findViewById<ImageView>(R.id.imgHero3), d.findViewById<ImageView>(R.id.imgAddHero3)), Triple(d.findViewById<FrameLayout>(R.id.slotHero4), d.findViewById<ImageView>(R.id.imgHero4), d.findViewById<ImageView>(R.id.imgAddHero4)))
-        val lockHeroes = listOf(null, d.findViewById<View>(R.id.layoutLockHero2), d.findViewById<View>(R.id.layoutLockHero3), d.findViewById<View>(R.id.layoutLockHero4))
-        val weaponSlots = listOf(Triple(d.findViewById<FrameLayout>(R.id.slotWeapon1), d.findViewById<ImageView>(R.id.imgWeapon1), d.findViewById<ImageView>(R.id.imgAddWeapon1)), Triple(d.findViewById<FrameLayout>(R.id.slotWeapon2), d.findViewById<ImageView>(R.id.imgWeapon2), d.findViewById<ImageView>(R.id.imgAddWeapon2)), Triple(d.findViewById<FrameLayout>(R.id.slotWeapon3), d.findViewById<ImageView>(R.id.imgWeapon3), d.findViewById<ImageView>(R.id.imgAddWeapon3)), Triple(d.findViewById<FrameLayout>(R.id.slotWeapon4), d.findViewById<ImageView>(R.id.imgWeapon4), d.findViewById<ImageView>(R.id.imgAddWeapon4)))
-        val lockWeapons = listOf(null, d.findViewById<View>(R.id.layoutLockWeapon2), d.findViewById<View>(R.id.layoutLockWeapon3), d.findViewById<View>(R.id.layoutLockWeapon4))
-        val unlockLevels = listOf(1, 5, 10, 15)
-
+        // 💡 رفعنا الدالة إلى هنا لكي تتعرف عليها الـ SeekBars قبل استدعائها
         fun updateFormationPower() {
             var heroAtkBuff = 0.0; var wpAtkBuff = 0.0
             GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { heroAtkBuff += it.getCurrentAttackBuff() }
@@ -198,6 +183,38 @@ object ArenaDialogManager {
             
             tvFormationPower?.text = "قوة الهجوم: ⚔️ ${formatResourceNumber(totalPower)}"
         }
+
+        // 💡 إعداد الـ SeekBars بعد أن أصبحت الدالة معرفة في الأعلى
+        tvInfantryMax?.text = "متاح: ${formatResourceNumber(maxInf)}"
+        seekInfantry?.max = if (maxInf > Int.MAX_VALUE) Int.MAX_VALUE else maxInf.toInt()
+        seekInfantry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { 
+                selectedInfantry = progress.toLong()
+                tvInfantrySelected?.text = formatResourceNumber(selectedInfantry)
+                updateFormationPower() 
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        tvCavalryMax?.text = "متاح: ${formatResourceNumber(maxCav)}"
+        seekCavalry?.max = if (maxCav > Int.MAX_VALUE) Int.MAX_VALUE else maxCav.toInt()
+        seekCavalry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { 
+                selectedCavalry = progress.toLong()
+                tvCavalrySelected?.text = formatResourceNumber(selectedCavalry)
+                updateFormationPower() 
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        val castleLevel = GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
+        val heroSlots = listOf(Triple(d.findViewById<FrameLayout>(R.id.slotHero1), d.findViewById<ImageView>(R.id.imgHero1), d.findViewById<ImageView>(R.id.imgAddHero1)), Triple(d.findViewById<FrameLayout>(R.id.slotHero2), d.findViewById<ImageView>(R.id.imgHero2), d.findViewById<ImageView>(R.id.imgAddHero2)), Triple(d.findViewById<FrameLayout>(R.id.slotHero3), d.findViewById<ImageView>(R.id.imgHero3), d.findViewById<ImageView>(R.id.imgAddHero3)), Triple(d.findViewById<FrameLayout>(R.id.slotHero4), d.findViewById<ImageView>(R.id.imgHero4), d.findViewById<ImageView>(R.id.imgAddHero4)))
+        val lockHeroes = listOf(null, d.findViewById<View>(R.id.layoutLockHero2), d.findViewById<View>(R.id.layoutLockHero3), d.findViewById<View>(R.id.layoutLockHero4))
+        val weaponSlots = listOf(Triple(d.findViewById<FrameLayout>(R.id.slotWeapon1), d.findViewById<ImageView>(R.id.imgWeapon1), d.findViewById<ImageView>(R.id.imgAddWeapon1)), Triple(d.findViewById<FrameLayout>(R.id.slotWeapon2), d.findViewById<ImageView>(R.id.imgWeapon2), d.findViewById<ImageView>(R.id.imgAddWeapon2)), Triple(d.findViewById<FrameLayout>(R.id.slotWeapon3), d.findViewById<ImageView>(R.id.imgWeapon3), d.findViewById<ImageView>(R.id.imgAddWeapon3)), Triple(d.findViewById<FrameLayout>(R.id.slotWeapon4), d.findViewById<ImageView>(R.id.imgWeapon4), d.findViewById<ImageView>(R.id.imgAddWeapon4)))
+        val lockWeapons = listOf(null, d.findViewById<View>(R.id.layoutLockWeapon2), d.findViewById<View>(R.id.layoutLockWeapon3), d.findViewById<View>(R.id.layoutLockWeapon4))
+        val unlockLevels = listOf(1, 5, 10, 15)
 
         fun refreshFormationUI() {
             updateFormationPower()
@@ -272,7 +289,6 @@ object ArenaDialogManager {
         d.show()
     }
 
-    // 💡 دالة إضافة الأيقونات المدمجة داخل النص لتصميم التقرير الملكي
     private fun appendIconWithText(context: Context, builder: SpannableStringBuilder, iconResId: Int, text: String) {
         val start = builder.length
         builder.append("  $text\n") 
@@ -284,7 +300,6 @@ object ArenaDialogManager {
         }
     }
 
-    // 💡 تم تحديث واجهة التقرير لتصبح بالرموز الأصلية وبنفس نظام الخريطة العالمية (بدون إيموجيات)
     fun showBattleReportDialog(activity: Activity, damageDealt: Long, earnedScore: Long, deadTroops: Long, woundedTroops: Long) {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
