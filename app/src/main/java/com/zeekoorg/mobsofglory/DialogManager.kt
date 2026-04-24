@@ -854,7 +854,9 @@ object DialogManager {
         val handler = Handler(Looper.getMainLooper())
 
         fun refreshWeaponsList() {
+            // 💡 [تعديل أساسي] هذا السطر يمنع تكرار الأسلحة واستنساخها في النافذة
             container?.removeAllViews()
+            
             GameState.arsenal.forEach { weapon ->
                 val view = inflater.inflate(R.layout.item_weapon, container, false)
                 val imgIcon = view.findViewById<ImageView>(R.id.imgWeaponIcon); imgIcon.setImageResource(weapon.iconResId)
@@ -880,7 +882,9 @@ object DialogManager {
                             showSpeedupDialog(activity, null, weapon) 
                         }
                         
-                        handler.postDelayed({ refreshWeaponsList() }, 1000)
+                        // 💡 [تعديل] نضمن إزالة الـ Callbacks السابقة قبل إضافة جديد لمنع تداخل المؤقتات
+                        handler.removeCallbacksAndMessages(weapon.id)
+                        handler.postDelayed({ refreshWeaponsList() }, weapon.id, 1000)
                     } else { 
                         weapon.isUpgrading = false; weapon.level++; GameState.calculatePower(); GameState.saveGameData(activity)
                         refreshWeaponsList() 
@@ -1029,7 +1033,6 @@ object DialogManager {
             GameState.arsenal.filter { it.isOwned && it.isEquipped }.forEach { wpDefBuff += it.getCurrentDefenseBuff() }
             val totalDefBuff = 1.0 + heroDefBuff + wpDefBuff
             
-            // 💡 حساب القوة الدفاعية الأساسية بدمج جميع الفئات (Tiers) المتوفرة
             var infBaseDef = 0.0
             GameState.playerTroops.filter { it.type == TroopType.INFANTRY }.forEach { 
                 infBaseDef += it.count * GameState.getTroopStats(it.type, it.tier).baseDef 
