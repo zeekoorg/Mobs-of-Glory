@@ -666,7 +666,7 @@ class BattlefieldActivity : AppCompatActivity() {
     }
 
     // ═══════════════════════════════════════════
-    // 📋 نظام التقارير الاحترافي الجديد كلياً
+    // 📋 نظام التقارير الاحترافي
     // ═══════════════════════════════════════════
     
     private fun showBattleReportDialog(report: BattleReport) {
@@ -795,11 +795,9 @@ class BattlefieldActivity : AppCompatActivity() {
         }
         
         // إضافة التفاصيل إلى النافذة
-        val scrollView = d.findViewById<ScrollView>(R.id.scrollViewMessage)
         val originalBody = d.findViewById<TextView>(R.id.tvMessageBody)
         val parentLayout = originalBody?.parent as? ViewGroup
         
-        // استبدال النص العادي بالتخطيط المخصص
         originalBody?.visibility = View.GONE
         parentLayout?.addView(detailsLayout, 
             ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
