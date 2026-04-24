@@ -37,7 +37,7 @@ data class ActiveMarch(
     var reportRounds: Int = 0,
     var reportEnemyPowerStr: String = "",
     var reportEnemyName: String = "",
-    var reportMyTotalPowerStr: String = "" // 💡 [جديد] لتخزين القوة الضاربة الفعلية مع الـ Buffs
+    var reportMyTotalPowerStr: String = "" 
 )
 
 data class BattleReport(
@@ -60,7 +60,7 @@ data class BattleReport(
     val revengeNodeId: Int = -1,
     val battleRounds: Int = 0,
     val myPowerStr: String = "",
-    val myTotalPowerStr: String = "" // 💡 [جديد] لعرضه في التقرير
+    val myTotalPowerStr: String = "" 
 )
 
 object GameState {
@@ -293,7 +293,34 @@ object GameState {
         val types = mutableListOf(NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.GOLD_MINE, NodeType.IRON_MINE, NodeType.WHEAT_FARM)
         types.shuffle() 
 
-        val fakePlayerNames = listOf("أبو رعد", "فالكون", "مشاري", "أبو حرب", "الأمير", "جلاد السيرفر", "المدمر", "عاصفة الصحراء", "صائد الملوك", "الظل النبيل", "شجاع", "قاهر الروم", "سفاح", "كابوس", "أبو غضب", "زلزال", "الصقر الجارح", "العقرب", "ملك الموت", "جنرال")
+        // 💡 3. قائمة الأسماء الـ 100 المتنوعة والواقعية
+        val fakePlayerNames = listOf(
+            "جلاد السلاطين", "فارس الظلام", "الإمبراطور الأحمر", "شبح الصحراء", "قاهر الجيوش", 
+            "ملك الشمال", "سيد العواصف", "الموت الزؤام", "ذئب الليل", "صياد التنانين", 
+            "مخلب النمر", "سفاح الممالك", "عين الصقر", "أمير الانتقام", "طاحن العظام", 
+            "غضب السماء", "روح الجحيم", "كابوس الأعداء", "ظل الموت", "زلزال",
+            "SniperX", "أبو عتب", "Shadow", "DarkKnight", "Assassins", 
+            "TheKing", "LordOfWar", "أبو حرب", "Ghost", "Vampire",
+            "عزرائيل", "الصقر الجارح", "المدمر", "عاصفة الصحراء", "ابن النيل",
+            "قاهر الروم", "سفاح", "كابوس", "أبو غضب", "صاعقة",
+            "Ninja", "KingSlayer", "Warlord", "Punisher", "TheBeast",
+            "جلاد السيرفر", "عقيد", "الأسطورة", "شجاع", "فالكون",
+            "Titan", "DragonHeart", "IronFist", "HellRider", "Venom",
+            "سيد الخواتم", "ملك الجحيم", "شبح الأندلس", "صياد الرؤوس", "متمرد",
+            "BloodThirst", "Reaper", "SkullCrusher", "Doom", "Nightmare",
+            "مشاري", "الظل النبيل", "أمير الدم", "عنيد", "الزعيم",
+            "Alpha", "Omega", "Spartan", "Gladiator", "Maverick",
+            "سيف العدالة", "جلاد", "هكتور", "العقرب", "ملك الموت",
+            "Phantom", "Demon", "Savage", "Ruthless", "Dominator",
+            "رعد", "برق", "إعصار", "طوفان", "بركان",
+            "Immortal", "Godfather", "Emperor", "Conqueror", "Nemesis",
+            "ابن بطوطة", "صقر قريش", "المعتصم", "طارق", "خالد",
+            "Invincible", "Unstoppable", "Lethal", "Fierce", "Viper"
+        )
+        
+        // 💡 سحب 5 أسماء عشوائية بدون تكرار للمقاطعة الحالية
+        val selectedNames = fakePlayerNames.shuffled().take(5)
+        
         val selectedCastleImages = (1..10).map { "img_enemy_castle_$it" }.shuffled().take(5)
         var castleImageIndex = 0
 
@@ -302,7 +329,7 @@ object GameState {
             if (t == NodeType.ENEMY_CASTLE) {
                 val nodeLevel = level + Random.nextInt(0, 3)
                 val imgName = selectedCastleImages[castleImageIndex]
-                val randomPlayerName = fakePlayerNames.random()
+                val randomPlayerName = selectedNames[castleImageIndex] // استخدام الاسم المسحوب
                 castleImageIndex++
                 
                 val (generatedTroops, aiBuff) = generateEnemyArmy(level)
@@ -329,7 +356,8 @@ object GameState {
                 ))
             } else {
                 val farmLevel = level + Random.nextInt(0, 3)
-                val resAmount = (farmLevel * 15000L) + Random.nextLong(10000, 50000) 
+                // 💡 1. تقليل موارد الخريطة بشكل تصاعدي منطقي
+                val resAmount = (farmLevel * 1000L) 
                 val imgName = when(t) {
                     NodeType.GOLD_MINE -> "img_node_gold"
                     NodeType.IRON_MINE -> "img_node_iron"
@@ -477,7 +505,6 @@ object GameState {
 
                 if (march.type == MarchType.ATTACK || march.type == MarchType.REVENGE) {
                     
-                    // 💡 حساب خصائص المُهاجِم (اللاعب)
                     var heroAtkBuff = 0.0; var heroDefBuff = 0.0; var heroHpBuff = 0.0
                     march.heroIds.forEach { id -> 
                         myHeroes.find { it.id == id }?.let { 
@@ -506,10 +533,8 @@ object GameState {
                         totalSent += troop.count
                     }
                     
-                    // 💡 تسجيل القوة الضاربة الفعلية للطباعة في التقرير
                     march.reportMyTotalPowerStr = myTotalAtk.toLong().toString()
 
-                    // 💡 حساب خصائص المُدافِع (العدو أو اللاعب)
                     var enemyAtk = 0.0; var enemyHp = 0.0; var enemyDef = 0.0
                     val initialEnemyPower = node?.currentPower ?: 0L
                     val enemyName = node?.playerName ?: march.reportEnemyName
@@ -529,7 +554,6 @@ object GameState {
                             enemyTotalSentOriginal += troop.count
                         }
                     } else {
-                        // 💡 [تعديل جذري] اللاعب يدافع! نقرأ خصائص الدفاع الحقيقية
                         var cityDefBuff = 0.0; var cityHpBuff = 0.0; var cityAtkBuff = 0.0
                         myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { 
                             cityDefBuff += it.getCurrentDefenseBuff()
@@ -545,7 +569,6 @@ object GameState {
                         val myCityHpBuff = 1.0 + cityHpBuff
                         val myCityAtkBuff = 1.0 + cityAtkBuff
 
-                        // نجمع كل القوات المرابطة السليمة في المدينة
                         playerTroops.forEach { troop ->
                             val stats = getTroopStats(troop.type, troop.tier)
                             enemyAtk += (troop.count * stats.baseAtk * myCityAtkBuff) 
@@ -571,13 +594,11 @@ object GameState {
                         }
                     }
 
-                    // 💡 [تعديل] حسم المنتصر
                     val isVictory = if (march.type == MarchType.ATTACK) enemyHp <= 0 else myTotalHp > 0
                     
                     val avgHpPerUnit = myTotalHp / totalSent.coerceAtLeast(1)
                     var totalCasualties = (actualDmgToMeTotal / avgHpPerUnit).toLong()
 
-                    // عقوبة فرق القوة للمهاجم الخاسر
                     if (!isVictory && march.type == MarchType.ATTACK) {
                         val powerRatio = myTotalAtk / enemyDef.coerceAtLeast(1.0)
                         if (powerRatio < 0.5) {
@@ -592,13 +613,11 @@ object GameState {
 
                     var totalDead = 0L; var totalWounded = 0L
                     
-                    // 💡 [قانون المستشفى] المدافع لا يملك قتلى إلا إذا فاض المستشفى
                     val deadRate = if (march.type == MarchType.REVENGE) 0.0 else (if (isVictory) 0.10 else 0.60)
                     
                     val hospitalCap = getHospitalCapacity()
                     var currentWoundedInHospital = getTotalWoundedTroops()
 
-                    // تطبيق خسائر القوات المهاجمة
                     march.marchTroops.forEach { troop ->
                         if (troop.count > 0) {
                             val ratio = troop.count.toDouble() / totalSent
@@ -613,6 +632,11 @@ object GameState {
                             if (availableSpace > 0) {
                                 admittedWounded = if (troopWounded <= availableSpace) troopWounded else availableSpace
                                 currentWoundedInHospital += admittedWounded
+                                
+                                val mainTroopRecord = playerTroops.find { it.type == troop.type && it.tier == troop.tier }
+                                if (mainTroopRecord != null && march.type == MarchType.REVENGE) {
+                                    mainTroopRecord.wounded += admittedWounded
+                                }
                             }
 
                             val extraDead = troopWounded - admittedWounded
@@ -621,12 +645,19 @@ object GameState {
                             troop.count -= (finalDeadForThisTroop + admittedWounded)
                             if (troop.count < 0) troop.count = 0
                             
+                            if (march.type == MarchType.REVENGE) {
+                                val mainTroopRecord = playerTroops.find { it.type == troop.type && it.tier == troop.tier }
+                                if (mainTroopRecord != null) {
+                                    mainTroopRecord.count -= (finalDeadForThisTroop + admittedWounded)
+                                    if (mainTroopRecord.count < 0) mainTroopRecord.count = 0
+                                }
+                            }
+                            
                             totalDead += finalDeadForThisTroop
                             totalWounded += admittedWounded
                         }
                     }
 
-                    // 💡 تطبيق خسائر المُدافِع (سواء كان لاعب أو AI)
                     val enemyAvgHp = (enemyHp + actualDmgToEnemyTotal) / enemyTotalSentOriginal.coerceAtLeast(1)
                     var enemyCasualties = (actualDmgToEnemyTotal / enemyAvgHp).toLong()
                     if (enemyCasualties > enemyTotalSentOriginal) enemyCasualties = enemyTotalSentOriginal
@@ -636,7 +667,6 @@ object GameState {
                     var enemyTotalWounded = 0L
 
                     if (march.type == MarchType.ATTACK) {
-                        // العدو هو الـ AI (لا يملك مستشفى، كل الخسائر قتلى)
                         node!!.enemyTroops.forEach { eTroop ->
                             if (eTroop.count > 0) {
                                 val ratio = eTroop.count.toDouble() / enemyTotalSentOriginal.coerceAtLeast(1)
@@ -647,7 +677,6 @@ object GameState {
                             }
                         }
                     } else {
-                        // 💡 العدو هو اللاعب المدافع (نطبق قانون المستشفى 100%)
                         playerTroops.forEach { pTroop ->
                             if (pTroop.count > 0) {
                                 val ratio = pTroop.count.toDouble() / enemyTotalSentOriginal.coerceAtLeast(1)
@@ -690,8 +719,9 @@ object GameState {
                             }
                             
                             march.payloadGold = 0L 
-                            val availableLootIron = Random.nextLong(10000, 50000)
-                            val availableLootWheat = Random.nextLong(10000, 50000)
+                            // 💡 2. الغنائم ثابتة بين 10,000 و 60,000 للمنتصر في الهجوم
+                            val availableLootIron = Random.nextLong(10000, 60000)
+                            val availableLootWheat = Random.nextLong(10000, 60000)
                             
                             march.payloadIron = minOf(myMaxLoad / 2, availableLootIron).toLong()
                             march.payloadWheat = minOf(myMaxLoad / 2, availableLootWheat).toLong()
@@ -712,8 +742,7 @@ object GameState {
                         march.endTime = now + 5000L 
                     } 
                     else {
-                        // 💡 [تعديل التقرير الدفاعي]
-                        val isCityDefended = myTotalHp <= 0 // إذا مات المهاجم
+                        val isCityDefended = myTotalHp <= 0 
                         
                         val myTotalSurviving = playerTroops.sumOf { it.count }
                         val enemyTotalSurviving = march.marchTroops.sumOf { it.count }
@@ -727,24 +756,19 @@ object GameState {
                                 enemyName = enemyName,
                                 enemyPowerBefore = totalSent * 25L, 
                                 enemyPowerAfter = 0L,
-                                myTotalSent = enemyTotalSentOriginal, // القوات المرابطة
+                                myTotalSent = enemyTotalSentOriginal, 
                                 myDead = enemyTotalDead,
                                 myWounded = enemyTotalWounded,
                                 mySurviving = myTotalSurviving,
-                                myDamage = actualDmgToMeTotal.toLong(), // الضرر الذي أحدثته دفاعاتنا 
+                                myDamage = actualDmgToMeTotal.toLong(),  
                                 lootGold = 0, lootIron = 0, lootWheat = 0, isVictory = true,
                                 battleRounds = rounds,
                                 myTotalPowerStr = enemyAtk.toLong().toString()
                             ))
                         } else {
-                            // العدو انتصر وسينهب مواردنا بناءً على حمولة الناجين منه
-                            var enemyPayloadCapacity = 0L
-                            march.marchTroops.forEach { eTroop ->
-                                enemyPayloadCapacity += (eTroop.count * getTroopStats(eTroop.type, eTroop.tier).loadCapacity).toLong()
-                            }
-                            
-                            val lostIron = minOf(totalIron, enemyPayloadCapacity / 2)
-                            val lostWheat = minOf(totalWheat, enemyPayloadCapacity / 2)
+                            // 💡 2. الغنائم التي ينهبها العدو ثابتة بين 10,000 و 60,000
+                            val lostIron = minOf(totalIron, Random.nextLong(10000, 60000))
+                            val lostWheat = minOf(totalWheat, Random.nextLong(10000, 60000))
                             
                             totalIron -= lostIron
                             totalWheat -= lostWheat
@@ -871,7 +895,7 @@ object GameState {
                         revengeNodeId = if (willRevenge) march.targetNodeId else -1,
                         battleRounds = march.reportRounds,
                         myPowerStr = march.reportDamage.toString(),
-                        myTotalPowerStr = march.reportMyTotalPowerStr // تمرير القوة لطباعتها
+                        myTotalPowerStr = march.reportMyTotalPowerStr 
                     ))
                 } else if (march.type == MarchType.GATHER) {
                     val resName = when(node?.type) { NodeType.GOLD_MINE -> "الذهب"; NodeType.IRON_MINE -> "الحديد"; else -> "القمح" }
