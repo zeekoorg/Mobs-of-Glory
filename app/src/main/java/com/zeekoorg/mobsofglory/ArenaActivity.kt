@@ -112,7 +112,6 @@ class ArenaActivity : AppCompatActivity() {
         layoutGhostCastle.setOnClickListener {
             if (GameState.arenaStamina > 0) {
                 SoundManager.playClick()
-                // 💡 نستخدم النافذة الخاصة بالساحة (ArenaDialogManager) والتي عدلناها لتعيد قائمة القوات (TroopData)
                 ArenaDialogManager.showPreparationDialog(this) { marchTroops -> 
                     startMarchAnimation(marchTroops) 
                 }
@@ -208,7 +207,6 @@ class ArenaActivity : AppCompatActivity() {
         layoutAttackPrompt.visibility = View.VISIBLE 
     }
 
-    // 💡 [تحديث] المحرك الرياضي الجديد للساحة باستخدام Tiers
     private fun executeBattleCalculations(marchTroops: List<TroopData>) {
         CoroutineScope(Dispatchers.Default).launch {
             
@@ -244,11 +242,9 @@ class ArenaActivity : AppCompatActivity() {
             val myTotalDef = baseDef * totalDefBuff
             val myTotalHp = baseHp * totalHpBuff
 
-            // 💡 [رياضيات آينشتاين] القلعة الشبحية تمتلك دفاعاً يمتص الهجوم
             val enemyAtk = 15000.0 + (GameState.playerLevel * 2000.0) 
             val enemyDef = 10000.0 + (GameState.playerLevel * 1500.0)
             
-            // Damage = (Attack^2) / (Attack + Defense)
             val damageDealtDouble = (myTotalAtk.pow(2.0) / (myTotalAtk + enemyDef)) * Random.nextDouble(0.9, 1.1)
             val damageDealt = damageDealtDouble.toLong()
             val earnedScore = maxOf(10L, damageDealt / 150)
@@ -262,12 +258,11 @@ class ArenaActivity : AppCompatActivity() {
             if (totalCasualties < 0) totalCasualties = 0
 
             var totalDead = 0L; var totalWounded = 0L
-            val deadRate = 0.05 // نسبة الموت في الساحة قليلة جداً 5% فقط
+            val deadRate = 0.05 
 
             val hospitalCap = GameState.getHospitalCapacity()
             var currentWoundedInHospital = GameState.getTotalWoundedTroops()
 
-            // توزيع الإصابات وإرجاع الناجين للقائمة الرئيسية
             marchTroops.forEach { marchTroop ->
                 if (marchTroop.count > 0) {
                     val ratio = marchTroop.count.toDouble() / totalSent
@@ -292,7 +287,6 @@ class ArenaActivity : AppCompatActivity() {
                     
                     val surviving = marchTroop.count - (finalDead + admittedWounded)
                     
-                    // إعادة الناجين للقلعة
                     val mainTroopRecord = GameState.playerTroops.find { it.type == marchTroop.type && it.tier == marchTroop.tier }
                     if (mainTroopRecord != null) mainTroopRecord.count += maxOf(0L, surviving)
 
@@ -319,7 +313,6 @@ class ArenaActivity : AppCompatActivity() {
                 refreshArenaUI()
 
                 Handler(Looper.getMainLooper()).postDelayed({
-                    // التقرير الخاص بالساحة
                     showArenaBattleReport(damageDealt, earnedScore, totalDead, totalWounded)
                     
                     if (hasBonusLoot) {
@@ -333,7 +326,6 @@ class ArenaActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 دالة التقرير الخاصة بالساحة مع الأيقونات
     private fun showArenaBattleReport(damage: Long, scoreEarned: Long, dead: Long, wounded: Long) {
         SoundManager.playWindowOpen()
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
@@ -386,7 +378,6 @@ class ArenaActivity : AppCompatActivity() {
         tvArenaRank.text = "المركز: $playerRank"
     }
 
-    // 💡 التقاط تقارير المعارك العادية أثناء التواجد في الساحة
     private fun checkPendingReports() {
         if (!isActivityResumed || isReportDialogOpen) return
         
@@ -397,6 +388,7 @@ class ArenaActivity : AppCompatActivity() {
         }
     }
 
+    // 💡 [تعديل] التقرير السينمائي يميز بين الدفاع والهجوم داخل الساحة أيضاً
     private fun showGlobalBattleReportDialog(report: BattleReport) {
         isReportDialogOpen = true 
         SoundManager.playWindowOpen()
@@ -413,7 +405,14 @@ class ArenaActivity : AppCompatActivity() {
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الخسائر: ${formatResourceNumber(report.enemyPowerBefore - report.enemyPowerAfter)}\n")
             
             ssb.append("━━━━━━ قواتك ━━━━━━\n")
-            appendIconWithText(ssb, R.drawable.ic_ui_arena, "إجمالي المُرسل: ${formatResourceNumber(report.myTotalSent)}")
+            if (report.title.contains("دفاع") || report.title.contains("هزيمة دفاعية")) {
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "إجمالي المُرابطين: ${formatResourceNumber(report.myTotalSent)}")
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة أسوار المدينة (مع الخصائص): ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} 🛡️")
+            } else {
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "إجمالي المُرسل: ${formatResourceNumber(report.myTotalSent)}")
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "القوة الضاربة (مع الخصائص): ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} ⚔️")
+            }
+            
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "القتلى: ${formatResourceNumber(report.myDead)}")
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الجرحى: ${formatResourceNumber(report.myWounded)}")
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الناجون: ${formatResourceNumber(report.mySurviving)}")
