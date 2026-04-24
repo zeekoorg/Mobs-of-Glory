@@ -142,7 +142,6 @@ object GameState {
     fun isHeroBusy(heroId: Int): Boolean = activeMarches.any { it.heroIds.contains(heroId) && it.status != MarchStatus.COMPLETED }
     fun isWeaponBusy(weaponId: Int): Boolean = activeMarches.any { it.weaponIds.contains(weaponId) && it.status != MarchStatus.COMPLETED }
     
-    // 🏥 سعة مستشفى خطية معقولة
     fun getHospitalCapacity(): Long {
         val hospitalLvl = myPlots.find { it.idCode == "HOSPITAL" }?.level ?: 1
         return hospitalLvl * 12000L
@@ -353,7 +352,8 @@ object GameState {
             heroIds = emptyList(), weaponIds = emptyList(),
             status = MarchStatus.MARCHING,
             endTime = System.currentTimeMillis() + travelTime,
-            totalTime = travelTime
+            totalTime = travelTime,
+            reportEnemyName = node.playerName
         ))
         ioScope.launch { saveGameData(null) }
     }
@@ -409,7 +409,6 @@ object GameState {
                     val myTotalDef = ((march.infantryCount * INFANTRY_DEF) + (march.cavalryCount * CAVALRY_DEF)) * totalDefBuff
                     var myTotalHp = ((march.infantryCount * INFANTRY_HP) + (march.cavalryCount * CAVALRY_HP)) * totalHpBuff
 
-                    // ⚔️ عدو قوي: 15% من القوة هجوم، 150% حياة
                     var enemyAtk = node!!.currentPower * 0.15
                     var enemyHp = node.currentPower * 1.5
                     
@@ -425,7 +424,6 @@ object GameState {
                     while (myTotalHp > 0 && enemyHp > 0 && rounds < maxRounds) {
                         rounds++
                         
-                        // 🔥 معادلة بسيطة: 8-12% من الهجوم يتحول لضرر
                         val dmgToEnemy = myTotalAtk * Random.nextDouble(0.08, 0.12)
                         val dmgToMe = enemyAtk * Random.nextDouble(0.06, 0.10)
 
@@ -437,18 +435,18 @@ object GameState {
                     }
 
                     val isVictory = enemyHp <= 0
+                    val finalEnemyPower = if (isVictory) 0L else maxOf(0L, (enemyHp / 1.5).toLong())
 
                     if (isVictory) {
                         node.isDefeated = true
                         node.currentPower = 0
                         
                         if (initialEnemyPower == node.maxPower) {
-                            globalNewsQueue.add("🔥 عاجل: هجم القائد [$playerName] على [${node.playerName}] وحقق إنتصاراً ساحقاً!")
+                            globalNewsQueue.add("عاجل: هجم القائد [$playerName] على [${node.playerName}] وحقق انتصاراً ساحقاً!")
                         }
                         
                         val maxLootCapacity = (march.infantryCount * INFANTRY_LOAD) + (march.cavalryCount * CAVALRY_LOAD)
                         
-                        // 💰 نهب ثابت بين 10K-50K
                         march.payloadGold = 0L 
                         val availableLootIron = Random.nextLong(10000, 50000)
                         val availableLootWheat = Random.nextLong(10000, 50000)
@@ -456,7 +454,7 @@ object GameState {
                         march.payloadIron = minOf(maxLootCapacity / 2, availableLootIron.toDouble()).toLong()
                         march.payloadWheat = minOf(maxLootCapacity / 2, availableLootWheat.toDouble()).toLong()
                     } else {
-                        node.currentPower = maxOf(0L, (enemyHp / 1.5).toLong())
+                        node.currentPower = finalEnemyPower
                         node.lastAttackedTime = now
                     }
 
@@ -524,33 +522,104 @@ object GameState {
                     
                     val defInfantry = totalInfantry 
                     val defCavalry = totalCavalry
+                    val totalDefenders = defInfantry + defCavalry
                     
                     var heroDefBuff = 0.0; var wpDefBuff = 0.0; var heroHpBuff = 0.0
                     myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { heroDefBuff += it.getCurrentDefenseBuff(); heroHpBuff += it.getCurrentHpBuff() }
                     arsenal.filter { it.isOwned && it.isEquipped }.forEach { wpDefBuff += it.getCurrentDefenseBuff() }
                     
-                    val cityHp = ((defInfantry * INFANTRY_HP) + (defCavalry * CAVALRY_HP)) * (1.0 + heroHpBuff)
-                    val enemyAtk = (march.infantryCount * INFANTRY_ATK) + (march.cavalryCount * CAVALRY_ATK)
+                    val totalHpBuff = 1.0 + heroHpBuff
+                    val cityHp = ((defInfantry * INFANTRY_HP) + (defCavalry * CAVALRY_HP)) * totalHpBuff
+                    val cityDef = ((defInfantry * INFANTRY_DEF) + (defCavalry * CAVALRY_DEF)) * (1.0 + heroDefBuff + wpDefBuff)
                     
-                    val actualDmgToCity = enemyAtk * Random.nextDouble(0.06, 0.10)
-                    val isCityDefended = cityHp > actualDmgToCity
+                    val enemyInfantry = march.infantryCount
+                    val enemyCavalry = march.cavalryCount
+                    val enemyTotalAtk = (enemyInfantry * INFANTRY_ATK) + (enemyCavalry * CAVALRY_ATK)
+                    val enemyTotalHp = (enemyInfantry * INFANTRY_HP) + (enemyCavalry * CAVALRY_HP)
+                    
+                    // محاكاة قتال حقيقي بين المدافعين والمهاجمين
+                    var remainingCityHp = cityHp
+                    var remainingEnemyHp = enemyTotalHp
+                    var rounds = 0
+                    val maxRounds = 15
+                    var totalDmgToCity = 0.0
+                    var totalDmgToEnemy = 0.0
+                    
+                    while (remainingCityHp > 0 && remainingEnemyHp > 0 && rounds < maxRounds) {
+                        rounds++
+                        val dmgToCity = enemyTotalAtk * Random.nextDouble(0.06, 0.10)
+                        val dmgToEnemy = cityDef * Random.nextDouble(0.04, 0.08)
+                        
+                        remainingCityHp -= dmgToCity
+                        remainingEnemyHp -= dmgToEnemy
+                        
+                        totalDmgToCity += dmgToCity
+                        totalDmgToEnemy += dmgToEnemy
+                    }
+                    
+                    val isCityDefended = remainingEnemyHp <= 0
+                    
+                    // حساب خسائر المدافعين
+                    val avgDefenderHp = (INFANTRY_HP * totalHpBuff + CAVALRY_HP * totalHpBuff) / 2.0
+                    var defenderCasualties = if (isCityDefended) {
+                        (totalDmgToCity / avgDefenderHp * 0.3).toLong()  // 30% من الضرر يتحول لخسائر في النصر
+                    } else {
+                        (totalDmgToCity / avgDefenderHp * 0.8).toLong()   // 80% في الهزيمة
+                    }
+                    if (defenderCasualties > totalDefenders) defenderCasualties = totalDefenders
+                    if (defenderCasualties < 0) defenderCasualties = 0
+                    
+                    val infRatio = if (totalDefenders > 0) defInfantry.toDouble() / totalDefenders else 0.5
+                    val cavRatio = if (totalDefenders > 0) defCavalry.toDouble() / totalDefenders else 0.5
+                    
+                    val defenderDead = (defenderCasualties * 0.35).toLong()
+                    val defenderWounded = defenderCasualties - defenderDead
+                    
+                    val infDead = (defenderDead * infRatio).toLong()
+                    val cavDead = defenderDead - infDead
+                    val infWounded = (defenderWounded * infRatio).toLong()
+                    val cavWounded = defenderWounded - infWounded
+                    
+                    // تطبيق الخسائر على قوات اللاعب
+                    totalInfantry -= (infDead + infWounded)
+                    totalCavalry -= (cavDead + cavWounded)
+                    if (totalInfantry < 0) totalInfantry = 0
+                    if (totalCavalry < 0) totalCavalry = 0
+                    
+                    woundedInfantry += infWounded
+                    woundedCavalry += cavWounded
+                    
+                    // حساب خسائر العدو
+                    val avgEnemyHp = (INFANTRY_HP + CAVALRY_HP) / 2.0
+                    var enemyCasualties = (totalDmgToEnemy / avgEnemyHp).toLong()
+                    if (enemyCasualties > (enemyInfantry + enemyCavalry)) enemyCasualties = enemyInfantry + enemyCavalry
+                    if (enemyCasualties < 0) enemyCasualties = 0
+                    
+                    val enemyDead = enemyCasualties
+                    val enemySurviving = (enemyInfantry + enemyCavalry) - enemyDead
+                    
+                    val enemyName = march.reportEnemyName.ifEmpty { node?.playerName ?: "العدو" }
                     
                     if (isCityDefended) {
+                        globalNewsQueue.add("عاجل: تم صد هجوم [$enemyName] على مدينتنا!")
+                        
                         pendingBattleReports.add(BattleReport(
                             marchId = march.id,
                             title = "دفاع أسطوري!",
-                            message = "قوات العدو تحطمت على أسوارنا الحصينة!",
-                            enemyName = node?.playerName ?: "العدو",
-                            enemyPowerBefore = enemyAtk.toLong(),
+                            message = "تم صد هجوم [$enemyName] وتدمير جيشه بالكامل!",
+                            enemyName = enemyName,
+                            enemyPowerBefore = enemyTotalAtk.toLong(),
                             enemyPowerAfter = 0L,
-                            myTotalSent = defInfantry + defCavalry,
-                            myDead = 0, myWounded = 0, mySurviving = defInfantry + defCavalry,
-                            myDamage = 0L, 
+                            myTotalSent = totalDefenders,
+                            myDead = infDead + cavDead,
+                            myWounded = infWounded + cavWounded,
+                            mySurviving = totalInfantry + totalCavalry,
+                            myDamage = totalDmgToEnemy.toLong(), 
                             lootGold = 0, lootIron = 0, lootWheat = 0, isVictory = true,
-                            battleRounds = 1, myPowerStr = cityHp.toString()
+                            battleRounds = rounds,
+                            myPowerStr = cityDef.toLong().toString()
                         ))
                     } else {
-                        // 💰 نهب ثابت بين 10K-50K
                         val lostGold = 0L 
                         val lostIron = Random.nextLong(10000, 50000) 
                         val lostWheat = Random.nextLong(10000, 50000)
@@ -558,22 +627,27 @@ object GameState {
                         totalIron = maxOf(0L, totalIron - lostIron)
                         totalWheat = maxOf(0L, totalWheat - lostWheat)
                         
-                        globalNewsQueue.add("⚠️ عاجل: انتقم [${node?.playerName ?: "العدو"}] من القائد [$playerName] وألحق دماراً بقلعته!")
+                        globalNewsQueue.add("عاجل: انتقم [$enemyName] من القائد [$playerName] وألحق دماراً بقلعته!")
                         
                         pendingBattleReports.add(BattleReport(
                             marchId = march.id,
                             title = "هجوم انتقامي مدمر!",
-                            message = "دفاعاتنا لم تصمد وتم نهب خزائننا!",
-                            enemyName = node?.playerName ?: "العدو",
-                            enemyPowerBefore = enemyAtk.toLong(),
-                            enemyPowerAfter = enemyAtk.toLong(), 
-                            myTotalSent = defInfantry + defCavalry,
-                            myDead = 0, myWounded = 0, mySurviving = defInfantry + defCavalry,
-                            myDamage = 0L, 
+                            message = "دفاعاتنا لم تصمد أمام هجوم [$enemyName] وتم نهب خزائننا!",
+                            enemyName = enemyName,
+                            enemyPowerBefore = enemyTotalAtk.toLong(),
+                            enemyPowerAfter = enemySurviving * INFANTRY_ATK,
+                            myTotalSent = totalDefenders,
+                            myDead = infDead + cavDead,
+                            myWounded = infWounded + cavWounded,
+                            mySurviving = totalInfantry + totalCavalry,
+                            myDamage = totalDmgToEnemy.toLong(), 
                             lootGold = -lostGold, lootIron = -lostIron, lootWheat = -lostWheat, isVictory = false,
-                            battleRounds = 1, myPowerStr = cityHp.toString()
+                            battleRounds = rounds,
+                            myPowerStr = cityDef.toLong().toString()
                         ))
                     }
+                    
+                    calculatePower()
                     march.status = MarchStatus.COMPLETED 
                     continue
 
@@ -629,7 +703,7 @@ object GameState {
                     
                     pendingBattleReports.add(BattleReport(
                         marchId = march.id,
-                        title = if (march.reportIsVictory) "⚔️ انتصار ساحق!" else "💔 هزيمة مريرة",
+                        title = if (march.reportIsVictory) "انتصار ساحق!" else "هزيمة مريرة",
                         message = if (march.reportIsVictory) 
                             "تم تدمير قلعة ${march.reportEnemyName} بالكامل!" 
                         else 
@@ -657,7 +731,7 @@ object GameState {
                     
                     pendingBattleReports.add(BattleReport(
                         marchId = march.id,
-                        title = "📦 اكتمل الجمع",
+                        title = "اكتمل الجمع",
                         message = "عادت الفيالق وحملت معها ${formatResourceNumber(amountCollected)} من $resName.",
                         enemyName = "", enemyPowerBefore = 0, enemyPowerAfter = 0, 
                         myTotalSent = march.infantryCount + march.cavalryCount, myDead = 0, myWounded = 0, mySurviving = march.infantryCount + march.cavalryCount,
