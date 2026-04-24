@@ -44,7 +44,6 @@ class BattlefieldActivity : AppCompatActivity() {
     
     private var isReportDialogOpen = false
     private var isNewsPlaying = false
-    
     private var isRegionClearDialogOpen = false
 
     private var displayedGold = -1L
@@ -103,13 +102,13 @@ class BattlefieldActivity : AppCompatActivity() {
         super.onPause()
         isActivityResumed = false
         GameState.saveGameData(this)
-        SoundManager.pauseBGM()
+        // لا توقف الموسيقى هنا - SoundManager.pauseBGM() تمت إزالته
     }
     
     override fun onDestroy() {
         super.onDestroy()
         isActivityResumed = false
-        SoundManager.onDestroy()
+        // لا تستدعي SoundManager.onDestroy() هنا - سيتم التعامل معه في MainActivity
     }
 
     private fun initViews() {
@@ -149,7 +148,11 @@ class BattlefieldActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showQuestsDialog(this) }
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showStoreDialog(this) }
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showBagDialog(this) }
-        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { SoundManager.playClick(); finish() }
+        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
+            SoundManager.playClick()
+            // العودة للمدينة مع الحفاظ على الصوت
+            finish() 
+        }
     }
 
     private fun renderBattlefield() {
@@ -187,7 +190,6 @@ class BattlefieldActivity : AppCompatActivity() {
                 } else {
                     img.setImageResource(if (dynamicResId != 0) dynamicResId else R.drawable.ic_ui_arena)
                     img.alpha = 1.0f
-                    // فقط اسم اللاعب يظهر فوق القلعة، بدون قوة
                     badge.text = node.playerName
                 }
             } else {
@@ -244,15 +246,14 @@ class BattlefieldActivity : AppCompatActivity() {
         val btnAction = d.findViewById<Button>(R.id.btnMessageOk)
         
         if (node.type == NodeType.ENEMY_CASTLE) {
-            titleTv?.text = "قلعة: [${node.playerName}]"
-            // القوة تظهر فقط هنا في النافذة، بدون تحذيرات
-            bodyTv?.text = "المستوى: ${node.level}\nالقوة: ${formatResourceNumber(node.currentPower)}"
+            titleTv?.text = "🏰 قلعة: [${node.playerName}]"
+            bodyTv?.text = "📊 المستوى: ${node.level}\n⚔️ القوة: ${formatResourceNumber(node.currentPower)}"
             iconImg?.setImageResource(R.drawable.ic_ui_arena)
             btnAction?.text = "هجوم ⚔️"
         } else {
             val resName = when(node.type) { NodeType.GOLD_MINE -> "ذهب"; NodeType.IRON_MINE -> "حديد"; else -> "قمح" }
-            titleTv?.text = "منجم/مزرعة $resName"
-            bodyTv?.text = "المستوى: ${node.level}\nالموارد المتبقية: ${formatResourceNumber(node.resourceAmount)}"
+            titleTv?.text = "⛏️ منجم/مزرعة $resName"
+            bodyTv?.text = "📊 المستوى: ${node.level}\n📦 الموارد المتبقية: ${formatResourceNumber(node.resourceAmount)}"
             val iconRes = when(node.type) { NodeType.GOLD_MINE -> R.drawable.ic_resource_gold; NodeType.IRON_MINE -> R.drawable.ic_resource_iron; else -> R.drawable.ic_resource_wheat }
             iconImg?.setImageResource(iconRes)
             btnAction?.text = "جمع 📦"
@@ -355,14 +356,13 @@ class BattlefieldActivity : AppCompatActivity() {
             val totalPayload = (selectedInfantry * GameState.INFANTRY_LOAD) + (selectedCavalry * GameState.CAVALRY_LOAD)
             
             if (isAttack) {
-                // عرض بسيط: القوة فقط، بدون ألوان أو تحذيرات
-                tvPower?.text = "القوة الهجومية: ${formatResourceNumber(totalPower)}"
+                tvPower?.text = "⚔️ القوة الهجومية: ${formatResourceNumber(totalPower)}"
                 tvPower?.setTextColor(Color.WHITE)
             } else {
                 var heroSpeedBuff = 0.0
                 selectedHeroesForMarch.forEach { heroSpeedBuff += it.getCurrentSpeedBuff() }
                 val gatherSpeed = (150.0 * (1.0 + heroSpeedBuff)).toLong() 
-                tvPower?.text = "سعة الحمولة: ${formatResourceNumber(totalPayload.toLong())} | السرعة: $gatherSpeed/ث"
+                tvPower?.text = "📦 سعة الحمولة: ${formatResourceNumber(totalPayload.toLong())} | ⏱️ السرعة: $gatherSpeed/ث"
                 tvPower?.setTextColor(Color.WHITE)
             }
         }
@@ -506,7 +506,10 @@ class BattlefieldActivity : AppCompatActivity() {
                     
                     GameState.processActiveMarches(this@BattlefieldActivity)
                     updateHudUI()
+                    // تحديث فوري للخريطة بعد المعركة
                     renderBattlefield()
+                    // التحقق من التقارير فوراً
+                    checkPendingReports()
                 }
             }).start()
     }
@@ -549,6 +552,8 @@ class BattlefieldActivity : AppCompatActivity() {
                     march.endTime = System.currentTimeMillis() - 100
                     
                     GameState.processActiveMarches(this@BattlefieldActivity)
+                    updateHudUI()
+                    renderBattlefield()
                     checkPendingReports()
                 }
             }).start()
@@ -591,6 +596,8 @@ class BattlefieldActivity : AppCompatActivity() {
                     march.endTime = System.currentTimeMillis() - 100
                     
                     GameState.processActiveMarches(this@BattlefieldActivity)
+                    updateHudUI()
+                    renderBattlefield()
                     checkPendingReports()
                 }
             }).start()
@@ -671,25 +678,30 @@ class BattlefieldActivity : AppCompatActivity() {
         val details = StringBuilder()
         
         if (report.enemyPowerBefore > 0) {
-            details.append(" [⚔️قوات العدو: ${report.enemyName}] \n")
-            details.append("القوة السابقة: ${formatResourceNumber(report.enemyPowerBefore)}\n")
-            details.append("القوة المتبقية: ${formatResourceNumber(report.enemyPowerAfter)}\n")
-            details.append("الخسائر: ${formatResourceNumber(report.enemyPowerBefore - report.enemyPowerAfter)}\n\n")
+            details.append("━━━━━━ 🏰 قوات العدو ━━━━━━\n")
+            details.append("📛 الاسم: ${report.enemyName}\n")
+            details.append("⚔️ القوة قبل المعركة: ${formatResourceNumber(report.enemyPowerBefore)}\n")
+            details.append("⚔️ القوة المتبقية: ${formatResourceNumber(report.enemyPowerAfter)}\n")
+            details.append("💔 الخسائر: ${formatResourceNumber(report.enemyPowerBefore - report.enemyPowerAfter)}\n\n")
             
-            details.append("[ ⚔️قواتك ]\n")
-            details.append("القوة الهجومية: ${formatResourceNumber(report.myDamage)}\n")
-            details.append("القتلى: ${formatResourceNumber(report.myDead)}\n")
-            details.append("الجرحى: ${formatResourceNumber(report.myWounded)}\n\n")
+            details.append("━━━━━━ ⚔️ قواتك ━━━━━━\n")
+            details.append("👥 إجمالي المُرسل: ${formatResourceNumber(report.myTotalSent)}\n")
+            details.append("💀 القتلى: ${formatResourceNumber(report.myDead)}\n")
+            details.append("🏥 الجرحى: ${formatResourceNumber(report.myWounded)}\n")
+            details.append("✅ الناجون: ${formatResourceNumber(report.mySurviving)}\n")
+            details.append("⚡ الضرر المُحدث: ${formatResourceNumber(report.myDamage)}\n\n")
         }
         
         if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
-            details.append("[الغنائم المكتسبة]\n")
-            if (report.lootIron > 0) details.append("الحديد: ${formatResourceNumber(report.lootIron)}  ")
-            if (report.lootWheat > 0) details.append("القمح: ${formatResourceNumber(report.lootWheat)}")
+            details.append("━━━━━━ 💰 الغنائم ━━━━━━\n")
+            if (report.lootGold > 0) details.append("🪙 الذهب: +${formatResourceNumber(report.lootGold)}\n")
+            if (report.lootIron > 0) details.append("⛓️ الحديد: +${formatResourceNumber(report.lootIron)}\n")
+            if (report.lootWheat > 0) details.append("🌾 القمح: +${formatResourceNumber(report.lootWheat)}\n")
         } else if (report.lootGold < 0 || report.lootIron < 0 || report.lootWheat < 0) {
-            details.append("[الموارد المنهوبة من مدينتك!]\n")
-            if (report.lootIron < 0) details.append("الحديد: ${formatResourceNumber(Math.abs(report.lootIron))}  ")
-            if (report.lootWheat < 0) details.append("القمح: ${formatResourceNumber(Math.abs(report.lootWheat))}")
+            details.append("━━━━━━ 🔻 المنهوب منك ━━━━━━\n")
+            if (report.lootGold < 0) details.append("🪙 الذهب: -${formatResourceNumber(Math.abs(report.lootGold))}\n")
+            if (report.lootIron < 0) details.append("⛓️ الحديد: -${formatResourceNumber(Math.abs(report.lootIron))}\n")
+            if (report.lootWheat < 0) details.append("🌾 القمح: -${formatResourceNumber(Math.abs(report.lootWheat))}\n")
         }
         
         d.findViewById<TextView>(R.id.tvMessageTitle)?.text = report.title
@@ -958,8 +970,8 @@ class BattlefieldActivity : AppCompatActivity() {
         else tvTotalWheat.text = formatResourceNumber(GameState.totalWheat)
 
         if (displayedPower == -1L) displayedPower = GameState.playerPower
-        if (displayedPower != GameState.playerPower) { powerAnimator?.cancel(); powerAnimator = animateResourceText(tvMainTotalPower, displayedPower, GameState.playerPower, "") { displayedPower = it } } 
-        else tvMainTotalPower.text = formatResourceNumber(GameState.playerPower)
+        if (displayedPower != GameState.playerPower) { powerAnimator?.cancel(); powerAnimator = animateResourceText(tvMainTotalPower, displayedPower, GameState.playerPower, "⚔️ ") { displayedPower = it } } 
+        else tvMainTotalPower.text = "⚔️ ${formatResourceNumber(GameState.playerPower)}"
         
         updateNotificationBadges()
     }
