@@ -62,19 +62,6 @@ data class BattleReport(
     val myPowerStr: String = ""
 )
 
-data class BattlefieldNode(
-    val id: Int, 
-    var type: NodeType,
-    var currentPower: Long,
-    var maxPower: Long,
-    var level: Int,
-    var isDefeated: Boolean,
-    var lastAttackedTime: Long = 0L,
-    var resourceAmount: Long = 0L,
-    var imageName: String = "",
-    var playerName: String = "" 
-)
-
 object GameState {
 
     private val ioScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -262,6 +249,52 @@ object GameState {
         if (battlefieldNodes.isEmpty()) generateRegion(currentRegionLevel)
     }
 
+    // 💡 [جديد] التوليد الذكي لجيوش الأعداء بناءً على مستوى المقاطعة
+    private fun generateEnemyArmy(regionLevel: Int): Pair<MutableList<TroopData>, Double> {
+        val troops = mutableListOf<TroopData>()
+        
+        // 1. تحديد إجمالي عدد جنود العدو (يصعد بشكل أسي)
+        // يبدأ بـ 5,000 جندي ويتصاعد للوصول لمئات الآلاف في المقاطعات العليا
+        val baseTroops = 5000L
+        val multiplier = 1.0 + (regionLevel * 0.15)
+        val totalEnemyTroops = (baseTroops * multiplier.pow(1.5)).toLong() + Random.nextLong(1000, 5000)
+
+        // 2. تحديد نسبة الـ Tiers المتاحة في هذه المقاطعة
+        // في البداية T1 فقط، ثم يظهر T2، وصولاً لـ T5.
+        val tierProbabilities = mutableMapOf<Int, Double>()
+        when {
+            regionLevel <= 10 -> { tierProbabilities[1] = 0.8; tierProbabilities[2] = 0.2 }
+            regionLevel <= 25 -> { tierProbabilities[1] = 0.3; tierProbabilities[2] = 0.5; tierProbabilities[3] = 0.2 }
+            regionLevel <= 50 -> { tierProbabilities[2] = 0.2; tierProbabilities[3] = 0.5; tierProbabilities[4] = 0.3 }
+            regionLevel <= 80 -> { tierProbabilities[3] = 0.2; tierProbabilities[4] = 0.6; tierProbabilities[5] = 0.2 }
+            else -> { tierProbabilities[4] = 0.3; tierProbabilities[5] = 0.7 } // جيوش مرعبة في المستويات العليا
+        }
+
+        // 3. توزيع الجنود على الأنواع (تكتيك الذكاء الاصطناعي: مشاة كدروع في الأمام)
+        val typeDistribution = mapOf(
+            TroopType.INFANTRY to 0.40,
+            TroopType.CAVALRY to 0.30,
+            TroopType.ARCHER to 0.20,
+            TroopType.SIEGE to 0.10
+        )
+
+        for ((type, typeRatio) in typeDistribution) {
+            val amountForThisType = (totalEnemyTroops * typeRatio).toLong()
+            for ((tier, tierRatio) in tierProbabilities) {
+                val amountForThisTier = (amountForThisType * tierRatio).toLong()
+                if (amountForThisTier > 0) {
+                    troops.add(TroopData(type, tier, amountForThisTier, 0L))
+                }
+            }
+        }
+
+        // 4. تحديد الـ Buff الوهمي للعدو (يمثل الأبطال والأسلحة)
+        // يبدأ بـ 0% ويصل لنسب خيالية (مثلاً +300%) لتعويض قلة الأبطال
+        val aiBuff = (regionLevel * 0.05) + Random.nextDouble(0.0, 0.1)
+
+        return Pair(troops, aiBuff)
+    }
+
     fun generateRegion(level: Int) {
         battlefieldNodes.clear()
         val types = mutableListOf(NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.GOLD_MINE, NodeType.IRON_MINE, NodeType.WHEAT_FARM)
@@ -274,13 +307,36 @@ object GameState {
         for (i in 0 until 8) {
             val t = types[i]
             if (t == NodeType.ENEMY_CASTLE) {
-                val basePower = 150_000L + (level.toDouble().pow(2.8) * 4000L).toLong() + Random.nextLong(10000, 50000)
                 val nodeLevel = level + Random.nextInt(0, 3)
                 val imgName = selectedCastleImages[castleImageIndex]
                 val randomPlayerName = fakePlayerNames.random()
                 castleImageIndex++
                 
-                battlefieldNodes.add(BattlefieldNode(i, t, basePower, basePower, nodeLevel, false, 0L, 0L, imgName, randomPlayerName))
+                // 💡 [تعديل] هنا يتم توليد جيش العدو الحقيقي
+                val (generatedTroops, aiBuff) = generateEnemyArmy(level)
+                
+                // حساب قوة القلعة بناءً على جيشها الفعلي
+                var actualPower = 0L
+                generatedTroops.forEach { troop ->
+                    actualPower += (troop.count * getTroopStats(troop.type, troop.tier).power)
+                }
+                // إضافة تأثير الـ Buff للقوة التقديرية للعدو
+                actualPower = (actualPower * (1.0 + aiBuff)).toLong()
+                
+                battlefieldNodes.add(BattlefieldNode(
+                    id = i, 
+                    type = t, 
+                    currentPower = actualPower, 
+                    maxPower = actualPower, 
+                    level = nodeLevel, 
+                    isDefeated = false, 
+                    lastAttackedTime = 0L, 
+                    resourceAmount = 0L, 
+                    imageName = imgName, 
+                    playerName = randomPlayerName,
+                    enemyTroops = generatedTroops,
+                    aiBuffMultiplier = aiBuff
+                ))
             } else {
                 val farmLevel = level + Random.nextInt(0, 3)
                 val resAmount = (farmLevel * 15000L) + Random.nextLong(10000, 50000) 
@@ -381,18 +437,19 @@ object GameState {
 
         val travelTime = 5000L
         
-        val enemyTroops = mutableListOf<TroopData>()
-        val powerPerTroop = node.currentPower / 4
-        enemyTroops.add(TroopData(TroopType.INFANTRY, 2, maxOf(10, powerPerTroop / 20)))
-        enemyTroops.add(TroopData(TroopType.CAVALRY, 2, maxOf(10, powerPerTroop / 45)))
-        enemyTroops.add(TroopData(TroopType.ARCHER, 2, maxOf(10, powerPerTroop / 38)))
-        enemyTroops.add(TroopData(TroopType.SIEGE, 2, maxOf(10, powerPerTroop / 25)))
+        // 💡 [تعديل] الجيش المنتقم الآن هو نفس الجيش المتبقي في القلعة تماماً
+        val revengeTroops = mutableListOf<TroopData>()
+        node.enemyTroops.forEach {
+            if (it.count > 0) {
+                revengeTroops.add(TroopData(it.type, it.tier, it.count, 0))
+            }
+        }
 
         activeMarches.add(ActiveMarch(
             id = System.currentTimeMillis() + Random.nextLong(100, 1000), 
             targetNodeId = node.id,
             type = MarchType.REVENGE,
-            marchTroops = enemyTroops,
+            marchTroops = revengeTroops,
             heroIds = emptyList(), weaponIds = emptyList(),
             status = MarchStatus.MARCHING,
             endTime = System.currentTimeMillis() + travelTime,
@@ -462,53 +519,63 @@ object GameState {
                     var enemyAtk = 0.0; var enemyHp = 0.0; var enemyDef = 0.0
                     val initialEnemyPower = node?.currentPower ?: 0L
                     val enemyName = node?.playerName ?: march.reportEnemyName
+                    
+                    val aiBuff = node?.aiBuffMultiplier ?: 0.0
+                    val defTotalDefBuff = 1.0 + aiBuff
+                    val defTotalHpBuff = 1.0 + aiBuff
 
                     if (march.type == MarchType.ATTACK) {
-                        enemyAtk = initialEnemyPower * 0.15
-                        enemyHp = initialEnemyPower * 1.5
-                        enemyDef = initialEnemyPower * 0.10
+                        // 💡 [تعديل] العدو هو القلعة المبرمجة AI (نقوم بحساب قوتها من جيشها الحقيقي)
+                        node!!.enemyTroops.forEach { troop ->
+                            val stats = getTroopStats(troop.type, troop.tier)
+                            enemyAtk += (troop.count * stats.baseAtk * defTotalDefBuff)
+                            enemyHp += (troop.count * stats.baseHp * defTotalHpBuff)
+                            enemyDef += (troop.count * stats.baseDef * defTotalDefBuff)
+                        }
                     } else {
                         // هجوم انتقامي: اللاعب هو المُدافع
                         var cityDefBuff = 0.0; var cityHpBuff = 0.0
                         myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { cityDefBuff += it.getCurrentDefenseBuff(); cityHpBuff += it.getCurrentHpBuff() }
                         arsenal.filter { it.isOwned && it.isEquipped }.forEach { cityDefBuff += it.getCurrentDefenseBuff() }
                         
-                        val defTotalDefBuff = 1.0 + cityDefBuff
-                        val defTotalHpBuff = 1.0 + cityHpBuff
+                        val myCityDefBuff = 1.0 + cityDefBuff
+                        val myCityHpBuff = 1.0 + cityHpBuff
 
                         playerTroops.forEach { troop ->
                             val stats = getTroopStats(troop.type, troop.tier)
-                            enemyAtk += (troop.count * stats.baseAtk) 
-                            enemyHp += (troop.count * stats.baseHp * defTotalHpBuff)
-                            enemyDef += (troop.count * stats.baseDef * defTotalDefBuff)
+                            enemyAtk += (troop.count * stats.baseAtk) // هجوم المدافع
+                            enemyHp += (troop.count * stats.baseHp * myCityHpBuff)
+                            enemyDef += (troop.count * stats.baseDef * myCityDefBuff)
                         }
                     }
 
                     var rounds = 0; val maxRounds = 20
                     var actualDmgToMeTotal = 0.0; var actualDmgToEnemyTotal = 0.0
 
-                    while (myTotalHp > 0 && enemyHp > 0 && rounds < maxRounds) {
-                        rounds++
-                        val dmgToEnemy = (myTotalAtk / (1.0 + (enemyDef / 100.0))) * Random.nextDouble(0.8, 1.2)
-                        val dmgToMe = (enemyAtk / (1.0 + (myTotalDef / 100.0))) * Random.nextDouble(0.8, 1.2)
+                    // 💡 حماية من القسمة على صفر إذا كان أحد الجيوش فارغاً
+                    if (myTotalHp > 0 && enemyHp > 0) {
+                        while (myTotalHp > 0 && enemyHp > 0 && rounds < maxRounds) {
+                            rounds++
+                            val dmgToEnemy = (myTotalAtk / (1.0 + (enemyDef / 100.0))) * Random.nextDouble(0.8, 1.2)
+                            val dmgToMe = (enemyAtk / (1.0 + (myTotalDef / 100.0))) * Random.nextDouble(0.8, 1.2)
 
-                        enemyHp -= dmgToEnemy
-                        myTotalHp -= dmgToMe
-                        actualDmgToEnemyTotal += dmgToEnemy
-                        actualDmgToMeTotal += dmgToMe
+                            enemyHp -= dmgToEnemy
+                            myTotalHp -= dmgToMe
+                            actualDmgToEnemyTotal += dmgToEnemy
+                            actualDmgToMeTotal += dmgToMe
+                        }
                     }
 
-                    // 💡 [إصلاح الرياضيات]: نظام العقوبة لفرق القوة (SLG Scaling)
                     val isVictory = if (march.type == MarchType.ATTACK) enemyHp <= 0 else myTotalHp > 0
                     
+                    // حساب الخسائر للمهاجم
                     val avgHpPerUnit = myTotalHp / totalSent.coerceAtLeast(1)
                     var totalCasualties = (actualDmgToMeTotal / avgHpPerUnit).toLong()
 
-                    // إذا خسر المهاجم والفرق كبير جداً في القوة، يُباد بالكامل (أو بنسبة ساحقة)
                     if (!isVictory && march.type == MarchType.ATTACK) {
                         val powerRatio = myTotalAtk / enemyDef.coerceAtLeast(1.0)
                         if (powerRatio < 0.5) {
-                            totalCasualties = (totalSent * Random.nextDouble(0.85, 1.0)).toLong() // إبادة من 85% إلى 100%
+                            totalCasualties = (totalSent * Random.nextDouble(0.85, 1.0)).toLong() 
                         } else {
                             totalCasualties = (totalSent * Random.nextDouble(0.5, 0.8)).toLong()
                         }
@@ -518,8 +585,6 @@ object GameState {
                     if (totalCasualties < 0) totalCasualties = 0
 
                     var totalDead = 0L; var totalWounded = 0L
-                    
-                    // في حالة الهجوم: القتلى أكثر من الجرحى إذا خسر، وفي حالة الدفاع (الانتقام) الأولوية للمستشفى 100%
                     val deadRate = if (march.type == MarchType.REVENGE) 0.0 else (if (isVictory) 0.10 else 0.60)
                     
                     val hospitalCap = getHospitalCapacity()
@@ -552,7 +617,6 @@ object GameState {
                             troop.count -= (finalDeadForThisTroop + admittedWounded)
                             if (troop.count < 0) troop.count = 0
                             
-                            // خصم الخسائر مباشرة إذا كان الدفاع
                             if (march.type == MarchType.REVENGE) {
                                 val mainTroopRecord = playerTroops.find { it.type == troop.type && it.tier == troop.tier }
                                 if (mainTroopRecord != null) {
@@ -567,9 +631,33 @@ object GameState {
                     }
 
                     if (march.type == MarchType.ATTACK) {
-                        val finalEnemyPower = if (isVictory) 0L else maxOf(0L, (enemyHp / 1.5).toLong())
-                        if (isVictory) {
-                            node!!.isDefeated = true; node.currentPower = 0
+                        
+                        // 💡 [تعديل] تطبيق الخسائر على جيش العدو
+                        val enemyTotalSentOriginal = node!!.enemyTroops.sumOf { it.count }
+                        val enemyAvgHp = (enemyHp + actualDmgToEnemyTotal) / enemyTotalSentOriginal.coerceAtLeast(1)
+                        var enemyCasualties = (actualDmgToEnemyTotal / enemyAvgHp).toLong()
+                        if (enemyCasualties > enemyTotalSentOriginal) enemyCasualties = enemyTotalSentOriginal
+                        if (enemyCasualties < 0) enemyCasualties = 0
+                        
+                        node.enemyTroops.forEach { eTroop ->
+                            if (eTroop.count > 0) {
+                                val ratio = eTroop.count.toDouble() / enemyTotalSentOriginal
+                                val dead = (enemyCasualties * ratio).toLong()
+                                eTroop.count -= dead
+                                if (eTroop.count < 0) eTroop.count = 0
+                            }
+                        }
+
+                        // إعادة حساب القوة المتبقية للعدو
+                        var newEnemyPower = 0L
+                        node.enemyTroops.forEach { eTroop ->
+                            newEnemyPower += (eTroop.count * getTroopStats(eTroop.type, eTroop.tier).power)
+                        }
+                        newEnemyPower = (newEnemyPower * (1.0 + node.aiBuffMultiplier)).toLong()
+                        node.currentPower = newEnemyPower
+
+                        if (isVictory || newEnemyPower <= 0) {
+                            node.isDefeated = true; node.currentPower = 0
                             if (initialEnemyPower == node.maxPower) {
                                 globalNewsQueue.add("عاجل: هجم القائد [$playerName] على [${node.playerName}] وحقق انتصاراً ساحقاً!")
                             }
@@ -581,7 +669,7 @@ object GameState {
                             march.payloadIron = minOf(myMaxLoad / 2, availableLootIron).toLong()
                             march.payloadWheat = minOf(myMaxLoad / 2, availableLootWheat).toLong()
                         } else {
-                            node!!.currentPower = finalEnemyPower; node.lastAttackedTime = now
+                            node.lastAttackedTime = now
                         }
 
                         march.reportDamage = actualDmgToEnemyTotal.toLong()
@@ -597,9 +685,8 @@ object GameState {
                         march.endTime = now + 5000L 
                     } 
                     else {
-                        // 💡 [إصلاح] معالجة التقرير والإشعارات للهجوم الانتقامي
                         val isCityDefended = enemyHp <= 0
-                        val enemyTotalSent = totalSent // في حالة الدفاع العدو هو الـ March
+                        val enemyTotalSent = totalSent 
                         val enemySurviving = march.marchTroops.sumOf { it.count }
                         
                         if (isCityDefended) {
@@ -609,9 +696,9 @@ object GameState {
                                 title = "دفاع أسطوري!",
                                 message = "تم تدمير قوات [$enemyName] المهاجمة على أسوارنا!",
                                 enemyName = enemyName,
-                                enemyPowerBefore = enemyTotalSent * 25L, // قوة تقديرية للعدو
+                                enemyPowerBefore = enemyTotalSent * 25L, 
                                 enemyPowerAfter = 0L,
-                                myTotalSent = playerTroops.sumOf { it.count }, // المدافعين
+                                myTotalSent = playerTroops.sumOf { it.count }, 
                                 myDead = totalDead,
                                 myWounded = totalWounded,
                                 mySurviving = playerTroops.sumOf { it.count },
@@ -698,7 +785,6 @@ object GameState {
                     if (mainTroop != null) { mainTroop.count += marchTroop.count }
                 }
 
-                // نقل الجرحى من التقرير للمستشفى مباشرة إذا كانوا هجوميين (دفاع الانتقام تم حله مسبقاً)
                 if (march.type == MarchType.ATTACK) {
                     val hospitalCap = getHospitalCapacity()
                     var currentWoundedInHospital = getTotalWoundedTroops()
@@ -839,6 +925,11 @@ object GameState {
             prefs.putLong("BF_NODE_${n.id}_RES", n.resourceAmount)
             prefs.putString("BF_NODE_${n.id}_IMG", n.imageName)
             prefs.putString("BF_NODE_${n.id}_PNAME", n.playerName) 
+            
+            // 💡 حفظ جيش العدو والتعزيزات في Shared Preferences
+            val eTroopsStr = n.enemyTroops.joinToString(";") { "${it.type.name},${it.tier},${it.count},${it.wounded}" }
+            prefs.putString("BF_NODE_${n.id}_TROOPS", eTroopsStr)
+            prefs.putFloat("BF_NODE_${n.id}_BUFF", n.aiBuffMultiplier.toFloat())
         }
         
         prefs.putInt("ACTIVE_MARCH_COUNT", activeMarches.size)
@@ -956,6 +1047,17 @@ object GameState {
         for (i in 0 until 8) {
             val typeStr = prefs.getString("BF_NODE_${i}_TYPE", null)
             if (typeStr != null) {
+                // 💡 تحميل جيوش العدو من الحفظ
+                val eTroopsStr = prefs.getString("BF_NODE_${i}_TROOPS", "") ?: ""
+                val parsedEnemyTroops = mutableListOf<TroopData>()
+                if (eTroopsStr.isNotEmpty()) {
+                    eTroopsStr.split(";").forEach {
+                        val parts = it.split(",")
+                        if (parts.size == 4) parsedEnemyTroops.add(TroopData(TroopType.valueOf(parts[0]), parts[1].toInt(), parts[2].toLong(), parts[3].toLong()))
+                    }
+                }
+                val aiBuff = prefs.getFloat("BF_NODE_${i}_BUFF", 0.0f).toDouble()
+
                 battlefieldNodes.add(
                     BattlefieldNode(
                         i, NodeType.valueOf(typeStr), prefs.getLong("BF_NODE_${i}_CUR_PWR", 0L),
@@ -963,7 +1065,9 @@ object GameState {
                         prefs.getBoolean("BF_NODE_${i}_DEF", false), prefs.getLong("BF_NODE_${i}_TIME", 0L),
                         prefs.getLong("BF_NODE_${i}_RES", 0L),
                         prefs.getString("BF_NODE_${i}_IMG", "img_enemy_castle_1") ?: "img_enemy_castle_1",
-                        prefs.getString("BF_NODE_${i}_PNAME", "قلعة مجهولة") ?: "قلعة مجهولة" 
+                        prefs.getString("BF_NODE_${i}_PNAME", "قلعة مجهولة") ?: "قلعة مجهولة",
+                        enemyTroops = parsedEnemyTroops,
+                        aiBuffMultiplier = aiBuff
                     )
                 )
             }
