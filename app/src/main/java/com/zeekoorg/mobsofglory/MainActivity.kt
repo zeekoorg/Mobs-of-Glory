@@ -396,9 +396,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showAvatarPreviewDialog(imgResId: Int, title: String) {
+        private fun showAvatarPreviewDialog(imgResId: Int, title: String) {
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar); d.setContentView(R.layout.dialog_avatar_preview)
-        d.findViewById<TextView>(R.id.tvPreviewTitle)?.text = title; d.findViewById<ImageView>(R.id.imgPreviewAvatar)?.setImageResource(imgResId)
+        d.findViewById<ImageView>(R.id.imgPreviewAvatar)?.setImageResource(imgResId)
         d.findViewById<Button>(R.id.btnClosePreview)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }; d.show()
     }
 
