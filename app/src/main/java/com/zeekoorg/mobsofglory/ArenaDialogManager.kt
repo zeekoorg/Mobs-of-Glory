@@ -2,7 +2,11 @@ package com.zeekoorg.mobsofglory
 
 import android.app.Activity
 import android.app.Dialog
+import android.content.Context
 import android.graphics.Color
+import android.text.Spannable
+import android.text.SpannableStringBuilder
+import android.text.style.ImageSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
@@ -11,6 +15,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import java.util.Locale
 
 object ArenaDialogManager {
@@ -49,7 +54,6 @@ object ArenaDialogManager {
         d.show()
     }
 
-    // 💡 الجوائز الأسطورية الجديدة بالترتيب المذهل
     fun showArenaRewardsDialog(activity: Activity) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_arena_rewards)
@@ -108,7 +112,6 @@ object ArenaDialogManager {
             }
             itemLayout.addView(title)
 
-            // إنشاء أيقونات الجوائز بشكل ديناميكي
             val iconsGrid = android.widget.GridLayout(activity).apply {
                 columnCount = 3
                 layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
@@ -136,7 +139,8 @@ object ArenaDialogManager {
         d.show()
     }
 
-    fun showPreparationDialog(activity: Activity, onConfirm: (Long, Long) -> Unit) {
+    // 💡 تم التحديث لتعيد قائمة من الجنود بدلاً من أرقام خام
+    fun showPreparationDialog(activity: Activity, onConfirm: (List<TroopData>) -> Unit) {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_arena_prepare)
 
@@ -145,19 +149,20 @@ object ArenaDialogManager {
         val tvFormationPower = d.findViewById<TextView>(R.id.tvFormationPower)
         var selectedInfantry = 0L; var selectedCavalry = 0L
 
-        val maxInf = GameState.totalInfantry
+        // إحضار القوات المتاحة للنظام الجديد
+        val maxInf = GameState.playerTroops.filter { it.type == TroopType.INFANTRY }.sumOf { it.count }
         tvInfantryMax?.text = "متاح: ${formatResourceNumber(maxInf)}"
         seekInfantry?.max = if (maxInf > Int.MAX_VALUE) Int.MAX_VALUE else maxInf.toInt()
         seekInfantry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedInfantry = progress.toLong(); tvInfantrySelected?.text = formatResourceNumber(selectedInfantry) }
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedInfantry = progress.toLong(); tvInfantrySelected?.text = formatResourceNumber(selectedInfantry); updateFormationPower() }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        val maxCav = GameState.totalCavalry
+        val maxCav = GameState.playerTroops.filter { it.type == TroopType.CAVALRY }.sumOf { it.count }
         tvCavalryMax?.text = "متاح: ${formatResourceNumber(maxCav)}"
         seekCavalry?.max = if (maxCav > Int.MAX_VALUE) Int.MAX_VALUE else maxCav.toInt()
         seekCavalry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedCavalry = progress.toLong(); tvCavalrySelected?.text = formatResourceNumber(selectedCavalry) }
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedCavalry = progress.toLong(); tvCavalrySelected?.text = formatResourceNumber(selectedCavalry); updateFormationPower() }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
@@ -169,21 +174,30 @@ object ArenaDialogManager {
         val unlockLevels = listOf(1, 5, 10, 15)
 
         fun updateFormationPower() {
-            // 💡 [تعديل] حساب القوة الهجومية الدقيقة بناءً على نسب الهجوم (Attack Buffs)
             var heroAtkBuff = 0.0; var wpAtkBuff = 0.0
             GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { heroAtkBuff += it.getCurrentAttackBuff() }
             GameState.arsenal.filter { it.isOwned && it.isEquipped }.forEach { wpAtkBuff += it.getCurrentAttackBuff() }
             
+            var pwr = 0.0
+            fun simulate(type: TroopType, amount: Long) {
+                var rem = amount
+                val available = GameState.playerTroops.filter { it.type == type && it.count > 0 }.sortedByDescending { it.tier }
+                for (troop in available) {
+                    if (rem <= 0) break
+                    val take = minOf(troop.count, rem)
+                    rem -= take
+                    val stats = GameState.getTroopStats(type, troop.tier)
+                    pwr += take * stats.baseAtk
+                }
+            }
+            simulate(TroopType.INFANTRY, selectedInfantry)
+            simulate(TroopType.CAVALRY, selectedCavalry)
+
             val totalAtkBuff = 1.0 + heroAtkBuff + wpAtkBuff
-            val baseAtkPower = (selectedInfantry * GameState.INFANTRY_ATK) + (selectedCavalry * GameState.CAVALRY_ATK)
-            val totalPower = (baseAtkPower * totalAtkBuff).toLong()
+            val totalPower = (pwr * totalAtkBuff).toLong()
             
             tvFormationPower?.text = "قوة الهجوم: ⚔️ ${formatResourceNumber(totalPower)}"
         }
-
-        seekInfantry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener { override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedInfantry = progress.toLong(); tvInfantrySelected?.text = formatResourceNumber(selectedInfantry); updateFormationPower() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
-        seekCavalry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener { override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedCavalry = progress.toLong(); tvCavalrySelected?.text = formatResourceNumber(selectedCavalry); updateFormationPower() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
-
 
         fun refreshFormationUI() {
             updateFormationPower()
@@ -229,23 +243,74 @@ object ArenaDialogManager {
         }
 
         refreshFormationUI()
+        
         d.findViewById<Button>(R.id.btnConfirmAttack)?.setOnClickListener {
-            if (selectedInfantry == 0L && selectedCavalry == 0L) { DialogManager.showGameMessage(activity, "تنبيه عسكري", "لا يمكنك إرسال جيش فارغ! حدد عدد الجنود من الشريط.", R.drawable.ic_settings_gear) } 
-            else { d.dismiss(); onConfirm(selectedInfantry, selectedCavalry) }
+            if (selectedInfantry == 0L && selectedCavalry == 0L) { 
+                DialogManager.showGameMessage(activity, "تنبيه عسكري", "لا يمكنك إرسال جيش فارغ! حدد عدد الجنود من الشريط.", R.drawable.ic_settings_gear) 
+            } else { 
+                val marchTroopsToSend = mutableListOf<TroopData>()
+                fun allocateTroops(type: TroopType, amountRequired: Long) {
+                    var remaining = amountRequired
+                    val available = GameState.playerTroops.filter { it.type == type && it.count > 0 }.sortedByDescending { it.tier }
+                    for (troop in available) {
+                        if (remaining <= 0) break
+                        val toTake = minOf(troop.count, remaining)
+                        troop.count -= toTake
+                        remaining -= toTake
+                        marchTroopsToSend.add(TroopData(troop.type, troop.tier, toTake, 0))
+                    }
+                }
+                allocateTroops(TroopType.INFANTRY, selectedInfantry)
+                allocateTroops(TroopType.CAVALRY, selectedCavalry)
+                GameState.saveGameData(activity)
+                
+                d.dismiss()
+                onConfirm(marchTroopsToSend) 
+            }
         }
         d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { d.dismiss() }
         d.show()
     }
 
+    // 💡 دالة إضافة الأيقونات المدمجة داخل النص لتصميم التقرير الملكي
+    private fun appendIconWithText(context: Context, builder: SpannableStringBuilder, iconResId: Int, text: String) {
+        val start = builder.length
+        builder.append("  $text\n") 
+        val drawable = ContextCompat.getDrawable(context, iconResId)
+        drawable?.let {
+            it.setBounds(0, -10, 50, 40)
+            val span = ImageSpan(it, ImageSpan.ALIGN_BASELINE)
+            builder.setSpan(span, start, start + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+    }
+
+    // 💡 تم تحديث واجهة التقرير لتصبح بالرموز الأصلية وبنفس نظام الخريطة العالمية (بدون إيموجيات)
     fun showBattleReportDialog(activity: Activity, damageDealt: Long, earnedScore: Long, deadTroops: Long, woundedTroops: Long) {
+        SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
-        d.setContentView(R.layout.dialog_arena_report)
+        d.setContentView(R.layout.dialog_game_message)
         d.setCancelable(false) 
-        d.findViewById<TextView>(R.id.tvReportDamage)?.text = formatResourceNumber(damageDealt)
-        d.findViewById<TextView>(R.id.tvReportScore)?.text = "+${formatResourceNumber(earnedScore)}"
-        d.findViewById<TextView>(R.id.tvReportDead)?.text = formatResourceNumber(deadTroops)
-        d.findViewById<TextView>(R.id.tvReportWounded)?.text = formatResourceNumber(woundedTroops)
-        d.findViewById<Button>(R.id.btnCloseReport)?.setOnClickListener { d.dismiss() }
+        
+        val ssb = SpannableStringBuilder()
+        ssb.append("━━━━━━ نتيجة الغزوة ━━━━━━\n")
+        appendIconWithText(activity, ssb, R.drawable.ic_ui_arena, "الضرر المُحدث: ${formatResourceNumber(damageDealt)}")
+        appendIconWithText(activity, ssb, R.drawable.ic_ui_arena, "النقاط المكتسبة: +${formatResourceNumber(earnedScore)}")
+        
+        ssb.append("\n━━━━━━ الخسائر ━━━━━━\n")
+        appendIconWithText(activity, ssb, R.drawable.ic_ui_arena, "القتلى: ${formatResourceNumber(deadTroops)}")
+        appendIconWithText(activity, ssb, R.drawable.ic_ui_arena, "الجرحى: ${formatResourceNumber(woundedTroops)}")
+        
+        d.findViewById<TextView>(R.id.tvMessageTitle)?.text = "تقرير غزوة الساحة"
+        d.findViewById<TextView>(R.id.tvMessageBody)?.text = ssb
+        d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(R.drawable.ic_ui_arena)
+        
+        d.findViewById<Button>(R.id.btnMessageOk)?.apply {
+            text = "حسناً"
+            setOnClickListener { 
+                SoundManager.playClick()
+                d.dismiss() 
+            }
+        }
         d.show()
     }
 
