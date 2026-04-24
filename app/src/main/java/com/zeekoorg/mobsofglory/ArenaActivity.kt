@@ -138,7 +138,7 @@ class ArenaActivity : AppCompatActivity() {
 
     private fun showStaminaAdDialog() {
         if (!GameState.canWatchArenaAd()) {
-            DialogManager.showGameMessage(this, "نفد الرصيد اليومي", "لقد استنفدت الحد الأقصى لمشاهدة إعلانات الطاقة اليوم (10 مرات). عُد غداً أيها المهيب!", R.drawable.ic_settings_gear)
+            DialogManager.showGameMessage(this, "نفد الرصيد اليومي", "لقد استنفدت الحد الأقصى لمشاهدة إعلانات الطاقة اليوم (5 مرات). عُد غداً أيها المهيب!", R.drawable.ic_settings_gear)
             return
         }
         
@@ -159,18 +159,25 @@ class ArenaActivity : AppCompatActivity() {
         d.show()
     }
 
-    // 💡 تم حل مشكلة الإحداثيات لتتبع حركة الإزاحة (TranslationY)
+    // 💡 تم إصلاح فيزياء النقاط لتتأخر خلف الفيلق فعلياً وتتراجع للخلف
     private fun createTrailingDots(rootLayout: ViewGroup, referenceView: View, colorHex: String = "#DDDDDD") {
         for (i in 0..1) {
             val dot = View(this).apply {
-                layoutParams = ViewGroup.LayoutParams(30, 30) 
+                layoutParams = ViewGroup.LayoutParams(25, 25) 
                 background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor(colorHex)) }
-                x = referenceView.x + referenceView.translationX + (referenceView.width / 2f) - 15f + Random.nextInt(-30, 30)
-                y = referenceView.y + referenceView.translationY + (referenceView.height / 2f) - 15f + Random.nextInt(-30, 30)
+                
+                val currentScale = referenceView.scaleY
+                val viewCenterX = referenceView.x + referenceView.translationX + (referenceView.width / 2f)
+                val viewCenterY = referenceView.y + referenceView.translationY + (referenceView.height / 2f)
+                
+                x = viewCenterX - 12.5f + Random.nextInt(-20, 20)
+                // النزول لأسفل (خلف الفيلق) بناءً على حجمه الحالي
+                y = viewCenterY + (80f * currentScale) + Random.nextInt(-10, 20) 
                 elevation = 45f
             }
             rootLayout.addView(dot)
-            dot.animate().alpha(0f).scaleX(0.4f).scaleY(0.4f).setDuration(500).withEndAction { rootLayout.removeView(dot) }.start()
+            // تحريك النقاط للأسفل لتصنع تأثير التطاير للخلف
+            dot.animate().translationYBy(60f).alpha(0f).scaleX(0.2f).scaleY(0.2f).setDuration(400).withEndAction { rootLayout.removeView(dot) }.start()
         }
     }
 
@@ -329,7 +336,6 @@ class ArenaActivity : AppCompatActivity() {
             }
 
             var hasBonusLoot = false
-            // 💡 تم تحديث شرط الحصول على المكافأة إلى 2 مليون ضرر
             if (damageDealt >= 2000000) {
                 hasBonusLoot = true
             }
@@ -339,7 +345,6 @@ class ArenaActivity : AppCompatActivity() {
                 GameState.arenaLeaderboard.find { it.isRealPlayer }?.score = GameState.arenaScore
 
                 if (hasBonusLoot) {
-                    // 💡 تم تعديل الذهب إلى 25K
                     GameState.totalIron += 50000; GameState.totalWheat += 50000; GameState.totalGold += 25000
                 }
 
@@ -348,7 +353,9 @@ class ArenaActivity : AppCompatActivity() {
                 refreshArenaUI()
 
                 Handler(Looper.getMainLooper()).postDelayed({
-                    showArenaBattleReport(damageDealt, earnedScore, totalDead, totalWounded)
+                    // 💡 تمرير القوة الفعلية المهاجمة للتقرير الدقيق بدلاً من التخمين
+                    val attackerCombatPower = (myTotalAtk + myTotalDef + myTotalHp).toLong()
+                    showArenaBattleReport(damageDealt, earnedScore, totalDead, totalWounded, attackerCombatPower)
                     
                     if (hasBonusLoot) {
                         Handler(Looper.getMainLooper()).postDelayed({
@@ -361,13 +368,15 @@ class ArenaActivity : AppCompatActivity() {
         }
     }
 
-    private fun showArenaBattleReport(damage: Long, scoreEarned: Long, dead: Long, wounded: Long) {
+    private fun showArenaBattleReport(damage: Long, scoreEarned: Long, dead: Long, wounded: Long, attackerPower: Long) {
         SoundManager.playWindowOpen()
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_game_message)
         
         val ssb = SpannableStringBuilder()
         ssb.append("━━━━━━ نتيجة الغزوة ━━━━━━\n")
+        // 💡 إضافة قوة الفيلق الفعلية
+        appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة الفيلق المُهاجِم: ${formatResourceNumber(attackerPower)} ⚔️")
         appendIconWithText(ssb, R.drawable.ic_ui_arena, "الضرر الكلي المُحدث: ${formatResourceNumber(damage)}")
         appendIconWithText(ssb, R.drawable.ic_ui_arena, "نقاط الساحة المكتسبة: +${formatResourceNumber(scoreEarned)}")
         
@@ -423,6 +432,7 @@ class ArenaActivity : AppCompatActivity() {
         }
     }
 
+    // 💡 تحديث تصميم التقرير ليعرض القوة الفعلية في سطر واحد بدون تشتيت (كما في الخريطة)
     private fun showGlobalBattleReportDialog(report: BattleReport) {
         isReportDialogOpen = true 
         SoundManager.playWindowOpen()
@@ -440,11 +450,9 @@ class ArenaActivity : AppCompatActivity() {
             
             ssb.append("━━━━━━ قواتك ━━━━━━\n")
             if (report.title.contains("دفاع") || report.title.contains("هزيمة دفاعية")) {
-                appendIconWithText(ssb, R.drawable.ic_ui_arena, "إجمالي المُرابطين: ${formatResourceNumber(report.myTotalSent)}")
-                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة أسوار المدينة (مع الخصائص): ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} 🛡️")
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة دفاعات المدينة: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} 🛡️")
             } else {
-                appendIconWithText(ssb, R.drawable.ic_ui_arena, "إجمالي المُرسل: ${formatResourceNumber(report.myTotalSent)}")
-                appendIconWithText(ssb, R.drawable.ic_ui_arena, "القوة الضاربة (مع الخصائص): ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} ⚔️")
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة الفيلق المُهاجِم: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} ⚔️")
             }
             
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "القتلى: ${formatResourceNumber(report.myDead)}")
