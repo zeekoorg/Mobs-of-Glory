@@ -107,7 +107,6 @@ class BattlefieldActivity : AppCompatActivity() {
         isActivityResumed = false
         GameState.saveGameData(this)
         
-        // 💡 [تعديل] إيقاف الموسيقى عند خروج اللعبة للخلفية
         SoundManager.pauseBGM()
     }
     
@@ -713,6 +712,7 @@ class BattlefieldActivity : AppCompatActivity() {
         }
     }
 
+    // 💡 تم تحديث تصميم التقرير ليعرض القوة الفعلية في سطر واحد بدون تشتيت
     private fun showBattleReportDialog(report: BattleReport) {
         if (!isActivityResumed) return
         isReportDialogOpen = true 
@@ -732,11 +732,9 @@ class BattlefieldActivity : AppCompatActivity() {
             
             ssb.append("━━━━━━ قواتك ━━━━━━\n")
             if (report.title.contains("دفاع") || report.title.contains("هزيمة دفاعية")) {
-                appendIconWithText(ssb, R.drawable.ic_ui_arena, "إجمالي المُرابطين: ${formatResourceNumber(report.myTotalSent)}")
-                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة أسوار المدينة (مع الخصائص): ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} 🛡️")
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة دفاعات المدينة: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} 🛡️")
             } else {
-                appendIconWithText(ssb, R.drawable.ic_ui_arena, "إجمالي المُرسل: ${formatResourceNumber(report.myTotalSent)}")
-                appendIconWithText(ssb, R.drawable.ic_ui_arena, "القوة الضاربة (مع الخصائص): ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} ⚔️")
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة الفيلق المُهاجِم: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} ⚔️")
             }
             
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "القتلى: ${formatResourceNumber(report.myDead)}")
