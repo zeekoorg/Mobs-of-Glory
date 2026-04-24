@@ -158,7 +158,7 @@ object GameState {
         if (today != lastDate) {
             arenaAdsWatchedToday = 0
         }
-        return arenaAdsWatchedToday < 10
+        return arenaAdsWatchedToday < 5
     }
 
     fun recordArenaAdWatched() {
