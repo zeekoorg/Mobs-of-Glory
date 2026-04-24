@@ -17,7 +17,7 @@ enum class QuestType {
     COLLECT_RESOURCES,
     TRAIN_TROOPS,
     UPGRADE_BUILDING,
-    WATCH_ADS // 💡 نوع جديد لمهمة الإعلانات
+    WATCH_ADS 
 }
 
 // 💡 تعديل الرتب لتعطي تأثيرات Buff وتكلفة ووقت مضاعف يتناسب مع نظام SLG
@@ -27,6 +27,37 @@ enum class Rarity(val buffMultiplier: Double, val costMultiplier: Double, val ti
     LEGENDARY(6.0, 8.0, 4.0)
 }
 
+// ⚔️ 1. الأنواع الأربعة الرئيسية للقوات في نظام انتقام السلاطين
+enum class TroopType {
+    INFANTRY,   // المشاة: دفاع وصحة عالية، مضاد للرماة
+    CAVALRY,    // الفرسان: هجوم سريع، مضاد للمشاة
+    ARCHER,     // الرماة: هجوم عالي، مضاد للفرسان
+    SIEGE       // عربات الحصار: حمولة عالية لجمع الموارد وتدمير القلاع
+}
+
+// ⚔️ 2. نموذج بيانات فئة الجندي (Tier) وخصائصه الأساسية (Base Stats)
+data class TroopTier(
+    val tier: Int,             // المستوى (1 إلى 10)
+    val type: TroopType,       // نوع الجندي
+    val baseAtk: Double,       // الهجوم الأساسي
+    val baseDef: Double,       // الدفاع الأساسي
+    val baseHp: Double,        // الصحة الأساسية
+    val loadCapacity: Double,  // حمولة الموارد
+    val speed: Double,         // سرعة المسير في الخريطة
+    val power: Long,           // القوة التي يضيفها الجندي الواحد لـ (قوة اللاعب)
+    val trainCostWheat: Long,  // تكلفة القمح للتدريب
+    val trainCostIron: Long,   // تكلفة الحديد للتدريب
+    val trainTimeSeconds: Long // وقت تدريب الجندي الواحد
+)
+
+// ⚔️ 3. نموذج حفظ بيانات الجنود التي يمتلكها اللاعب (في القلعة، المستشفى، أو المسيرات)
+data class TroopData(
+    val type: TroopType,
+    val tier: Int,
+    var count: Long = 0L,      // العدد السليم المتوفر
+    var wounded: Long = 0L     // العدد المصاب في المستشفى
+)
+
 data class Hero(
     val id: Int, val name: String, var level: Int = 1, 
     val iconResId: Int, 
@@ -35,19 +66,30 @@ data class Hero(
     val rarity: Rarity = Rarity.COMMON,
     var isUpgrading: Boolean = false, var upgradeEndTime: Long = 0L, var totalUpgradeTime: Long = 0L,
     
-    // 💡 إحصائيات الأبطال بنظام الـ Buffs (نسب مئوية) بدلاً من القوة الخام
-    val baseAttackBuff: Double = 0.05,  // 5% كنسبة أساسية
+    // 💡 إحصائيات عامة (تطبق على كل القوات)
+    val baseAttackBuff: Double = 0.05,
     val baseDefenseBuff: Double = 0.05,
     val baseHpBuff: Double = 0.05,
-    val baseSpeedBuff: Double = 0.0
+    val baseSpeedBuff: Double = 0.0,
+
+    // 💡 إحصائيات مخصصة لنظام SLG (مثلاً بطل متخصص في المشاة أو الرماة)
+    val infAtkBuff: Double = 0.0,
+    val cavAtkBuff: Double = 0.0,
+    val arcAtkBuff: Double = 0.0,
+    val siegeAtkBuff: Double = 0.0
 ) {
-    // دوال حساب الـ Buffs بناءً على المستوى والرتبة
+    // دوال حساب الـ Buffs بناءً على المستوى والرتبة (عامة)
     fun getCurrentAttackBuff(): Double = baseAttackBuff + (level * 0.01 * rarity.buffMultiplier)
     fun getCurrentDefenseBuff(): Double = baseDefenseBuff + (level * 0.01 * rarity.buffMultiplier)
     fun getCurrentHpBuff(): Double = baseHpBuff + (level * 0.01 * rarity.buffMultiplier)
     fun getCurrentSpeedBuff(): Double = baseSpeedBuff + (level * 0.005 * rarity.buffMultiplier)
 
-    // قوة تقديرية للعرض في الواجهات وقوائم الصدارة
+    // دوال الحساب للـ Buffs المخصصة
+    fun getCurrentInfAtkBuff(): Double = infAtkBuff + (level * 0.015 * rarity.buffMultiplier)
+    fun getCurrentCavAtkBuff(): Double = cavAtkBuff + (level * 0.015 * rarity.buffMultiplier)
+    fun getCurrentArcAtkBuff(): Double = arcAtkBuff + (level * 0.015 * rarity.buffMultiplier)
+    fun getCurrentSiegeAtkBuff(): Double = siegeAtkBuff + (level * 0.015 * rarity.buffMultiplier)
+
     fun getCurrentPower(): Long = (level * 2000 * rarity.buffMultiplier).toLong()
     
     fun getUpgradeCostGold(): Long = (level.toDouble().pow(2.2) * 10000 * rarity.costMultiplier).toLong()
@@ -62,11 +104,22 @@ data class Weapon(
     
     // 💡 إحصائيات الأسلحة بنظام الـ Buffs
     val baseWeaponAttackBuff: Double = 0.05,
-    val baseWeaponDefenseBuff: Double = 0.05
+    val baseWeaponDefenseBuff: Double = 0.05,
+
+    // 💡 خصائص مخصصة للأسلحة في نظام SLG
+    val infDefBuff: Double = 0.0,
+    val cavDefBuff: Double = 0.0,
+    val arcDefBuff: Double = 0.0,
+    val siegeDefBuff: Double = 0.0
 ) {
     fun getCurrentAttackBuff(): Double = baseWeaponAttackBuff + (level * 0.015 * rarity.buffMultiplier)
     fun getCurrentDefenseBuff(): Double = baseWeaponDefenseBuff + (level * 0.015 * rarity.buffMultiplier)
     
+    fun getCurrentInfDefBuff(): Double = infDefBuff + (level * 0.015 * rarity.buffMultiplier)
+    fun getCurrentCavDefBuff(): Double = cavDefBuff + (level * 0.015 * rarity.buffMultiplier)
+    fun getCurrentArcDefBuff(): Double = arcDefBuff + (level * 0.015 * rarity.buffMultiplier)
+    fun getCurrentSiegeDefBuff(): Double = siegeDefBuff + (level * 0.015 * rarity.buffMultiplier)
+
     fun getCurrentPower(): Long = (level.toDouble().pow(1.8) * 4000 * rarity.buffMultiplier).toLong()
     
     fun getCostIron(): Long = (level.toDouble().pow(2.1) * 45000 * rarity.costMultiplier).toLong()
@@ -96,7 +149,6 @@ data class MapPlot(
     var layoutUpgradeProgress: View? = null, var pbUpgrade: ProgressBar? = null, 
     var tvUpgradeTimer: TextView? = null, var collectIcon: ImageView? = null
 ) {
-    // 💡 تعديل المعادلات لتكون تصاعدية أكثر (Exponential Scaling) كلما زاد المستوى
     fun getCostWheat(): Long {
         val base = if (idCode == "CASTLE") 2500.0 else 800.0
         val exponent = if (level >= 10) 3.5 else 2.5
