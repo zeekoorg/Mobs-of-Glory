@@ -44,7 +44,6 @@ class MainActivity : AppCompatActivity() {
     private var doubleBackToExitPressedOnce = false
     private var isActivityResumed = false 
     
-    // 💡 لمنع تداخل النوافذ (Dialog Stacking)
     private var isReportDialogOpen = false
 
     private var displayedGold = -1L
@@ -78,7 +77,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // 💡 التهيئة تحدث هنا مرة واحدة فقط
         SoundManager.init(this)
         YandexAdsManager.initYandexAds(this)
         
@@ -114,7 +112,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun checkAndRunSpotlightTutorial() {
-        if (!isActivityResumed) return // 💡 منع التشغيل في الخلفية
+        if (!isActivityResumed) return 
         
         val rootLayout = window.decorView as ViewGroup
         
@@ -199,7 +197,6 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         isActivityResumed = true
         
-        // 💡 [الإصلاح الجذري] تحديث الإعدادات فقط دون إعادة تهيئة المحرك لمنع مسح ذاكرة الأصوات
         val prefs = getSharedPreferences("MobsOfGlorySettings", Context.MODE_PRIVATE)
         val isMusicOn = prefs.getBoolean("MUSIC", true)
         val isSfxOn = prefs.getBoolean("SFX", true)
@@ -291,7 +288,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showBattleReportDialog(report: BattleReport) {
         if (!isActivityResumed) return
-        isReportDialogOpen = true // قفل النوافذ الأخرى
+        isReportDialogOpen = true 
         
         SoundManager.playWindowOpen()
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
@@ -306,9 +303,9 @@ class MainActivity : AppCompatActivity() {
             details.append("الخسائر: ${formatResourceNumber(report.enemyPowerBefore - report.enemyPowerAfter)}\n\n")
             
             details.append("==== [قواتك الإمبراطورية] ====\n")
-            details.append("القوة الهجومية: ${formatResourceNumber(report.myDamage)}\n")
+            details.append("قوة الهجوم المنفذة: ${formatResourceNumber(report.myDamage)}\n")
             details.append("القتلى: ${formatResourceNumber(report.myDead)}\n")
-            details.append("الجرحى: ${formatResourceNumber(report.myWounded)}\n\n")
+            details.append("الجرحى (في المستشفى): ${formatResourceNumber(report.myWounded)}\n\n")
         }
         
         if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
@@ -331,7 +328,7 @@ class MainActivity : AppCompatActivity() {
         }
         
         d.setOnDismissListener {
-            isReportDialogOpen = false // فتح القفل
+            isReportDialogOpen = false 
             if (report.hasRevenge && report.revengeNodeId != -1) {
                 showRevengeWarningDialog(report.revengeNodeId)
             } else {
@@ -343,7 +340,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showRevengeWarningDialog(nodeId: Int) {
         if (!isActivityResumed) return
-        isReportDialogOpen = true // قفل
+        isReportDialogOpen = true 
         
         SoundManager.playWindowOpen()
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
@@ -366,7 +363,7 @@ class MainActivity : AppCompatActivity() {
         }
         
         d.setOnDismissListener {
-            isReportDialogOpen = false // فتح القفل
+            isReportDialogOpen = false 
             GameState.triggerRevengeMarch(nodeId)
         }
         d.show()
@@ -447,7 +444,7 @@ class MainActivity : AppCompatActivity() {
         img.setOnClickListener {
             if (plot.isReady && plot.resourceType != ResourceType.NONE) { collectResources(plot) } 
             else if (plot.isUpgrading || plot.isTraining) { SoundManager.playWindowOpen(); DialogManager.showSpeedupDialog(this, plot) } 
-            else if (plot.idCode == "HOSPITAL") { SoundManager.playWindowOpen(); if (GameState.isHealing) { DialogManager.showSpeedupDialog(this, null, null, true) } else if (GameState.woundedInfantry > 0 || GameState.woundedCavalry > 0) { DialogManager.showHospitalDialog(this, plot) } else { DialogManager.showUpgradeDialog(this, plot) } }
+            else if (plot.idCode == "HOSPITAL") { SoundManager.playWindowOpen(); if (GameState.isHealing) { DialogManager.showSpeedupDialog(this, null, null, true) } else if (GameState.getTotalWoundedTroops() > 0) { DialogManager.showHospitalDialog(this, plot) } else { DialogManager.showUpgradeDialog(this, plot) } }
             else { SoundManager.playWindowOpen(); when (plot.idCode) { "CASTLE" -> DialogManager.showCastleMainDialog(this, plot); "BARRACKS_1", "BARRACKS_2" -> DialogManager.showBarracksMenuDialog(this, plot); else -> DialogManager.showUpgradeDialog(this, plot) } }
         }
         if (plot.idCode != "HOSPITAL") { plot.collectIcon?.setOnClickListener { collectResources(plot) } } else { plot.collectIcon?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showHospitalDialog(this, plot) } }
@@ -489,14 +486,18 @@ class MainActivity : AppCompatActivity() {
                 if (GameState.isHealing) {
                     val remHeal = GameState.healingEndTime - now; val hospitalPlot = GameState.myPlots.find { it.idCode == "HOSPITAL" }
                     if (remHeal <= 0) {
-                        GameState.isHealing = false; GameState.totalInfantry += GameState.healingInfantryAmount; GameState.totalCavalry += GameState.healingCavalryAmount
-                        GameState.woundedInfantry -= GameState.healingInfantryAmount; GameState.woundedCavalry -= GameState.healingCavalryAmount
-                        GameState.healingInfantryAmount = 0; GameState.healingCavalryAmount = 0; GameState.calculatePower(); GameState.saveGameData(this@MainActivity); updateHudUI()
+                        GameState.isHealing = false; 
+                        // تعافي جميع الفئات والأنواع المصابة
+                        GameState.playerTroops.forEach { tr ->
+                            tr.count += tr.wounded
+                            tr.wounded = 0L
+                        }
+                        GameState.calculatePower(); GameState.saveGameData(this@MainActivity); updateHudUI()
                         hospitalPlot?.layoutUpgradeProgress?.visibility = View.GONE; DialogManager.showGameMessage(this@MainActivity, "دار الشفاء", "تم تعافي الجنود وعادوا لصفوف الجيش بقوة!", R.drawable.ic_settings_gear)
                     } else { hospitalPlot?.layoutUpgradeProgress?.visibility = View.VISIBLE; hospitalPlot?.collectIcon?.visibility = View.GONE; hospitalPlot?.pbUpgrade?.progress = (((GameState.healingTotalTime - remHeal).toFloat() / GameState.healingTotalTime) * 100).toInt(); hospitalPlot?.tvUpgradeTimer?.text = "%02d:%02d".format((remHeal/60000), (remHeal%60000)/1000) }
                 } else {
                     val hospitalPlot = GameState.myPlots.find { it.idCode == "HOSPITAL" }; hospitalPlot?.layoutUpgradeProgress?.visibility = View.GONE
-                    if (GameState.woundedInfantry > 0 || GameState.woundedCavalry > 0) hospitalPlot?.collectIcon?.visibility = View.VISIBLE else hospitalPlot?.collectIcon?.visibility = View.GONE
+                    if (GameState.getTotalWoundedTroops() > 0) hospitalPlot?.collectIcon?.visibility = View.VISIBLE else hospitalPlot?.collectIcon?.visibility = View.GONE
                 }
 
                 GameState.myPlots.forEach { p ->
@@ -506,7 +507,16 @@ class MainActivity : AppCompatActivity() {
                         else { p.pbUpgrade?.progress = (((p.totalUpgradeTime - rem).toFloat() / p.totalUpgradeTime) * 100).toInt(); p.tvUpgradeTimer?.text = "%02d:%02d".format((rem/60000), (rem%60000)/1000) }
                     } else if (p.isTraining) {
                         p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectIcon?.visibility = View.GONE; val rem = p.trainingEndTime - now
-                        if (rem <= 0) { p.isTraining = false; if (p.idCode == "BARRACKS_1") GameState.totalInfantry += p.trainingAmount else GameState.totalCavalry += p.trainingAmount; GameState.addQuestProgress(QuestType.TRAIN_TROOPS, p.trainingAmount); GameState.calculatePower(); updateHudUI(); GameState.saveGameData(this@MainActivity); p.layoutUpgradeProgress?.visibility = View.GONE; DialogManager.showGameMessage(this@MainActivity, "معسكر التدريب", "تم تدريب ${p.trainingAmount} قوات بنجاح!", R.drawable.ic_settings_gear) } 
+                        if (rem <= 0) { 
+                            p.isTraining = false; 
+                            // توزيع القوات على الفئة T1 بناءً على نوع المبنى
+                            if (p.idCode == "BARRACKS_1") {
+                                GameState.playerTroops.find { it.type == TroopType.INFANTRY && it.tier == 1 }?.let { it.count += p.trainingAmount }
+                            } else {
+                                GameState.playerTroops.find { it.type == TroopType.CAVALRY && it.tier == 1 }?.let { it.count += p.trainingAmount }
+                            }
+                            GameState.addQuestProgress(QuestType.TRAIN_TROOPS, p.trainingAmount); GameState.calculatePower(); updateHudUI(); GameState.saveGameData(this@MainActivity); p.layoutUpgradeProgress?.visibility = View.GONE; DialogManager.showGameMessage(this@MainActivity, "معسكر التدريب", "تم تدريب ${p.trainingAmount} قوات بنجاح!", R.drawable.ic_settings_gear) 
+                        } 
                         else { p.pbUpgrade?.progress = (((p.trainingTotalTime - rem).toFloat() / p.trainingTotalTime) * 100).toInt(); p.tvUpgradeTimer?.text = "%02d:%02d".format((rem/60000), (rem%60000)/1000) }
                     } else if (p.resourceType != ResourceType.NONE && !p.isReady && p.idCode != "HOSPITAL") {
                         p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectTimer += 1000; val targetTime = if(GameState.isVipActive()) 45000L else 60000L
@@ -516,7 +526,6 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 updateNotificationBadges()
-
                 gameHandler.postDelayed(this, 1000)
             }
         })
