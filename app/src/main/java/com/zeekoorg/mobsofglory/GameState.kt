@@ -67,6 +67,31 @@ object GameState {
 
     private val ioScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    // 💡 1. قائمة الأسماء الوهمية الموحدة للساحة والخريطة (100 اسم)
+    val FAKE_PLAYER_NAMES = listOf(
+        "جلاد السلاطين", "فارس الظلام", "الرعب الأحمر", "شبح الصحراء", "قاهر الجيوش", 
+        "ملك الشمال", "سيد العواصف", "أبو سالم", "ذئب الليل", "الكابوس", 
+        "مخلب النمر", "سفاح الممالك", "عين الصقر", "أمير الانتقام", "طاحن العظام", 
+        "غضب السماء", "من أنتم؟", "كابوس الأعداء", "راحيل", "زلزال",
+        "الجارح", "أبو عتب", "الملكة", "قاهرهم", "القندوس", 
+        "حنونة", "برقوق", "أبو حرب", "اميرة بطبعي", "ابو عتب",
+        "بحر", "الصقر الجارح", "المدمر", "عاصفة الصحراء", "ابن النيل",
+        "قاهر الروم", "سفاح", "كابوس", "أبو غضب", "صاعقة",
+        "داغور", "المحويتي", "جلد", "طحن", "عسل",
+        "جلاد السيرفر", "العنيدة", "الأسطورة", "الشيخة", "فالكون",
+        "إلينا", "الشامي", "احبه😕", "يازينك", "تطوانية",
+        "سيد السيرفر", "ملـــگ ", "شبح الأندلس", "صياد الرؤوس", "متمرد",
+        "الدوسري", "أهلاوي", "عماد الليبي", "البتول", "طرابلسي",
+        "مشاري", "الظل النبيل", "أمير العرب", "عنيد", "الزعيم",
+        "حمودي", "صنعانية", "حلبية", "ابن الصعيد", "بنت سوريا",
+        "سيف العدالة", "جلادك", "هكتور", "العقرب", "ملك الموت",
+        "طنجاوي", "ابن الجزائر", "بنت الشرق", "جداوي", "وهراني",
+        "رعـد", "بـ⚡ـرق", "إعصار", "طـوفان", "بركان",
+        "بغدادي", "كازواي", "تلمساني", "الحلبي", "مدريدي",
+        "ابن اليمن ", "صقر قريش", "المعتصم", "طارق", "خـالد",
+        "إبن المملكة 🇸🇦", "إبن تعز", "إبن الكويت", "مشاعل", "أبو وتين"
+    )
+
     val playerTroops = mutableListOf<TroopData>()
     
     fun getTroopStats(type: TroopType, tier: Int): TroopTier {
@@ -123,6 +148,33 @@ object GameState {
     var arenaScore: Long = 0L; var arenaStamina: Int = 5 
     var arenaStaminaLastRegenTime: Long = 0L; var arenaSeasonEndTime: Long = 0L
     val arenaLeaderboard = mutableListOf<ArenaPlayer>()
+
+    // 💡 3. نظام الإرهاق (حد شحن الطاقة 10 مرات في اليوم)
+    var arenaAdsWatchedToday: Int = 0
+    var arenaAdsLastWatchedTime: Long = 0L
+
+    fun canWatchArenaAd(): Boolean {
+        val sdf = java.text.SimpleDateFormat("yyyyMMdd", Locale.US)
+        val today = sdf.format(java.util.Date(System.currentTimeMillis()))
+        val lastDate = sdf.format(java.util.Date(arenaAdsLastWatchedTime))
+        if (today != lastDate) {
+            arenaAdsWatchedToday = 0
+        }
+        return arenaAdsWatchedToday < 10
+    }
+
+    fun recordArenaAdWatched() {
+        val now = System.currentTimeMillis()
+        val sdf = java.text.SimpleDateFormat("yyyyMMdd", Locale.US)
+        val today = sdf.format(java.util.Date(now))
+        val lastDate = sdf.format(java.util.Date(arenaAdsLastWatchedTime))
+        if (today != lastDate) {
+            arenaAdsWatchedToday = 1
+        } else {
+            arenaAdsWatchedToday++
+        }
+        arenaAdsLastWatchedTime = now
+    }
 
     fun isVipActive(): Boolean = System.currentTimeMillis() < vipEndTime
 
@@ -239,8 +291,9 @@ object GameState {
         }
 
         if (arenaLeaderboard.isEmpty()) {
-            val fakeNames = listOf("جلاد السلاطين", "فارس الظلام", "الإمبراطور الأحمر", "شبح الصحراء", "قاهر الجيوش", "ملك الشمال", "سيد العواصف", "الموت الزؤام", "ذئب الليل", "صياد التنانين", "مخلب النمر", "سفاح الممالك", "عين الصقر", "أمير الانتقام", "طاحن العظام", "غضب السماء", "روح الجحيم", "كابوس الأعداء", "ظل الموت")
-            fakeNames.forEachIndexed { index, fName -> arenaLeaderboard.add(ArenaPlayer(index + 1, fName, 0L, false)) }
+            // إضافة اللاعبين الوهميين الـ 19
+            val initialNames = FAKE_PLAYER_NAMES.shuffled().take(19)
+            initialNames.forEachIndexed { index, fName -> arenaLeaderboard.add(ArenaPlayer(index + 1, fName, 0L, false)) }
             arenaLeaderboard.add(ArenaPlayer(0, playerName, arenaScore, true))
             generateAITiers()
         }
@@ -293,34 +346,7 @@ object GameState {
         val types = mutableListOf(NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.ENEMY_CASTLE, NodeType.GOLD_MINE, NodeType.IRON_MINE, NodeType.WHEAT_FARM)
         types.shuffle() 
 
-        // 💡 3. قائمة الأسماء الـ 100 المتنوعة والواقعية
-        val fakePlayerNames = listOf(
-            "جلاد السلاطين", "فارس الظلام", "الإمبراطور الأحمر", "شبح الصحراء", "قاهر الجيوش", 
-            "ملك الشمال", "سيد العواصف", "الموت الزؤام", "ذئب الليل", "صياد التنانين", 
-            "مخلب النمر", "سفاح الممالك", "عين الصقر", "أمير الانتقام", "طاحن العظام", 
-            "غضب السماء", "روح الجحيم", "كابوس الأعداء", "ظل الموت", "زلزال",
-            "SniperX", "أبو عتب", "Shadow", "DarkKnight", "Assassins", 
-            "TheKing", "LordOfWar", "أبو حرب", "Ghost", "Vampire",
-            "عزرائيل", "الصقر الجارح", "المدمر", "عاصفة الصحراء", "ابن النيل",
-            "قاهر الروم", "سفاح", "كابوس", "أبو غضب", "صاعقة",
-            "Ninja", "KingSlayer", "Warlord", "Punisher", "TheBeast",
-            "جلاد السيرفر", "عقيد", "الأسطورة", "شجاع", "فالكون",
-            "Titan", "DragonHeart", "IronFist", "HellRider", "Venom",
-            "سيد الخواتم", "ملك الجحيم", "شبح الأندلس", "صياد الرؤوس", "متمرد",
-            "BloodThirst", "Reaper", "SkullCrusher", "Doom", "Nightmare",
-            "مشاري", "الظل النبيل", "أمير الدم", "عنيد", "الزعيم",
-            "Alpha", "Omega", "Spartan", "Gladiator", "Maverick",
-            "سيف العدالة", "جلاد", "هكتور", "العقرب", "ملك الموت",
-            "Phantom", "Demon", "Savage", "Ruthless", "Dominator",
-            "رعد", "برق", "إعصار", "طوفان", "بركان",
-            "Immortal", "Godfather", "Emperor", "Conqueror", "Nemesis",
-            "ابن بطوطة", "صقر قريش", "المعتصم", "طارق", "خالد",
-            "Invincible", "Unstoppable", "Lethal", "Fierce", "Viper"
-        )
-        
-        // 💡 سحب 5 أسماء عشوائية بدون تكرار للمقاطعة الحالية
-        val selectedNames = fakePlayerNames.shuffled().take(5)
-        
+        val selectedNames = FAKE_PLAYER_NAMES.shuffled().take(5)
         val selectedCastleImages = (1..10).map { "img_enemy_castle_$it" }.shuffled().take(5)
         var castleImageIndex = 0
 
@@ -329,7 +355,7 @@ object GameState {
             if (t == NodeType.ENEMY_CASTLE) {
                 val nodeLevel = level + Random.nextInt(0, 3)
                 val imgName = selectedCastleImages[castleImageIndex]
-                val randomPlayerName = selectedNames[castleImageIndex] // استخدام الاسم المسحوب
+                val randomPlayerName = selectedNames[castleImageIndex] 
                 castleImageIndex++
                 
                 val (generatedTroops, aiBuff) = generateEnemyArmy(level)
@@ -356,7 +382,6 @@ object GameState {
                 ))
             } else {
                 val farmLevel = level + Random.nextInt(0, 3)
-                // 💡 1. تقليل موارد الخريطة بشكل تصاعدي منطقي
                 val resAmount = (farmLevel * 1000L) 
                 val imgName = when(t) {
                     NodeType.GOLD_MINE -> "img_node_gold"
@@ -379,15 +404,51 @@ object GameState {
         generateRegion(currentRegionLevel)
     }
 
+    // 💡 2. تحديث نظام الذكاء الاصطناعي (ظل القوة والأسماء المتغيرة)
     private fun generateAITiers() {
-        arenaLeaderboard.filter { !it.isRealPlayer }.forEach {
+        // سحب 19 اسماً جديداً في كل موسم
+        val selectedNames = FAKE_PLAYER_NAMES.shuffled().take(19)
+        var nameIndex = 0
+        
+        // مُعامل القوة (ظل قوة اللاعب): كلما كنت أقوى، أرقام الأعداء ترتفع لتطابق مستواك!
+        val powerMultiplier = maxOf(1.0, (playerPower / 100_000.0).pow(0.8))
+
+        arenaLeaderboard.filter { !it.isRealPlayer }.forEach { ai ->
+            ai.name = selectedNames[nameIndex++] // تعيين الاسم الجديد
             val tier = Random.nextInt(100)
-            it.score = when {
+            
+            val baseScore = when {
                 tier < 5 -> Random.nextLong(150000, 350000) 
                 tier < 20 -> Random.nextLong(70000, 150000)
                 tier < 50 -> Random.nextLong(20000, 70000)
                 else -> Random.nextLong(1000, 20000)
             }
+            
+            // ضرب النقاط الأساسية في مُعامل قوتك ليكون التحدي موازياً لك
+            ai.score = (baseScore * powerMultiplier).toLong()
+        }
+        
+        // إعادة ترتيب القائمة
+        arenaLeaderboard.sortByDescending { it.score }
+    }
+
+    // 💡 دالة نمو نقاط الذكاء الاصطناعي أثناء اللعب النشط (Shadow Catch-Up)
+    fun processAIArenaTick() {
+        if (Random.nextInt(100) < 25) {
+            val fakePlayers = arenaLeaderboard.filter { !it.isRealPlayer }
+            if (fakePlayers.isEmpty()) return
+            
+            val powerMultiplier = maxOf(1.0, (playerPower / 100_000.0).pow(0.8))
+            val fakePlayer = fakePlayers.random()
+            
+            var pointsEarned = (Random.nextLong(10, 50) * powerMultiplier).toLong()
+            
+            // ذكاء الظل: إذا كان اللاعب قريب منك أو يتفوق عليك، يسرع ليلحق بك بنسبة معينة
+            if (arenaScore > fakePlayer.score * 0.8 && Random.nextInt(100) < 20) {
+                pointsEarned += ((arenaScore - fakePlayer.score) * 0.1).toLong().coerceAtLeast(100L * powerMultiplier.toLong())
+            }
+            
+            fakePlayer.score += pointsEarned
         }
     }
 
@@ -444,7 +505,9 @@ object GameState {
             }
             
             pendingOfflineMessages.add(PendingMessage("غنائم الموسم", rewardMsg, R.drawable.ic_arena_rewards))
-            arenaScore = 0L; arenaLeaderboard.forEach { if (it.isRealPlayer) it.score = 0L }; generateAITiers()
+            arenaScore = 0L; arenaLeaderboard.forEach { if (it.isRealPlayer) it.score = 0L }
+            // 💡 هنا سيتم تجديد أسماء المراكز وتوزيع نقاطهم للموسم الجديد بشكل عادل
+            generateAITiers()
             arenaSeasonEndTime = now + (7L * 24 * 3600000L)
         }
     }
@@ -719,7 +782,6 @@ object GameState {
                             }
                             
                             march.payloadGold = 0L 
-                            // 💡 2. الغنائم ثابتة بين 10,000 و 60,000 للمنتصر في الهجوم
                             val availableLootIron = Random.nextLong(10000, 60000)
                             val availableLootWheat = Random.nextLong(10000, 60000)
                             
@@ -766,7 +828,6 @@ object GameState {
                                 myTotalPowerStr = enemyAtk.toLong().toString()
                             ))
                         } else {
-                            // 💡 2. الغنائم التي ينهبها العدو ثابتة بين 10,000 و 60,000
                             val lostIron = minOf(totalIron, Random.nextLong(10000, 60000))
                             val lostWheat = minOf(totalWheat, Random.nextLong(10000, 60000))
                             
@@ -948,7 +1009,16 @@ object GameState {
         prefs.putLong("ARENA_SCORE", arenaScore); prefs.putInt("ARENA_STAMINA", arenaStamina)
         prefs.putLong("ARENA_STAMINA_REGEN", arenaStaminaLastRegenTime); prefs.putLong("ARENA_SEASON_END", arenaSeasonEndTime)
 
-        arenaLeaderboard.filter { !it.isRealPlayer }.forEach { prefs.putLong("ARENA_FAKE_SCORE_${it.id}", it.score) }
+        // 💡 حفظ الأسماء المتغيرة في التخزين المؤقت
+        arenaLeaderboard.filter { !it.isRealPlayer }.forEach { 
+            prefs.putLong("ARENA_FAKE_SCORE_${it.id}", it.score)
+            prefs.putString("ARENA_FAKE_NAME_${it.id}", it.name) 
+        }
+        
+        // 💡 حفظ العداد اليومي للإعلانات
+        prefs.putInt("ARENA_ADS_TODAY", arenaAdsWatchedToday)
+        prefs.putLong("ARENA_ADS_LAST_TIME", arenaAdsLastWatchedTime)
+
         prefs.putLong("LAST_LOGIN_TIME", System.currentTimeMillis()); prefs.putInt("PENDING_LEVEL_UP", pendingLevelUpCount)
         
         prefs.putBoolean("IS_HEALING", isHealing); prefs.putLong("HEALING_END_TIME", healingEndTime); prefs.putLong("HEALING_TOTAL_TIME", healingTotalTime)
@@ -1061,7 +1131,17 @@ object GameState {
         isHealing = prefs.getBoolean("IS_HEALING", false); healingEndTime = prefs.getLong("HEALING_END_TIME", 0L)
         healingTotalTime = prefs.getLong("HEALING_TOTAL_TIME", 0L)
 
+        // 💡 تحميل عداد الإعلانات وإعادة التصفير إذا كان يوم جديد
+        arenaAdsWatchedToday = prefs.getInt("ARENA_ADS_TODAY", 0)
+        arenaAdsLastWatchedTime = prefs.getLong("ARENA_ADS_LAST_TIME", 0L)
+        
         val currentTime = System.currentTimeMillis()
+        val sdf = java.text.SimpleDateFormat("yyyyMMdd", Locale.US)
+        if (sdf.format(java.util.Date(currentTime)) != sdf.format(java.util.Date(arenaAdsLastWatchedTime))) {
+            arenaAdsWatchedToday = 0
+            arenaAdsLastWatchedTime = currentTime
+        }
+
         val offlineTime = currentTime - prefs.getLong("LAST_LOGIN_TIME", currentTime)
 
         arenaScore = prefs.getLong("ARENA_SCORE", 0); arenaStamina = prefs.getInt("ARENA_STAMINA", 5)
@@ -1081,11 +1161,27 @@ object GameState {
         } else arenaStaminaLastRegenTime = currentTime
 
         val hoursOffline = (offlineTime / 3600000L).toInt()
-        arenaLeaderboard.filter { !it.isRealPlayer }.forEach {
-            var savedScore = prefs.getLong("ARENA_FAKE_SCORE_${it.id}", 0L)
-            if (savedScore == 0L) savedScore = Random.nextLong(150000, 300000) 
-            else if (hoursOffline > 0) savedScore += (hoursOffline * Random.nextLong(1000, 4000))
-            it.score = savedScore
+        val powerMultiplier = maxOf(1.0, (playerPower / 100_000.0).pow(0.8))
+
+        // 💡 محاكاة ذكاء الظل أثناء غيابك (Offline Catch-Up)
+        arenaLeaderboard.filter { !it.isRealPlayer }.forEach { ai ->
+            var savedScore = prefs.getLong("ARENA_FAKE_SCORE_${ai.id}", 0L)
+            val savedName = prefs.getString("ARENA_FAKE_NAME_${ai.id}", null)
+            if (savedName != null) ai.name = savedName
+
+            if (savedScore == 0L) {
+                savedScore = (Random.nextLong(150000, 300000) * powerMultiplier).toLong()
+            } else if (hoursOffline > 0) {
+                val offlineGrowth = (hoursOffline * Random.nextLong(1000, 4000) * powerMultiplier).toLong()
+                
+                // إذا وجد الذكاء الاصطناعي أنك هربت بالمركز الأول، يحاول اللحاق بك بجنون!
+                val catchUp = if (arenaScore > savedScore * 0.8 && Random.nextInt(100) < 30) {
+                    ((arenaScore - savedScore) * Random.nextDouble(0.1, 0.5)).toLong().coerceAtLeast(0L)
+                } else 0L
+
+                savedScore += offlineGrowth + catchUp
+            }
+            ai.score = savedScore
         }
         
         arenaLeaderboard.find { it.isRealPlayer }?.let { it.score = arenaScore; it.name = playerName }
