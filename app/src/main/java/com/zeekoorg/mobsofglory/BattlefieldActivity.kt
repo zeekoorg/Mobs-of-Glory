@@ -307,7 +307,6 @@ class BattlefieldActivity : AppCompatActivity() {
         val isAttack = node.type == NodeType.ENEMY_CASTLE
         d.findViewById<TextView>(R.id.tvDialogTitle)?.text = if (isAttack) "التجهيز لغزوة الأعداء" else "إرسال بعثة لجمع الموارد"
 
-        // 💡 إحضار إجمالي القوات المتاحة (السليمة) للـ Sliders
         val maxInf = GameState.playerTroops.filter { it.type == TroopType.INFANTRY }.sumOf { it.count }
         val maxCav = GameState.playerTroops.filter { it.type == TroopType.CAVALRY }.sumOf { it.count }
 
@@ -346,7 +345,6 @@ class BattlefieldActivity : AppCompatActivity() {
         val lockWeapons = listOf(null, d.findViewById<View>(R.id.layoutLockWeapon2), d.findViewById<View>(R.id.layoutLockWeapon3), d.findViewById<View>(R.id.layoutLockWeapon4))
         val unlockLevels = listOf(1, 5, 10, 15)
 
-        // 💡 دالة لحساب القوة الهجومية الدقيقة بناءً على أعلى الفئات المتاحة
         fun simulateMarchStats(): Pair<Long, Long> {
             var pwr = 0.0
             var load = 0L
@@ -460,7 +458,6 @@ class BattlefieldActivity : AppCompatActivity() {
             d.dismiss()
             val travelTime = 3000L 
             
-            // 💡 سحب القوات من القلعة ووضعها في المسيرة (أعلى الفئات أولاً)
             val marchTroopsToSend = mutableListOf<TroopData>()
             fun allocateTroops(type: TroopType, amountRequired: Long) {
                 var remaining = amountRequired
@@ -702,18 +699,18 @@ class BattlefieldActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 إضافة أيقونة بداخل النص باستخدام SpannableStringBuilder
     private fun appendIconWithText(builder: SpannableStringBuilder, iconResId: Int, text: String) {
         val start = builder.length
         builder.append("  $text\n") 
         val drawable = ContextCompat.getDrawable(this, iconResId)
         drawable?.let {
-            it.setBounds(0, -10, 50, 40) // تعديل مقاس الأيقونة لتتناسب مع النص
+            it.setBounds(0, -10, 50, 40)
             val span = ImageSpan(it, ImageSpan.ALIGN_BASELINE)
             builder.setSpan(span, start, start + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
     }
 
+    // 💡 [تعديل] التقرير السينمائي يميز بين الدفاع والهجوم
     private fun showBattleReportDialog(report: BattleReport) {
         if (!isActivityResumed) return
         isReportDialogOpen = true 
@@ -732,7 +729,15 @@ class BattlefieldActivity : AppCompatActivity() {
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الخسائر: ${formatResourceNumber(report.enemyPowerBefore - report.enemyPowerAfter)}\n")
             
             ssb.append("━━━━━━ قواتك ━━━━━━\n")
-            appendIconWithText(ssb, R.drawable.ic_ui_arena, "إجمالي المُرسل: ${formatResourceNumber(report.myTotalSent)}")
+            // 💡 إذا كنت تدافع (هجوم انتقامي)، التقرير يظهر "المرابطين" وقوة الدفاع
+            if (report.title.contains("دفاع") || report.title.contains("هزيمة دفاعية")) {
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "إجمالي المُرابطين: ${formatResourceNumber(report.myTotalSent)}")
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة أسوار المدينة (مع الخصائص): ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} 🛡️")
+            } else {
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "إجمالي المُرسل: ${formatResourceNumber(report.myTotalSent)}")
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "القوة الضاربة (مع الخصائص): ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} ⚔️")
+            }
+            
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "القتلى: ${formatResourceNumber(report.myDead)}")
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الجرحى: ${formatResourceNumber(report.myWounded)}")
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الناجون: ${formatResourceNumber(report.mySurviving)}")
