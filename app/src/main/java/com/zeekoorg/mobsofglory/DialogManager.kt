@@ -465,19 +465,36 @@ object DialogManager {
 
         fun refreshHospitalUI() {
             d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "دار الشفاء (مستوى ${p.level})"
-            d.findViewById<TextView>(R.id.tvWoundedInfantry)?.text = "المشاة الجرحى: ${formatResourceNumber(GameState.woundedInfantry)}"
-            d.findViewById<TextView>(R.id.tvWoundedCavalry)?.text = "الفرسان الجرحى: ${formatResourceNumber(GameState.woundedCavalry)}"
-            val tvHealCostWheat = d.findViewById<TextView>(R.id.tvHealCostWheat); val tvHealCostIron = d.findViewById<TextView>(R.id.tvHealCostIron)
-            val tvHealTime = d.findViewById<TextView>(R.id.tvHealTime); val btnAction = d.findViewById<Button>(R.id.btnHealAction)
+            
+            // 💡 تحديث قراءة الجرحى من القائمة الجديدة
+            val woundedInfArc = GameState.playerTroops.filter { it.type == TroopType.INFANTRY || it.type == TroopType.ARCHER }.sumOf { it.wounded }
+            val woundedCavSiege = GameState.playerTroops.filter { it.type == TroopType.CAVALRY || it.type == TroopType.SIEGE }.sumOf { it.wounded }
+            val totalWounded = GameState.getTotalWoundedTroops()
 
-            val totalWounded = GameState.woundedInfantry + GameState.woundedCavalry
+            d.findViewById<TextView>(R.id.tvWoundedInfantry)?.text = "المشاة/الرماة: ${formatResourceNumber(woundedInfArc)}"
+            d.findViewById<TextView>(R.id.tvWoundedCavalry)?.text = "الفرسان/العربات: ${formatResourceNumber(woundedCavSiege)}"
+            
+            val tvHealCostWheat = d.findViewById<TextView>(R.id.tvHealCostWheat)
+            val tvHealCostIron = d.findViewById<TextView>(R.id.tvHealCostIron)
+            val tvHealTime = d.findViewById<TextView>(R.id.tvHealTime)
+            val btnAction = d.findViewById<Button>(R.id.btnHealAction)
+
             if (totalWounded == 0L) {
                 tvHealCostWheat?.text = "0"; tvHealCostIron?.text = "0"; tvHealTime?.text = "00:00"
                 btnAction?.text = "لا يوجد جرحى"; btnAction?.isEnabled = false; btnAction?.setBackgroundColor(Color.GRAY)
             } else {
-                val costWheat = (GameState.woundedInfantry * 10) + (GameState.woundedCavalry * 25)
-                val costIron = (GameState.woundedInfantry * 5) + (GameState.woundedCavalry * 15)
-                var healTimeSec = totalWounded * 2; if (GameState.isVipActive()) healTimeSec = (healTimeSec * 0.8).toLong()
+                // 💡 حساب تكلفة ووقت العلاج بناءً على خصائص الـ Tier (تكلفة العلاج = 30% من تكلفة التدريب)
+                var costWheat = 0L; var costIron = 0L; var healTimeSec = 0L
+                GameState.playerTroops.forEach {
+                    if (it.wounded > 0) {
+                        val stats = GameState.getTroopStats(it.type, it.tier)
+                        costWheat += (it.wounded * stats.trainCostWheat * 0.3).toLong()
+                        costIron += (it.wounded * stats.trainCostIron * 0.3).toLong()
+                        healTimeSec += (it.wounded * stats.trainTimeSeconds * 0.3).toLong()
+                    }
+                }
+                
+                if (GameState.isVipActive()) healTimeSec = (healTimeSec * 0.8).toLong()
 
                 tvHealCostWheat?.text = formatResourceNumber(costWheat); tvHealCostIron?.text = formatResourceNumber(costIron)
                 tvHealTime?.text = formatTimeSec(healTimeSec)
@@ -488,8 +505,8 @@ object DialogManager {
                     if (GameState.totalWheat >= costWheat && GameState.totalIron >= costIron) {
                         GameState.totalWheat -= costWheat; GameState.totalIron -= costIron
                         GameState.isHealing = true
-                        GameState.healingInfantryAmount = GameState.woundedInfantry; GameState.healingCavalryAmount = GameState.woundedCavalry
-                        GameState.healingTotalTime = healTimeSec * 1000L; GameState.healingEndTime = System.currentTimeMillis() + GameState.healingTotalTime
+                        GameState.healingTotalTime = healTimeSec * 1000L
+                        GameState.healingEndTime = System.currentTimeMillis() + GameState.healingTotalTime
                         GameState.saveGameData(activity); updateUI(activity)
                         showGameMessage(activity, "دار الشفاء", "بدأ علاج الجرحى. ستعود قواتك لصفوف الجيش قريباً!", R.drawable.ic_settings_gear)
                         d.dismiss()
@@ -507,14 +524,20 @@ object DialogManager {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_train_troops)
 
-        val isInfantry = p.idCode == "BARRACKS_1"
+        // 💡 جلب الإحصائيات الحقيقية للجندي (حتى الآن الثكنات تدرب T1)
+        val type = if (p.idCode == "BARRACKS_1") TroopType.INFANTRY else TroopType.CAVALRY
+        val stats = GameState.getTroopStats(type, 1)
+        
         val maxCapacity = p.getMaxTrainingCapacity()
         var currentAmt = maxCapacity / 2 
-        val costW = if (isInfantry) 20 else 50; val costI = if (isInfantry) 10 else 30
+        val costW = stats.trainCostWheat
+        val costI = stats.trainCostIron
 
-        d.findViewById<TextView>(R.id.tvTroopTitle)?.text = if (isInfantry) "تدريب المشاة" else "تدريب الفرسان"
-        d.findViewById<TextView>(R.id.tvCurrentTroops)?.text = "القوات المملوكة: " + if (isInfantry) formatResourceNumber(GameState.totalInfantry) else formatResourceNumber(GameState.totalCavalry)
-        d.findViewById<TextView>(R.id.tvTrainInfo)?.text = if (isInfantry) "هجوم: ${GameState.INFANTRY_ATK} | دفاع: ${GameState.INFANTRY_DEF} | حمولة: ${GameState.INFANTRY_LOAD}" else "هجوم: ${GameState.CAVALRY_ATK} | دفاع: ${GameState.CAVALRY_DEF} | حمولة: ${GameState.CAVALRY_LOAD}"
+        val ownedTroops = GameState.playerTroops.filter { it.type == type && it.tier == 1 }.sumOf { it.count }
+
+        d.findViewById<TextView>(R.id.tvTroopTitle)?.text = if (type == TroopType.INFANTRY) "تدريب المشاة (T1)" else "تدريب الفرسان (T1)"
+        d.findViewById<TextView>(R.id.tvCurrentTroops)?.text = "القوات المملوكة: ${formatResourceNumber(ownedTroops)}"
+        d.findViewById<TextView>(R.id.tvTrainInfo)?.text = "هجوم: ${stats.baseAtk} | دفاع: ${stats.baseDef} | حمولة: ${stats.loadCapacity}"
 
         val seekTrain = d.findViewById<SeekBar>(R.id.seekTrainTroops)
         val tvSelectedAmount = d.findViewById<TextView>(R.id.tvSelectedTrainAmount)
@@ -526,8 +549,8 @@ object DialogManager {
         val btnConfirm = d.findViewById<Button>(R.id.btnConfirmTrain)
         fun updateCosts() {
             tvSelectedAmount?.text = currentAmt.toString()
-            d.findViewById<TextView>(R.id.tvTrainCostWheat)?.text = formatResourceNumber((currentAmt * costW).toLong())
-            d.findViewById<TextView>(R.id.tvTrainCostIron)?.text = formatResourceNumber((currentAmt * costI).toLong())
+            d.findViewById<TextView>(R.id.tvTrainCostWheat)?.text = formatResourceNumber((currentAmt * costW))
+            d.findViewById<TextView>(R.id.tvTrainCostIron)?.text = formatResourceNumber((currentAmt * costI))
             btnConfirm?.text = "تدريب ($currentAmt)"
         }
 
@@ -538,12 +561,17 @@ object DialogManager {
 
         btnConfirm?.setOnClickListener {
             if (currentAmt == 0) { SoundManager.playClick(); showGameMessage(activity, "تنبيه", "الرجاء تحديد عدد الجنود للتدريب!", R.drawable.ic_settings_gear); return@setOnClickListener }
-            val totalW = (currentAmt * costW).toLong(); val totalI = (currentAmt * costI).toLong()
+            val totalW = currentAmt * costW
+            val totalI = currentAmt * costI
+            
             if (GameState.totalWheat >= totalW && GameState.totalIron >= totalI) {
                 SoundManager.playTrain()
                 GameState.totalWheat -= totalW; GameState.totalIron -= totalI; p.isTraining = true; p.trainingAmount = currentAmt
-                var tTime = currentAmt * 2000L; if(GameState.isVipActive()) tTime = (tTime * 0.8).toLong()
-                p.trainingTotalTime = tTime; p.trainingEndTime = System.currentTimeMillis() + p.trainingTotalTime; p.collectTimer = 0L 
+                
+                var tTime = currentAmt * stats.trainTimeSeconds
+                if(GameState.isVipActive()) tTime = (tTime * 0.8).toLong()
+                p.trainingTotalTime = tTime * 1000L; p.trainingEndTime = System.currentTimeMillis() + p.trainingTotalTime; p.collectTimer = 0L 
+                
                 updateUI(activity); GameState.saveGameData(activity); d.dismiss()
                 
                 if (GameState.tutorialStep == 5 && activity is MainActivity) {
@@ -656,12 +684,11 @@ object DialogManager {
         d.show()
     }
 
-        fun showStoreDialog(activity: Activity) {
+    fun showStoreDialog(activity: Activity) {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_store)
 
-        // أزرار جلود المدينة (السكنات)
         val btnPyramid = d.findViewById<Button>(R.id.btnBuyPyramid); val btnPeacock = d.findViewById<Button>(R.id.btnBuyPeacock); val btnDiamond = d.findViewById<Button>(R.id.btnBuyDiamond)
         if (GameState.isPyramidUnlocked) { btnPyramid?.text = "مملوكة"; btnPyramid?.isEnabled = false }
         if (GameState.isPeacockUnlocked) { btnPeacock?.text = "مملوكة"; btnPeacock?.isEnabled = false }
@@ -671,7 +698,6 @@ object DialogManager {
         btnPeacock?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 1500000) { GameState.totalGold -= 1500000; GameState.isPeacockUnlocked = true; btnPeacock.text = "مملوكة"; btnPeacock.isEnabled = false; updateUI(activity); GameState.saveGameData(activity); if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_peacock); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
         btnDiamond?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 3000000) { GameState.totalGold -= 3000000; GameState.isDiamondUnlocked = true; btnDiamond.text = "مملوكة"; btnDiamond.isEnabled = false; updateUI(activity); GameState.saveGameData(activity); if (activity is MainActivity) activity.changeCitySkin(R.drawable.bg_city_diamond); showGameMessage(activity, "عملية ناجحة", "تم الشراء والتطبيق بنجاح!", R.drawable.ic_resource_gold) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
 
-        // أزرار شراء التسريعات بالذهب
         d.findViewById<Button>(R.id.btnBuySpeedup5m)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 1000) { GameState.totalGold -= 1000; GameState.countSpeedup5m++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_5m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
         d.findViewById<Button>(R.id.btnBuySpeedup15m)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 3000) { GameState.totalGold -= 3000; GameState.countSpeedup15m++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_15m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
         d.findViewById<Button>(R.id.btnBuySpeedup30m)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 5000) { GameState.totalGold -= 5000; GameState.countSpeedup30m++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_30m) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
@@ -679,9 +705,6 @@ object DialogManager {
         d.findViewById<Button>(R.id.btnBuySpeedup2h)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 28000) { GameState.totalGold -= 28000; GameState.countSpeedup2h++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_2h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
         d.findViewById<Button>(R.id.btnBuySpeedup8h)?.setOnClickListener { SoundManager.playClick(); if (GameState.totalGold >= 100000) { GameState.totalGold -= 100000; GameState.countSpeedup8Hour++; updateUI(activity); GameState.saveGameData(activity); showGameMessage(activity, "شراء ناجح", "تم شراء التسريع بنجاح!", R.drawable.ic_speedup_8h) } else showGameMessage(activity, "عذراً", "الذهب غير كافٍ!", R.drawable.ic_resource_gold) }
 
-        // --- نظام مكافآت الإعلانات المحدث ---
-
-        // 💰 إعلان الذهب (25,000)
         d.findViewById<Button>(R.id.btnAdGold)?.setOnClickListener { 
             SoundManager.playClick()
             showAdConfirmDialog(activity) { 
@@ -695,7 +718,6 @@ object DialogManager {
             }
         }
 
-        // ⛓️ إعلان الحديد (100,000)
         d.findViewById<Button>(R.id.btnAdIron)?.setOnClickListener { 
             SoundManager.playClick()
             showAdConfirmDialog(activity) { 
@@ -709,7 +731,6 @@ object DialogManager {
             }
         }
 
-        // 🌾 إعلان القمح (100,000)
         d.findViewById<Button>(R.id.btnAdWheat)?.setOnClickListener { 
             SoundManager.playClick()
             showAdConfirmDialog(activity) { 
@@ -723,7 +744,6 @@ object DialogManager {
             }
         }
 
-        // 📦 إعلان صندوق المواد (10K ذهب + 50K حديد + 50K قمح)
         d.findViewById<Button>(R.id.btnAdMaterialBox)?.setOnClickListener { 
             SoundManager.playClick()
             showAdConfirmDialog(activity) { 
@@ -739,7 +759,6 @@ object DialogManager {
             }
         }
 
-        // إعلان التسريع
         d.findViewById<Button>(R.id.btnAdSpeedup)?.setOnClickListener { SoundManager.playClick(); showAdConfirmDialog(activity) { YandexAdsManager.showRewardedAd(activity, onRewarded = { GameState.addQuestProgress(QuestType.WATCH_ADS, 1); GameState.countSpeedup30m++; GameState.saveGameData(activity); showGameMessage(activity, "مكافأة الإعلان", "حصلت على تسريع 30 دقيقة!", R.drawable.ic_speedup_30m) }, onAdClosed = {}) } }
 
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
@@ -826,7 +845,6 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 [تعديل جذري] إصلاح ورشة الحدادة: السلاح الأسطوري أصبح الأغلى، وتم منع التكرار
     fun showWeaponsDialog(activity: Activity) {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
@@ -857,20 +875,17 @@ object DialogManager {
                     if (remaining > 0) {
                         btnAction.text = formatTimeMillis(remaining); btnAction.setTextColor(Color.parseColor("#F4D03F"))
                         
-                        // 💡 [التعديل]: أزلنا d.dismiss() هنا لكي لا تُغلق القائمة فوراً عند محاولة التسريع، بل تفتح نافذة التسريع فوقها
                         btnAction.setOnClickListener { 
                             SoundManager.playClick()
                             showSpeedupDialog(activity, null, weapon) 
                         }
                         
-                        // تحديث الوقت في الشاشة كل ثانية
                         handler.postDelayed({ refreshWeaponsList() }, 1000)
                     } else { 
                         weapon.isUpgrading = false; weapon.level++; GameState.calculatePower(); GameState.saveGameData(activity)
                         refreshWeaponsList() 
                     }
                 } else {
-                    // 💡 [إصلاح التكرار]: هنا نحدث الزر نفسه بدلاً من استنساخ العنصر
                     btnAction.text = if (weapon.isOwned) "ترقية" else "صناعة"
                     btnAction.setTextColor(Color.WHITE)
                     
@@ -882,7 +897,6 @@ object DialogManager {
                             SoundManager.playBlacksmith()
                             GameState.totalIron -= costIron; GameState.totalGold -= costGold
                             
-                            // 💡 السلاح يصبح مملوكاً ويدخل حالة الترقية فوراً
                             weapon.isOwned = true
                             weapon.isUpgrading = true
                             weapon.totalUpgradeTime = weapon.getUpgradeTimeSeconds() * 1000
@@ -891,7 +905,6 @@ object DialogManager {
                             updateUI(activity)
                             GameState.saveGameData(activity)
                             
-                            // 💡 إعادة رسم القائمة فوراً ليظهر العداد في نفس الزر
                             refreshWeaponsList()
                         } else { 
                             SoundManager.playClick()
@@ -899,7 +912,6 @@ object DialogManager {
                         }
                     }
                 }
-                // 💡 إضافة النسخة الأصلية والمحدثة إلى الحاوية (بدون تكرار)
                 container?.addView(view)
             }
         }
@@ -994,11 +1006,16 @@ object DialogManager {
         val seekCavalry = d.findViewById<SeekBar>(R.id.seekFormationCavalry); val tvCavalryMax = d.findViewById<TextView>(R.id.tvFormationCavalryMax); val tvCavalrySelected = d.findViewById<TextView>(R.id.tvFormationCavalrySelected)
 
         val prefs = activity.getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
-        var selectedInfantry = prefs.getLong("FORMATION_INFANTRY", GameState.totalInfantry); var selectedCavalry = prefs.getLong("FORMATION_CAVALRY", GameState.totalCavalry)
-        if (selectedInfantry > GameState.totalInfantry) selectedInfantry = GameState.totalInfantry; if (selectedCavalry > GameState.totalCavalry) selectedCavalry = GameState.totalCavalry
+        
+        // 💡 إحضار إجمالي القوات المتاحة (السليمة) من كل الأنواع لتعيينها في الـ Sliders
+        val maxInf = GameState.playerTroops.filter { it.type == TroopType.INFANTRY }.sumOf { it.count }
+        val maxCav = GameState.playerTroops.filter { it.type == TroopType.CAVALRY }.sumOf { it.count }
+        
+        var selectedInfantry = prefs.getLong("FORMATION_INFANTRY", maxInf); var selectedCavalry = prefs.getLong("FORMATION_CAVALRY", maxCav)
+        if (selectedInfantry > maxInf) selectedInfantry = maxInf; if (selectedCavalry > maxCav) selectedCavalry = maxCav
 
-        val maxInf = GameState.totalInfantry; tvInfantryMax?.text = "متاح: ${formatResourceNumber(maxInf)}"; seekInfantry?.max = if (maxInf > Int.MAX_VALUE) Int.MAX_VALUE else maxInf.toInt(); seekInfantry?.progress = selectedInfantry.toInt(); tvInfantrySelected?.text = formatResourceNumber(selectedInfantry)
-        val maxCav = GameState.totalCavalry; tvCavalryMax?.text = "متاح: ${formatResourceNumber(maxCav)}"; seekCavalry?.max = if (maxCav > Int.MAX_VALUE) Int.MAX_VALUE else maxCav.toInt(); seekCavalry?.progress = selectedCavalry.toInt(); tvCavalrySelected?.text = formatResourceNumber(selectedCavalry)
+        tvInfantryMax?.text = "متاح: ${formatResourceNumber(maxInf)}"; seekInfantry?.max = if (maxInf > Int.MAX_VALUE) Int.MAX_VALUE else maxInf.toInt(); seekInfantry?.progress = selectedInfantry.toInt(); tvInfantrySelected?.text = formatResourceNumber(selectedInfantry)
+        tvCavalryMax?.text = "متاح: ${formatResourceNumber(maxCav)}"; seekCavalry?.max = if (maxCav > Int.MAX_VALUE) Int.MAX_VALUE else maxCav.toInt(); seekCavalry?.progress = selectedCavalry.toInt(); tvCavalrySelected?.text = formatResourceNumber(selectedCavalry)
 
         val heroSlots = listOf(Triple(d.findViewById<FrameLayout>(R.id.slotHero1), d.findViewById<ImageView>(R.id.imgHero1), d.findViewById<ImageView>(R.id.imgAddHero1)), Triple(d.findViewById<FrameLayout>(R.id.slotHero2), d.findViewById<ImageView>(R.id.imgHero2), d.findViewById<ImageView>(R.id.imgAddHero2)), Triple(d.findViewById<FrameLayout>(R.id.slotHero3), d.findViewById<ImageView>(R.id.imgHero3), d.findViewById<ImageView>(R.id.imgAddHero3)), Triple(d.findViewById<FrameLayout>(R.id.slotHero4), d.findViewById<ImageView>(R.id.imgHero4), d.findViewById<ImageView>(R.id.imgAddHero4)))
         val lockHeroes = listOf(null, d.findViewById<View>(R.id.layoutLockHero2), d.findViewById<View>(R.id.layoutLockHero3), d.findViewById<View>(R.id.layoutLockHero4))
@@ -1010,10 +1027,22 @@ object DialogManager {
             var heroDefBuff = 0.0; var wpDefBuff = 0.0
             GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { heroDefBuff += it.getCurrentDefenseBuff() }
             GameState.arsenal.filter { it.isOwned && it.isEquipped }.forEach { wpDefBuff += it.getCurrentDefenseBuff() }
-            
             val totalDefBuff = 1.0 + heroDefBuff + wpDefBuff
             
-            val baseDefPower = (selectedInfantry * GameState.INFANTRY_DEF) + (selectedCavalry * GameState.CAVALRY_DEF)
+            // 💡 حساب القوة الدفاعية الأساسية بدمج جميع الفئات (Tiers) المتوفرة
+            var infBaseDef = 0.0
+            GameState.playerTroops.filter { it.type == TroopType.INFANTRY }.forEach { 
+                infBaseDef += it.count * GameState.getTroopStats(it.type, it.tier).baseDef 
+            }
+            var cavBaseDef = 0.0
+            GameState.playerTroops.filter { it.type == TroopType.CAVALRY }.forEach { 
+                cavBaseDef += it.count * GameState.getTroopStats(it.type, it.tier).baseDef 
+            }
+            
+            val infRatio = if (maxInf > 0) selectedInfantry.toDouble() / maxInf else 0.0
+            val cavRatio = if (maxCav > 0) selectedCavalry.toDouble() / maxCav else 0.0
+            
+            val baseDefPower = (infBaseDef * infRatio) + (cavBaseDef * cavRatio)
             val totalPower = (baseDefPower * totalDefBuff).toLong()
             
             tvPower?.text = "قوة الدفاع الإجمالية: 🛡️ ${formatResourceNumber(totalPower)}"
