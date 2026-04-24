@@ -673,253 +673,213 @@ class BattlefieldActivity : AppCompatActivity() {
     }
 
     private fun showBattleReportDialog(report: BattleReport) {
-        if (!isActivityResumed) return
-        isReportDialogOpen = true 
-        
-        SoundManager.playWindowOpen()
-        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
-        d.setContentView(R.layout.dialog_game_message)
-        
-        // العنوان
-        d.findViewById<TextView>(R.id.tvMessageTitle)?.apply {
-            text = report.title
-            textSize = 16f
-            setTextColor(if(report.isVictory) Color.parseColor("#2ECC71") else Color.parseColor("#FF5252"))
-        }
-        
-        // الأيقونة الرئيسية
-        d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(
-            if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation
-        )
-        
-        // نص الرسالة
-        val bodyTv = d.findViewById<TextView>(R.id.tvMessageBody)
-        bodyTv?.text = report.message
-        bodyTv?.textSize = 10f
-        bodyTv?.setTextColor(Color.parseColor("#CCCCCC"))
-        
-        // إنشاء حاوية التفاصيل
-        val detailsLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(8, 10, 8, 0)
-        }
-        
-        // دالة لإضافة صف
-        fun addRow(iconResId: Int, text: String, color: String = "#FFFFFF") {
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                setPadding(0, 2, 0, 2)
-                gravity = Gravity.CENTER_VERTICAL
-            }
-            val icon = ImageView(this).apply {
-                setImageResource(iconResId)
-                layoutParams = LinearLayout.LayoutParams(20, 20).apply { setMargins(0, 0, 6, 0) }
-            }
-            val tv = TextView(this).apply {
-                this.text = text
-                textSize = 10f
-                setTextColor(Color.parseColor(color))
-                setTypeface(null, Typeface.BOLD)
-            }
-            row.addView(icon)
-            row.addView(tv)
-            detailsLayout.addView(row)
-        }
-        
-        // دالة لإضافة فاصل
-        fun addDivider() {
-            val divider = View(this).apply {
-                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1).apply { setMargins(0, 6, 0, 6) }
-                setBackgroundColor(Color.parseColor("#33FFFFFF"))
-            }
-            detailsLayout.addView(divider)
-        }
-        
-        // ══════ قسم العدو ══════
-        if (report.enemyName.isNotEmpty()) {
-            addRow(R.drawable.img_avatar_king, report.enemyName, "#FFD700")
-            addDivider()
-            if (report.enemyPowerBefore > 0) {
-                addRow(R.drawable.ic_ui_arena, "القوة قبل: ${formatResourceNumber(report.enemyPowerBefore)}", "#FFFFFF")
-                addRow(R.drawable.ic_ui_arena, "القوة بعد: ${formatResourceNumber(report.enemyPowerAfter)}", "#AAAAAA")
-                val enemyLoss = report.enemyPowerBefore - report.enemyPowerAfter
-                if (enemyLoss > 0) {
-                    addRow(R.drawable.ic_settings_gear, "خسائر العدو: ${formatResourceNumber(enemyLoss)}", "#FF5252")
-                }
-            }
-        }
-        
-        // ══════ قسم اللاعب ══════
-        addDivider()
-        // صورة اللاعب + اسمه
-        val playerRow = LinearLayout(this).apply {
+    if (!isActivityResumed) return
+    isReportDialogOpen = true 
+    
+    SoundManager.playWindowOpen()
+    val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+    d.setContentView(R.layout.dialog_game_message)
+    
+    // العنوان
+    d.findViewById<TextView>(R.id.tvMessageTitle)?.apply {
+        text = report.title
+        textSize = 16f
+        setTextColor(if(report.isVictory) Color.parseColor("#2ECC71") else Color.parseColor("#FF5252"))
+    }
+    
+    // الأيقونة الرئيسية
+    d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(
+        if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation
+    )
+    
+    // نص الرسالة
+    val bodyTv = d.findViewById<TextView>(R.id.tvMessageBody)
+    bodyTv?.text = report.message
+    bodyTv?.textSize = 10f
+    
+    // إنشاء حاوية التفاصيل مع الأيقونات
+    val detailsLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(8, 10, 8, 0)
+    }
+    
+    // دالة لإضافة صف مع أيقونة
+    fun addInfoRow(iconRes: Int, text: String, color: String = "#FFFFFF") {
+        val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(0, 2, 0, 2)
+            setPadding(0, 3, 0, 3)
             gravity = Gravity.CENTER_VERTICAL
         }
-        val playerIcon = ImageView(this).apply {
-            if (GameState.selectedAvatarUri != null) {
-                try { setImageURI(Uri.parse(GameState.selectedAvatarUri)) }
-                catch (e: Exception) { setImageResource(R.drawable.img_default_avatar) }
-            } else {
-                setImageResource(R.drawable.img_default_avatar)
-            }
-            layoutParams = LinearLayout.LayoutParams(24, 24).apply { setMargins(0, 0, 6, 0) }
+        val icon = ImageView(this).apply {
+            setImageResource(iconRes)
+            layoutParams = LinearLayout.LayoutParams(20, 20).apply { setMargins(0, 0, 6, 0) }
         }
-        val playerNameTv = TextView(this).apply {
-            text = GameState.playerName
+        val tv = TextView(this).apply {
+            this.text = text
             textSize = 10f
-            setTextColor(Color.parseColor("#2ECC71"))
-            setTypeface(null, Typeface.BOLD)
+            setTextColor(Color.parseColor(color))
         }
-        playerRow.addView(playerIcon)
-        playerRow.addView(playerNameTv)
-        detailsLayout.addView(playerRow)
-        addDivider()
+        row.addView(icon)
+        row.addView(tv)
+        detailsLayout.addView(row)
+    }
+    
+    // دالة لإضافة فاصل
+    fun addSeparator() {
+        val v = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1).apply {
+                setMargins(0, 6, 0, 6)
+            }
+            setBackgroundColor(Color.parseColor("#33FFFFFF"))
+        }
+        detailsLayout.addView(v)
+    }
+    
+    // ═══ قسم العدو ═══
+    if (report.enemyName.isNotEmpty()) {
+        addInfoRow(R.drawable.img_avatar_king, "العدو: ${report.enemyName}", "#FFD700")
+        addSeparator()
+    }
+    if (report.enemyPowerBefore > 0) {
+        addInfoRow(R.drawable.ic_ui_arena, "القوة قبل المعركة: ${formatResourceNumber(report.enemyPowerBefore)}")
+        addInfoRow(R.drawable.ic_ui_arena, "القوة المتبقية: ${formatResourceNumber(report.enemyPowerAfter)}", "#AAAAAA")
+        val loss = report.enemyPowerBefore - report.enemyPowerAfter
+        if (loss > 0) addInfoRow(R.drawable.ic_settings_gear, "خسائر العدو: ${formatResourceNumber(loss)}", "#FF5252")
+    }
+    
+    // ═══ قسم اللاعب ═══
+    addSeparator()
+    // صورة اللاعب مع اسمه
+    val playerRow = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        setPadding(0, 3, 0, 3)
+        gravity = Gravity.CENTER_VERTICAL
+    }
+    val playerImg = ImageView(this).apply {
+        if (GameState.selectedAvatarUri != null) {
+            try { setImageURI(Uri.parse(GameState.selectedAvatarUri)) }
+            catch (e: Exception) { setImageResource(R.drawable.img_default_avatar) }
+        } else {
+            setImageResource(R.drawable.img_default_avatar)
+        }
+        layoutParams = LinearLayout.LayoutParams(24, 24).apply { setMargins(0, 0, 6, 0) }
+    }
+    val playerNameTv = TextView(this).apply {
+        text = GameState.playerName
+        textSize = 10f
+        setTextColor(Color.parseColor("#2ECC71"))
+        setTypeface(null, Typeface.BOLD)
+    }
+    playerRow.addView(playerImg)
+    playerRow.addView(playerNameTv)
+    detailsLayout.addView(playerRow)
+    addSeparator()
+    
+    // معلومات القوات
+    addInfoRow(R.drawable.ic_ui_formation, "إجمالي المُرسل: ${formatResourceNumber(report.myTotalSent)}")
+    if (report.battleRounds > 0) {
+        addInfoRow(R.drawable.ic_ui_arena, "جولات القتال: ${report.battleRounds}", "#F4D03F")
+    }
+    if (report.myDamage > 0) {
+        addInfoRow(R.drawable.ic_ui_arena, "الضرر المُحدث: ${formatResourceNumber(report.myDamage)}", "#F4D03F")
+    }
+    
+    // القتلى | الجرحى | الناجون في سطر واحد
+    val statsRow = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        setPadding(0, 4, 0, 2)
+        gravity = Gravity.CENTER
+    }
+    fun addMiniStat(iconRes: Int, text: String, color: String) {
+        val mini = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 14, 0)
+        }
+        val ic = ImageView(this).apply {
+            setImageResource(iconRes)
+            layoutParams = LinearLayout.LayoutParams(16, 16).apply { setMargins(0, 0, 3, 0) }
+        }
+        val tv = TextView(this).apply {
+            this.text = text
+            textSize = 10f
+            setTextColor(Color.parseColor(color))
+        }
+        mini.addView(ic)
+        mini.addView(tv)
+        statsRow.addView(mini)
+    }
+    addMiniStat(R.drawable.ic_settings_gear, formatResourceNumber(report.myDead), "#FF5252")
+    addMiniStat(R.drawable.ic_hospital_wounded, formatResourceNumber(report.myWounded), "#E67E22")
+    addMiniStat(R.drawable.ic_vip_crown, formatResourceNumber(report.mySurviving), "#2ECC71")
+    detailsLayout.addView(statsRow)
+    
+    // ═══ الموارد ═══
+    val totalLoot = report.lootGold + report.lootIron + report.lootWheat
+    if (totalLoot != 0L) {
+        addSeparator()
+        if (totalLoot > 0) {
+            addInfoRow(R.drawable.ic_vip_crown, "الغنائم المكتسبة", "#F4D03F")
+        } else {
+            addInfoRow(R.drawable.ic_settings_gear, "الموارد المنهوبة", "#FF5252")
+        }
         
-        // معلومات القوات
-        addRow(R.drawable.ic_ui_formation, "إجمالي المُرسل: ${formatResourceNumber(report.myTotalSent)}", "#FFFFFF")
-        if (report.battleRounds > 0) {
-            addRow(R.drawable.ic_ui_arena, "جولات القتال: ${report.battleRounds}", "#F4D03F")
-        }
-        if (report.myDamage > 0) {
-            addRow(R.drawable.ic_ui_arena, "الضرر المُحدث: ${formatResourceNumber(report.myDamage)}", "#F4D03F")
-        }
-        
-        // القتلى | الجرحى | الناجون في سطر واحد
-        val statsRow = LinearLayout(this).apply {
+        val lootRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, 4, 0, 2)
             gravity = Gravity.CENTER
         }
-        fun addStat(iconResId: Int, value: String, color: String) {
-            val statLayout = LinearLayout(this).apply {
+        fun addLootIcon(iconRes: Int, value: Long, isPositive: Boolean) {
+            if (value == 0L) return
+            val ll = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                setPadding(0, 0, 12, 0)
+                setPadding(0, 0, 16, 0)
             }
-            val icon = ImageView(this).apply {
-                setImageResource(iconResId)
-                layoutParams = LinearLayout.LayoutParams(16, 16).apply { setMargins(0, 0, 3, 0) }
+            val ic = ImageView(this).apply {
+                setImageResource(iconRes)
+                layoutParams = LinearLayout.LayoutParams(22, 22).apply { setMargins(0, 0, 4, 0) }
             }
             val tv = TextView(this).apply {
-                text = value
+                text = "${if(isPositive) "+" else "-"}${formatResourceNumber(Math.abs(value))}"
                 textSize = 10f
-                setTextColor(Color.parseColor(color))
-                setTypeface(null, Typeface.BOLD)
+                setTextColor(Color.parseColor(if(isPositive) "#FFFFFF" else "#FF5252"))
             }
-            statLayout.addView(icon)
-            statLayout.addView(tv)
-            statsRow.addView(statLayout)
+            ll.addView(ic)
+            ll.addView(tv)
+            lootRow.addView(ll)
         }
-        addStat(R.drawable.ic_settings_gear, formatResourceNumber(report.myDead), "#FF5252")
-        addStat(R.drawable.ic_hospital_wounded, formatResourceNumber(report.myWounded), "#E67E22")
-        addStat(R.drawable.ic_vip_crown, formatResourceNumber(report.mySurviving), "#2ECC71")
-        detailsLayout.addView(statsRow)
-        
-        // ══════ قسم الموارد ══════
-        val totalLoot = report.lootGold + report.lootIron + report.lootWheat
-        if (totalLoot > 0 || totalLoot < 0) {
-            addDivider()
-            if (totalLoot > 0) {
-                addRow(R.drawable.ic_vip_crown, "الغنائم المكتسبة", "#F4D03F")
-            } else {
-                addRow(R.drawable.ic_settings_gear, "الموارد المنهوبة", "#FF5252")
-            }
-            
-            val lootRow = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                setPadding(0, 4, 0, 2)
-                gravity = Gravity.CENTER
-            }
-            fun addLoot(iconResId: Int, value: Long, isPositive: Boolean) {
-                if (value == 0L) return
-                val lootLayout = LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    gravity = Gravity.CENTER_VERTICAL
-                    setPadding(0, 0, 16, 0)
-                }
-                val icon = ImageView(this).apply {
-                    setImageResource(iconResId)
-                    layoutParams = LinearLayout.LayoutParams(20, 20).apply { setMargins(0, 0, 4, 0) }
-                }
-                val prefix = if (isPositive) "+" else "-"
-                val color = if (isPositive) "#FFFFFF" else "#FF5252"
-                val tv = TextView(this).apply {
-                    text = "$prefix${formatResourceNumber(Math.abs(value))}"
-                    textSize = 10f
-                    setTextColor(Color.parseColor(color))
-                    setTypeface(null, Typeface.BOLD)
-                }
-                lootLayout.addView(icon)
-                lootLayout.addView(tv)
-                lootRow.addView(lootLayout)
-            }
-            addLoot(R.drawable.ic_resource_iron, report.lootIron, totalLoot > 0)
-            addLoot(R.drawable.ic_resource_wheat, report.lootWheat, totalLoot > 0)
-            if (report.lootGold != 0L) addLoot(R.drawable.ic_resource_gold, report.lootGold, totalLoot > 0)
-            detailsLayout.addView(lootRow)
-        }
-        
-        // إضافة التفاصيل إلى النافذة
-        val originalBody = d.findViewById<TextView>(R.id.tvMessageBody)
-        val parentLayout = originalBody?.parent as? ViewGroup
-        originalBody?.visibility = View.GONE
-        parentLayout?.addView(detailsLayout, 
-            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        
-        // زر الإغلاق
-        d.findViewById<Button>(R.id.btnMessageOk)?.apply {
-            text = "متابعة"
-            setOnClickListener { 
-                SoundManager.playClick()
-                d.dismiss() 
-            }
-        }
-        
-        d.setOnDismissListener {
-            isReportDialogOpen = false 
-            if (report.hasRevenge && report.revengeNodeId != -1) {
-                showRevengeWarningDialog(report.revengeNodeId)
-            } else {
-                checkPendingReports()
-            }
-        }
-        d.show()
+        addLootIcon(R.drawable.ic_resource_iron, report.lootIron, totalLoot > 0)
+        addLootIcon(R.drawable.ic_resource_wheat, report.lootWheat, totalLoot > 0)
+        if (report.lootGold != 0L) addLootIcon(R.drawable.ic_resource_gold, report.lootGold, totalLoot > 0)
+        detailsLayout.addView(lootRow)
     }
-
-    private fun showRevengeWarningDialog(nodeId: Int) {
-        if (!isActivityResumed) return
-        isReportDialogOpen = true 
-        
-        SoundManager.playWindowOpen()
-        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
-        d.setContentView(R.layout.dialog_game_message)
-        
-        d.findViewById<TextView>(R.id.tvMessageTitle)?.apply {
-            text = "تحذير هجوم وشيك"
-            setTextColor(Color.parseColor("#FF5252"))
-        }
-        d.findViewById<TextView>(R.id.tvMessageBody)?.text = "العدو لم يُهزم! لقد قام بحشد قواته المتبقية وهو في طريقه الآن للانتقام من مدينتك!\n\nتجهز للدفاع فوراً!"
-        d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(R.drawable.ic_settings_gear)
-        
-        d.findViewById<Button>(R.id.btnMessageOk)?.apply {
-            text = "حسناً!"
-            setBackgroundResource(R.drawable.bg_btn_gold_border)
-            setOnClickListener { SoundManager.playClick(); d.dismiss() }
-        }
-        
-        d.setOnDismissListener {
-            isReportDialogOpen = false 
-            GameState.triggerRevengeMarch(nodeId)
-        }
-        d.show()
+    
+    // إضافة التفاصيل
+    val originalBody = d.findViewById<TextView>(R.id.tvMessageBody)
+    val parentLayout = originalBody?.parent as? ViewGroup
+    originalBody?.visibility = View.GONE
+    parentLayout?.addView(detailsLayout,
+        ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+    
+    // زر الإغلاق
+    d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener {
+        SoundManager.playClick()
+        d.dismiss()
     }
-
-    // ═══════════════════════════════════════════════════════
-    // 🎬 شريط الأخبار
-    // ═══════════════════════════════════════════════════════
-
+    
+    d.setOnDismissListener {
+        isReportDialogOpen = false
+        if (report.hasRevenge && report.revengeNodeId != -1) {
+            showRevengeWarningDialog(report.revengeNodeId)
+        } else {
+            checkPendingReports()
+        }
+    }
+    d.show()
+    }
+        
+        
     private fun checkAndPlayGlobalNews() {
         if (!isActivityResumed || isNewsPlaying || GameState.globalNewsQueue.isEmpty()) return
         
