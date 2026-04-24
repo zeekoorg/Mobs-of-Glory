@@ -635,7 +635,7 @@ object GameState {
                             message = "دفاعاتنا لم تصمد أمام هجوم [$enemyName] وتم نهب خزائننا!",
                             enemyName = enemyName,
                             enemyPowerBefore = enemyTotalAtk.toLong(),
-                            enemyPowerAfter = enemySurviving * INFANTRY_ATK,
+                            enemyPowerAfter = (enemySurviving * INFANTRY_ATK).toLong(),
                             myTotalSent = totalDefenders,
                             myDead = infDead + cavDead,
                             myWounded = infWounded + cavWounded,
