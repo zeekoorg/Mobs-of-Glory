@@ -67,7 +67,6 @@ object GameState {
 
     private val ioScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    // 💡 1. قائمة الأسماء الوهمية الموحدة للساحة والخريطة (100 اسم)
     val FAKE_PLAYER_NAMES = listOf(
         "جلاد السلاطين", "فارس الظلام", "الرعب الأحمر", "شبح الصحراء", "قاهر الجيوش", 
         "ملك الشمال", "سيد العواصف", "أبو سالم", "ذئب الليل", "الكابوس", 
@@ -149,7 +148,6 @@ object GameState {
     var arenaStaminaLastRegenTime: Long = 0L; var arenaSeasonEndTime: Long = 0L
     val arenaLeaderboard = mutableListOf<ArenaPlayer>()
 
-    // 💡 3. نظام الإرهاق (حد شحن الطاقة 10 مرات في اليوم)
     var arenaAdsWatchedToday: Int = 0
     var arenaAdsLastWatchedTime: Long = 0L
 
@@ -559,11 +557,10 @@ object GameState {
 
                 if (march.type == MarchType.ATTACK || march.type == MarchType.REVENGE) {
                     
-                    // 💡 تجهيز خصائص القوة للذكاء الاصطناعي (يستخدمها المهاجم أو المدافع)
                     val aiBuff = node?.aiBuffMultiplier ?: 0.0
                     val aiBuffForMarch = if (march.type == MarchType.REVENGE) aiBuff else 0.0
 
-                    // 💡 [مُصلح] دمج الخصائص
+                    // 💡 [المحرك الجبار] - حساب خصائص المهاجم (اللاعب المهاجم أو العدو في حالة الانتقام)
                     var heroAtkBuff = 0.0; var heroDefBuff = 0.0; var heroHpBuff = 0.0
                     march.heroIds.forEach { id -> 
                         myHeroes.find { it.id == id }?.let { 
@@ -592,35 +589,28 @@ object GameState {
                         totalSent += troop.count
                     }
                     
-                    march.reportMyTotalPowerStr = myTotalAtk.toLong().toString()
+                    // القوة القتالية الحقيقية الشاملة للمهاجم
+                    val attackerCombatPower = (myTotalAtk + myTotalDef + myTotalHp).toLong()
 
-                    // 💡 [مُصلح] حساب القوة الحقيقية لفيلق الذكاء الاصطناعي ليظهر في التقرير الانتقامي بشكل صادق
-                    var aiMarchInitialPower = 0L
-                    if (march.type == MarchType.REVENGE) {
-                        march.marchTroops.forEach { troop ->
-                            aiMarchInitialPower += (troop.count * getTroopStats(troop.type, troop.tier).power)
-                        }
-                        aiMarchInitialPower = (aiMarchInitialPower * (1.0 + aiBuffForMarch)).toLong()
-                    }
-
+                    // 💡 [المحرك الجبار] - حساب خصائص المدافع (العدو أو اللاعب)
                     var enemyAtk = 0.0; var enemyHp = 0.0; var enemyDef = 0.0
-                    val initialEnemyPower = node?.currentPower ?: 0L
                     val enemyName = node?.playerName ?: march.reportEnemyName
-                    
-                    val defTotalDefBuff = 1.0 + aiBuff
-                    val defTotalHpBuff = 1.0 + aiBuff
-
                     var enemyTotalSentOriginal = 0L
 
                     if (march.type == MarchType.ATTACK) {
+                        val defTotalAtkBuff = 1.0 + aiBuff
+                        val defTotalDefBuff = 1.0 + aiBuff
+                        val defTotalHpBuff = 1.0 + aiBuff
+                        
                         node!!.enemyTroops.forEach { troop ->
                             val stats = getTroopStats(troop.type, troop.tier)
-                            enemyAtk += (troop.count * stats.baseAtk * defTotalDefBuff)
+                            enemyAtk += (troop.count * stats.baseAtk * defTotalAtkBuff)
                             enemyHp += (troop.count * stats.baseHp * defTotalHpBuff)
                             enemyDef += (troop.count * stats.baseDef * defTotalDefBuff)
                             enemyTotalSentOriginal += troop.count
                         }
                     } else {
+                        // اللاعب هو المدافع
                         var cityDefBuff = 0.0; var cityHpBuff = 0.0; var cityAtkBuff = 0.0
                         myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { 
                             cityDefBuff += it.getCurrentDefenseBuff()
@@ -645,10 +635,13 @@ object GameState {
                         }
                     }
 
+                    // القوة القتالية الحقيقية الشاملة للمدافع
+                    val defenderCombatPower = (enemyAtk + enemyDef + enemyHp).toLong()
+
                     var rounds = 0; val maxRounds = 20
                     var actualDmgToMeTotal = 0.0; var actualDmgToEnemyTotal = 0.0
 
-                    // 💡 [مُصلح] المحرك القتالي المتقدم (طبق الأصل من الساحة وانتقام السلاطين)
+                    // 💡 محرك الاصطدام الديناميكي الدقيق
                     if (myTotalHp > 0 && enemyHp > 0) {
                         while (myTotalHp > 0 && enemyHp > 0 && rounds < maxRounds) {
                             rounds++
@@ -667,12 +660,15 @@ object GameState {
                     val avgHpPerUnit = myTotalHp / totalSent.coerceAtLeast(1)
                     var totalCasualties = (actualDmgToMeTotal / avgHpPerUnit).toLong()
 
+                    // إذا خسر المهاجم، لا نبيده كلياً، بل نفعل عقوبة منطقية
                     if (!isVictory && march.type == MarchType.ATTACK) {
                         val powerRatio = myTotalAtk / enemyDef.coerceAtLeast(1.0)
-                        if (powerRatio < 0.5) {
+                        if (powerRatio < 0.2) {
                             totalCasualties = (totalSent * Random.nextDouble(0.85, 1.0)).toLong() 
+                        } else if (powerRatio < 0.5) {
+                            totalCasualties = (totalSent * Random.nextDouble(0.4, 0.7)).toLong()
                         } else {
-                            totalCasualties = (totalSent * Random.nextDouble(0.5, 0.8)).toLong()
+                            totalCasualties = (totalSent * Random.nextDouble(0.1, 0.3)).toLong()
                         }
                     }
 
@@ -770,9 +766,7 @@ object GameState {
                         }
                     }
 
-
                     if (march.type == MarchType.ATTACK) {
-                        
                         var newEnemyPower = 0L
                         node!!.enemyTroops.forEach { eTroop ->
                             newEnemyPower += (eTroop.count * getTroopStats(eTroop.type, eTroop.tier).power)
@@ -782,7 +776,7 @@ object GameState {
 
                         if (isVictory || newEnemyPower <= 0) {
                             node.isDefeated = true; node.currentPower = 0
-                            if (initialEnemyPower == node.maxPower) {
+                            if (node.maxPower > 0) {
                                 globalNewsQueue.add("عاجل: هجم القائد [$playerName] على [${node.playerName}] وحقق انتصاراً ساحقاً!")
                             }
                             
@@ -801,7 +795,11 @@ object GameState {
                         march.reportWounded = totalWounded
                         march.reportIsVictory = isVictory
                         march.reportRounds = rounds 
-                        march.reportEnemyPowerStr = initialEnemyPower.toString()
+                        
+                        // 💡 تخزين القوة الحقيقية لتظهر في التقرير الدقيق
+                        march.reportMyTotalPowerStr = attackerCombatPower.toString()
+                        march.reportEnemyPowerStr = defenderCombatPower.toString()
+                        
                         march.reportEnemyName = enemyName
                         march.hasReport = true
 
@@ -809,18 +807,12 @@ object GameState {
                         march.endTime = now + 5000L 
                     } 
                     else {
-                        // 💡 [مُصلح] حساب القوة المتبقية الحقيقية للذكاء الاصطناعي لوضعها في التقرير
-                        var aiMarchFinalPower = 0L
-                        if (march.type == MarchType.REVENGE) {
-                            march.marchTroops.forEach { troop ->
-                                aiMarchFinalPower += (troop.count * getTroopStats(troop.type, troop.tier).power)
-                            }
-                            aiMarchFinalPower = (aiMarchFinalPower * (1.0 + aiBuffForMarch)).toLong()
-                        }
-                        
                         val isCityDefended = myTotalHp <= 0 
                         
                         val myTotalSurviving = playerTroops.sumOf { it.count }
+                        val enemyTotalSurviving = march.marchTroops.sumOf { it.count }
+                        val remainingRatio = if (enemyTotalSentOriginal > 0) enemyTotalSurviving.toDouble() / enemyTotalSentOriginal else 0.0
+                        val aiMarchFinalPower = (attackerCombatPower * remainingRatio).toLong()
                         
                         if (isCityDefended) {
                             globalNewsQueue.add("عاجل: تم صد هجوم [$enemyName] على مدينتنا بنجاح!")
@@ -829,7 +821,7 @@ object GameState {
                                 title = "دفاع أسطوري!",
                                 message = "تم تدمير قوات [$enemyName] المهاجمة على أسوارنا!",
                                 enemyName = enemyName,
-                                enemyPowerBefore = aiMarchInitialPower, // 💡 القوة الحقيقية قبل المعركة
+                                enemyPowerBefore = attackerCombatPower,
                                 enemyPowerAfter = 0L,
                                 myTotalSent = enemyTotalSentOriginal, 
                                 myDead = enemyTotalDead,
@@ -838,7 +830,7 @@ object GameState {
                                 myDamage = actualDmgToMeTotal.toLong(),  
                                 lootGold = 0, lootIron = 0, lootWheat = 0, isVictory = true,
                                 battleRounds = rounds,
-                                myTotalPowerStr = enemyAtk.toLong().toString()
+                                myTotalPowerStr = defenderCombatPower.toString()
                             ))
                         } else {
                             val lostIron = minOf(totalIron, Random.nextLong(10000, 60000))
@@ -854,8 +846,8 @@ object GameState {
                                 title = "هزيمة دفاعية مريرة!",
                                 message = "دفاعاتنا لم تصمد أمام هجوم [$enemyName] وتم نهب خزائننا!",
                                 enemyName = enemyName,
-                                enemyPowerBefore = aiMarchInitialPower, // 💡 القوة الحقيقية قبل المعركة
-                                enemyPowerAfter = aiMarchFinalPower, // 💡 القوة الحقيقية بعد المعركة
+                                enemyPowerBefore = attackerCombatPower, 
+                                enemyPowerAfter = aiMarchFinalPower, 
                                 myTotalSent = enemyTotalSentOriginal,
                                 myDead = enemyTotalDead,
                                 myWounded = enemyTotalWounded,
@@ -863,7 +855,7 @@ object GameState {
                                 myDamage = actualDmgToMeTotal.toLong(), 
                                 lootGold = 0, lootIron = -lostIron, lootWheat = -lostWheat, isVictory = false,
                                 battleRounds = rounds,
-                                myTotalPowerStr = enemyAtk.toLong().toString()
+                                myTotalPowerStr = defenderCombatPower.toString()
                             ))
                         }
                         
@@ -946,7 +938,6 @@ object GameState {
                 if (march.type == MarchType.ATTACK && march.hasReport) {
                     val willRevenge = !march.reportIsVictory && node != null && node.currentPower > 0
                     
-                    val totalSent = march.marchTroops.sumOf { it.count } + march.reportDead + march.reportWounded
                     val surviving = march.marchTroops.sumOf { it.count }
                     
                     pendingBattleReports.add(BattleReport(
@@ -956,7 +947,7 @@ object GameState {
                         enemyName = march.reportEnemyName,
                         enemyPowerBefore = march.reportEnemyPowerStr.toLongOrNull() ?: 0L,
                         enemyPowerAfter = node?.currentPower ?: 0L,
-                        myTotalSent = totalSent,
+                        myTotalSent = surviving + march.reportDead + march.reportWounded,
                         myDead = march.reportDead,
                         myWounded = march.reportWounded,
                         mySurviving = surviving,
@@ -1022,13 +1013,11 @@ object GameState {
         prefs.putLong("ARENA_SCORE", arenaScore); prefs.putInt("ARENA_STAMINA", arenaStamina)
         prefs.putLong("ARENA_STAMINA_REGEN", arenaStaminaLastRegenTime); prefs.putLong("ARENA_SEASON_END", arenaSeasonEndTime)
 
-        // 💡 حفظ الأسماء المتغيرة في التخزين المؤقت
         arenaLeaderboard.filter { !it.isRealPlayer }.forEach { 
             prefs.putLong("ARENA_FAKE_SCORE_${it.id}", it.score)
             prefs.putString("ARENA_FAKE_NAME_${it.id}", it.name) 
         }
         
-        // 💡 حفظ العداد اليومي للإعلانات
         prefs.putInt("ARENA_ADS_TODAY", arenaAdsWatchedToday)
         prefs.putLong("ARENA_ADS_LAST_TIME", arenaAdsLastWatchedTime)
 
@@ -1144,7 +1133,6 @@ object GameState {
         isHealing = prefs.getBoolean("IS_HEALING", false); healingEndTime = prefs.getLong("HEALING_END_TIME", 0L)
         healingTotalTime = prefs.getLong("HEALING_TOTAL_TIME", 0L)
 
-        // 💡 تحميل عداد الإعلانات وإعادة التصفير إذا كان يوم جديد
         arenaAdsWatchedToday = prefs.getInt("ARENA_ADS_TODAY", 0)
         arenaAdsLastWatchedTime = prefs.getLong("ARENA_ADS_LAST_TIME", 0L)
         
@@ -1176,7 +1164,6 @@ object GameState {
         val hoursOffline = (offlineTime / 3600000L).toInt()
         val powerMultiplier = maxOf(1.0, (playerPower / 100_000.0).pow(0.8))
 
-        // 💡 محاكاة ذكاء الظل أثناء غيابك (Offline Catch-Up)
         arenaLeaderboard.filter { !it.isRealPlayer }.forEach { ai ->
             var savedScore = prefs.getLong("ARENA_FAKE_SCORE_${ai.id}", 0L)
             val savedName = prefs.getString("ARENA_FAKE_NAME_${ai.id}", null)
@@ -1187,7 +1174,6 @@ object GameState {
             } else if (hoursOffline > 0) {
                 val offlineGrowth = (hoursOffline * Random.nextLong(1000, 4000) * powerMultiplier).toLong()
                 
-                // إذا وجد الذكاء الاصطناعي أنك هربت بالمركز الأول، يحاول اللحاق بك بجنون!
                 val catchUp = if (arenaScore > savedScore * 0.8 && Random.nextInt(100) < 30) {
                     ((arenaScore - savedScore) * Random.nextDouble(0.1, 0.5)).toLong().coerceAtLeast(0L)
                 } else 0L
