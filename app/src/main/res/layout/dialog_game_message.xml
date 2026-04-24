@@ -13,7 +13,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:paddingBottom="25dp">
+        android:paddingBottom="30dp">
 
         <ImageView
             android:layout_width="match_parent"
@@ -30,7 +30,7 @@
             android:layout_marginTop="25dp"
             android:text="إشعار ملكي"
             android:textColor="#F4D03F"
-            android:textSize="20sp"
+            android:textSize="18sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -58,7 +58,7 @@
             android:lineSpacingExtra="4dp"
             android:text="تمت العملية بنجاح!"
             android:textColor="#FFFFFF"
-            android:textSize="15sp"
+            android:textSize="13sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -68,7 +68,7 @@
             android:id="@+id/btnMessageOk"
             android:layout_width="140dp"
             android:layout_height="45dp"
-            android:layout_marginTop="25dp"
+            android:layout_marginTop="15dp"
             android:background="@drawable/bg_btn_gold_border"
             android:gravity="center"
             android:padding="0dp"
