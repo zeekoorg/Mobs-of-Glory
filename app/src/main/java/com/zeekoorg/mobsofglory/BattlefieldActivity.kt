@@ -106,6 +106,9 @@ class BattlefieldActivity : AppCompatActivity() {
         super.onPause()
         isActivityResumed = false
         GameState.saveGameData(this)
+        
+        // 💡 [تعديل] إيقاف الموسيقى عند خروج اللعبة للخلفية
+        SoundManager.pauseBGM()
     }
     
     override fun onDestroy() {
@@ -710,7 +713,6 @@ class BattlefieldActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 [تعديل] التقرير السينمائي يميز بين الدفاع والهجوم
     private fun showBattleReportDialog(report: BattleReport) {
         if (!isActivityResumed) return
         isReportDialogOpen = true 
@@ -729,7 +731,6 @@ class BattlefieldActivity : AppCompatActivity() {
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الخسائر: ${formatResourceNumber(report.enemyPowerBefore - report.enemyPowerAfter)}\n")
             
             ssb.append("━━━━━━ قواتك ━━━━━━\n")
-            // 💡 إذا كنت تدافع (هجوم انتقامي)، التقرير يظهر "المرابطين" وقوة الدفاع
             if (report.title.contains("دفاع") || report.title.contains("هزيمة دفاعية")) {
                 appendIconWithText(ssb, R.drawable.ic_ui_arena, "إجمالي المُرابطين: ${formatResourceNumber(report.myTotalSent)}")
                 appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة أسوار المدينة (مع الخصائص): ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} 🛡️")
