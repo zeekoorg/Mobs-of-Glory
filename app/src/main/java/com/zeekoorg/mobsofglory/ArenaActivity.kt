@@ -137,6 +137,12 @@ class ArenaActivity : AppCompatActivity() {
     }
 
     private fun showStaminaAdDialog() {
+        // 💡 تطبيق نظام الإرهاق (حد الشحن اليومي)
+        if (!GameState.canWatchArenaAd()) {
+            DialogManager.showGameMessage(this, "نفد الرصيد اليومي", "لقد استنفدت الحد الأقصى لمشاهدة إعلانات الطاقة اليوم (10 مرات). عُد غداً أيها المهيب!", R.drawable.ic_settings_gear)
+            return
+        }
+        
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_ad_confirm)
         d.findViewById<Button>(R.id.btnConfirmAd)?.setOnClickListener {
@@ -144,6 +150,7 @@ class ArenaActivity : AppCompatActivity() {
             d.dismiss()
             YandexAdsManager.showRewardedAd(this, onRewarded = {
                 GameState.addQuestProgress(QuestType.WATCH_ADS, 1)
+                GameState.recordArenaAdWatched() 
                 
                 GameState.arenaStamina = 5; GameState.arenaStaminaLastRegenTime = System.currentTimeMillis(); GameState.saveGameData(this)
                 refreshArenaUI(); DialogManager.showGameMessage(this, "طاقة كاملة", "تم شحن طاقة الهجوم بالكامل! سحقاً للأعداء!", R.drawable.ic_settings_gear)
@@ -151,6 +158,21 @@ class ArenaActivity : AppCompatActivity() {
         }
         d.findViewById<Button>(R.id.btnCancelAd)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
         d.show()
+    }
+
+    // 💡 دالة رسم النقاط المتلاشية (الغبار السحري)
+    private fun createTrailingDots(rootLayout: ViewGroup, referenceView: View, colorHex: String = "#DDDDDD") {
+        for (i in 0..1) {
+            val dot = View(this).apply {
+                layoutParams = ViewGroup.LayoutParams(30, 30) 
+                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor(colorHex)) }
+                x = referenceView.x + referenceView.width / 2f - 15f + Random.nextInt(-30, 30)
+                y = referenceView.y + referenceView.height / 2f - 15f + Random.nextInt(-30, 30)
+                elevation = 45f
+            }
+            rootLayout.addView(dot)
+            dot.animate().alpha(0f).scaleX(0.4f).scaleY(0.4f).setDuration(500).withEndAction { rootLayout.removeView(dot) }.start()
+        }
     }
 
     private fun startMarchAnimation(marchTroops: List<TroopData>) {
@@ -163,11 +185,24 @@ class ArenaActivity : AppCompatActivity() {
         imgMarchingLegion.scaleX = 1.0f; imgMarchingLegion.scaleY = 1.0f; imgMarchingLegion.translationX = 0f; imgMarchingLegion.translationY = 0f
         imgMarchingLegion.alpha = 1.0f; imgMarchingLegion.visibility = View.VISIBLE
 
+        val rootLayout = findViewById<ViewGroup>(android.R.id.content) ?: return
+        
+        // 💡 تفعيل الغبار السحري أثناء الانطلاق
+        val dotsHandler = Handler(Looper.getMainLooper())
+        val dotsRunnable = object : Runnable {
+            override fun run() {
+                createTrailingDots(rootLayout, imgMarchingLegion, "#DDDDDD")
+                dotsHandler.postDelayed(this, 40)
+            }
+        }
+        dotsHandler.post(dotsRunnable)
+
         imgMarchingLegion.post {
             val startY = imgMarchingLegion.y; val targetY = layoutGhostCastle.y + (layoutGhostCastle.height / 2)
             imgMarchingLegion.animate().translationY(targetY - startY).scaleX(0.4f).scaleY(0.4f).setDuration(2200)
                 .setInterpolator(AccelerateInterpolator()).setListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: Animator) {
+                        dotsHandler.removeCallbacks(dotsRunnable) // إيقاف الغبار عند الاصطدام
                         imgMarchingLegion.visibility = View.INVISIBLE; triggerHitEffects(); executeBattleCalculations(marchTroops)
                     }
                 }).start()
@@ -388,7 +423,6 @@ class ArenaActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 [تعديل] التقرير السينمائي يميز بين الدفاع والهجوم داخل الساحة أيضاً
     private fun showGlobalBattleReportDialog(report: BattleReport) {
         isReportDialogOpen = true 
         SoundManager.playWindowOpen()
@@ -494,11 +528,9 @@ class ArenaActivity : AppCompatActivity() {
                                              else "ينتهي الموسم خلال: %02d:%02d:%02d".format(hours, minutes, seconds)
                     } else { GameState.checkArenaSeason(); refreshArenaUI() }
 
-                    if (Random.nextInt(100) < 25) { 
-                        val fakePlayer = GameState.arenaLeaderboard.filter { !it.isRealPlayer }.random()
-                        fakePlayer.score += Random.nextLong(10, 50)
-                        refreshArenaUI()
-                    }
+                    // 💡 استدعاء ذكاء الظل الاصطناعي بدلاً من الزيادة العشوائية القديمة
+                    GameState.processAIArenaTick()
+                    refreshArenaUI()
 
                     if (GameState.arenaStamina < 5) {
                         val timePassed = now - GameState.arenaStaminaLastRegenTime
