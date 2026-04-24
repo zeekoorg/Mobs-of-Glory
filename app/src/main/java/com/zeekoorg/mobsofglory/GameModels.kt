@@ -20,42 +20,38 @@ enum class QuestType {
     WATCH_ADS 
 }
 
-// 💡 تعديل الرتب لتعطي تأثيرات Buff وتكلفة ووقت مضاعف يتناسب مع نظام SLG
 enum class Rarity(val buffMultiplier: Double, val costMultiplier: Double, val timeMultiplier: Double) {
     COMMON(1.0, 1.0, 1.0),
     RARE(2.5, 3.0, 2.0),
     LEGENDARY(6.0, 8.0, 4.0)
 }
 
-// ⚔️ 1. الأنواع الأربعة الرئيسية للقوات في نظام انتقام السلاطين
 enum class TroopType {
-    INFANTRY,   // المشاة: دفاع وصحة عالية، مضاد للرماة
-    CAVALRY,    // الفرسان: هجوم سريع، مضاد للمشاة
-    ARCHER,     // الرماة: هجوم عالي، مضاد للفرسان
-    SIEGE       // عربات الحصار: حمولة عالية لجمع الموارد وتدمير القلاع
+    INFANTRY,   
+    CAVALRY,    
+    ARCHER,     
+    SIEGE       
 }
 
-// ⚔️ 2. نموذج بيانات فئة الجندي (Tier) وخصائصه الأساسية (Base Stats)
 data class TroopTier(
-    val tier: Int,             // المستوى (1 إلى 10)
-    val type: TroopType,       // نوع الجندي
-    val baseAtk: Double,       // الهجوم الأساسي
-    val baseDef: Double,       // الدفاع الأساسي
-    val baseHp: Double,        // الصحة الأساسية
-    val loadCapacity: Double,  // حمولة الموارد
-    val speed: Double,         // سرعة المسير في الخريطة
-    val power: Long,           // القوة التي يضيفها الجندي الواحد لـ (قوة اللاعب)
-    val trainCostWheat: Long,  // تكلفة القمح للتدريب
-    val trainCostIron: Long,   // تكلفة الحديد للتدريب
-    val trainTimeSeconds: Long // وقت تدريب الجندي الواحد
+    val tier: Int,             
+    val type: TroopType,       
+    val baseAtk: Double,       
+    val baseDef: Double,       
+    val baseHp: Double,        
+    val loadCapacity: Double,  
+    val speed: Double,         
+    val power: Long,           
+    val trainCostWheat: Long,  
+    val trainCostIron: Long,   
+    val trainTimeSeconds: Long 
 )
 
-// ⚔️ 3. نموذج حفظ بيانات الجنود التي يمتلكها اللاعب (في القلعة، المستشفى، أو المسيرات)
 data class TroopData(
     val type: TroopType,
     val tier: Int,
-    var count: Long = 0L,      // العدد السليم المتوفر
-    var wounded: Long = 0L     // العدد المصاب في المستشفى
+    var count: Long = 0L,      
+    var wounded: Long = 0L     
 )
 
 data class Hero(
@@ -66,25 +62,21 @@ data class Hero(
     val rarity: Rarity = Rarity.COMMON,
     var isUpgrading: Boolean = false, var upgradeEndTime: Long = 0L, var totalUpgradeTime: Long = 0L,
     
-    // 💡 إحصائيات عامة (تطبق على كل القوات)
     val baseAttackBuff: Double = 0.05,
     val baseDefenseBuff: Double = 0.05,
     val baseHpBuff: Double = 0.05,
     val baseSpeedBuff: Double = 0.0,
 
-    // 💡 إحصائيات مخصصة لنظام SLG (مثلاً بطل متخصص في المشاة أو الرماة)
     val infAtkBuff: Double = 0.0,
     val cavAtkBuff: Double = 0.0,
     val arcAtkBuff: Double = 0.0,
     val siegeAtkBuff: Double = 0.0
 ) {
-    // دوال حساب الـ Buffs بناءً على المستوى والرتبة (عامة)
     fun getCurrentAttackBuff(): Double = baseAttackBuff + (level * 0.01 * rarity.buffMultiplier)
     fun getCurrentDefenseBuff(): Double = baseDefenseBuff + (level * 0.01 * rarity.buffMultiplier)
     fun getCurrentHpBuff(): Double = baseHpBuff + (level * 0.01 * rarity.buffMultiplier)
     fun getCurrentSpeedBuff(): Double = baseSpeedBuff + (level * 0.005 * rarity.buffMultiplier)
 
-    // دوال الحساب للـ Buffs المخصصة
     fun getCurrentInfAtkBuff(): Double = infAtkBuff + (level * 0.015 * rarity.buffMultiplier)
     fun getCurrentCavAtkBuff(): Double = cavAtkBuff + (level * 0.015 * rarity.buffMultiplier)
     fun getCurrentArcAtkBuff(): Double = arcAtkBuff + (level * 0.015 * rarity.buffMultiplier)
@@ -102,11 +94,9 @@ data class Weapon(
     var isOwned: Boolean = false, var isEquipped: Boolean = false,
     var isUpgrading: Boolean = false, var upgradeEndTime: Long = 0L, var totalUpgradeTime: Long = 0L,
     
-    // 💡 إحصائيات الأسلحة بنظام الـ Buffs
     val baseWeaponAttackBuff: Double = 0.05,
     val baseWeaponDefenseBuff: Double = 0.05,
 
-    // 💡 خصائص مخصصة للأسلحة في نظام SLG
     val infDefBuff: Double = 0.0,
     val cavDefBuff: Double = 0.0,
     val arcDefBuff: Double = 0.0,
@@ -201,4 +191,25 @@ data class ArenaPlayer(
     var score: Long,
     val isRealPlayer: Boolean = false,
     val avatarResId: Int = R.drawable.img_default_avatar
+)
+
+// 💡 4. تعريف العقدة (القلعة/المورد) في خريطة العالم مع إضافة خصائص الجيش الحقيقي
+enum class NodeType { ENEMY_CASTLE, GOLD_MINE, IRON_MINE, WHEAT_FARM }
+
+data class BattlefieldNode(
+    val id: Int, 
+    var type: NodeType,
+    var currentPower: Long,         // سيتم حسابه تلقائياً من الجيوش والتعزيزات
+    var maxPower: Long,             // الحد الأقصى للقوة
+    var level: Int,
+    var isDefeated: Boolean,
+    var lastAttackedTime: Long = 0L,
+    var resourceAmount: Long = 0L,
+    var imageName: String = "",
+    var playerName: String = "",
+    
+    // ⚔️ [الجديد] جيوش العدو الفعلي (بأنواعه وفئاته)
+    var enemyTroops: MutableList<TroopData> = mutableListOf(),
+    // ⚔️ [الجديد] محاكاة للأبطال والأسلحة للعدو (تصاعدي مع المستويات)
+    var aiBuffMultiplier: Double = 0.0
 )
