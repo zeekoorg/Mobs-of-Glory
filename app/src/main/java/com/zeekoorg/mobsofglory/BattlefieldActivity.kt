@@ -462,10 +462,6 @@ class BattlefieldActivity : AppCompatActivity() {
         d.show()
     }
 
-    // ═══════════════════════════════════════
-    // أنيميشن المسيرات
-    // ═══════════════════════════════════════
-
     private fun startMarchAnimation(node: BattlefieldNode, march: ActiveMarch, slot: FrameLayout) {
         val iconSize = 250f 
         val rootLayout = findViewById<ViewGroup>(R.id.mapContainer) ?: return
@@ -658,10 +654,6 @@ class BattlefieldActivity : AppCompatActivity() {
         }
     }
 
-    // ═══════════════════════════════════════
-    // التقارير
-    // ═══════════════════════════════════════
-
     private fun checkPendingReports() {
         if (!isActivityResumed || isReportDialogOpen) return
         
@@ -680,30 +672,25 @@ class BattlefieldActivity : AppCompatActivity() {
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_game_message)
         
-        // العنوان
         d.findViewById<TextView>(R.id.tvMessageTitle)?.apply {
             text = report.title
             textSize = 16f
             setTextColor(if(report.isVictory) Color.parseColor("#2ECC71") else Color.parseColor("#FF5252"))
         }
         
-        // الأيقونة الرئيسية
         d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(
             if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation
         )
         
-        // نص الرسالة
         val bodyTv = d.findViewById<TextView>(R.id.tvMessageBody)
         bodyTv?.text = report.message
         bodyTv?.textSize = 10f
         
-        // إنشاء حاوية التفاصيل مع الأيقونات
         val detailsLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(8, 10, 8, 0)
         }
         
-        // دالة لإضافة فاصل
         fun addSeparator() {
             val v = View(this).apply {
                 layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1).apply {
@@ -714,7 +701,6 @@ class BattlefieldActivity : AppCompatActivity() {
             detailsLayout.addView(v)
         }
 
-        // دالة لإضافة صف مع أيقونة
         fun addRow(iconRes: Int, text: String, color: String = "#FFFFFF") {
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -735,7 +721,6 @@ class BattlefieldActivity : AppCompatActivity() {
             detailsLayout.addView(row)
         }
         
-        // دالة لإضافة إحصائية صغيرة (للقتلى|الجرحى|الناجون)
         fun addMiniStat(iconRes: Int, text: String, color: String) {
             val mini = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -753,9 +738,9 @@ class BattlefieldActivity : AppCompatActivity() {
             }
             mini.addView(ic)
             mini.addView(tv)
+            detailsLayout.addView(mini)
         }
         
-        // ═══ قسم العدو ═══
         if (report.enemyName.isNotEmpty()) {
             addRow(R.drawable.img_avatar_king, "العدو: ${report.enemyName}", "#FFD700")
             addSeparator()
@@ -767,9 +752,7 @@ class BattlefieldActivity : AppCompatActivity() {
             if (loss > 0) addRow(R.drawable.ic_settings_gear, "خسائر العدو: ${formatResourceNumber(loss)}", "#FF5252")
         }
         
-        // ═══ قسم اللاعب ═══
         addSeparator()
-        // صورة اللاعب مع اسمه
         val playerRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, 3, 0, 3)
@@ -795,7 +778,6 @@ class BattlefieldActivity : AppCompatActivity() {
         detailsLayout.addView(playerRow)
         addSeparator()
         
-        // معلومات القوات
         addRow(R.drawable.ic_ui_formation, "إجمالي المُرسل: ${formatResourceNumber(report.myTotalSent)}")
         if (report.battleRounds > 0) {
             addRow(R.drawable.ic_ui_arena, "جولات القتال: ${report.battleRounds}", "#F4D03F")
@@ -804,7 +786,6 @@ class BattlefieldActivity : AppCompatActivity() {
             addRow(R.drawable.ic_ui_arena, "الضرر المُحدث: ${formatResourceNumber(report.myDamage)}", "#F4D03F")
         }
         
-        // القتلى | الجرحى | الناجون في سطر واحد
         val statsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, 4, 0, 2)
@@ -815,7 +796,6 @@ class BattlefieldActivity : AppCompatActivity() {
         addMiniStat(R.drawable.ic_vip_crown, formatResourceNumber(report.mySurviving), "#2ECC71")
         detailsLayout.addView(statsRow)
         
-        // ═══ الموارد ═══
         val totalLoot = report.lootGold + report.lootIron + report.lootWheat
         if (totalLoot != 0L) {
             addSeparator()
@@ -856,14 +836,12 @@ class BattlefieldActivity : AppCompatActivity() {
             detailsLayout.addView(lootRow)
         }
         
-        // إضافة التفاصيل
         val originalBody = d.findViewById<TextView>(R.id.tvMessageBody)
         val parentLayout = originalBody?.parent as? ViewGroup
         originalBody?.visibility = View.GONE
         parentLayout?.addView(detailsLayout,
             ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         
-        // زر الإغلاق
         d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener {
             SoundManager.playClick()
             d.dismiss()
@@ -1091,84 +1069,6 @@ class BattlefieldActivity : AppCompatActivity() {
             }
             d.show()
         }
-    }
-
-    private fun animateResourceText(tv: TextView, start: Long, end: Long, prefix: String, onUpdate: (Long) -> Unit): android.animation.ValueAnimator {
-        val animator = android.animation.ValueAnimator.ofFloat(start.toFloat(), end.toFloat())
-        animator.duration = 800
-        animator.addUpdateListener { 
-            val v = (it.animatedValue as Float).toLong()
-            tv.text = "$prefix${formatResourceNumber(v)}"
-            onUpdate(v)
-        }
-        animator.start()
-        return animator
-    }
-
-    fun updateHudUI() {
-        tvPlayerLevel.text = "Lv. ${GameState.playerLevel}"
-        pbPlayerMP.progress = ((GameState.playerExp.toFloat() / (GameState.playerLevel * 1000).toFloat()) * 100).toInt()
-
-        if (displayedGold == -1L) displayedGold = GameState.totalGold
-        if (displayedGold != GameState.totalGold) { goldAnimator?.cancel(); goldAnimator = animateResourceText(tvTotalGold, displayedGold, GameState.totalGold, "") { displayedGold = it } } 
-        else tvTotalGold.text = formatResourceNumber(GameState.totalGold)
-
-        if (displayedIron == -1L) displayedIron = GameState.totalIron
-        if (displayedIron != GameState.totalIron) { ironAnimator?.cancel(); ironAnimator = animateResourceText(tvTotalIron, displayedIron, GameState.totalIron, "") { displayedIron = it } } 
-        else tvTotalIron.text = formatResourceNumber(GameState.totalIron)
-
-        if (displayedWheat == -1L) displayedWheat = GameState.totalWheat
-        if (displayedWheat != GameState.totalWheat) { wheatAnimator?.cancel(); wheatAnimator = animateResourceText(tvTotalWheat, displayedWheat, GameState.totalWheat, "") { displayedWheat = it } } 
-        else tvTotalWheat.text = formatResourceNumber(GameState.totalWheat)
-
-        if (displayedPower == -1L) displayedPower = GameState.playerPower
-        if (displayedPower != GameState.playerPower) { powerAnimator?.cancel(); powerAnimator = animateResourceText(tvMainTotalPower, displayedPower, GameState.playerPower, "") { displayedPower = it } } 
-        else tvMainTotalPower.text = formatResourceNumber(GameState.playerPower)
-        
-        updateNotificationBadges()
-    }
-
-    private fun updateNotificationBadges() {
-        findViewById<View>(R.id.badgeQuests)?.visibility = if (GameState.hasUnclaimedDailyQuests()) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.badgeStore)?.visibility = View.VISIBLE
-    }
-
-    private fun formatResourceNumber(num: Long): String = when { 
-        num >= 1_000_000_000 -> String.format(Locale.US, "%.1fB", num / 1_000_000_000.0)
-        num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0)
-        num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0)
-        else -> num.toString() 
-    }
-
-    private fun showRevengeWarningDialog(nodeId: Int) {
-        if (!isActivityResumed) return
-        isReportDialogOpen = true 
-        
-        SoundManager.playWindowOpen()
-        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
-        d.setContentView(R.layout.dialog_game_message)
-        
-        val tvTitle = d.findViewById<TextView>(R.id.tvMessageTitle)
-        tvTitle?.text = "تحذير هجوم وشيك"
-        tvTitle?.setTextColor(Color.parseColor("#FF5252")) 
-        
-        d.findViewById<TextView>(R.id.tvMessageBody)?.text = "العدو لم يُهزم! لقد قام بحشد قواته المتبقية وهو في طريقه الآن للانتقام من مدينتك!\n\nتجهز للدفاع فوراً!"
-        d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(R.drawable.ic_settings_gear)
-        
-        val btn = d.findViewById<Button>(R.id.btnMessageOk)
-        btn?.text = "حسناً!"
-        btn?.setBackgroundResource(R.drawable.bg_btn_gold_border)
-        
-        btn?.setOnClickListener {
-            SoundManager.playClick()
-            d.dismiss()
-        }
-        
-        d.setOnDismissListener {
-            isReportDialogOpen = false 
-            GameState.triggerRevengeMarch(nodeId)
-        }
-        d.show()
     }
 
     private fun animateResourceText(tv: TextView, start: Long, end: Long, prefix: String, onUpdate: (Long) -> Unit): android.animation.ValueAnimator {
