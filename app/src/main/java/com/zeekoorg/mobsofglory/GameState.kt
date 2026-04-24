@@ -37,7 +37,8 @@ data class ActiveMarch(
     var reportIsVictory: Boolean = false,
     var hasReport: Boolean = false,
     var reportRounds: Int = 0,
-    var reportEnemyPowerStr: String = ""
+    var reportEnemyPowerStr: String = "",
+    var reportEnemyName: String = ""
 )
 
 data class BattleReport(
@@ -57,7 +58,9 @@ data class BattleReport(
     val lootWheat: Long,
     val isVictory: Boolean,
     val hasRevenge: Boolean = false,
-    val revengeNodeId: Int = -1
+    val revengeNodeId: Int = -1,
+    val battleRounds: Int = 0,
+    val myPowerStr: String = ""
 )
 
 data class BattlefieldNode(
@@ -412,10 +415,12 @@ object GameState {
                     
                     val initialEnemyPower = node.currentPower
                     val initialEnemyHp = enemyHp
+                    val enemyName = node.playerName
 
                     var rounds = 0
                     val maxRounds = 20
                     var actualDmgToMeTotal = 0.0
+                    var actualDmgToEnemyTotal = 0.0
 
                     while (myTotalHp > 0 && enemyHp > 0 && rounds < maxRounds) {
                         rounds++
@@ -427,6 +432,7 @@ object GameState {
                         enemyHp -= dmgToEnemy
                         myTotalHp -= dmgToMe
                         
+                        actualDmgToEnemyTotal += dmgToEnemy
                         actualDmgToMeTotal += dmgToMe
                     }
 
@@ -502,12 +508,13 @@ object GameState {
                     val finalDead = infDead + cavDead + extraDeadInf + extraDeadCav
                     val finalWounded = admittedInf + admittedCav
 
-                    march.reportDamage = myTotalAtk.toLong()
+                    march.reportDamage = actualDmgToEnemyTotal.toLong()
                     march.reportDead = finalDead
                     march.reportWounded = finalWounded
                     march.reportIsVictory = isVictory
                     march.reportRounds = rounds 
-                    march.reportEnemyPowerStr = initialEnemyPower.toString() 
+                    march.reportEnemyPowerStr = initialEnemyPower.toString()
+                    march.reportEnemyName = enemyName
                     march.hasReport = true
 
                     march.status = MarchStatus.RETURNING
@@ -539,7 +546,8 @@ object GameState {
                             myTotalSent = defInfantry + defCavalry,
                             myDead = 0, myWounded = 0, mySurviving = defInfantry + defCavalry,
                             myDamage = 0L, 
-                            lootGold = 0, lootIron = 0, lootWheat = 0, isVictory = true
+                            lootGold = 0, lootIron = 0, lootWheat = 0, isVictory = true,
+                            battleRounds = 1, myPowerStr = cityHp.toString()
                         ))
                     } else {
                         // 💰 نهب ثابت بين 10K-50K
@@ -562,7 +570,8 @@ object GameState {
                             myTotalSent = defInfantry + defCavalry,
                             myDead = 0, myWounded = 0, mySurviving = defInfantry + defCavalry,
                             myDamage = 0L, 
-                            lootGold = -lostGold, lootIron = -lostIron, lootWheat = -lostWheat, isVictory = false
+                            lootGold = -lostGold, lootIron = -lostIron, lootWheat = -lostWheat, isVictory = false,
+                            battleRounds = 1, myPowerStr = cityHp.toString()
                         ))
                     }
                     march.status = MarchStatus.COMPLETED 
@@ -616,25 +625,31 @@ object GameState {
                     val willRevenge = !march.reportIsVictory && node != null && node.currentPower > 0
                     
                     val totalSent = march.infantryCount + march.cavalryCount + march.reportDead + march.reportWounded
+                    val surviving = march.infantryCount + march.cavalryCount
                     
                     pendingBattleReports.add(BattleReport(
                         marchId = march.id,
-                        title = if (march.reportIsVictory) "انتصار ساحق!" else "هزيمة مريرة",
-                        message = if (march.reportIsVictory) "تم تدمير القلعة بعد قتال استمر ${march.reportRounds} جولة!" else "تراجعت قواتنا بعد ${march.reportRounds} جولة قاسية.",
-                        enemyName = node?.playerName ?: "العدو",
+                        title = if (march.reportIsVictory) "⚔️ انتصار ساحق!" else "💔 هزيمة مريرة",
+                        message = if (march.reportIsVictory) 
+                            "تم تدمير قلعة ${march.reportEnemyName} بالكامل!" 
+                        else 
+                            "تراجعت قواتنا أمام ${march.reportEnemyName} بعد مقاومة عنيفة.",
+                        enemyName = march.reportEnemyName,
                         enemyPowerBefore = march.reportEnemyPowerStr.toLongOrNull() ?: 0L,
                         enemyPowerAfter = node?.currentPower ?: 0L,
                         myTotalSent = totalSent,
                         myDead = march.reportDead,
                         myWounded = march.reportWounded,
-                        mySurviving = march.infantryCount + march.cavalryCount,
+                        mySurviving = surviving,
                         myDamage = march.reportDamage, 
                         lootGold = march.payloadGold,
                         lootIron = march.payloadIron,
                         lootWheat = march.payloadWheat,
                         isVictory = march.reportIsVictory,
                         hasRevenge = willRevenge,
-                        revengeNodeId = if (willRevenge) march.targetNodeId else -1
+                        revengeNodeId = if (willRevenge) march.targetNodeId else -1,
+                        battleRounds = march.reportRounds,
+                        myPowerStr = march.reportDamage.toString()
                     ))
                 } else if (march.type == MarchType.GATHER) {
                     val resName = when(node?.type) { NodeType.GOLD_MINE -> "الذهب"; NodeType.IRON_MINE -> "الحديد"; else -> "القمح" }
@@ -642,12 +657,13 @@ object GameState {
                     
                     pendingBattleReports.add(BattleReport(
                         marchId = march.id,
-                        title = "اكتمل الجمع",
+                        title = "📦 اكتمل الجمع",
                         message = "عادت الفيالق وحملت معها ${formatResourceNumber(amountCollected)} من $resName.",
                         enemyName = "", enemyPowerBefore = 0, enemyPowerAfter = 0, 
                         myTotalSent = march.infantryCount + march.cavalryCount, myDead = 0, myWounded = 0, mySurviving = march.infantryCount + march.cavalryCount,
                         myDamage = 0L, 
-                        lootGold = march.payloadGold, lootIron = march.payloadIron, lootWheat = march.payloadWheat, isVictory = true
+                        lootGold = march.payloadGold, lootIron = march.payloadIron, lootWheat = march.payloadWheat, isVictory = true,
+                        battleRounds = 0, myPowerStr = "0"
                     ))
                 }
                 
@@ -764,6 +780,7 @@ object GameState {
             
             prefs.putInt("AM_${index}_RROUNDS", march.reportRounds)
             prefs.putString("AM_${index}_REPWR", march.reportEnemyPowerStr)
+            prefs.putString("AM_${index}_RENAME", march.reportEnemyName)
         }
         
         prefs.apply()
@@ -899,7 +916,8 @@ object GameState {
                 reportIsVictory = prefs.getBoolean("AM_${i}_RVIC", false),
                 hasReport = prefs.getBoolean("AM_${i}_HR", false),
                 reportRounds = prefs.getInt("AM_${i}_RROUNDS", 0),
-                reportEnemyPowerStr = prefs.getString("AM_${i}_REPWR", "") ?: ""
+                reportEnemyPowerStr = prefs.getString("AM_${i}_REPWR", "") ?: "",
+                reportEnemyName = prefs.getString("AM_${i}_RENAME", "") ?: ""
             ))
         }
 
