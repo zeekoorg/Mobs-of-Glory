@@ -291,7 +291,6 @@ object GameState {
         }
 
         if (arenaLeaderboard.isEmpty()) {
-            // إضافة اللاعبين الوهميين الـ 19
             val initialNames = FAKE_PLAYER_NAMES.shuffled().take(19)
             initialNames.forEachIndexed { index, fName -> arenaLeaderboard.add(ArenaPlayer(index + 1, fName, 0L, false)) }
             arenaLeaderboard.add(ArenaPlayer(0, playerName, arenaScore, true))
@@ -404,17 +403,14 @@ object GameState {
         generateRegion(currentRegionLevel)
     }
 
-    // 💡 2. تحديث نظام الذكاء الاصطناعي (ظل القوة والأسماء المتغيرة)
     private fun generateAITiers() {
-        // سحب 19 اسماً جديداً في كل موسم
         val selectedNames = FAKE_PLAYER_NAMES.shuffled().take(19)
         var nameIndex = 0
         
-        // مُعامل القوة (ظل قوة اللاعب): كلما كنت أقوى، أرقام الأعداء ترتفع لتطابق مستواك!
         val powerMultiplier = maxOf(1.0, (playerPower / 100_000.0).pow(0.8))
 
         arenaLeaderboard.filter { !it.isRealPlayer }.forEach { ai ->
-            ai.name = selectedNames[nameIndex++] // تعيين الاسم الجديد
+            ai.name = selectedNames[nameIndex++] 
             val tier = Random.nextInt(100)
             
             val baseScore = when {
@@ -424,15 +420,12 @@ object GameState {
                 else -> Random.nextLong(1000, 20000)
             }
             
-            // ضرب النقاط الأساسية في مُعامل قوتك ليكون التحدي موازياً لك
             ai.score = (baseScore * powerMultiplier).toLong()
         }
         
-        // إعادة ترتيب القائمة
         arenaLeaderboard.sortByDescending { it.score }
     }
 
-    // 💡 دالة نمو نقاط الذكاء الاصطناعي أثناء اللعب النشط (Shadow Catch-Up)
     fun processAIArenaTick() {
         if (Random.nextInt(100) < 25) {
             val fakePlayers = arenaLeaderboard.filter { !it.isRealPlayer }
@@ -443,7 +436,6 @@ object GameState {
             
             var pointsEarned = (Random.nextLong(10, 50) * powerMultiplier).toLong()
             
-            // ذكاء الظل: إذا كان اللاعب قريب منك أو يتفوق عليك، يسرع ليلحق بك بنسبة معينة
             if (arenaScore > fakePlayer.score * 0.8 && Random.nextInt(100) < 20) {
                 pointsEarned += ((arenaScore - fakePlayer.score) * 0.1).toLong().coerceAtLeast(100L * powerMultiplier.toLong())
             }
@@ -506,7 +498,6 @@ object GameState {
             
             pendingOfflineMessages.add(PendingMessage("غنائم الموسم", rewardMsg, R.drawable.ic_arena_rewards))
             arenaScore = 0L; arenaLeaderboard.forEach { if (it.isRealPlayer) it.score = 0L }
-            // 💡 هنا سيتم تجديد أسماء المراكز وتوزيع نقاطهم للموسم الجديد بشكل عادل
             generateAITiers()
             arenaSeasonEndTime = now + (7L * 24 * 3600000L)
         }
@@ -568,6 +559,11 @@ object GameState {
 
                 if (march.type == MarchType.ATTACK || march.type == MarchType.REVENGE) {
                     
+                    // 💡 تجهيز خصائص القوة للذكاء الاصطناعي (يستخدمها المهاجم أو المدافع)
+                    val aiBuff = node?.aiBuffMultiplier ?: 0.0
+                    val aiBuffForMarch = if (march.type == MarchType.REVENGE) aiBuff else 0.0
+
+                    // 💡 [مُصلح] دمج الخصائص
                     var heroAtkBuff = 0.0; var heroDefBuff = 0.0; var heroHpBuff = 0.0
                     march.heroIds.forEach { id -> 
                         myHeroes.find { it.id == id }?.let { 
@@ -580,9 +576,9 @@ object GameState {
                             wpAtkBuff += it.getCurrentAttackBuff(); wpDefBuff += it.getCurrentDefenseBuff() 
                         } 
                     }
-                    val totalAtkBuff = 1.0 + heroAtkBuff + wpAtkBuff
-                    val totalDefBuff = 1.0 + heroDefBuff + wpDefBuff
-                    val totalHpBuff = 1.0 + heroHpBuff
+                    val totalAtkBuff = 1.0 + heroAtkBuff + wpAtkBuff + aiBuffForMarch
+                    val totalDefBuff = 1.0 + heroDefBuff + wpDefBuff + aiBuffForMarch
+                    val totalHpBuff = 1.0 + heroHpBuff + aiBuffForMarch
 
                     var myTotalAtk = 0.0; var myTotalDef = 0.0; var myTotalHp = 0.0
                     var totalSent = 0L; var myMaxLoad = 0L
@@ -598,11 +594,19 @@ object GameState {
                     
                     march.reportMyTotalPowerStr = myTotalAtk.toLong().toString()
 
+                    // 💡 [مُصلح] حساب القوة الحقيقية لفيلق الذكاء الاصطناعي ليظهر في التقرير الانتقامي بشكل صادق
+                    var aiMarchInitialPower = 0L
+                    if (march.type == MarchType.REVENGE) {
+                        march.marchTroops.forEach { troop ->
+                            aiMarchInitialPower += (troop.count * getTroopStats(troop.type, troop.tier).power)
+                        }
+                        aiMarchInitialPower = (aiMarchInitialPower * (1.0 + aiBuffForMarch)).toLong()
+                    }
+
                     var enemyAtk = 0.0; var enemyHp = 0.0; var enemyDef = 0.0
                     val initialEnemyPower = node?.currentPower ?: 0L
                     val enemyName = node?.playerName ?: march.reportEnemyName
                     
-                    val aiBuff = node?.aiBuffMultiplier ?: 0.0
                     val defTotalDefBuff = 1.0 + aiBuff
                     val defTotalHpBuff = 1.0 + aiBuff
 
@@ -644,11 +648,12 @@ object GameState {
                     var rounds = 0; val maxRounds = 20
                     var actualDmgToMeTotal = 0.0; var actualDmgToEnemyTotal = 0.0
 
+                    // 💡 [مُصلح] المحرك القتالي المتقدم (طبق الأصل من الساحة وانتقام السلاطين)
                     if (myTotalHp > 0 && enemyHp > 0) {
                         while (myTotalHp > 0 && enemyHp > 0 && rounds < maxRounds) {
                             rounds++
-                            val dmgToEnemy = (myTotalAtk / (1.0 + (enemyDef / 100.0))) * Random.nextDouble(0.8, 1.2)
-                            val dmgToMe = (enemyAtk / (1.0 + (myTotalDef / 100.0))) * Random.nextDouble(0.8, 1.2)
+                            val dmgToEnemy = (myTotalAtk.pow(2.0) / (myTotalAtk + enemyDef.coerceAtLeast(1.0))) * Random.nextDouble(0.9, 1.1)
+                            val dmgToMe = (enemyAtk.pow(2.0) / (enemyAtk + myTotalDef.coerceAtLeast(1.0))) * Random.nextDouble(0.9, 1.1)
 
                             enemyHp -= dmgToEnemy
                             myTotalHp -= dmgToMe
@@ -804,10 +809,18 @@ object GameState {
                         march.endTime = now + 5000L 
                     } 
                     else {
+                        // 💡 [مُصلح] حساب القوة المتبقية الحقيقية للذكاء الاصطناعي لوضعها في التقرير
+                        var aiMarchFinalPower = 0L
+                        if (march.type == MarchType.REVENGE) {
+                            march.marchTroops.forEach { troop ->
+                                aiMarchFinalPower += (troop.count * getTroopStats(troop.type, troop.tier).power)
+                            }
+                            aiMarchFinalPower = (aiMarchFinalPower * (1.0 + aiBuffForMarch)).toLong()
+                        }
+                        
                         val isCityDefended = myTotalHp <= 0 
                         
                         val myTotalSurviving = playerTroops.sumOf { it.count }
-                        val enemyTotalSurviving = march.marchTroops.sumOf { it.count }
                         
                         if (isCityDefended) {
                             globalNewsQueue.add("عاجل: تم صد هجوم [$enemyName] على مدينتنا بنجاح!")
@@ -816,7 +829,7 @@ object GameState {
                                 title = "دفاع أسطوري!",
                                 message = "تم تدمير قوات [$enemyName] المهاجمة على أسوارنا!",
                                 enemyName = enemyName,
-                                enemyPowerBefore = totalSent * 25L, 
+                                enemyPowerBefore = aiMarchInitialPower, // 💡 القوة الحقيقية قبل المعركة
                                 enemyPowerAfter = 0L,
                                 myTotalSent = enemyTotalSentOriginal, 
                                 myDead = enemyTotalDead,
@@ -841,8 +854,8 @@ object GameState {
                                 title = "هزيمة دفاعية مريرة!",
                                 message = "دفاعاتنا لم تصمد أمام هجوم [$enemyName] وتم نهب خزائننا!",
                                 enemyName = enemyName,
-                                enemyPowerBefore = totalSent * 25L,
-                                enemyPowerAfter = enemyTotalSurviving * 25L,
+                                enemyPowerBefore = aiMarchInitialPower, // 💡 القوة الحقيقية قبل المعركة
+                                enemyPowerAfter = aiMarchFinalPower, // 💡 القوة الحقيقية بعد المعركة
                                 myTotalSent = enemyTotalSentOriginal,
                                 myDead = enemyTotalDead,
                                 myWounded = enemyTotalWounded,
