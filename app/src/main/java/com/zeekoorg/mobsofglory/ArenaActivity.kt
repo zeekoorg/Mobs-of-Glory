@@ -137,7 +137,6 @@ class ArenaActivity : AppCompatActivity() {
     }
 
     private fun showStaminaAdDialog() {
-        // 💡 تطبيق نظام الإرهاق (حد الشحن اليومي)
         if (!GameState.canWatchArenaAd()) {
             DialogManager.showGameMessage(this, "نفد الرصيد اليومي", "لقد استنفدت الحد الأقصى لمشاهدة إعلانات الطاقة اليوم (10 مرات). عُد غداً أيها المهيب!", R.drawable.ic_settings_gear)
             return
@@ -160,14 +159,14 @@ class ArenaActivity : AppCompatActivity() {
         d.show()
     }
 
-    // 💡 دالة رسم النقاط المتلاشية (الغبار السحري)
+    // 💡 تم حل مشكلة الإحداثيات لتتبع حركة الإزاحة (TranslationY)
     private fun createTrailingDots(rootLayout: ViewGroup, referenceView: View, colorHex: String = "#DDDDDD") {
         for (i in 0..1) {
             val dot = View(this).apply {
                 layoutParams = ViewGroup.LayoutParams(30, 30) 
                 background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor(colorHex)) }
-                x = referenceView.x + referenceView.width / 2f - 15f + Random.nextInt(-30, 30)
-                y = referenceView.y + referenceView.height / 2f - 15f + Random.nextInt(-30, 30)
+                x = referenceView.x + referenceView.translationX + (referenceView.width / 2f) - 15f + Random.nextInt(-30, 30)
+                y = referenceView.y + referenceView.translationY + (referenceView.height / 2f) - 15f + Random.nextInt(-30, 30)
                 elevation = 45f
             }
             rootLayout.addView(dot)
@@ -185,9 +184,8 @@ class ArenaActivity : AppCompatActivity() {
         imgMarchingLegion.scaleX = 1.0f; imgMarchingLegion.scaleY = 1.0f; imgMarchingLegion.translationX = 0f; imgMarchingLegion.translationY = 0f
         imgMarchingLegion.alpha = 1.0f; imgMarchingLegion.visibility = View.VISIBLE
 
-        val rootLayout = findViewById<ViewGroup>(android.R.id.content) ?: return
+        val rootLayout = imgMarchingLegion.parent as? ViewGroup ?: findViewById<ViewGroup>(android.R.id.content) ?: return
         
-        // 💡 تفعيل الغبار السحري أثناء الانطلاق
         val dotsHandler = Handler(Looper.getMainLooper())
         val dotsRunnable = object : Runnable {
             override fun run() {
@@ -202,7 +200,7 @@ class ArenaActivity : AppCompatActivity() {
             imgMarchingLegion.animate().translationY(targetY - startY).scaleX(0.4f).scaleY(0.4f).setDuration(2200)
                 .setInterpolator(AccelerateInterpolator()).setListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: Animator) {
-                        dotsHandler.removeCallbacks(dotsRunnable) // إيقاف الغبار عند الاصطدام
+                        dotsHandler.removeCallbacks(dotsRunnable)
                         imgMarchingLegion.visibility = View.INVISIBLE; triggerHitEffects(); executeBattleCalculations(marchTroops)
                     }
                 }).start()
@@ -331,7 +329,8 @@ class ArenaActivity : AppCompatActivity() {
             }
 
             var hasBonusLoot = false
-            if (damageDealt >= 250000) {
+            // 💡 تم تحديث شرط الحصول على المكافأة إلى 2 مليون ضرر
+            if (damageDealt >= 2000000) {
                 hasBonusLoot = true
             }
 
@@ -340,7 +339,8 @@ class ArenaActivity : AppCompatActivity() {
                 GameState.arenaLeaderboard.find { it.isRealPlayer }?.score = GameState.arenaScore
 
                 if (hasBonusLoot) {
-                    GameState.totalIron += 50000; GameState.totalWheat += 50000; GameState.totalGold += 30000
+                    // 💡 تم تعديل الذهب إلى 25K
+                    GameState.totalIron += 50000; GameState.totalWheat += 50000; GameState.totalGold += 25000
                 }
 
                 GameState.calculatePower()
@@ -353,7 +353,7 @@ class ArenaActivity : AppCompatActivity() {
                     if (hasBonusLoot) {
                         Handler(Looper.getMainLooper()).postDelayed({
                             SoundManager.playWindowOpen()
-                            DialogManager.showGameMessage(this@ArenaActivity, "دمار أسطوري!", "لقد ألحقت ضرراً تجاوز 250,000 بالقلعة!\n\nمكافأة فورية:\n+ 50K حديد\n+ 50K قمح\n+ 30K ذهب", R.drawable.ic_ui_castle_rewards)
+                            DialogManager.showGameMessage(this@ArenaActivity, "دمار أسطوري!", "لقد ألحقت ضرراً تجاوز 2,000,000 بالقلعة!\n\nمكافأة فورية:\n+ 50K حديد\n+ 50K قمح\n+ 25K ذهب", R.drawable.ic_ui_castle_rewards)
                         }, 500)
                     }
                 }, 800)
@@ -528,7 +528,6 @@ class ArenaActivity : AppCompatActivity() {
                                              else "ينتهي الموسم خلال: %02d:%02d:%02d".format(hours, minutes, seconds)
                     } else { GameState.checkArenaSeason(); refreshArenaUI() }
 
-                    // 💡 استدعاء ذكاء الظل الاصطناعي بدلاً من الزيادة العشوائية القديمة
                     GameState.processAIArenaTick()
                     refreshArenaUI()
 
