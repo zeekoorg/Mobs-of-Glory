@@ -9,6 +9,9 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.Spannable
+import android.text.SpannableStringBuilder
+import android.text.style.ImageSpan
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateInterpolator
@@ -19,6 +22,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -49,6 +53,7 @@ class ArenaActivity : AppCompatActivity() {
     private val REGEN_TIME_MS = 3600000L 
     
     private var isActivityResumed = false 
+    private var isReportDialogOpen = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,7 +79,6 @@ class ArenaActivity : AppCompatActivity() {
         
         SoundManager.playBGM(this, R.raw.bgm_arena)
         
-        // 💡 فحص التقارير بشكل آمن فور الدخول
         arenaHandler.post { checkPendingReports() }
     }
 
@@ -108,7 +112,10 @@ class ArenaActivity : AppCompatActivity() {
         layoutGhostCastle.setOnClickListener {
             if (GameState.arenaStamina > 0) {
                 SoundManager.playClick()
-                ArenaDialogManager.showPreparationDialog(this) { sentInfantry, sentCavalry -> startMarchAnimation(sentInfantry, sentCavalry) }
+                // 💡 نستخدم النافذة الخاصة بالساحة (ArenaDialogManager) والتي عدلناها لتعيد قائمة القوات (TroopData)
+                ArenaDialogManager.showPreparationDialog(this) { marchTroops -> 
+                    startMarchAnimation(marchTroops) 
+                }
             } else {
                 SoundManager.playClick()
                 DialogManager.showGameMessage(this, "نفاد الطاقة", "لا تمتلك طاقة هجوم! انتظر قليلاً أو اشحن طاقتك.", R.drawable.ic_settings_gear)
@@ -147,7 +154,7 @@ class ArenaActivity : AppCompatActivity() {
         d.show()
     }
 
-    private fun startMarchAnimation(sentInfantry: Long, sentCavalry: Long) {
+    private fun startMarchAnimation(marchTroops: List<TroopData>) {
         GameState.arenaStamina--; if (GameState.arenaStamina == 4) GameState.arenaStaminaLastRegenTime = System.currentTimeMillis()
         refreshArenaUI(); layoutAttackPrompt.visibility = View.INVISIBLE
         
@@ -162,7 +169,7 @@ class ArenaActivity : AppCompatActivity() {
             imgMarchingLegion.animate().translationY(targetY - startY).scaleX(0.4f).scaleY(0.4f).setDuration(2200)
                 .setInterpolator(AccelerateInterpolator()).setListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: Animator) {
-                        imgMarchingLegion.visibility = View.INVISIBLE; triggerHitEffects(); executeBattleCalculations(sentInfantry, sentCavalry)
+                        imgMarchingLegion.visibility = View.INVISIBLE; triggerHitEffects(); executeBattleCalculations(marchTroops)
                     }
                 }).start()
         }
@@ -201,8 +208,8 @@ class ArenaActivity : AppCompatActivity() {
         layoutAttackPrompt.visibility = View.VISIBLE 
     }
 
-    // 💡 [الجديد] محرك قتال الساحة معدل ليستخدم "رياضيات آينشتاين" أيضاً!
-    private fun executeBattleCalculations(sentInfantry: Long, sentCavalry: Long) {
+    // 💡 [تحديث] المحرك الرياضي الجديد للساحة باستخدام Tiers
+    private fun executeBattleCalculations(marchTroops: List<TroopData>) {
         CoroutineScope(Dispatchers.Default).launch {
             
             var heroAtkBuff = 0.0; var heroDefBuff = 0.0; var heroHpBuff = 0.0
@@ -222,13 +229,22 @@ class ArenaActivity : AppCompatActivity() {
             val totalDefBuff = 1.0 + heroDefBuff + wpDefBuff
             val totalHpBuff = 1.0 + heroHpBuff
 
-            val baseAtk = (sentInfantry * GameState.INFANTRY_ATK) + (sentCavalry * GameState.CAVALRY_ATK)
-            val myTotalAtk = baseAtk * totalAtkBuff
-            
-            val baseDef = (sentInfantry * GameState.INFANTRY_DEF) + (sentCavalry * GameState.CAVALRY_DEF)
-            val myTotalDef = baseDef * totalDefBuff
+            var baseAtk = 0.0; var baseDef = 0.0; var baseHp = 0.0
+            var totalSent = 0L
 
-            // 💡 [رياضيات آينشتاين] القلعة الشبحية تمتلك دفاعاً الآن يمتص هجومك
+            marchTroops.forEach { troop ->
+                val stats = GameState.getTroopStats(troop.type, troop.tier)
+                baseAtk += (troop.count * stats.baseAtk)
+                baseDef += (troop.count * stats.baseDef)
+                baseHp += (troop.count * stats.baseHp)
+                totalSent += troop.count
+            }
+
+            val myTotalAtk = baseAtk * totalAtkBuff
+            val myTotalDef = baseDef * totalDefBuff
+            val myTotalHp = baseHp * totalHpBuff
+
+            // 💡 [رياضيات آينشتاين] القلعة الشبحية تمتلك دفاعاً يمتص الهجوم
             val enemyAtk = 15000.0 + (GameState.playerLevel * 2000.0) 
             val enemyDef = 10000.0 + (GameState.playerLevel * 1500.0)
             
@@ -237,26 +253,53 @@ class ArenaActivity : AppCompatActivity() {
             val damageDealt = damageDealtDouble.toLong()
             val earnedScore = maxOf(10L, damageDealt / 150)
 
-            // العدو يرد بضربة مركزة
             val actualDmgToMe = (enemyAtk.pow(2.0) / (enemyAtk + myTotalDef)) * Random.nextDouble(0.9, 1.1)
 
-            val avgHpPerUnit = ((GameState.INFANTRY_HP * totalHpBuff) + (GameState.CAVALRY_HP * totalHpBuff)) / 2.0
+            val avgHpPerUnit = myTotalHp / totalSent.coerceAtLeast(1)
             var totalCasualties = (actualDmgToMe / avgHpPerUnit).toLong()
 
-            val totalSent = sentInfantry + sentCavalry
             if (totalCasualties > totalSent) totalCasualties = totalSent
             if (totalCasualties < 0) totalCasualties = 0
 
-            val infRatio = if (totalSent > 0) sentInfantry.toDouble() / totalSent.toDouble() else 0.0
-            val cavRatio = if (totalSent > 0) sentCavalry.toDouble() / totalSent.toDouble() else 0.0
+            var totalDead = 0L; var totalWounded = 0L
+            val deadRate = 0.05 // نسبة الموت في الساحة قليلة جداً 5% فقط
 
-            val infCasualties = (totalCasualties * infRatio).toLong()
-            val cavCasualties = (totalCasualties * cavRatio).toLong()
+            val hospitalCap = GameState.getHospitalCapacity()
+            var currentWoundedInHospital = GameState.getTotalWoundedTroops()
 
-            val deadInfantry = (infCasualties * 0.10).toLong()
-            val woundedInf = infCasualties - deadInfantry
-            val deadCavalry = (cavCasualties * 0.10).toLong()
-            val woundedCav = cavCasualties - deadCavalry
+            // توزيع الإصابات وإرجاع الناجين للقائمة الرئيسية
+            marchTroops.forEach { marchTroop ->
+                if (marchTroop.count > 0) {
+                    val ratio = marchTroop.count.toDouble() / totalSent
+                    val troopCasualties = (totalCasualties * ratio).toLong()
+                    
+                    val troopDead = (troopCasualties * deadRate).toLong()
+                    val troopWounded = troopCasualties - troopDead
+
+                    val availableSpace = hospitalCap - currentWoundedInHospital
+                    var admittedWounded = 0L
+
+                    if (availableSpace > 0) {
+                        admittedWounded = if (troopWounded <= availableSpace) troopWounded else availableSpace
+                        currentWoundedInHospital += admittedWounded
+                        
+                        val mainTroopRecord = GameState.playerTroops.find { it.type == marchTroop.type && it.tier == marchTroop.tier }
+                        if (mainTroopRecord != null) mainTroopRecord.wounded += admittedWounded
+                    }
+
+                    val extraDead = troopWounded - admittedWounded
+                    val finalDead = troopDead + extraDead
+                    
+                    val surviving = marchTroop.count - (finalDead + admittedWounded)
+                    
+                    // إعادة الناجين للقلعة
+                    val mainTroopRecord = GameState.playerTroops.find { it.type == marchTroop.type && it.tier == marchTroop.tier }
+                    if (mainTroopRecord != null) mainTroopRecord.count += maxOf(0L, surviving)
+
+                    totalDead += finalDead
+                    totalWounded += admittedWounded
+                }
+            }
 
             var hasBonusLoot = false
             if (damageDealt >= 250000) {
@@ -271,18 +314,13 @@ class ArenaActivity : AppCompatActivity() {
                     GameState.totalIron += 50000; GameState.totalWheat += 50000; GameState.totalGold += 30000
                 }
 
-                GameState.totalInfantry -= (deadInfantry + woundedInf)
-                GameState.totalCavalry -= (deadCavalry + woundedCav)
-                GameState.woundedInfantry += woundedInf
-                GameState.woundedCavalry += woundedCav
-
                 GameState.calculatePower()
                 GameState.saveGameData(this@ArenaActivity)
                 refreshArenaUI()
 
                 Handler(Looper.getMainLooper()).postDelayed({
-                    // التقرير الخاص بالساحة (يستخدم ArenaDialogManager)
-                    ArenaDialogManager.showBattleReportDialog(this@ArenaActivity, damageDealt, earnedScore, deadInfantry + deadCavalry, woundedInf + woundedCav)
+                    // التقرير الخاص بالساحة
+                    showArenaBattleReport(damageDealt, earnedScore, totalDead, totalWounded)
                     
                     if (hasBonusLoot) {
                         Handler(Looper.getMainLooper()).postDelayed({
@@ -295,10 +333,47 @@ class ArenaActivity : AppCompatActivity() {
         }
     }
 
+    // 💡 دالة التقرير الخاصة بالساحة مع الأيقونات
+    private fun showArenaBattleReport(damage: Long, scoreEarned: Long, dead: Long, wounded: Long) {
+        SoundManager.playWindowOpen()
+        val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_game_message)
+        
+        val ssb = SpannableStringBuilder()
+        ssb.append("━━━━━━ نتيجة الغزوة ━━━━━━\n")
+        appendIconWithText(ssb, R.drawable.ic_ui_arena, "الضرر الكلي المُحدث: ${formatResourceNumber(damage)}")
+        appendIconWithText(ssb, R.drawable.ic_ui_arena, "نقاط الساحة المكتسبة: +${formatResourceNumber(scoreEarned)}")
+        
+        ssb.append("\n━━━━━━ الخسائر ━━━━━━\n")
+        appendIconWithText(ssb, R.drawable.ic_ui_arena, "القتلى: ${formatResourceNumber(dead)}")
+        appendIconWithText(ssb, R.drawable.ic_ui_arena, "الجرحى (في دار الشفاء): ${formatResourceNumber(wounded)}")
+        
+        d.findViewById<TextView>(R.id.tvMessageTitle)?.text = "تقرير الساحة"
+        d.findViewById<TextView>(R.id.tvMessageBody)?.text = ssb
+        d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(R.drawable.ic_ui_arena)
+        
+        d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener { 
+            SoundManager.playClick()
+            d.dismiss() 
+        }
+        d.show()
+    }
+
+    private fun appendIconWithText(builder: SpannableStringBuilder, iconResId: Int, text: String) {
+        val start = builder.length
+        builder.append("  $text\n") 
+        val drawable = ContextCompat.getDrawable(this, iconResId)
+        drawable?.let {
+            it.setBounds(0, -10, 50, 40)
+            val span = ImageSpan(it, ImageSpan.ALIGN_BASELINE)
+            builder.setSpan(span, start, start + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+    }
+
     fun refreshArenaUI() {
         tvTotalGold.text = formatResourceNumber(GameState.totalGold); tvTotalIron.text = formatResourceNumber(GameState.totalIron)
         tvTotalWheat.text = formatResourceNumber(GameState.totalWheat); tvPlayerLevel.text = "Lv. ${GameState.playerLevel}"
-        tvMainTotalPower.text = "⚔️ قوة الفيلق: ${formatResourceNumber(GameState.legionPower)}"
+        tvMainTotalPower.text = "⚔️ قوة الإمبراطورية: ${formatResourceNumber(GameState.playerPower)}"
         tvArenaScore.text = "النقاط: ${formatResourceNumber(GameState.arenaScore)}"
         
         if (GameState.selectedAvatarUri != null) {
@@ -311,48 +386,54 @@ class ArenaActivity : AppCompatActivity() {
         tvArenaRank.text = "المركز: $playerRank"
     }
 
-    // 💡 [الجديد] التقاط وعرض التقارير السينمائية المفصلة داخل الساحة أيضاً
+    // 💡 التقاط تقارير المعارك العادية أثناء التواجد في الساحة
     private fun checkPendingReports() {
-        if (!isActivityResumed) return
+        if (!isActivityResumed || isReportDialogOpen) return
         
         if (GameState.pendingBattleReports.isNotEmpty()) {
             val report = GameState.pendingBattleReports.removeAt(0) 
             GameState.saveGameData(this)
-            showBattleReportDialog(report)
+            showGlobalBattleReportDialog(report)
         }
     }
 
-    private fun showBattleReportDialog(report: BattleReport) {
+    private fun showGlobalBattleReportDialog(report: BattleReport) {
+        isReportDialogOpen = true 
         SoundManager.playWindowOpen()
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_game_message)
         
-        val details = StringBuilder()
+        val ssb = SpannableStringBuilder()
         
         if (report.enemyPowerBefore > 0) {
-            details.append("==== [قوات العدو: ${report.enemyName}] ====\n")
-            details.append("القوة السابقة: ${formatResourceNumber(report.enemyPowerBefore)}\n")
-            details.append("القوة المتبقية: ${formatResourceNumber(report.enemyPowerAfter)}\n")
-            details.append("الخسائر: ${formatResourceNumber(report.enemyPowerBefore - report.enemyPowerAfter)}\n\n")
+            ssb.append("━━━━━━ قوات العدو ━━━━━━\n")
+            appendIconWithText(ssb, R.drawable.ic_ui_arena, "الاسم: ${report.enemyName}")
+            appendIconWithText(ssb, R.drawable.ic_ui_arena, "القوة قبل المعركة: ${formatResourceNumber(report.enemyPowerBefore)}")
+            appendIconWithText(ssb, R.drawable.ic_ui_arena, "القوة المتبقية: ${formatResourceNumber(report.enemyPowerAfter)}")
+            appendIconWithText(ssb, R.drawable.ic_ui_arena, "الخسائر: ${formatResourceNumber(report.enemyPowerBefore - report.enemyPowerAfter)}\n")
             
-            details.append("==== [قواتك الإمبراطورية] ====\n")
-            details.append("القوة الهجومية: ${formatResourceNumber(report.myDamage)}\n")
-            details.append("القتلى: ${formatResourceNumber(report.myDead)}\n")
-            details.append("الجرحى: ${formatResourceNumber(report.myWounded)}\n\n")
+            ssb.append("━━━━━━ قواتك ━━━━━━\n")
+            appendIconWithText(ssb, R.drawable.ic_ui_arena, "إجمالي المُرسل: ${formatResourceNumber(report.myTotalSent)}")
+            appendIconWithText(ssb, R.drawable.ic_ui_arena, "القتلى: ${formatResourceNumber(report.myDead)}")
+            appendIconWithText(ssb, R.drawable.ic_ui_arena, "الجرحى: ${formatResourceNumber(report.myWounded)}")
+            appendIconWithText(ssb, R.drawable.ic_ui_arena, "الناجون: ${formatResourceNumber(report.mySurviving)}")
+            appendIconWithText(ssb, R.drawable.ic_ui_arena, "الضرر المُحدث: ${formatResourceNumber(report.myDamage)}\n")
         }
         
         if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
-            details.append("==== [الغنائم المكتسبة] ====\n")
-            if (report.lootIron > 0) details.append("الحديد: ${formatResourceNumber(report.lootIron)}  ")
-            if (report.lootWheat > 0) details.append("القمح: ${formatResourceNumber(report.lootWheat)}")
+            ssb.append("━━━━━━ الغنائم المكتسبة ━━━━━━\n")
+            if (report.lootGold > 0) appendIconWithText(ssb, R.drawable.ic_resource_gold, "الذهب: +${formatResourceNumber(report.lootGold)}")
+            if (report.lootIron > 0) appendIconWithText(ssb, R.drawable.ic_resource_iron, "الحديد: +${formatResourceNumber(report.lootIron)}")
+            if (report.lootWheat > 0) appendIconWithText(ssb, R.drawable.ic_resource_wheat, "القمح: +${formatResourceNumber(report.lootWheat)}")
         } else if (report.lootGold < 0 || report.lootIron < 0 || report.lootWheat < 0) {
-            details.append("==== [الموارد المنهوبة من مدينتك!] ====\n")
-            if (report.lootIron < 0) details.append("الحديد: ${formatResourceNumber(Math.abs(report.lootIron))}  ")
-            if (report.lootWheat < 0) details.append("القمح: ${formatResourceNumber(Math.abs(report.lootWheat))}")
+            ssb.append("━━━━━━ الموارد المنهوبة ━━━━━━\n")
+            if (report.lootGold < 0) appendIconWithText(ssb, R.drawable.ic_resource_gold, "الذهب: -${formatResourceNumber(Math.abs(report.lootGold))}")
+            if (report.lootIron < 0) appendIconWithText(ssb, R.drawable.ic_resource_iron, "الحديد: -${formatResourceNumber(Math.abs(report.lootIron))}")
+            if (report.lootWheat < 0) appendIconWithText(ssb, R.drawable.ic_resource_wheat, "القمح: -${formatResourceNumber(Math.abs(report.lootWheat))}")
         }
         
         d.findViewById<TextView>(R.id.tvMessageTitle)?.text = report.title
-        d.findViewById<TextView>(R.id.tvMessageBody)?.text = report.message + "\n\n" + details.toString()
+        d.findViewById<TextView>(R.id.tvMessageBody)?.text = ssb
         d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation)
         
         d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener { 
@@ -361,6 +442,7 @@ class ArenaActivity : AppCompatActivity() {
         }
         
         d.setOnDismissListener {
+            isReportDialogOpen = false 
             if (report.hasRevenge && report.revengeNodeId != -1) {
                 showRevengeWarningDialog(report.revengeNodeId)
             } else {
@@ -371,6 +453,7 @@ class ArenaActivity : AppCompatActivity() {
     }
 
     private fun showRevengeWarningDialog(nodeId: Int) {
+        isReportDialogOpen = true 
         SoundManager.playWindowOpen()
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_game_message)
@@ -392,6 +475,7 @@ class ArenaActivity : AppCompatActivity() {
         }
         
         d.setOnDismissListener {
+            isReportDialogOpen = false 
             GameState.triggerRevengeMarch(nodeId)
             checkPendingReports()
         }
@@ -431,7 +515,7 @@ class ArenaActivity : AppCompatActivity() {
                     if (needsUpdate) {
                         refreshArenaUI()
                     }
-                    // 💡 فحص التقارير المستمر لالتقاط هجمات العدو المفاجئة
+                    
                     if (GameState.pendingBattleReports.isNotEmpty() && isActivityResumed) {
                         checkPendingReports()
                     }
