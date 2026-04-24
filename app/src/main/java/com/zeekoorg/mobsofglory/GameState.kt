@@ -12,7 +12,8 @@ import kotlin.random.Random
 
 data class PendingMessage(val title: String, val body: String, val iconResId: Int)
 
-enum class NodeType { ENEMY_CASTLE, GOLD_MINE, IRON_MINE, WHEAT_FARM }
+// 💡 تم حذف NodeType و BattlefieldNode من هنا لأنها أصبحت في GameModels.kt
+
 enum class MarchStatus { WAITING, MARCHING, GATHERING, RETURNING, COMPLETED }
 enum class MarchType { ATTACK, GATHER, REVENGE }
 
@@ -249,28 +250,22 @@ object GameState {
         if (battlefieldNodes.isEmpty()) generateRegion(currentRegionLevel)
     }
 
-    // 💡 [جديد] التوليد الذكي لجيوش الأعداء بناءً على مستوى المقاطعة
     private fun generateEnemyArmy(regionLevel: Int): Pair<MutableList<TroopData>, Double> {
         val troops = mutableListOf<TroopData>()
         
-        // 1. تحديد إجمالي عدد جنود العدو (يصعد بشكل أسي)
-        // يبدأ بـ 5,000 جندي ويتصاعد للوصول لمئات الآلاف في المقاطعات العليا
         val baseTroops = 5000L
         val multiplier = 1.0 + (regionLevel * 0.15)
         val totalEnemyTroops = (baseTroops * multiplier.pow(1.5)).toLong() + Random.nextLong(1000, 5000)
 
-        // 2. تحديد نسبة الـ Tiers المتاحة في هذه المقاطعة
-        // في البداية T1 فقط، ثم يظهر T2، وصولاً لـ T5.
         val tierProbabilities = mutableMapOf<Int, Double>()
         when {
             regionLevel <= 10 -> { tierProbabilities[1] = 0.8; tierProbabilities[2] = 0.2 }
             regionLevel <= 25 -> { tierProbabilities[1] = 0.3; tierProbabilities[2] = 0.5; tierProbabilities[3] = 0.2 }
             regionLevel <= 50 -> { tierProbabilities[2] = 0.2; tierProbabilities[3] = 0.5; tierProbabilities[4] = 0.3 }
             regionLevel <= 80 -> { tierProbabilities[3] = 0.2; tierProbabilities[4] = 0.6; tierProbabilities[5] = 0.2 }
-            else -> { tierProbabilities[4] = 0.3; tierProbabilities[5] = 0.7 } // جيوش مرعبة في المستويات العليا
+            else -> { tierProbabilities[4] = 0.3; tierProbabilities[5] = 0.7 } 
         }
 
-        // 3. توزيع الجنود على الأنواع (تكتيك الذكاء الاصطناعي: مشاة كدروع في الأمام)
         val typeDistribution = mapOf(
             TroopType.INFANTRY to 0.40,
             TroopType.CAVALRY to 0.30,
@@ -288,8 +283,6 @@ object GameState {
             }
         }
 
-        // 4. تحديد الـ Buff الوهمي للعدو (يمثل الأبطال والأسلحة)
-        // يبدأ بـ 0% ويصل لنسب خيالية (مثلاً +300%) لتعويض قلة الأبطال
         val aiBuff = (regionLevel * 0.05) + Random.nextDouble(0.0, 0.1)
 
         return Pair(troops, aiBuff)
@@ -312,15 +305,12 @@ object GameState {
                 val randomPlayerName = fakePlayerNames.random()
                 castleImageIndex++
                 
-                // 💡 [تعديل] هنا يتم توليد جيش العدو الحقيقي
                 val (generatedTroops, aiBuff) = generateEnemyArmy(level)
                 
-                // حساب قوة القلعة بناءً على جيشها الفعلي
                 var actualPower = 0L
                 generatedTroops.forEach { troop ->
                     actualPower += (troop.count * getTroopStats(troop.type, troop.tier).power)
                 }
-                // إضافة تأثير الـ Buff للقوة التقديرية للعدو
                 actualPower = (actualPower * (1.0 + aiBuff)).toLong()
                 
                 battlefieldNodes.add(BattlefieldNode(
@@ -437,7 +427,6 @@ object GameState {
 
         val travelTime = 5000L
         
-        // 💡 [تعديل] الجيش المنتقم الآن هو نفس الجيش المتبقي في القلعة تماماً
         val revengeTroops = mutableListOf<TroopData>()
         node.enemyTroops.forEach {
             if (it.count > 0) {
@@ -525,7 +514,6 @@ object GameState {
                     val defTotalHpBuff = 1.0 + aiBuff
 
                     if (march.type == MarchType.ATTACK) {
-                        // 💡 [تعديل] العدو هو القلعة المبرمجة AI (نقوم بحساب قوتها من جيشها الحقيقي)
                         node!!.enemyTroops.forEach { troop ->
                             val stats = getTroopStats(troop.type, troop.tier)
                             enemyAtk += (troop.count * stats.baseAtk * defTotalDefBuff)
@@ -533,7 +521,6 @@ object GameState {
                             enemyDef += (troop.count * stats.baseDef * defTotalDefBuff)
                         }
                     } else {
-                        // هجوم انتقامي: اللاعب هو المُدافع
                         var cityDefBuff = 0.0; var cityHpBuff = 0.0
                         myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { cityDefBuff += it.getCurrentDefenseBuff(); cityHpBuff += it.getCurrentHpBuff() }
                         arsenal.filter { it.isOwned && it.isEquipped }.forEach { cityDefBuff += it.getCurrentDefenseBuff() }
@@ -543,7 +530,7 @@ object GameState {
 
                         playerTroops.forEach { troop ->
                             val stats = getTroopStats(troop.type, troop.tier)
-                            enemyAtk += (troop.count * stats.baseAtk) // هجوم المدافع
+                            enemyAtk += (troop.count * stats.baseAtk) 
                             enemyHp += (troop.count * stats.baseHp * myCityHpBuff)
                             enemyDef += (troop.count * stats.baseDef * myCityDefBuff)
                         }
@@ -552,7 +539,6 @@ object GameState {
                     var rounds = 0; val maxRounds = 20
                     var actualDmgToMeTotal = 0.0; var actualDmgToEnemyTotal = 0.0
 
-                    // 💡 حماية من القسمة على صفر إذا كان أحد الجيوش فارغاً
                     if (myTotalHp > 0 && enemyHp > 0) {
                         while (myTotalHp > 0 && enemyHp > 0 && rounds < maxRounds) {
                             rounds++
@@ -568,7 +554,6 @@ object GameState {
 
                     val isVictory = if (march.type == MarchType.ATTACK) enemyHp <= 0 else myTotalHp > 0
                     
-                    // حساب الخسائر للمهاجم
                     val avgHpPerUnit = myTotalHp / totalSent.coerceAtLeast(1)
                     var totalCasualties = (actualDmgToMeTotal / avgHpPerUnit).toLong()
 
@@ -632,7 +617,6 @@ object GameState {
 
                     if (march.type == MarchType.ATTACK) {
                         
-                        // 💡 [تعديل] تطبيق الخسائر على جيش العدو
                         val enemyTotalSentOriginal = node!!.enemyTroops.sumOf { it.count }
                         val enemyAvgHp = (enemyHp + actualDmgToEnemyTotal) / enemyTotalSentOriginal.coerceAtLeast(1)
                         var enemyCasualties = (actualDmgToEnemyTotal / enemyAvgHp).toLong()
@@ -641,14 +625,13 @@ object GameState {
                         
                         node.enemyTroops.forEach { eTroop ->
                             if (eTroop.count > 0) {
-                                val ratio = eTroop.count.toDouble() / enemyTotalSentOriginal
+                                val ratio = eTroop.count.toDouble() / enemyTotalSentOriginal.coerceAtLeast(1)
                                 val dead = (enemyCasualties * ratio).toLong()
                                 eTroop.count -= dead
                                 if (eTroop.count < 0) eTroop.count = 0
                             }
                         }
 
-                        // إعادة حساب القوة المتبقية للعدو
                         var newEnemyPower = 0L
                         node.enemyTroops.forEach { eTroop ->
                             newEnemyPower += (eTroop.count * getTroopStats(eTroop.type, eTroop.tier).power)
@@ -926,7 +909,6 @@ object GameState {
             prefs.putString("BF_NODE_${n.id}_IMG", n.imageName)
             prefs.putString("BF_NODE_${n.id}_PNAME", n.playerName) 
             
-            // 💡 حفظ جيش العدو والتعزيزات في Shared Preferences
             val eTroopsStr = n.enemyTroops.joinToString(";") { "${it.type.name},${it.tier},${it.count},${it.wounded}" }
             prefs.putString("BF_NODE_${n.id}_TROOPS", eTroopsStr)
             prefs.putFloat("BF_NODE_${n.id}_BUFF", n.aiBuffMultiplier.toFloat())
@@ -1047,7 +1029,6 @@ object GameState {
         for (i in 0 until 8) {
             val typeStr = prefs.getString("BF_NODE_${i}_TYPE", null)
             if (typeStr != null) {
-                // 💡 تحميل جيوش العدو من الحفظ
                 val eTroopsStr = prefs.getString("BF_NODE_${i}_TROOPS", "") ?: ""
                 val parsedEnemyTroops = mutableListOf<TroopData>()
                 if (eTroopsStr.isNotEmpty()) {
