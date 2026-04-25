@@ -762,7 +762,8 @@ object GameState {
                             node!!.lastAttackedTime = now
                         }
 
-                        march.reportDamage = actualDmgToDef.toLong()
+                        // 💡 [إصلاح الضرر] - عرض القوة المدمرة بدلاً من نقاط المعالج المخفية
+                        march.reportDamage = defenderDisplayPower - enemyFinalDisplayPower
                         march.reportDead = playerDead
                         march.reportWounded = playerWounded
                         march.reportIsVictory = finalIsAttackerVictory
@@ -790,11 +791,11 @@ object GameState {
                                 enemyName = enemyName,
                                 enemyPowerBefore = attackerDisplayPower, 
                                 enemyPowerAfter = enemyFinalDisplayPower,
-                                myTotalSent = enemyTotalSent, 
-                                myDead = enemyDead, 
-                                myWounded = 0, 
+                                myTotalSent = defenderTotalTroops, // 💡 [إصلاح الدفاع] - عدد جنودك الفعلي
+                                myDead = playerDead, 
+                                myWounded = playerWounded, // 💡 [إصلاح الدفاع] - عرض الجرحى الفعليين
                                 mySurviving = playerSurviving,
-                                myDamage = actualDmgToAtk.toLong(),  
+                                myDamage = attackerDisplayPower - enemyFinalDisplayPower, // 💡 [إصلاح الضرر] - عرض القوة المدمرة
                                 lootGold = 0, lootIron = 0, lootWheat = 0, isVictory = true,
                                 battleRounds = rounds,
                                 myTotalPowerStr = defenderDisplayPower.toString()
@@ -815,11 +816,11 @@ object GameState {
                                 enemyName = enemyName,
                                 enemyPowerBefore = attackerDisplayPower, 
                                 enemyPowerAfter = enemyFinalDisplayPower, 
-                                myTotalSent = enemyTotalSent,
-                                myDead = enemyDead,
-                                myWounded = 0,
+                                myTotalSent = defenderTotalTroops, // 💡 [إصلاح الدفاع] - عدد جنودك الفعلي
+                                myDead = playerDead,
+                                myWounded = playerWounded, // 💡 [إصلاح الدفاع] - عرض الجرحى الفعليين
                                 mySurviving = playerSurviving,
-                                myDamage = actualDmgToAtk.toLong(), 
+                                myDamage = attackerDisplayPower - enemyFinalDisplayPower, // 💡 [إصلاح الضرر] - عرض القوة المدمرة
                                 lootGold = 0, lootIron = -lostIron, lootWheat = -lostWheat, isVictory = false,
                                 battleRounds = rounds,
                                 myTotalPowerStr = defenderDisplayPower.toString()
