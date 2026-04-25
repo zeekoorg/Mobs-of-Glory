@@ -17,7 +17,11 @@ enum class QuestType {
     COLLECT_RESOURCES,
     TRAIN_TROOPS,
     UPGRADE_BUILDING,
-    WATCH_ADS 
+    WATCH_ADS,
+    // 💡 [مُصلح المهام] تمت إضافة أنواع المهام الجديدة هنا
+    DAILY_LOGIN,
+    UPGRADE_HERO,
+    UPGRADE_WEAPON
 }
 
 enum class Rarity(val buffMultiplier: Double, val costMultiplier: Double, val timeMultiplier: Double) {
@@ -73,7 +77,6 @@ data class Hero(
     val arcAtkBuff: Double = 0.0,
     val siegeAtkBuff: Double = 0.0
 ) {
-    // 💡 [مُصلح التوازن] الخصائص الآن تتصاعد بمعدل بطيء وموزون لكل مستوى وحسب الندرة
     fun getCurrentAttackBuff(): Double = baseAttackBuff + ((level - 1) * 0.005 * rarity.buffMultiplier)
     fun getCurrentDefenseBuff(): Double = baseDefenseBuff + ((level - 1) * 0.005 * rarity.buffMultiplier)
     fun getCurrentHpBuff(): Double = baseHpBuff + ((level - 1) * 0.005 * rarity.buffMultiplier)
@@ -104,7 +107,6 @@ data class Weapon(
     val arcDefBuff: Double = 0.0,
     val siegeDefBuff: Double = 0.0
 ) {
-    // 💡 [مُصلح التوازن] الأسلحة أصبحت تعطي إضافات دقيقة ومعقولة تتصاعد مع كل مستوى
     fun getCurrentAttackBuff(): Double = baseWeaponAttackBuff + ((level - 1) * 0.004 * rarity.buffMultiplier)
     fun getCurrentDefenseBuff(): Double = baseWeaponDefenseBuff + ((level - 1) * 0.004 * rarity.buffMultiplier)
     
