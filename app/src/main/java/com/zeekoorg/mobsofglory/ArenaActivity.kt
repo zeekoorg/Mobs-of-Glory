@@ -2,6 +2,8 @@ package com.zeekoorg.mobsofglory
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.app.Dialog
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
@@ -159,25 +161,27 @@ class ArenaActivity : AppCompatActivity() {
         d.show()
     }
 
-    // 💡 تم إصلاح فيزياء النقاط لتتأخر خلف الفيلق فعلياً وتتراجع للخلف
+    // 💡 تم برمجة الغبار ليُحسب مكان الفيلق الحقيقي ويتمركز خلفه بدون أن يطير للقلعة!
     private fun createTrailingDots(rootLayout: ViewGroup, referenceView: View, colorHex: String = "#DDDDDD") {
+        val currentScale = referenceView.scaleY
+        val centerX = referenceView.x + referenceView.translationX + (referenceView.width / 2f)
+        val centerY = referenceView.y + referenceView.translationY + (referenceView.height / 2f)
+        
+        // النقطة السفلية للفيلق بدقة
+        val bottomY = centerY + (referenceView.height / 2f * currentScale)
+
         for (i in 0..1) {
             val dot = View(this).apply {
                 layoutParams = ViewGroup.LayoutParams(25, 25) 
                 background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor(colorHex)) }
                 
-                val currentScale = referenceView.scaleY
-                val viewCenterX = referenceView.x + referenceView.translationX + (referenceView.width / 2f)
-                val viewCenterY = referenceView.y + referenceView.translationY + (referenceView.height / 2f)
-                
-                x = viewCenterX - 12.5f + Random.nextInt(-20, 20)
-                // النزول لأسفل (خلف الفيلق) بناءً على حجمه الحالي
-                y = viewCenterY + (80f * currentScale) + Random.nextInt(-10, 20) 
+                x = centerX - 12.5f + Random.nextInt(-20, 20)
+                y = bottomY - 12.5f + Random.nextInt(-10, 10)
                 elevation = 45f
             }
             rootLayout.addView(dot)
-            // تحريك النقاط للأسفل لتصنع تأثير التطاير للخلف
-            dot.animate().translationYBy(60f).alpha(0f).scaleX(0.2f).scaleY(0.2f).setDuration(400).withEndAction { rootLayout.removeView(dot) }.start()
+            // الغبار يبقى في مكانه ليتلاشى، مما يعطي التأثير الطبيعي أنه يتأخر عن الفيلق المنطلق
+            dot.animate().translationYBy(15f).alpha(0f).scaleX(0.2f).scaleY(0.2f).setDuration(400).withEndAction { rootLayout.removeView(dot) }.start()
         }
     }
 
@@ -193,25 +197,37 @@ class ArenaActivity : AppCompatActivity() {
 
         val rootLayout = imgMarchingLegion.parent as? ViewGroup ?: findViewById<ViewGroup>(android.R.id.content) ?: return
         
-        val dotsHandler = Handler(Looper.getMainLooper())
-        val dotsRunnable = object : Runnable {
-            override fun run() {
+        // 💡 إيقاف الفيلق عند باب القلعة (أعلى الفيلق يلامس أسفل القلعة)
+        val startY = imgMarchingLegion.y
+        val targetY = layoutGhostCastle.y + layoutGhostCastle.height - (imgMarchingLegion.height / 2f)
+
+        // 💡 استخدام ObjectAnimator لمزامنة الغبار مع الحركة تماماً
+        val moveAnim = ObjectAnimator.ofFloat(imgMarchingLegion, "translationY", 0f, targetY - startY)
+        val scaleXAnim = ObjectAnimator.ofFloat(imgMarchingLegion, "scaleX", 1.0f, 0.4f)
+        val scaleYAnim = ObjectAnimator.ofFloat(imgMarchingLegion, "scaleY", 1.0f, 0.4f)
+
+        val animSet = AnimatorSet()
+        animSet.playTogether(moveAnim, scaleXAnim, scaleYAnim)
+        animSet.duration = 2200
+        animSet.interpolator = AccelerateInterpolator()
+
+        var lastDotTime = 0L
+        moveAnim.addUpdateListener {
+            val now = System.currentTimeMillis()
+            // رسم الغبار بتزامن كامل مع الفريمات الحالية
+            if (now - lastDotTime > 35) { 
                 createTrailingDots(rootLayout, imgMarchingLegion, "#DDDDDD")
-                dotsHandler.postDelayed(this, 40)
+                lastDotTime = now
             }
         }
-        dotsHandler.post(dotsRunnable)
 
-        imgMarchingLegion.post {
-            val startY = imgMarchingLegion.y; val targetY = layoutGhostCastle.y + (layoutGhostCastle.height / 2)
-            imgMarchingLegion.animate().translationY(targetY - startY).scaleX(0.4f).scaleY(0.4f).setDuration(2200)
-                .setInterpolator(AccelerateInterpolator()).setListener(object : AnimatorListenerAdapter() {
-                    override fun onAnimationEnd(animation: Animator) {
-                        dotsHandler.removeCallbacks(dotsRunnable)
-                        imgMarchingLegion.visibility = View.INVISIBLE; triggerHitEffects(); executeBattleCalculations(marchTroops)
-                    }
-                }).start()
-        }
+        animSet.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: Animator) {
+                imgMarchingLegion.visibility = View.INVISIBLE; triggerHitEffects(); executeBattleCalculations(marchTroops)
+            }
+        })
+
+        animSet.start()
     }
 
     private fun triggerHitEffects() {
@@ -353,7 +369,6 @@ class ArenaActivity : AppCompatActivity() {
                 refreshArenaUI()
 
                 Handler(Looper.getMainLooper()).postDelayed({
-                    // 💡 تمرير القوة الفعلية المهاجمة للتقرير الدقيق بدلاً من التخمين
                     val attackerCombatPower = (myTotalAtk + myTotalDef + myTotalHp).toLong()
                     showArenaBattleReport(damageDealt, earnedScore, totalDead, totalWounded, attackerCombatPower)
                     
@@ -375,7 +390,6 @@ class ArenaActivity : AppCompatActivity() {
         
         val ssb = SpannableStringBuilder()
         ssb.append("━━━━━━ نتيجة الغزوة ━━━━━━\n")
-        // 💡 إضافة قوة الفيلق الفعلية
         appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة الفيلق المُهاجِم: ${formatResourceNumber(attackerPower)} ⚔️")
         appendIconWithText(ssb, R.drawable.ic_ui_arena, "الضرر الكلي المُحدث: ${formatResourceNumber(damage)}")
         appendIconWithText(ssb, R.drawable.ic_ui_arena, "نقاط الساحة المكتسبة: +${formatResourceNumber(scoreEarned)}")
@@ -432,7 +446,6 @@ class ArenaActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 تحديث تصميم التقرير ليعرض القوة الفعلية في سطر واحد بدون تشتيت (كما في الخريطة)
     private fun showGlobalBattleReportDialog(report: BattleReport) {
         isReportDialogOpen = true 
         SoundManager.playWindowOpen()
