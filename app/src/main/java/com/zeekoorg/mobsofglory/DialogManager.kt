@@ -109,6 +109,7 @@ object DialogManager {
             d.findViewById<TextView>(R.id.tvProfileName)?.text = GameState.playerName
             d.findViewById<TextView>(R.id.tvProfileLevel)?.text = "المستوى: ${GameState.playerLevel}"
             d.findViewById<TextView>(R.id.tvProfilePower)?.text = formatResourceNumber(GameState.playerPower)
+            // 💡 [مُصلح] تفصيل القوة الإجمالية
             d.findViewById<TextView>(R.id.tvProfileBuildingPower)?.text = formatResourceNumber(GameState.totalBuildingsPower)
             d.findViewById<TextView>(R.id.tvProfileTroopsPower)?.text = formatResourceNumber(GameState.totalTroopsPower)
             d.findViewById<TextView>(R.id.tvProfileHeroesPower)?.text = formatResourceNumber(GameState.totalHeroesPower)
@@ -506,7 +507,6 @@ object DialogManager {
                         GameState.healingTotalTime = healTimeSec * 1000L
                         GameState.healingEndTime = System.currentTimeMillis() + GameState.healingTotalTime
 
-                        // 💡 [مُصلح] نقل كل الجرحى (من جميع الفئات) إلى أسرة العلاج لضمان تماثلهم للشفاء مع التسريع
                         GameState.playerTroops.forEach {
                             if (it.wounded > 0) {
                                 it.healing += it.wounded
@@ -860,6 +860,7 @@ object DialogManager {
         val handler = Handler(Looper.getMainLooper())
 
         fun refreshWeaponsList() {
+            // 💡 [مُصلح] إفراغ الحاوية قبل إعادة الرسم لمنع تكرار الأسلحة وظهور 8 أسلحة
             container?.removeAllViews()
             
             GameState.arsenal.forEach { weapon ->
@@ -940,7 +941,7 @@ object DialogManager {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_quests) 
-        d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "اختر بطلاً للفيلق"
+        d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "اختر بطلاً"
         val container = d.findViewById<LinearLayout>(R.id.layoutQuestsContainer); container?.removeAllViews()
 
         val availableHeroes = GameState.myHeroes.filter { it.isUnlocked }
@@ -973,7 +974,7 @@ object DialogManager {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_quests) 
-        d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "اختر سلاحاً للفيلق"
+        d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "اختر سلاحاً"
         val container = d.findViewById<LinearLayout>(R.id.layoutQuestsContainer); container?.removeAllViews()
 
         val availableWeapons = GameState.arsenal.filter { it.isOwned } 
@@ -1010,19 +1011,16 @@ object DialogManager {
         val castleLevel = GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
         val tvPower = d.findViewById<TextView>(R.id.tvFormationPower)
 
-        val seekInfantry = d.findViewById<SeekBar>(R.id.seekFormationInfantry); val tvInfantryMax = d.findViewById<TextView>(R.id.tvFormationInfantryMax); val tvInfantrySelected = d.findViewById<TextView>(R.id.tvFormationInfantrySelected)
-        val seekCavalry = d.findViewById<SeekBar>(R.id.seekFormationCavalry); val tvCavalryMax = d.findViewById<TextView>(R.id.tvFormationCavalryMax); val tvCavalrySelected = d.findViewById<TextView>(R.id.tvFormationCavalrySelected)
-
-        val prefs = activity.getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
+        // 💡 [مُصلح] إخفاء شرائط سحب الجنود لأن التشكيلة الدفاعية تستخدم كل الجنود بالمدينة
+        d.findViewById<SeekBar>(R.id.seekFormationInfantry)?.visibility = View.GONE
+        d.findViewById<TextView>(R.id.tvFormationInfantryMax)?.visibility = View.GONE
+        d.findViewById<TextView>(R.id.tvFormationInfantrySelected)?.visibility = View.GONE
+        d.findViewById<SeekBar>(R.id.seekFormationCavalry)?.visibility = View.GONE
+        d.findViewById<TextView>(R.id.tvFormationCavalryMax)?.visibility = View.GONE
+        d.findViewById<TextView>(R.id.tvFormationCavalrySelected)?.visibility = View.GONE
         
-        val maxInf = GameState.playerTroops.filter { it.type == TroopType.INFANTRY }.sumOf { it.count }
-        val maxCav = GameState.playerTroops.filter { it.type == TroopType.CAVALRY }.sumOf { it.count }
-        
-        var selectedInfantry = prefs.getLong("FORMATION_INFANTRY", maxInf); var selectedCavalry = prefs.getLong("FORMATION_CAVALRY", maxCav)
-        if (selectedInfantry > maxInf) selectedInfantry = maxInf; if (selectedCavalry > maxCav) selectedCavalry = maxCav
-
-        tvInfantryMax?.text = "متاح: ${formatResourceNumber(maxInf)}"; seekInfantry?.max = if (maxInf > Int.MAX_VALUE) Int.MAX_VALUE else maxInf.toInt(); seekInfantry?.progress = selectedInfantry.toInt(); tvInfantrySelected?.text = formatResourceNumber(selectedInfantry)
-        tvCavalryMax?.text = "متاح: ${formatResourceNumber(maxCav)}"; seekCavalry?.max = if (maxCav > Int.MAX_VALUE) Int.MAX_VALUE else maxCav.toInt(); seekCavalry?.progress = selectedCavalry.toInt(); tvCavalrySelected?.text = formatResourceNumber(selectedCavalry)
+        val tvInfo = d.findViewById<TextView>(R.id.tvDialogInfo)
+        if (tvInfo != null) tvInfo.text = "اختر قادة الدفاع والأسلحة.\nالمدينة محمية بكل الجنود السالمين المتواجدين فيها تلقائياً."
 
         val heroSlots = listOf(Triple(d.findViewById<FrameLayout>(R.id.slotHero1), d.findViewById<ImageView>(R.id.imgHero1), d.findViewById<ImageView>(R.id.imgAddHero1)), Triple(d.findViewById<FrameLayout>(R.id.slotHero2), d.findViewById<ImageView>(R.id.imgHero2), d.findViewById<ImageView>(R.id.imgAddHero2)), Triple(d.findViewById<FrameLayout>(R.id.slotHero3), d.findViewById<ImageView>(R.id.imgHero3), d.findViewById<ImageView>(R.id.imgAddHero3)), Triple(d.findViewById<FrameLayout>(R.id.slotHero4), d.findViewById<ImageView>(R.id.imgHero4), d.findViewById<ImageView>(R.id.imgAddHero4)))
         val lockHeroes = listOf(null, d.findViewById<View>(R.id.layoutLockHero2), d.findViewById<View>(R.id.layoutLockHero3), d.findViewById<View>(R.id.layoutLockHero4))
@@ -1036,26 +1034,14 @@ object DialogManager {
             GameState.arsenal.filter { it.isOwned && it.isEquipped }.forEach { wpDefBuff += it.getCurrentDefenseBuff() }
             val totalDefBuff = 1.0 + heroDefBuff + wpDefBuff
             
-            var infBaseDef = 0.0
-            GameState.playerTroops.filter { it.type == TroopType.INFANTRY }.forEach { 
-                infBaseDef += it.count * GameState.getTroopStats(it.type, it.tier).baseDef 
-            }
-            var cavBaseDef = 0.0
-            GameState.playerTroops.filter { it.type == TroopType.CAVALRY }.forEach { 
-                cavBaseDef += it.count * GameState.getTroopStats(it.type, it.tier).baseDef 
+            var baseDef = 0.0
+            GameState.playerTroops.forEach { 
+                baseDef += it.count * GameState.getTroopStats(it.type, it.tier).baseDef 
             }
             
-            val infRatio = if (maxInf > 0) selectedInfantry.toDouble() / maxInf else 0.0
-            val cavRatio = if (maxCav > 0) selectedCavalry.toDouble() / maxCav else 0.0
-            
-            val baseDefPower = (infBaseDef * infRatio) + (cavBaseDef * cavRatio)
-            val totalPower = (baseDefPower * totalDefBuff).toLong()
-            
+            val totalPower = (baseDef * totalDefBuff).toLong()
             tvPower?.text = "قوة الدفاع الإجمالية: 🛡️ ${formatResourceNumber(totalPower)}"
         }
-
-        seekInfantry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener { override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedInfantry = progress.toLong(); tvInfantrySelected?.text = formatResourceNumber(selectedInfantry); updateFormationPower() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
-        seekCavalry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener { override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { selectedCavalry = progress.toLong(); tvCavalrySelected?.text = formatResourceNumber(selectedCavalry); updateFormationPower() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
 
         fun refreshFormationUI() {
             updateFormationPower()
@@ -1077,7 +1063,12 @@ object DialogManager {
         }
         refreshFormationUI()
 
-        d.findViewById<Button>(R.id.btnSaveFormation)?.setOnClickListener { SoundManager.playClick(); prefs.edit().putLong("FORMATION_INFANTRY", selectedInfantry).putLong("FORMATION_CAVALRY", selectedCavalry).apply(); showGameMessage(activity, "التشكيلة جاهزة", "تم حفظ التشكيلة الدفاعية بنجاح!", R.drawable.ic_ui_formation); updateUI(activity); d.dismiss() }
+        d.findViewById<Button>(R.id.btnSaveFormation)?.setOnClickListener { 
+            SoundManager.playClick()
+            showGameMessage(activity, "التشكيلة جاهزة", "تم حفظ التشكيلة الدفاعية بنجاح!", R.drawable.ic_ui_formation)
+            updateUI(activity)
+            d.dismiss() 
+        }
         d.findViewById<Button>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
 
         d.setOnDismissListener {
