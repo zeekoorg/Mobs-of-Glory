@@ -75,6 +75,8 @@ class ArenaActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isActivityResumed = true
+        GameState.onAppResume(this) // 🛡️ تفعيل فخ الحماية عند العودة
+        
         GameState.calculatePower()
         GameState.arenaLeaderboard.find { it.isRealPlayer }?.name = GameState.playerName
         refreshArenaUI()
@@ -87,6 +89,7 @@ class ArenaActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         isActivityResumed = false
+        GameState.onAppPause() // 🛡️ تفعيل فخ الحماية عند الخروج
         GameState.saveGameData(this)
         
         SoundManager.pauseBGM()
@@ -319,7 +322,6 @@ class ArenaActivity : AppCompatActivity() {
             }
 
             var hasBonusLoot = false
-            // 💡 [إصلاح الشرط] عودة الشرط إلى 2,000,000 كما اتفقنا للغنائم الإضافية!
             if (damageDealt >= 2000000) {
                 hasBonusLoot = true
             }
@@ -343,7 +345,6 @@ class ArenaActivity : AppCompatActivity() {
                     if (hasBonusLoot) {
                         Handler(Looper.getMainLooper()).postDelayed({
                             SoundManager.playWindowOpen()
-                            // 💡 تحديث الرسالة لتعكس الإنجاز العظيم!
                             DialogManager.showGameMessage(this@ArenaActivity, "دمار أسطوري!", "لقد ألحقت ضرراً تجاوز 2,000,000 بالقلعة!\n\nمكافأة فورية:\n+ 50K حديد\n+ 50K قمح\n+ 25K ذهب", R.drawable.ic_ui_castle_rewards)
                         }, 500)
                     }
