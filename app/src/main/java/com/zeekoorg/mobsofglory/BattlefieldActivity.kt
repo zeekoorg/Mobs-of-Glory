@@ -311,6 +311,8 @@ class BattlefieldActivity : AppCompatActivity() {
 
         val maxInf = GameState.playerTroops.filter { it.type == TroopType.INFANTRY }.sumOf { it.count }
         val maxCav = GameState.playerTroops.filter { it.type == TroopType.CAVALRY }.sumOf { it.count }
+        // 💡 استخدام سعة المسيرة القصوى
+        val maxMarchCapacity = GameState.getMaxMarchCapacity()
 
         val tvPower = d.findViewById<TextView>(R.id.tvFormationPower)
         val seekInf = d.findViewById<SeekBar>(R.id.seekPrepInfantry)
@@ -323,21 +325,12 @@ class BattlefieldActivity : AppCompatActivity() {
         
         btnConfirm?.text = if (isAttack) "بدء الهجوم" else "الذهاب للجمع"
 
-        val selectedHeroesForMarch = mutableListOf<Hero>()
-        val selectedWeaponsForMarch = mutableListOf<Weapon>()
+        // 💡 تحميل الأبطال والأسلحة المجهزة مسبقاً (الذكاء الاستراتيجي)
+        val selectedHeroesForMarch = GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.toMutableList()
+        val selectedWeaponsForMarch = GameState.arsenal.filter { it.isOwned && it.isEquipped }.toMutableList()
         
         var selectedInfantry = maxInf / 2
         var selectedCavalry = maxCav / 2
-
-        tvInfMax?.text = "متاح: ${formatResourceNumber(maxInf)}"
-        seekInf?.max = if (maxInf > Int.MAX_VALUE) Int.MAX_VALUE else maxInf.toInt()
-        seekInf?.progress = selectedInfantry.toInt()
-        tvInfSelected?.text = formatResourceNumber(selectedInfantry)
-
-        tvCavMax?.text = "متاح: ${formatResourceNumber(maxCav)}"
-        seekCav?.max = if (maxCav > Int.MAX_VALUE) Int.MAX_VALUE else maxCav.toInt()
-        seekCav?.progress = selectedCavalry.toInt()
-        tvCavSelected?.text = formatResourceNumber(selectedCavalry)
 
         val castleLevel = GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
         
@@ -369,20 +362,90 @@ class BattlefieldActivity : AppCompatActivity() {
         }
 
         fun updateMarchStats() {
-            val (totalCombatPower, loadPayload) = simulateMarchStats()
+            var heroAtkBuff = 0.0; var wpAtkBuff = 0.0
+            selectedHeroesForMarch.forEach { heroAtkBuff += it.getCurrentAttackBuff() }
+            selectedWeaponsForMarch.forEach { wpAtkBuff += it.getCurrentAttackBuff() }
+            
+            var baseAtkPower = 0.0
+            fun simulateAtk(type: TroopType, amount: Long) {
+                var rem = amount
+                val available = GameState.playerTroops.filter { it.type == type && it.count > 0 }.sortedByDescending { it.tier }
+                for (troop in available) {
+                    if (rem <= 0) break
+                    val take = minOf(troop.count, rem)
+                    rem -= take
+                    val stats = GameState.getTroopStats(type, troop.tier)
+                    baseAtkPower += take * stats.baseAtk
+                }
+            }
+            simulateAtk(TroopType.INFANTRY, selectedInfantry)
+            simulateAtk(TroopType.CAVALRY, selectedCavalry)
+            
+            val totalAtkBuff = 1.0 + heroAtkBuff + wpAtkBuff
+            val totalCombatPower = (baseAtkPower * totalAtkBuff).toLong()
+
+            val (_, loadPayload) = simulateMarchStats()
+            
+            val totalSelected = selectedInfantry + selectedCavalry
             
             if (isAttack) {
-                tvPower?.text = "القوة الهجومية: ${formatResourceNumber(totalCombatPower)}"
+                tvPower?.text = "قوة الهجوم: ⚔️ ${formatResourceNumber(totalCombatPower)}\nالسعة: $totalSelected / $maxMarchCapacity"
                 tvPower?.setTextColor(Color.WHITE)
             } else {
                 var heroSpeedBuff = 0.0
                 selectedHeroesForMarch.forEach { heroSpeedBuff += it.getCurrentSpeedBuff() }
                 val gatherSpeed = (150.0 * (1.0 + heroSpeedBuff)).toLong()
                 
-                tvPower?.text = "سعة الحمولة: ${formatResourceNumber(loadPayload)} | السرعة: $gatherSpeed/ث"
+                tvPower?.text = "السعة: $totalSelected / $maxMarchCapacity\nالحمولة: ${formatResourceNumber(loadPayload)} | السرعة: $gatherSpeed/ث"
                 tvPower?.setTextColor(Color.WHITE)
             }
         }
+
+        // 💡 إعداد شرائط السحب المربوطة بسعة المسيرة
+        val infMaxProgress = minOf(maxInf, maxMarchCapacity).toInt()
+        tvInfMax?.text = "متاح: ${formatResourceNumber(maxInf)}"
+        seekInf?.max = infMaxProgress
+        seekInf?.progress = selectedInfantry.toInt()
+        tvInfSelected?.text = formatResourceNumber(selectedInfantry)
+
+        seekInf?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: SeekBar?, p: Int, fromUser: Boolean) { 
+                if (fromUser) {
+                    val newInfantry = p.toLong()
+                    if (newInfantry + selectedCavalry > maxMarchCapacity) {
+                        selectedCavalry = maxOf(0L, maxMarchCapacity - newInfantry)
+                        seekCav?.progress = selectedCavalry.toInt()
+                    }
+                    selectedInfantry = newInfantry
+                    tvInfSelected?.text = formatResourceNumber(selectedInfantry)
+                    updateMarchStats() 
+                }
+            }
+            override fun onStartTrackingTouch(s: SeekBar?) {}; override fun onStopTrackingTouch(s: SeekBar?) {}
+        })
+
+        val cavMaxProgress = minOf(maxCav, maxMarchCapacity).toInt()
+        tvCavMax?.text = "متاح: ${formatResourceNumber(maxCav)}"
+        seekCav?.max = cavMaxProgress
+        seekCav?.progress = selectedCavalry.toInt()
+        tvCavSelected?.text = formatResourceNumber(selectedCavalry)
+
+        seekCav?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: SeekBar?, p: Int, fromUser: Boolean) { 
+                if (fromUser) {
+                    val newCavalry = p.toLong()
+                    if (selectedInfantry + newCavalry > maxMarchCapacity) {
+                        selectedInfantry = maxOf(0L, maxMarchCapacity - newCavalry)
+                        seekInf?.progress = selectedInfantry.toInt()
+                    }
+                    selectedCavalry = newCavalry
+                    tvCavSelected?.text = formatResourceNumber(selectedCavalry)
+                    updateMarchStats() 
+                }
+            }
+            override fun onStartTrackingTouch(s: SeekBar?) {}; override fun onStopTrackingTouch(s: SeekBar?) {}
+        })
+
 
         fun refreshSlotsUI() {
             updateMarchStats()
@@ -432,16 +495,6 @@ class BattlefieldActivity : AppCompatActivity() {
                 }
             }
         }
-
-        seekInf?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(s: SeekBar?, p: Int, f: Boolean) { selectedInfantry = p.toLong(); tvInfSelected?.text = formatResourceNumber(selectedInfantry); updateMarchStats() }
-            override fun onStartTrackingTouch(s: SeekBar?) {}; override fun onStopTrackingTouch(s: SeekBar?) {}
-        })
-
-        seekCav?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(s: SeekBar?, p: Int, f: Boolean) { selectedCavalry = p.toLong(); tvCavSelected?.text = formatResourceNumber(selectedCavalry); updateMarchStats() }
-            override fun onStartTrackingTouch(s: SeekBar?) {}; override fun onStopTrackingTouch(s: SeekBar?) {}
-        })
 
         refreshSlotsUI()
 
