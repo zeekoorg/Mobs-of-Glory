@@ -332,7 +332,7 @@ class MainActivity : AppCompatActivity() {
             
             // 💡 تحديث لغة التقرير لتتطابق مع شاشة الساحة والخريطة (الأداء القتالي)
             ssb.append("\n━━━━━━ الأداء القتالي ━━━━━━\n")
-            appendIconWithText(ssb, R.drawable.ic_ui_formation, "إجمالي القوة المُدَمَّرة للعدو: ${formatResourceNumber(report.myDamage)}")
+            appendIconWithText(ssb, R.drawable.ic_ui_formation, "إجمالي الضرر بالعدو: ${formatResourceNumber(report.myDamage)}")
             appendIconWithText(ssb, R.drawable.ic_ui_weapons, "مكافآت الأبطال والعتاد: نشطة وفعالة 🟢\n")
         }
         
