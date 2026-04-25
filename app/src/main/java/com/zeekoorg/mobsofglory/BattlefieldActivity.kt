@@ -706,7 +706,6 @@ class BattlefieldActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 [مُصلح التقرير] - عرض القوة الخام كـ "قوة الفيلق الأساسية"، وعرض البافات في "الضرر المُحدث" كقوة ضاربة.
     private fun showBattleReportDialog(report: BattleReport) {
         if (!isActivityResumed) return
         isReportDialogOpen = true 
@@ -735,13 +734,9 @@ class BattlefieldActivity : AppCompatActivity() {
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الجرحى: ${formatResourceNumber(report.myWounded)}")
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الناجون: ${formatResourceNumber(report.mySurviving)}")
             
-            ssb.append("\n━━━━━━ تفاصيل الاشتباك ━━━━━━\n")
-            // 💡 [تحديث] عرض الضرر المحدث كـ "القوة الضاربة الإجمالية" ليبرر الانتصار أو الدمار
-            val buffBonus = report.myDamage - (report.myTotalPowerStr.toLongOrNull() ?: 0L)
-            if (buffBonus > 0) {
-                appendIconWithText(ssb, R.drawable.ic_ui_weapons, "مكافآت الأبطال والأسلحة: +${formatResourceNumber(buffBonus)}")
-            }
-            appendIconWithText(ssb, R.drawable.ic_ui_formation, "القوة الضاربة الإجمالية: ${formatResourceNumber(report.myDamage)}\n")
+            ssb.append("\n━━━━━━ الأداء القتالي ━━━━━━\n")
+            appendIconWithText(ssb, R.drawable.ic_ui_formation, "الضرر الذي الحقته بالعدو: ${formatResourceNumber(report.myDamage)}")
+            appendIconWithText(ssb, R.drawable.ic_ui_weapons, "مكافآت الأبطال والعتاد: نشطة وفعالة 🟢\n")
         }
         
         if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
