@@ -161,11 +161,13 @@ class ArenaActivity : AppCompatActivity() {
         d.show()
     }
 
+    // 💡 [مُصلح] ربط النقاط بأسفل الفيلق مع إضافة تأثير التلاشي للخلف لمنعها من سبقه
     private fun createTrailingDots(rootLayout: ViewGroup, referenceView: View, colorHex: String = "#DDDDDD") {
         val currentScale = referenceView.scaleY
         val centerX = referenceView.x + referenceView.translationX + (referenceView.width / 2f)
-        val centerY = referenceView.y + referenceView.translationY + (referenceView.height / 2f)
         
+        // حساب النقطة السفلية للفيلق بدقة مع الأخذ بالاعتبار حجمه الحالي
+        val centerY = referenceView.y + referenceView.translationY + (referenceView.height / 2f)
         val bottomY = centerY + (referenceView.height / 2f * currentScale)
 
         for (i in 0..1) {
@@ -178,7 +180,8 @@ class ArenaActivity : AppCompatActivity() {
                 elevation = 45f
             }
             rootLayout.addView(dot)
-            dot.animate().translationYBy(15f).alpha(0f).scaleX(0.2f).scaleY(0.2f).setDuration(400).withEndAction { rootLayout.removeView(dot) }.start()
+            // تحريك النقطة للأسفل ببطء أثناء تلاشيها لتعطي تأثير الأثر الخلفي
+            dot.animate().translationYBy(20f).alpha(0f).scaleX(0.2f).scaleY(0.2f).setDuration(400).withEndAction { rootLayout.removeView(dot) }.start()
         }
     }
 
@@ -195,7 +198,8 @@ class ArenaActivity : AppCompatActivity() {
         val rootLayout = imgMarchingLegion.parent as? ViewGroup ?: findViewById<ViewGroup>(android.R.id.content) ?: return
         
         val startY = imgMarchingLegion.y
-        val targetY = layoutGhostCastle.y + layoutGhostCastle.height - (imgMarchingLegion.height / 2f)
+        // تحديد الهدف ليكون أسفل القلعة قليلاً
+        val targetY = layoutGhostCastle.y + layoutGhostCastle.height - (imgMarchingLegion.height / 2f) - 50f
 
         val moveAnim = ObjectAnimator.ofFloat(imgMarchingLegion, "translationY", 0f, targetY - startY)
         val scaleXAnim = ObjectAnimator.ofFloat(imgMarchingLegion, "scaleX", 1.0f, 0.4f)
@@ -279,12 +283,16 @@ class ArenaActivity : AppCompatActivity() {
 
             var baseAtk = 0.0; var baseDef = 0.0; var baseHp = 0.0
             var totalSent = 0L
+            
+            // 💡 [الضغط الرقمي] - حساب قوة الاستعراض للمهاجم
+            var attackerDisplayPower = 0L
 
             marchTroops.forEach { troop ->
                 val stats = GameState.getTroopStats(troop.type, troop.tier)
                 baseAtk += (troop.count * stats.baseAtk)
                 baseDef += (troop.count * stats.baseDef)
                 baseHp += (troop.count * stats.baseHp)
+                attackerDisplayPower += (troop.count * stats.power)
                 totalSent += troop.count
             }
 
@@ -292,12 +300,13 @@ class ArenaActivity : AppCompatActivity() {
             val myTotalDef = baseDef * totalDefBuff
             val myTotalHp = baseHp * totalHpBuff
 
-            val enemyAtk = 15000.0 + (GameState.playerLevel * 2000.0) 
-            val enemyDef = 10000.0 + (GameState.playerLevel * 1500.0)
+            // 💡 [تعديل استراتيجي] - ضبط قوة قلعة الشبح في الساحة لتكون منطقية مع النظام الجديد
+            val enemyAtk = 5000.0 + (GameState.playerLevel * 500.0) 
+            val enemyDef = 3500.0 + (GameState.playerLevel * 300.0)
             
             val damageDealtDouble = (myTotalAtk.pow(2.0) / (myTotalAtk + enemyDef)) * Random.nextDouble(0.9, 1.1)
             val damageDealt = damageDealtDouble.toLong()
-            val earnedScore = maxOf(10L, damageDealt / 150)
+            val earnedScore = maxOf(10L, damageDealt / 15)
 
             val actualDmgToMe = (enemyAtk.pow(2.0) / (enemyAtk + myTotalDef)) * Random.nextDouble(0.9, 1.1)
 
@@ -315,7 +324,7 @@ class ArenaActivity : AppCompatActivity() {
 
             marchTroops.forEach { marchTroop ->
                 if (marchTroop.count > 0) {
-                    val ratio = marchTroop.count.toDouble() / totalSent
+                    val ratio = marchTroop.count.toDouble() / totalSent.coerceAtLeast(1)
                     val troopCasualties = (totalCasualties * ratio).toLong()
                     
                     val troopDead = (troopCasualties * deadRate).toLong()
@@ -346,7 +355,8 @@ class ArenaActivity : AppCompatActivity() {
             }
 
             var hasBonusLoot = false
-            if (damageDealt >= 2000000) {
+            // 💡 [تعديل استراتيجي] - تعديل شرط الغنيمة الإضافية ليتناسب مع الضرر الجديد المصغر
+            if (damageDealt >= 50000) {
                 hasBonusLoot = true
             }
 
@@ -363,13 +373,13 @@ class ArenaActivity : AppCompatActivity() {
                 refreshArenaUI()
 
                 Handler(Looper.getMainLooper()).postDelayed({
-                    val attackerCombatPower = (myTotalAtk + myTotalDef + myTotalHp).toLong()
-                    showArenaBattleReport(damageDealt, earnedScore, totalDead, totalWounded, attackerCombatPower)
+                    // تمرير قوة الاستعراض للتقرير بدلاً من إجمالي الخصائص المتضخم
+                    showArenaBattleReport(damageDealt, earnedScore, totalDead, totalWounded, attackerDisplayPower)
                     
                     if (hasBonusLoot) {
                         Handler(Looper.getMainLooper()).postDelayed({
                             SoundManager.playWindowOpen()
-                            DialogManager.showGameMessage(this@ArenaActivity, "دمار أسطوري!", "لقد ألحقت ضرراً تجاوز 2,000,000 بالقلعة!\n\nمكافأة فورية:\n+ 50K حديد\n+ 50K قمح\n+ 25K ذهب", R.drawable.ic_ui_castle_rewards)
+                            DialogManager.showGameMessage(this@ArenaActivity, "دمار أسطوري!", "لقد ألحقت ضرراً استثنائياً بالقلعة!\n\nمكافأة فورية:\n+ 50K حديد\n+ 50K قمح\n+ 25K ذهب", R.drawable.ic_ui_castle_rewards)
                         }, 500)
                     }
                 }, 800)
@@ -501,9 +511,7 @@ class ArenaActivity : AppCompatActivity() {
     }
 
     private fun showRevengeWarningDialog(nodeId: Int) {
-        if (!isActivityResumed) return
         isReportDialogOpen = true 
-        
         SoundManager.playWindowOpen()
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_game_message)
@@ -527,6 +535,7 @@ class ArenaActivity : AppCompatActivity() {
         d.setOnDismissListener {
             isReportDialogOpen = false 
             GameState.triggerRevengeMarch(nodeId)
+            checkPendingReports()
         }
         d.show()
     }
