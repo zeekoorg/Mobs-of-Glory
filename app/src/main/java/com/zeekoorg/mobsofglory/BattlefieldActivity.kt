@@ -347,7 +347,6 @@ class BattlefieldActivity : AppCompatActivity() {
         val lockWeapons = listOf(null, d.findViewById<View>(R.id.layoutLockWeapon2), d.findViewById<View>(R.id.layoutLockWeapon3), d.findViewById<View>(R.id.layoutLockWeapon4))
         val unlockLevels = listOf(1, 5, 10, 15)
 
-        // 💡 [مُصلح] حساب القوة الهجومية المتوقعة يعتمد على المُحدد فقط للمطابقة مع المحرك الجبار
         fun simulateMarchStats(): Triple<Long, Long, Long> {
             var baseAtk = 0.0; var baseDef = 0.0; var baseHp = 0.0
             var load = 0L
@@ -403,10 +402,13 @@ class BattlefieldActivity : AppCompatActivity() {
                 var load = 0L
                 val availableInf = GameState.playerTroops.filter { it.type == TroopType.INFANTRY && it.count > 0 }.sortedByDescending { it.tier }
                 var remInf = selectedInfantry
-                for(t in availableInf) { if(remInf<=0) break; val take = minOf(t.count, remInf); remInf-=take; load += take * GameState.getTroopStats(t.type, t.tier).loadCapacity }
+                // 💡 [مُصلح] إضافة الأقواس و .toLong() لمنع خطأ Type Mismatch
+                for(t in availableInf) { if(remInf<=0) break; val take = minOf(t.count, remInf); remInf-=take; load += (take * GameState.getTroopStats(t.type, t.tier).loadCapacity).toLong() }
+                
                 val availableCav = GameState.playerTroops.filter { it.type == TroopType.CAVALRY && it.count > 0 }.sortedByDescending { it.tier }
                 var remCav = selectedCavalry
-                for(t in availableCav) { if(remCav<=0) break; val take = minOf(t.count, remCav); remCav-=take; load += take * GameState.getTroopStats(t.type, t.tier).loadCapacity }
+                // 💡 [مُصلح] إضافة الأقواس و .toLong() لمنع خطأ Type Mismatch
+                for(t in availableCav) { if(remCav<=0) break; val take = minOf(t.count, remCav); remCav-=take; load += (take * GameState.getTroopStats(t.type, t.tier).loadCapacity).toLong() }
                 
                 tvPower?.text = "سعة الحمولة: ${formatResourceNumber(load)} | السرعة: $gatherSpeed/ث"
                 tvPower?.setTextColor(Color.WHITE)
