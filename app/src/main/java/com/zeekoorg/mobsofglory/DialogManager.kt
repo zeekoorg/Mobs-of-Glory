@@ -109,7 +109,6 @@ object DialogManager {
             d.findViewById<TextView>(R.id.tvProfileName)?.text = GameState.playerName
             d.findViewById<TextView>(R.id.tvProfileLevel)?.text = "المستوى: ${GameState.playerLevel}"
             d.findViewById<TextView>(R.id.tvProfilePower)?.text = formatResourceNumber(GameState.playerPower)
-            // 💡 [مُصلح] تفصيل القوة الإجمالية
             d.findViewById<TextView>(R.id.tvProfileBuildingPower)?.text = formatResourceNumber(GameState.totalBuildingsPower)
             d.findViewById<TextView>(R.id.tvProfileTroopsPower)?.text = formatResourceNumber(GameState.totalTroopsPower)
             d.findViewById<TextView>(R.id.tvProfileHeroesPower)?.text = formatResourceNumber(GameState.totalHeroesPower)
@@ -393,6 +392,10 @@ object DialogManager {
                     if (GameState.totalGold >= cost) {
                         GameState.totalGold -= cost; h.isUpgrading = true; h.totalUpgradeTime = h.getUpgradeTimeSeconds() * 1000
                         h.upgradeEndTime = System.currentTimeMillis() + h.totalUpgradeTime
+                        
+                        // 💡 [مُصلح المهام] إضافة نقطة لمهمة ترقية البطل
+                        GameState.addQuestProgress(QuestType.UPGRADE_HERO, 1)
+
                         updateUI(activity); GameState.saveGameData(activity); updateHeroUI(i, tvL, tvB, btn)
                     } else showGameMessage(activity, "عذراً", "تحتاج ${formatResourceNumber(cost)} ذهب للترقية!", R.drawable.ic_resource_gold)
                 }
@@ -860,7 +863,6 @@ object DialogManager {
         val handler = Handler(Looper.getMainLooper())
 
         fun refreshWeaponsList() {
-            // 💡 [مُصلح] إفراغ الحاوية قبل إعادة الرسم لمنع تكرار الأسلحة وظهور 8 أسلحة
             container?.removeAllViews()
             
             GameState.arsenal.forEach { weapon ->
@@ -911,6 +913,9 @@ object DialogManager {
                             weapon.totalUpgradeTime = weapon.getUpgradeTimeSeconds() * 1000
                             weapon.upgradeEndTime = System.currentTimeMillis() + weapon.totalUpgradeTime
                             
+                            // 💡 [مُصلح المهام] إضافة نقطة لمهمة ترقية السلاح
+                            GameState.addQuestProgress(QuestType.UPGRADE_WEAPON, 1)
+
                             updateUI(activity)
                             GameState.saveGameData(activity)
                             
@@ -1011,7 +1016,6 @@ object DialogManager {
         val castleLevel = GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
         val tvPower = d.findViewById<TextView>(R.id.tvFormationPower)
 
-        // 💡 [مُصلح] إخفاء شرائط سحب الجنود لأن التشكيلة الدفاعية تستخدم كل الجنود بالمدينة
         d.findViewById<SeekBar>(R.id.seekFormationInfantry)?.visibility = View.GONE
         d.findViewById<TextView>(R.id.tvFormationInfantryMax)?.visibility = View.GONE
         d.findViewById<TextView>(R.id.tvFormationInfantrySelected)?.visibility = View.GONE
