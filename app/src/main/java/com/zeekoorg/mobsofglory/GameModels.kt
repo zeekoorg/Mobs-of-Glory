@@ -51,7 +51,8 @@ data class TroopData(
     val type: TroopType,
     val tier: Int,
     var count: Long = 0L,      
-    var wounded: Long = 0L     
+    var wounded: Long = 0L,
+    var healing: Long = 0L      // 💡 تمت إضافة خانة العلاج لترقيع الثغرة
 )
 
 data class Hero(
@@ -193,23 +194,19 @@ data class ArenaPlayer(
     val avatarResId: Int = R.drawable.img_default_avatar
 )
 
-// 💡 4. تعريف العقدة (القلعة/المورد) في خريطة العالم مع إضافة خصائص الجيش الحقيقي
 enum class NodeType { ENEMY_CASTLE, GOLD_MINE, IRON_MINE, WHEAT_FARM }
 
 data class BattlefieldNode(
     val id: Int, 
     var type: NodeType,
-    var currentPower: Long,         // سيتم حسابه تلقائياً من الجيوش والتعزيزات
-    var maxPower: Long,             // الحد الأقصى للقوة
+    var currentPower: Long,
+    var maxPower: Long,
     var level: Int,
     var isDefeated: Boolean,
     var lastAttackedTime: Long = 0L,
     var resourceAmount: Long = 0L,
     var imageName: String = "",
     var playerName: String = "",
-    
-    // ⚔️ [الجديد] جيوش العدو الفعلي (بأنواعه وفئاته)
     var enemyTroops: MutableList<TroopData> = mutableListOf(),
-    // ⚔️ [الجديد] محاكاة للأبطال والأسلحة للعدو (تصاعدي مع المستويات)
     var aiBuffMultiplier: Double = 0.0
 )
