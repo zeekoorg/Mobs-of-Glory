@@ -308,7 +308,6 @@ object GameState {
         }
 
         if (myHeroes.isEmpty()) {
-            // 💡 [مُصلح التوازن] تم تعديل القيم الأساسية للأبطال لتكون منطقية مع مستويات الندرة
             myHeroes.add(Hero(id=1, name="صقر البيداء", iconResId=R.drawable.img_hero_1, isUnlocked=true, shardsOwned=10, shardsRequired=10, rarity=Rarity.COMMON, baseAttackBuff=0.03, baseDefenseBuff=0.03, baseHpBuff=0.03)) 
             myHeroes.add(Hero(id=2, name="ضرغام الليل", iconResId=R.drawable.img_hero_2, isUnlocked=false, shardsOwned=0, shardsRequired=20, rarity=Rarity.COMMON, infAtkBuff=0.05, baseDefenseBuff=0.02))
             myHeroes.add(Hero(id=3, name="غضب الجبال", iconResId=R.drawable.img_hero_3, isUnlocked=false, shardsOwned=0, shardsRequired=30, rarity=Rarity.COMMON, cavAtkBuff=0.05, baseHpBuff=0.04))
@@ -326,7 +325,6 @@ object GameState {
         }
         
         if (dailyQuestsList.isEmpty()) {
-            // 💡 [مُصلح المهام] إضافة مهمة تسجيل الدخول اليومية
             dailyQuestsList.add(DynamicQuest(0, "تسجيل الدخول اليومي", QuestType.DAILY_LOGIN, 1, 15000, 25000, 25000, 0))
             dailyQuestsList.add(DynamicQuest(1, "حصاد المزارع والمنجم", QuestType.COLLECT_RESOURCES, 10, 5000, 15000, 15000, 0))
             dailyQuestsList.add(DynamicQuest(2, "تدريب 500 جندي", QuestType.TRAIN_TROOPS, 500, 5000, 10000, 10000, 0))
@@ -335,7 +333,6 @@ object GameState {
         }
         
         if (weeklyQuestsList.isEmpty()) {
-            // 💡 [مُصلح المهام] تحديث وتكثيف المهام الأسبوعية وجوائزها
             weeklyQuestsList.add(DynamicQuest(101, "المهمة الأسطورية: تدريب 25K جندي", QuestType.TRAIN_TROOPS, 25000, 75000, 150000, 150000, 1))
             weeklyQuestsList.add(DynamicQuest(102, "المهمة الأسطورية: تدريب 50K جندي", QuestType.TRAIN_TROOPS, 50000, 150000, 300000, 300000, 2))
             weeklyQuestsList.add(DynamicQuest(103, "النهضة المعمارية: تطوير 15 مبنى", QuestType.UPGRADE_BUILDING, 15, 60000, 150000, 150000, 0))
@@ -1409,8 +1406,6 @@ object GameState {
             if (w.isUpgrading && currentMillis >= w.upgradeEndTime) { w.isUpgrading = false; w.level++; pendingOfflineMessages.add(PendingMessage("ترقية سلاح", "تمت ترقية السلاح ${w.name} للمستوى ${w.level}!", w.iconResId)) }
         }
 
-        // 💡 [مُصلح الجمع] تم نقل معالجة الموارد بعد الخروج إلى هنا لضمان تفعيل الـ isReady
-        val offlineTime = trueOfflineTime
         myPlots.forEach { 
             it.level = prefs.getInt("L_${it.idCode}", 1); it.isUpgrading = prefs.getBoolean("U_${it.idCode}", false)
             it.isTraining = prefs.getBoolean("TR_${it.idCode}", false)
@@ -1445,7 +1440,6 @@ object GameState {
             }
         }
         
-        // 💡 [مُصلح المهام] التأكد من إضافة مكافأة الدخول اليومي عند أول دخول في اليوم
         val lastLoginDate = sdf.format(java.util.Date(lastLogin))
         val todayDate = sdf.format(java.util.Date(currentMillis))
         if (lastLoginDate != todayDate) {
