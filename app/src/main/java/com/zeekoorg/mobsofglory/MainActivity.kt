@@ -302,7 +302,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // 💡 [مُصلح] تم توحيد شكل التقرير مع المحرك الجبار ليعرض القوة الفعلية بدقة
     private fun showBattleReportDialog(report: BattleReport) {
         if (!isActivityResumed) return
         isReportDialogOpen = true 
@@ -322,15 +321,19 @@ class MainActivity : AppCompatActivity() {
             
             ssb.append("━━━━━━ قواتك ━━━━━━\n")
             if (report.title.contains("دفاع") || report.title.contains("هزيمة دفاعية")) {
-                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة دفاعات المدينة: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} 🛡️")
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة دفاعات المدينة الأساسية: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} 🛡️")
             } else {
-                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة الفيلق المُهاجِم: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} ⚔️")
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة الفيلق المهاجم الأساسية: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} ⚔️")
             }
             
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "القتلى: ${formatResourceNumber(report.myDead)}")
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الجرحى: ${formatResourceNumber(report.myWounded)}")
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الناجون: ${formatResourceNumber(report.mySurviving)}")
-            appendIconWithText(ssb, R.drawable.ic_ui_arena, "الضرر المُحدث: ${formatResourceNumber(report.myDamage)}\n")
+            
+            // 💡 تحديث لغة التقرير لتتطابق مع شاشة الساحة والخريطة (الأداء القتالي)
+            ssb.append("\n━━━━━━ الأداء القتالي ━━━━━━\n")
+            appendIconWithText(ssb, R.drawable.ic_ui_formation, "إجمالي القوة المُدَمَّرة للعدو: ${formatResourceNumber(report.myDamage)}")
+            appendIconWithText(ssb, R.drawable.ic_ui_weapons, "مكافآت الأبطال والعتاد: نشطة وفعالة 🟢\n")
         }
         
         if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
@@ -514,9 +517,10 @@ class MainActivity : AppCompatActivity() {
                     val remHeal = GameState.healingEndTime - now; val hospitalPlot = GameState.myPlots.find { it.idCode == "HOSPITAL" }
                     if (remHeal <= 0) {
                         GameState.isHealing = false; 
+                        // 💡 [إغلاق ثغرة العلاج] تفريغ قائمة قيد العلاج فقط، وترك الجرحى الجدد
                         GameState.playerTroops.forEach { tr ->
-                            tr.count += tr.wounded
-                            tr.wounded = 0L
+                            tr.count += tr.healing
+                            tr.healing = 0L
                         }
                         GameState.calculatePower(); GameState.saveGameData(this@MainActivity); updateHudUI()
                         hospitalPlot?.layoutUpgradeProgress?.visibility = View.GONE; DialogManager.showGameMessage(this@MainActivity, "دار الشفاء", "تم تعافي الجنود وعادوا لصفوف الجيش بقوة!", R.drawable.ic_settings_gear)
