@@ -7,6 +7,9 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.Spannable
+import android.text.SpannableStringBuilder
+import android.text.style.ImageSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -22,6 +25,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
@@ -92,6 +96,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         GameState.initializeDataLists()
+        // 💡 المحرك يستدعي البيانات ويشغل جدار الحماية ضد التلاعب بالزمن فوراً
         GameState.loadGameDataAndProcessOffline(this)
         GameState.calculatePower()
         
@@ -286,6 +291,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun appendIconWithText(builder: SpannableStringBuilder, iconResId: Int, text: String) {
+        val start = builder.length
+        builder.append("  $text\n") 
+        val drawable = ContextCompat.getDrawable(this, iconResId)
+        drawable?.let {
+            it.setBounds(0, -10, 50, 40)
+            val span = ImageSpan(it, ImageSpan.ALIGN_BASELINE)
+            builder.setSpan(span, start, start + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+    }
+
+    // 💡 [مُصلح] تم توحيد شكل التقرير مع المحرك الجبار ليعرض القوة الفعلية بدقة
     private fun showBattleReportDialog(report: BattleReport) {
         if (!isActivityResumed) return
         isReportDialogOpen = true 
@@ -294,32 +311,42 @@ class MainActivity : AppCompatActivity() {
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_game_message)
         
-        val details = StringBuilder()
+        val ssb = SpannableStringBuilder()
         
         if (report.enemyPowerBefore > 0) {
-            details.append("==== [قوات العدو: ${report.enemyName}] ====\n")
-            details.append("القوة السابقة: ${formatResourceNumber(report.enemyPowerBefore)}\n")
-            details.append("القوة المتبقية: ${formatResourceNumber(report.enemyPowerAfter)}\n")
-            details.append("الخسائر: ${formatResourceNumber(report.enemyPowerBefore - report.enemyPowerAfter)}\n\n")
+            ssb.append("━━━━━━ قوات العدو ━━━━━━\n")
+            appendIconWithText(ssb, R.drawable.ic_ui_arena, "الاسم: ${report.enemyName}")
+            appendIconWithText(ssb, R.drawable.ic_ui_arena, "القوة قبل المعركة: ${formatResourceNumber(report.enemyPowerBefore)}")
+            appendIconWithText(ssb, R.drawable.ic_ui_arena, "القوة المتبقية: ${formatResourceNumber(report.enemyPowerAfter)}")
+            appendIconWithText(ssb, R.drawable.ic_ui_arena, "الخسائر: ${formatResourceNumber(report.enemyPowerBefore - report.enemyPowerAfter)}\n")
             
-            details.append("==== [قواتك الإمبراطورية] ====\n")
-            details.append("قوة الهجوم المنفذة: ${formatResourceNumber(report.myDamage)}\n")
-            details.append("القتلى: ${formatResourceNumber(report.myDead)}\n")
-            details.append("الجرحى (في المستشفى): ${formatResourceNumber(report.myWounded)}\n\n")
+            ssb.append("━━━━━━ قواتك ━━━━━━\n")
+            if (report.title.contains("دفاع") || report.title.contains("هزيمة دفاعية")) {
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة دفاعات المدينة: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} 🛡️")
+            } else {
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة الفيلق المُهاجِم: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} ⚔️")
+            }
+            
+            appendIconWithText(ssb, R.drawable.ic_ui_arena, "القتلى: ${formatResourceNumber(report.myDead)}")
+            appendIconWithText(ssb, R.drawable.ic_ui_arena, "الجرحى: ${formatResourceNumber(report.myWounded)}")
+            appendIconWithText(ssb, R.drawable.ic_ui_arena, "الناجون: ${formatResourceNumber(report.mySurviving)}")
+            appendIconWithText(ssb, R.drawable.ic_ui_arena, "الضرر المُحدث: ${formatResourceNumber(report.myDamage)}\n")
         }
         
         if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
-            details.append("==== [الغنائم المكتسبة] ====\n")
-            if (report.lootIron > 0) details.append("الحديد: ${formatResourceNumber(report.lootIron)}  ")
-            if (report.lootWheat > 0) details.append("القمح: ${formatResourceNumber(report.lootWheat)}")
+            ssb.append("━━━━━━ الغنائم المكتسبة ━━━━━━\n")
+            if (report.lootGold > 0) appendIconWithText(ssb, R.drawable.ic_resource_gold, "الذهب: +${formatResourceNumber(report.lootGold)}")
+            if (report.lootIron > 0) appendIconWithText(ssb, R.drawable.ic_resource_iron, "الحديد: +${formatResourceNumber(report.lootIron)}")
+            if (report.lootWheat > 0) appendIconWithText(ssb, R.drawable.ic_resource_wheat, "القمح: +${formatResourceNumber(report.lootWheat)}")
         } else if (report.lootGold < 0 || report.lootIron < 0 || report.lootWheat < 0) {
-            details.append("==== [الموارد المنهوبة من مدينتك!] ====\n")
-            if (report.lootIron < 0) details.append("الحديد: ${formatResourceNumber(Math.abs(report.lootIron))}  ")
-            if (report.lootWheat < 0) details.append("القمح: ${formatResourceNumber(Math.abs(report.lootWheat))}")
+            ssb.append("━━━━━━ الموارد المنهوبة ━━━━━━\n")
+            if (report.lootGold < 0) appendIconWithText(ssb, R.drawable.ic_resource_gold, "الذهب: -${formatResourceNumber(Math.abs(report.lootGold))}")
+            if (report.lootIron < 0) appendIconWithText(ssb, R.drawable.ic_resource_iron, "الحديد: -${formatResourceNumber(Math.abs(report.lootIron))}")
+            if (report.lootWheat < 0) appendIconWithText(ssb, R.drawable.ic_resource_wheat, "القمح: -${formatResourceNumber(Math.abs(report.lootWheat))}")
         }
         
         d.findViewById<TextView>(R.id.tvMessageTitle)?.text = report.title
-        d.findViewById<TextView>(R.id.tvMessageBody)?.text = report.message + "\n\n" + details.toString()
+        d.findViewById<TextView>(R.id.tvMessageBody)?.text = ssb
         d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation)
         
         d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener { 
@@ -487,7 +514,6 @@ class MainActivity : AppCompatActivity() {
                     val remHeal = GameState.healingEndTime - now; val hospitalPlot = GameState.myPlots.find { it.idCode == "HOSPITAL" }
                     if (remHeal <= 0) {
                         GameState.isHealing = false; 
-                        // تعافي جميع الفئات والأنواع المصابة
                         GameState.playerTroops.forEach { tr ->
                             tr.count += tr.wounded
                             tr.wounded = 0L
@@ -509,7 +535,6 @@ class MainActivity : AppCompatActivity() {
                         p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectIcon?.visibility = View.GONE; val rem = p.trainingEndTime - now
                         if (rem <= 0) { 
                             p.isTraining = false; 
-                            // توزيع القوات على الفئة T1 بناءً على نوع المبنى
                             if (p.idCode == "BARRACKS_1") {
                                 GameState.playerTroops.find { it.type == TroopType.INFANTRY && it.tier == 1 }?.let { it.count += p.trainingAmount }
                             } else {
