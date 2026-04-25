@@ -1374,4 +1374,13 @@ object GameState {
                 } else if (it.idCode == "BARRACKS_2") {
                     playerTroops.find { t -> t.type == TroopType.CAVALRY && t.tier == 1 }?.let { tr -> tr.count += it.trainingAmount }
                 }
-                pendingOfflineMessages.add(PendingMessage("معسكر التدريب", "تم تدريب ${it.trainingAmount} قوات بنجاح!", R.drawable.ic_settings_gear))
+                pendingOfflineMessages.add(PendingMessage("معسكر التدريب", "تم تدريب ${it.trainingAmount} قوات بنجاح!", R.drawable.ic_settings_gear)) 
+            }
+            if (!it.isUpgrading && !it.isTraining && it.resourceType != ResourceType.NONE && !it.isReady) {
+                it.collectTimer += offlineTime; val targetTime = if(isVipActive()) 45000L else 60000L
+                if (it.collectTimer >= targetTime) { it.isReady = true; it.collectTimer = targetTime }
+            }
+        }
+        while (checkPlayerLevelUp(true)) { }
+    }
+}
