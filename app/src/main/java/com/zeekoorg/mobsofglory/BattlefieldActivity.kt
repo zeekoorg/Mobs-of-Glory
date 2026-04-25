@@ -347,8 +347,9 @@ class BattlefieldActivity : AppCompatActivity() {
         val lockWeapons = listOf(null, d.findViewById<View>(R.id.layoutLockWeapon2), d.findViewById<View>(R.id.layoutLockWeapon3), d.findViewById<View>(R.id.layoutLockWeapon4))
         val unlockLevels = listOf(1, 5, 10, 15)
 
-        fun simulateMarchStats(): Triple<Long, Long, Long> {
-            var baseAtk = 0.0; var baseDef = 0.0; var baseHp = 0.0
+        // 💡 [مُصلح الشبح] - إزالة الخصائص (البافات) والاكتفاء بحساب القوة الخام للاستعراض.
+        fun simulateMarchStats(): Pair<Long, Long> {
+            var displayPower = 0L
             var load = 0L
 
             fun simulate(type: TroopType, amount: Long) {
@@ -359,38 +360,17 @@ class BattlefieldActivity : AppCompatActivity() {
                     val take = minOf(troop.count, rem)
                     rem -= take
                     val stats = GameState.getTroopStats(type, troop.tier)
-                    baseAtk += take * stats.baseAtk
-                    baseDef += take * stats.baseDef
-                    baseHp += take * stats.baseHp
+                    displayPower += take * stats.power
                     load += (take * stats.loadCapacity).toLong()
                 }
             }
             simulate(TroopType.INFANTRY, selectedInfantry)
             simulate(TroopType.CAVALRY, selectedCavalry)
-            return Triple(baseAtk.toLong(), baseDef.toLong(), baseHp.toLong())
+            return Pair(displayPower, load)
         }
 
         fun updateMarchStats() {
-            var heroAtkBuff = 0.0; var heroDefBuff = 0.0; var heroHpBuff = 0.0
-            selectedHeroesForMarch.forEach { 
-                heroAtkBuff += it.getCurrentAttackBuff()
-                heroDefBuff += it.getCurrentDefenseBuff()
-                heroHpBuff += it.getCurrentHpBuff()
-            }
-            
-            var wpAtkBuff = 0.0; var wpDefBuff = 0.0
-            selectedWeaponsForMarch.forEach { 
-                wpAtkBuff += it.getCurrentAttackBuff()
-                wpDefBuff += it.getCurrentDefenseBuff()
-            }
-            
-            val (baseAtk, baseDef, baseHp) = simulateMarchStats()
-            
-            val finalAtk = baseAtk * (1.0 + heroAtkBuff + wpAtkBuff)
-            val finalDef = baseDef * (1.0 + heroDefBuff + wpDefBuff)
-            val finalHp = baseHp * (1.0 + heroHpBuff)
-            
-            val totalCombatPower = (finalAtk + finalDef + finalHp).toLong()
+            val (totalCombatPower, loadPayload) = simulateMarchStats()
             
             if (isAttack) {
                 tvPower?.text = "القوة الهجومية: ${formatResourceNumber(totalCombatPower)}"
@@ -399,18 +379,8 @@ class BattlefieldActivity : AppCompatActivity() {
                 var heroSpeedBuff = 0.0
                 selectedHeroesForMarch.forEach { heroSpeedBuff += it.getCurrentSpeedBuff() }
                 val gatherSpeed = (150.0 * (1.0 + heroSpeedBuff)).toLong()
-                var load = 0L
-                val availableInf = GameState.playerTroops.filter { it.type == TroopType.INFANTRY && it.count > 0 }.sortedByDescending { it.tier }
-                var remInf = selectedInfantry
-                // 💡 [مُصلح] إضافة الأقواس و .toLong() لمنع خطأ Type Mismatch
-                for(t in availableInf) { if(remInf<=0) break; val take = minOf(t.count, remInf); remInf-=take; load += (take * GameState.getTroopStats(t.type, t.tier).loadCapacity).toLong() }
                 
-                val availableCav = GameState.playerTroops.filter { it.type == TroopType.CAVALRY && it.count > 0 }.sortedByDescending { it.tier }
-                var remCav = selectedCavalry
-                // 💡 [مُصلح] إضافة الأقواس و .toLong() لمنع خطأ Type Mismatch
-                for(t in availableCav) { if(remCav<=0) break; val take = minOf(t.count, remCav); remCav-=take; load += (take * GameState.getTroopStats(t.type, t.tier).loadCapacity).toLong() }
-                
-                tvPower?.text = "سعة الحمولة: ${formatResourceNumber(load)} | السرعة: $gatherSpeed/ث"
+                tvPower?.text = "سعة الحمولة: ${formatResourceNumber(loadPayload)} | السرعة: $gatherSpeed/ث"
                 tvPower?.setTextColor(Color.WHITE)
             }
         }
