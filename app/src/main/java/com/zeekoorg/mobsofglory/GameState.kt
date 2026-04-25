@@ -308,14 +308,15 @@ object GameState {
         }
 
         if (myHeroes.isEmpty()) {
-            myHeroes.add(Hero(id=1, name="صقر البيداء", iconResId=R.drawable.img_hero_1, isUnlocked=true, shardsOwned=10, shardsRequired=10, rarity=Rarity.COMMON, baseAttackBuff=0.05, baseDefenseBuff=0.05, baseHpBuff=0.05)) 
-            myHeroes.add(Hero(id=2, name="ضرغام الليل", iconResId=R.drawable.img_hero_2, isUnlocked=false, shardsOwned=0, shardsRequired=20, rarity=Rarity.COMMON, infAtkBuff=0.10, baseDefenseBuff=0.02))
-            myHeroes.add(Hero(id=3, name="غضب الجبال", iconResId=R.drawable.img_hero_3, isUnlocked=false, shardsOwned=0, shardsRequired=30, rarity=Rarity.COMMON, cavAtkBuff=0.10, baseHpBuff=0.10))
-            myHeroes.add(Hero(id=4, name="رعد الصحراء", iconResId=R.drawable.img_hero_4, isUnlocked=false, shardsOwned=0, shardsRequired=50, rarity=Rarity.RARE, arcAtkBuff=0.15, baseSpeedBuff=0.10))
-            myHeroes.add(Hero(id=5, name="سيف العاصفة", iconResId=R.drawable.img_hero_5, isUnlocked=false, shardsOwned=0, shardsRequired=80, rarity=Rarity.RARE, baseAttackBuff=0.20, baseDefenseBuff=0.0, baseHpBuff=0.05))
-            myHeroes.add(Hero(id=6, name="كاسر الأمواج", iconResId=R.drawable.img_hero_6, isUnlocked=false, shardsOwned=0, shardsRequired=100, rarity=Rarity.RARE, siegeAtkBuff=0.25, baseHpBuff=0.15))
+            // 💡 [مُصلح التوازن] تم تعديل القيم الأساسية للأبطال لتكون منطقية مع مستويات الندرة
+            myHeroes.add(Hero(id=1, name="صقر البيداء", iconResId=R.drawable.img_hero_1, isUnlocked=true, shardsOwned=10, shardsRequired=10, rarity=Rarity.COMMON, baseAttackBuff=0.03, baseDefenseBuff=0.03, baseHpBuff=0.03)) 
+            myHeroes.add(Hero(id=2, name="ضرغام الليل", iconResId=R.drawable.img_hero_2, isUnlocked=false, shardsOwned=0, shardsRequired=20, rarity=Rarity.COMMON, infAtkBuff=0.05, baseDefenseBuff=0.02))
+            myHeroes.add(Hero(id=3, name="غضب الجبال", iconResId=R.drawable.img_hero_3, isUnlocked=false, shardsOwned=0, shardsRequired=30, rarity=Rarity.COMMON, cavAtkBuff=0.05, baseHpBuff=0.04))
+            myHeroes.add(Hero(id=4, name="رعد الصحراء", iconResId=R.drawable.img_hero_4, isUnlocked=false, shardsOwned=0, shardsRequired=50, rarity=Rarity.RARE, arcAtkBuff=0.12, baseSpeedBuff=0.05))
+            myHeroes.add(Hero(id=5, name="سيف العاصفة", iconResId=R.drawable.img_hero_5, isUnlocked=false, shardsOwned=0, shardsRequired=80, rarity=Rarity.RARE, baseAttackBuff=0.15, baseDefenseBuff=0.08, baseHpBuff=0.10))
+            myHeroes.add(Hero(id=6, name="كاسر الأمواج", iconResId=R.drawable.img_hero_6, isUnlocked=false, shardsOwned=0, shardsRequired=100, rarity=Rarity.RARE, siegeAtkBuff=0.15, baseHpBuff=0.12))
             myHeroes.add(Hero(id=7, name="أميرة الحرب", iconResId=R.drawable.img_hero_7, isUnlocked=false, shardsOwned=0, shardsRequired=150, rarity=Rarity.LEGENDARY, baseAttackBuff=0.25, baseDefenseBuff=0.25, baseHpBuff=0.20, baseSpeedBuff=0.15))
-            myHeroes.add(Hero(id=8, name="ساحرة المجد", iconResId=R.drawable.img_hero_8, isUnlocked=false, shardsOwned=0, shardsRequired=200, rarity=Rarity.LEGENDARY, infAtkBuff=0.30, cavAtkBuff=0.30, baseHpBuff=0.10))
+            myHeroes.add(Hero(id=8, name="ساحرة المجد", iconResId=R.drawable.img_hero_8, isUnlocked=false, shardsOwned=0, shardsRequired=200, rarity=Rarity.LEGENDARY, infAtkBuff=0.30, cavAtkBuff=0.30, baseHpBuff=0.15))
         }
         if (arsenal.isEmpty()) {
             arsenal.add(Weapon(1, "سيف اللهب الملعون", R.drawable.ic_weapon_flame_sword, rarity=Rarity.RARE, baseWeaponAttackBuff=0.15, baseWeaponDefenseBuff=0.0))
@@ -325,6 +326,8 @@ object GameState {
         }
         
         if (dailyQuestsList.isEmpty()) {
+            // 💡 [مُصلح المهام] إضافة مهمة تسجيل الدخول اليومية
+            dailyQuestsList.add(DynamicQuest(0, "تسجيل الدخول اليومي", QuestType.DAILY_LOGIN, 1, 15000, 25000, 25000, 0))
             dailyQuestsList.add(DynamicQuest(1, "حصاد المزارع والمنجم", QuestType.COLLECT_RESOURCES, 10, 5000, 15000, 15000, 0))
             dailyQuestsList.add(DynamicQuest(2, "تدريب 500 جندي", QuestType.TRAIN_TROOPS, 500, 5000, 10000, 10000, 0))
             dailyQuestsList.add(DynamicQuest(3, "تطوير مبنيين", QuestType.UPGRADE_BUILDING, 2, 10000, 20000, 20000, 0))
@@ -332,10 +335,14 @@ object GameState {
         }
         
         if (weeklyQuestsList.isEmpty()) {
-            weeklyQuestsList.add(DynamicQuest(101, "المهمة الأسطورية: تدريب 25K جندي", QuestType.TRAIN_TROOPS, 25000, 100000, 250000, 250000, 1))
-            weeklyQuestsList.add(DynamicQuest(102, "النهضة المعمارية: تطوير 15 مبنى", QuestType.UPGRADE_BUILDING, 15, 60000, 150000, 150000, 0))
-            weeklyQuestsList.add(DynamicQuest(103, "الإمبراطورية الغنية: اجمع 100 مرة", QuestType.COLLECT_RESOURCES, 100, 50000, 100000, 100000, 0))
-            weeklyQuestsList.add(DynamicQuest(104, "الداعم الملكي: شاهد 20 إعلاناً", QuestType.WATCH_ADS, 20, 80000, 200000, 200000, 0))
+            // 💡 [مُصلح المهام] تحديث وتكثيف المهام الأسبوعية وجوائزها
+            weeklyQuestsList.add(DynamicQuest(101, "المهمة الأسطورية: تدريب 25K جندي", QuestType.TRAIN_TROOPS, 25000, 75000, 150000, 150000, 1))
+            weeklyQuestsList.add(DynamicQuest(102, "المهمة الأسطورية: تدريب 50K جندي", QuestType.TRAIN_TROOPS, 50000, 150000, 300000, 300000, 2))
+            weeklyQuestsList.add(DynamicQuest(103, "النهضة المعمارية: تطوير 15 مبنى", QuestType.UPGRADE_BUILDING, 15, 60000, 150000, 150000, 0))
+            weeklyQuestsList.add(DynamicQuest(104, "الإمبراطورية الغنية: اجمع 100 مرة", QuestType.COLLECT_RESOURCES, 100, 50000, 100000, 100000, 0))
+            weeklyQuestsList.add(DynamicQuest(105, "الداعم الملكي: شاهد 30 إعلاناً", QuestType.WATCH_ADS, 30, 120000, 280000, 280000, 1))
+            weeklyQuestsList.add(DynamicQuest(106, "قادة الإمبراطورية: ترقية بطل 5 مرات", QuestType.UPGRADE_HERO, 5, 50000, 150000, 150000, 1))
+            weeklyQuestsList.add(DynamicQuest(107, "ترسانة الرعب: ترقية سلاح 3 مرات", QuestType.UPGRADE_WEAPON, 3, 100000, 250000, 250000, 1))
         }
         
         if (weeklyQuestEndTime == 0L) weeklyQuestEndTime = System.currentTimeMillis() + (7L * 24 * 3600000L)
@@ -1402,6 +1409,8 @@ object GameState {
             if (w.isUpgrading && currentMillis >= w.upgradeEndTime) { w.isUpgrading = false; w.level++; pendingOfflineMessages.add(PendingMessage("ترقية سلاح", "تمت ترقية السلاح ${w.name} للمستوى ${w.level}!", w.iconResId)) }
         }
 
+        // 💡 [مُصلح الجمع] تم نقل معالجة الموارد بعد الخروج إلى هنا لضمان تفعيل الـ isReady
+        val offlineTime = trueOfflineTime
         myPlots.forEach { 
             it.level = prefs.getInt("L_${it.idCode}", 1); it.isUpgrading = prefs.getBoolean("U_${it.idCode}", false)
             it.isTraining = prefs.getBoolean("TR_${it.idCode}", false)
@@ -1427,14 +1436,25 @@ object GameState {
                 pendingOfflineMessages.add(PendingMessage("معسكر التدريب", "تم تدريب ${it.trainingAmount} قوات بنجاح!", R.drawable.ic_settings_gear)) 
             }
             if (!it.isUpgrading && !it.isTraining && it.resourceType != ResourceType.NONE && !it.isReady) {
-                it.collectTimer += offlineTime; val targetTime = if(isVipActive()) 45000L else 60000L
-                if (it.collectTimer >= targetTime) { it.isReady = true; it.collectTimer = targetTime }
+                it.collectTimer += offlineTime
+                val targetTime = if(isVipActive()) 45000L else 60000L
+                if (it.collectTimer >= targetTime) { 
+                    it.isReady = true
+                    it.collectTimer = targetTime 
+                }
             }
         }
+        
+        // 💡 [مُصلح المهام] التأكد من إضافة مكافأة الدخول اليومي عند أول دخول في اليوم
+        val lastLoginDate = sdf.format(java.util.Date(lastLogin))
+        val todayDate = sdf.format(java.util.Date(currentMillis))
+        if (lastLoginDate != todayDate) {
+            addQuestProgress(QuestType.DAILY_LOGIN, 1)
+        }
+        
         while (checkPlayerLevelUp(true)) { }
     }
 
-    // 💡 تمت إعادة الدالة المفقودة هنا لحل مشكلة Unresolved reference
     private fun formatResourceNumber(num: Long): String = when { 
         num >= 1_000_000_000 -> String.format(Locale.US, "%.1fB", num / 1_000_000_000.0)
         num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0)
