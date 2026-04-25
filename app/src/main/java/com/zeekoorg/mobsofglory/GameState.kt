@@ -206,7 +206,8 @@ object GameState {
     }
 
     fun getTotalHealthyTroops(): Long = playerTroops.sumOf { it.count }
-    fun getTotalWoundedTroops(): Long = playerTroops.sumOf { it.wounded }
+    // 💡 [مُصلح المستشفى] حساب السعة أصبح يشمل الجرحى والذين قيد العلاج لمنع تجاوز الحد
+    fun getTotalWoundedTroops(): Long = playerTroops.sumOf { it.wounded + it.healing }
 
     fun addQuestProgress(type: QuestType, amount: Int) {
         dailyQuestsList.filter { it.type == type }.forEach { quest ->
@@ -240,7 +241,9 @@ object GameState {
         if (playerTroops.isEmpty()) {
             for (type in TroopType.values()) {
                 for (tier in 1..5) {
-                    playerTroops.add(TroopData(type, tier, 0L, 0L))
+                    val td = TroopData(type, tier, 0L, 0L)
+                    td.healing = 0L // لضمان تهيئة الخاصية الجديدة
+                    playerTroops.add(td)
                 }
             }
         }
@@ -328,7 +331,9 @@ object GameState {
             for ((tier, tierRatio) in tierProbabilities) {
                 val amountForThisTier = (amountForThisType * tierRatio).toLong()
                 if (amountForThisTier > 0) {
-                    troops.add(TroopData(type, tier, amountForThisTier, 0L))
+                    val td = TroopData(type, tier, amountForThisTier, 0L)
+                    td.healing = 0L
+                    troops.add(td)
                 }
             }
         }
@@ -508,7 +513,9 @@ object GameState {
         val revengeTroops = mutableListOf<TroopData>()
         node.enemyTroops.forEach {
             if (it.count > 0) {
-                revengeTroops.add(TroopData(it.type, it.tier, it.count, 0))
+                val td = TroopData(it.type, it.tier, it.count, 0L)
+                td.healing = 0L
+                revengeTroops.add(td)
             }
         }
 
@@ -637,9 +644,7 @@ object GameState {
 
                     var defenderDisplayPower = 0L
                     if (march.type == MarchType.ATTACK) {
-                        node!!.enemyTroops.forEach { troop ->
-                            defenderDisplayPower += troop.count * getTroopStats(troop.type, troop.tier).power
-                        }
+                        defenderDisplayPower = node!!.currentPower
                     } else {
                         playerTroops.forEach { troop ->
                             defenderDisplayPower += troop.count * getTroopStats(troop.type, troop.tier).power
@@ -685,7 +690,8 @@ object GameState {
                     var playerDead = 0L; var playerWounded = 0L
                     
                     val hospitalCap = getHospitalCapacity()
-                    val pendingWounded = activeMarches.filter { it.status == MarchStatus.RETURNING }.sumOf { it.reportWounded }
+                    // 💡 [مُصلح الحجز المسبق] نجمع الجرحى المحمولين على نقالات الفيالق العائدة لضمان حجز أسرتهم 
+                    val pendingWounded = activeMarches.filter { it.status == MarchStatus.RETURNING }.sumOf { m -> m.marchTroops.sumOf { t -> t.wounded } }
                     var currentWoundedInHospital = getTotalWoundedTroops() + pendingWounded
 
                     val playerTroopsList = if (march.type == MarchType.ATTACK) march.marchTroops else playerTroops
@@ -709,7 +715,12 @@ object GameState {
                                 
                                 if (march.type == MarchType.REVENGE) {
                                     troop.wounded += admittedWounded
+                                } else if (march.type == MarchType.ATTACK) {
+                                    // 💡 [مُصلح نقالة الجرحى] تحميل الجرحى في نقالة الفيلق المهاجم بشكل دقيق
+                                    troop.wounded = admittedWounded
                                 }
+                            } else if (march.type == MarchType.ATTACK) {
+                                troop.wounded = 0L
                             }
 
                             val extraDead = troopWounded - admittedWounded
@@ -741,6 +752,9 @@ object GameState {
                     enemyTroopsList.forEach { troop ->
                         enemyFinalDisplayPower += troop.count * getTroopStats(troop.type, troop.tier).power
                     }
+                    if (march.type == MarchType.REVENGE) {
+                        enemyFinalDisplayPower = (enemyFinalDisplayPower * (1.0 + aiBuffForMarch)).toLong()
+                    }
                     
                     if (march.type == MarchType.ATTACK) {
                         node!!.currentPower = enemyFinalDisplayPower
@@ -762,7 +776,6 @@ object GameState {
                             node!!.lastAttackedTime = now
                         }
 
-                        // 💡 [إصلاح الضرر] - عرض القوة المدمرة بدلاً من نقاط المعالج المخفية
                         march.reportDamage = defenderDisplayPower - enemyFinalDisplayPower
                         march.reportDead = playerDead
                         march.reportWounded = playerWounded
@@ -791,11 +804,11 @@ object GameState {
                                 enemyName = enemyName,
                                 enemyPowerBefore = attackerDisplayPower, 
                                 enemyPowerAfter = enemyFinalDisplayPower,
-                                myTotalSent = defenderTotalTroops, // 💡 [إصلاح الدفاع] - عدد جنودك الفعلي
+                                myTotalSent = defenderTotalTroops,
                                 myDead = playerDead, 
-                                myWounded = playerWounded, // 💡 [إصلاح الدفاع] - عرض الجرحى الفعليين
+                                myWounded = playerWounded, 
                                 mySurviving = playerSurviving,
-                                myDamage = attackerDisplayPower - enemyFinalDisplayPower, // 💡 [إصلاح الضرر] - عرض القوة المدمرة
+                                myDamage = attackerDisplayPower - enemyFinalDisplayPower,
                                 lootGold = 0, lootIron = 0, lootWheat = 0, isVictory = true,
                                 battleRounds = rounds,
                                 myTotalPowerStr = defenderDisplayPower.toString()
@@ -816,11 +829,11 @@ object GameState {
                                 enemyName = enemyName,
                                 enemyPowerBefore = attackerDisplayPower, 
                                 enemyPowerAfter = enemyFinalDisplayPower, 
-                                myTotalSent = defenderTotalTroops, // 💡 [إصلاح الدفاع] - عدد جنودك الفعلي
+                                myTotalSent = defenderTotalTroops,
                                 myDead = playerDead,
-                                myWounded = playerWounded, // 💡 [إصلاح الدفاع] - عرض الجرحى الفعليين
+                                myWounded = playerWounded,
                                 mySurviving = playerSurviving,
-                                myDamage = attackerDisplayPower - enemyFinalDisplayPower, // 💡 [إصلاح الضرر] - عرض القوة المدمرة
+                                myDamage = attackerDisplayPower - enemyFinalDisplayPower,
                                 lootGold = 0, lootIron = -lostIron, lootWheat = -lostWheat, isVictory = false,
                                 battleRounds = rounds,
                                 myTotalPowerStr = defenderDisplayPower.toString()
@@ -875,26 +888,16 @@ object GameState {
             else if (march.status == MarchStatus.RETURNING && now >= march.endTime) {
                 needsUpdate = true
                 
+                // 💡 [مُصلح العودة الآمنة] تفريغ النقالة مباشرة في المستشفى
                 if (march.type != MarchType.REVENGE) {
                     march.marchTroops.forEach { marchTroop ->
                         val mainTroop = playerTroops.find { it.type == marchTroop.type && it.tier == marchTroop.tier }
-                        if (mainTroop != null) { mainTroop.count += marchTroop.count }
-                    }
-                }
-
-                if (march.type == MarchType.ATTACK) {
-                    val hospitalCap = getHospitalCapacity()
-                    var currentWoundedInHospital = getTotalWoundedTroops()
-                    
-                    march.marchTroops.forEach { marchTroop ->
-                        val ratio = if (march.marchTroops.sumOf { it.count } > 0) marchTroop.count.toDouble() / march.marchTroops.sumOf { it.count } else 0.5
-                        val troopWounded = (march.reportWounded * ratio).toLong()
-                        
-                        val availableSpace = hospitalCap - currentWoundedInHospital
-                        if (availableSpace > 0) {
-                            val admitted = if (troopWounded <= availableSpace) troopWounded else availableSpace
-                            currentWoundedInHospital += admitted
-                            playerTroops.find { it.type == marchTroop.type && it.tier == marchTroop.tier }?.let { it.wounded += admitted }
+                        if (mainTroop != null) { 
+                            mainTroop.count += marchTroop.count 
+                            if (march.type == MarchType.ATTACK) {
+                                mainTroop.wounded += marchTroop.wounded 
+                                marchTroop.wounded = 0L
+                            }
                         }
                     }
                 }
@@ -967,7 +970,8 @@ object GameState {
         prefs.putLong("TOTAL_GOLD", totalGold); prefs.putLong("TOTAL_IRON", totalIron); prefs.putLong("TOTAL_WHEAT", totalWheat)
         prefs.putInt("PLAYER_LEVEL", playerLevel); prefs.putInt("PLAYER_EXP", playerExp)
         
-        val troopsStr = playerTroops.joinToString(";") { "${it.type.name},${it.tier},${it.count},${it.wounded}" }
+        // 💡 تحديث حفظ البيانات لتشمل الفئة الثالثة (قيد العلاج)
+        val troopsStr = playerTroops.joinToString(";") { "${it.type.name},${it.tier},${it.count},${it.wounded},${it.healing}" }
         prefs.putString("PLAYER_TROOPS", troopsStr)
 
         prefs.putInt("SUMMON_MEDALS", summonMedals)
@@ -1033,7 +1037,8 @@ object GameState {
             prefs.putString("BF_NODE_${n.id}_IMG", n.imageName)
             prefs.putString("BF_NODE_${n.id}_PNAME", n.playerName) 
             
-            val eTroopsStr = n.enemyTroops.joinToString(";") { "${it.type.name},${it.tier},${it.count},${it.wounded}" }
+            // 💡 تحديث حفظ البيانات لتشمل الفئة الثالثة
+            val eTroopsStr = n.enemyTroops.joinToString(";") { "${it.type.name},${it.tier},${it.count},${it.wounded},${it.healing}" }
             prefs.putString("BF_NODE_${n.id}_TROOPS", eTroopsStr)
             prefs.putFloat("BF_NODE_${n.id}_BUFF", n.aiBuffMultiplier.toFloat())
         }
@@ -1044,7 +1049,8 @@ object GameState {
             prefs.putInt("AM_${index}_NODE", march.targetNodeId)
             prefs.putString("AM_${index}_TYPE", march.type.name)
             
-            val mTroopsStr = march.marchTroops.joinToString(";") { "${it.type.name},${it.tier},${it.count},${it.wounded}" }
+            // 💡 تحديث حفظ البيانات لتشمل الفئة الثالثة
+            val mTroopsStr = march.marchTroops.joinToString(";") { "${it.type.name},${it.tier},${it.count},${it.wounded},${it.healing}" }
             prefs.putString("AM_${index}_TROOPS", mTroopsStr)
             
             prefs.putString("AM_${index}_HEROES", march.heroIds.joinToString(","))
@@ -1084,8 +1090,10 @@ object GameState {
         if (troopsStr.isNotEmpty()) {
             troopsStr.split(";").forEach {
                 val parts = it.split(",")
-                if (parts.size == 4) {
-                    playerTroops.add(TroopData(TroopType.valueOf(parts[0]), parts[1].toInt(), parts[2].toLong(), parts[3].toLong()))
+                if (parts.size >= 4) {
+                    val td = TroopData(TroopType.valueOf(parts[0]), parts[1].toInt(), parts[2].toLong(), parts[3].toLong())
+                    if (parts.size >= 5) td.healing = parts[4].toLong()
+                    playerTroops.add(td)
                 }
             }
         } else {
@@ -1218,7 +1226,11 @@ object GameState {
                 if (eTroopsStr.isNotEmpty()) {
                     eTroopsStr.split(";").forEach {
                         val parts = it.split(",")
-                        if (parts.size == 4) parsedEnemyTroops.add(TroopData(TroopType.valueOf(parts[0]), parts[1].toInt(), parts[2].toLong(), parts[3].toLong()))
+                        if (parts.size >= 4) {
+                            val td = TroopData(TroopType.valueOf(parts[0]), parts[1].toInt(), parts[2].toLong(), parts[3].toLong())
+                            if (parts.size >= 5) td.healing = parts[4].toLong()
+                            parsedEnemyTroops.add(td)
+                        }
                     }
                 }
                 val aiBuff = prefs.getFloat("BF_NODE_${i}_BUFF", 0.0f).toDouble()
@@ -1266,7 +1278,11 @@ object GameState {
             if (mTroopsStr.isNotEmpty()) {
                 mTroopsStr.split(";").forEach {
                     val parts = it.split(",")
-                    if (parts.size == 4) parsedTroops.add(TroopData(TroopType.valueOf(parts[0]), parts[1].toInt(), parts[2].toLong(), parts[3].toLong()))
+                    if (parts.size >= 4) {
+                        val td = TroopData(TroopType.valueOf(parts[0]), parts[1].toInt(), parts[2].toLong(), parts[3].toLong())
+                        if (parts.size >= 5) td.healing = parts[4].toLong()
+                        parsedTroops.add(td)
+                    }
                 }
             }
             
@@ -1304,11 +1320,12 @@ object GameState {
 
         processActiveMarches(context)
 
+        // 💡 [مُصلح العلاج] يتم نقل الجنود من خانة `healing` إلى الصحاح بدلاً من `wounded` لمنع الثغرة
         if (isHealing && currentMillis >= healingEndTime) {
             isHealing = false
             playerTroops.forEach { 
-                it.count += it.wounded
-                it.wounded = 0L 
+                it.count += it.healing
+                it.healing = 0L 
             }
             pendingOfflineMessages.add(PendingMessage("دار الشفاء", "تم تعافي الجنود بنجاح وعادوا لصفوف الجيش!", R.drawable.ic_settings_gear))
         }
@@ -1357,13 +1374,4 @@ object GameState {
                 } else if (it.idCode == "BARRACKS_2") {
                     playerTroops.find { t -> t.type == TroopType.CAVALRY && t.tier == 1 }?.let { tr -> tr.count += it.trainingAmount }
                 }
-                pendingOfflineMessages.add(PendingMessage("معسكر التدريب", "تم تدريب ${it.trainingAmount} قوات بنجاح!", R.drawable.ic_settings_gear)) 
-            }
-            if (!it.isUpgrading && !it.isTraining && it.resourceType != ResourceType.NONE && !it.isReady) {
-                it.collectTimer += offlineTime; val targetTime = if(isVipActive()) 45000L else 60000L
-                if (it.collectTimer >= targetTime) { it.isReady = true; it.collectTimer = targetTime }
-            }
-        }
-        while (checkPlayerLevelUp(true)) { }
-    }
-}
+                pendingOfflineMessages.add(PendingMessage("معسكر التدريب", "تم تدريب ${it.trainingAmount} قوات بنجاح!", R.drawable.ic_settings_gear))
