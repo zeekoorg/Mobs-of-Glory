@@ -75,7 +75,7 @@ class ArenaActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isActivityResumed = true
-        GameState.onAppResume(this) // 🛡️ تفعيل فخ الحماية عند العودة
+        GameState.onAppResume(this) // 🛡️ الفخ الزمني يعمل
         
         GameState.calculatePower()
         GameState.arenaLeaderboard.find { it.isRealPlayer }?.name = GameState.playerName
@@ -89,7 +89,7 @@ class ArenaActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         isActivityResumed = false
-        GameState.onAppPause() // 🛡️ تفعيل فخ الحماية عند الخروج
+        GameState.onAppPause() // 🛡️ الفخ الزمني يعمل
         GameState.saveGameData(this)
         
         SoundManager.pauseBGM()
@@ -177,6 +177,7 @@ class ArenaActivity : AppCompatActivity() {
         val rootLayout = imgMarchingLegion.parent as? ViewGroup ?: findViewById<ViewGroup>(android.R.id.content) ?: return
         
         val startY = imgMarchingLegion.y
+        // 💡 [مُصلح] نقطة وصول الفيلق ليتمركز أمام باب القلعة تماماً بناءً على طلبك
         val targetY = layoutGhostCastle.y + layoutGhostCastle.height - (imgMarchingLegion.height / 2f) - 50f
 
         val moveAnim = ObjectAnimator.ofFloat(imgMarchingLegion, "translationY", 0f, targetY - startY)
@@ -283,8 +284,8 @@ class ArenaActivity : AppCompatActivity() {
             if (totalCasualties > totalSent) totalCasualties = totalSent
             if (totalCasualties < 0) totalCasualties = 0
 
+            // 💡 [مُصلح] لا يوجد قتلى إطلاقاً، إما جرحى في المستشفى أو يعودون سالمين!
             var totalDead = 0L; var totalWounded = 0L
-            val deadRate = 0.05 
 
             val hospitalCap = GameState.getHospitalCapacity()
             var currentWoundedInHospital = GameState.getTotalWoundedTroops()
@@ -294,8 +295,7 @@ class ArenaActivity : AppCompatActivity() {
                     val ratio = marchTroop.count.toDouble() / totalSent.coerceAtLeast(1)
                     val troopCasualties = (totalCasualties * ratio).toLong()
                     
-                    val troopDead = (troopCasualties * deadRate).toLong()
-                    val troopWounded = troopCasualties - troopDead
+                    val troopWounded = troopCasualties
 
                     val availableSpace = hospitalCap - currentWoundedInHospital
                     var admittedWounded = 0L
@@ -308,20 +308,17 @@ class ArenaActivity : AppCompatActivity() {
                         if (mainTroopRecord != null) mainTroopRecord.wounded += admittedWounded
                     }
 
-                    val extraDead = troopWounded - admittedWounded
-                    val finalDead = troopDead + extraDead
-                    
-                    val surviving = marchTroop.count - (finalDead + admittedWounded)
+                    val surviving = marchTroop.count - admittedWounded
                     
                     val mainTroopRecord = GameState.playerTroops.find { it.type == marchTroop.type && it.tier == marchTroop.tier }
                     if (mainTroopRecord != null) mainTroopRecord.count += maxOf(0L, surviving)
 
-                    totalDead += finalDead
                     totalWounded += admittedWounded
                 }
             }
 
             var hasBonusLoot = false
+            // 💡 [مُصلح] الجوائز الفورية لن تُصرف إلا للذين يتجاوزون الـ 2 مليون ضرر
             if (damageDealt >= 2000000) {
                 hasBonusLoot = true
             }
