@@ -201,6 +201,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isActivityResumed = true
+        GameState.onAppResume(this) // 🛡️ تفعيل فخ الحماية عند العودة
         
         val prefs = getSharedPreferences("MobsOfGlorySettings", Context.MODE_PRIVATE)
         val isMusicOn = prefs.getBoolean("MUSIC", true)
@@ -218,6 +219,7 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         isActivityResumed = false
+        GameState.onAppPause() // 🛡️ تفعيل فخ الحماية عند الخروج
         GameState.saveGameData(this)
         SoundManager.pauseBGM()
     }
