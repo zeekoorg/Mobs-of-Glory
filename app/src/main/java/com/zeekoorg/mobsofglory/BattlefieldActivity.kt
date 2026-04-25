@@ -347,7 +347,6 @@ class BattlefieldActivity : AppCompatActivity() {
         val lockWeapons = listOf(null, d.findViewById<View>(R.id.layoutLockWeapon2), d.findViewById<View>(R.id.layoutLockWeapon3), d.findViewById<View>(R.id.layoutLockWeapon4))
         val unlockLevels = listOf(1, 5, 10, 15)
 
-        // 💡 [مُصلح الشبح] - إزالة الخصائص (البافات) والاكتفاء بحساب القوة الخام للاستعراض.
         fun simulateMarchStats(): Pair<Long, Long> {
             var displayPower = 0L
             var load = 0L
@@ -707,6 +706,7 @@ class BattlefieldActivity : AppCompatActivity() {
         }
     }
 
+    // 💡 [مُصلح التقرير] - عرض القوة الخام كـ "قوة الفيلق الأساسية"، وعرض البافات في "الضرر المُحدث" كقوة ضاربة.
     private fun showBattleReportDialog(report: BattleReport) {
         if (!isActivityResumed) return
         isReportDialogOpen = true 
@@ -726,15 +726,22 @@ class BattlefieldActivity : AppCompatActivity() {
             
             ssb.append("━━━━━━ قواتك ━━━━━━\n")
             if (report.title.contains("دفاع") || report.title.contains("هزيمة دفاعية")) {
-                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة دفاعات المدينة: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} 🛡️")
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة دفاعات المدينة الأساسية: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} 🛡️")
             } else {
-                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة الفيلق المُهاجِم: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} ⚔️")
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة الفيلق المهاجم الأساسية: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} ⚔️")
             }
             
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "القتلى: ${formatResourceNumber(report.myDead)}")
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الجرحى: ${formatResourceNumber(report.myWounded)}")
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الناجون: ${formatResourceNumber(report.mySurviving)}")
-            appendIconWithText(ssb, R.drawable.ic_ui_arena, "الضرر المُحدث: ${formatResourceNumber(report.myDamage)}\n")
+            
+            ssb.append("\n━━━━━━ تفاصيل الاشتباك ━━━━━━\n")
+            // 💡 [تحديث] عرض الضرر المحدث كـ "القوة الضاربة الإجمالية" ليبرر الانتصار أو الدمار
+            val buffBonus = report.myDamage - (report.myTotalPowerStr.toLongOrNull() ?: 0L)
+            if (buffBonus > 0) {
+                appendIconWithText(ssb, R.drawable.ic_ui_weapons, "مكافآت الأبطال والأسلحة: +${formatResourceNumber(buffBonus)}")
+            }
+            appendIconWithText(ssb, R.drawable.ic_ui_formation, "القوة الضاربة الإجمالية: ${formatResourceNumber(report.myDamage)}\n")
         }
         
         if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
