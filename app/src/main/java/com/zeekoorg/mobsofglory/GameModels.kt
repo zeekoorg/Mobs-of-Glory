@@ -18,16 +18,16 @@ enum class QuestType {
     TRAIN_TROOPS,
     UPGRADE_BUILDING,
     WATCH_ADS,
-    // 💡 [مُصلح المهام] تمت إضافة أنواع المهام الجديدة هنا
     DAILY_LOGIN,
     UPGRADE_HERO,
     UPGRADE_WEAPON
 }
 
+// 💡 [مُصلح التوازن] تم تكبير الفجوة بين الندرات ليكون الأسطوري متفوقاً بشكل كاسح
 enum class Rarity(val buffMultiplier: Double, val costMultiplier: Double, val timeMultiplier: Double) {
     COMMON(1.0, 1.0, 1.0),
-    RARE(1.5, 3.0, 2.0),
-    LEGENDARY(2.5, 8.0, 4.0)
+    RARE(2.0, 3.0, 2.0),
+    LEGENDARY(4.5, 8.0, 4.0)
 }
 
 enum class TroopType {
