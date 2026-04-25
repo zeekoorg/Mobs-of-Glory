@@ -358,7 +358,7 @@ class ArenaActivity : AppCompatActivity() {
         val ssb = SpannableStringBuilder()
         ssb.append("━━━━━━ نتيجة الغزوة ━━━━━━\n")
         appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة الفيلق المهاجم الأساسية: ${formatResourceNumber(attackerDisplayPower)} ⚔️")
-        appendIconWithText(ssb, R.drawable.ic_ui_arena, "الضرر الكلي المُحدث: ${formatResourceNumber(damage)}")
+        appendIconWithText(ssb, R.drawable.ic_ui_arena, "الظرر الكلي على القلعة: ${formatResourceNumber(damage)}")
         appendIconWithText(ssb, R.drawable.ic_ui_arena, "نقاط الساحة المكتسبة: +${formatResourceNumber(scoreEarned)}")
         
         ssb.append("\n━━━━━━ الخسائر ━━━━━━\n")
