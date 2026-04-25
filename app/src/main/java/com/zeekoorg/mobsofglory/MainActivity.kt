@@ -96,7 +96,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         GameState.initializeDataLists()
-        // 💡 المحرك يستدعي البيانات ويشغل جدار الحماية ضد التلاعب بالزمن فوراً
         GameState.loadGameDataAndProcessOffline(this)
         GameState.calculatePower()
         
@@ -201,7 +200,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isActivityResumed = true
-        GameState.onAppResume(this) // 🛡️ تفعيل فخ الحماية عند العودة
+        GameState.onAppResume(this)
         
         val prefs = getSharedPreferences("MobsOfGlorySettings", Context.MODE_PRIVATE)
         val isMusicOn = prefs.getBoolean("MUSIC", true)
@@ -219,7 +218,7 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         isActivityResumed = false
-        GameState.onAppPause() // 🛡️ تفعيل فخ الحماية عند الخروج
+        GameState.onAppPause()
         GameState.saveGameData(this)
         SoundManager.pauseBGM()
     }
@@ -332,7 +331,6 @@ class MainActivity : AppCompatActivity() {
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الجرحى: ${formatResourceNumber(report.myWounded)}")
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الناجون: ${formatResourceNumber(report.mySurviving)}")
             
-            // 💡 تحديث لغة التقرير لتتطابق مع شاشة الساحة والخريطة (الأداء القتالي)
             ssb.append("\n━━━━━━ الأداء القتالي ━━━━━━\n")
             appendIconWithText(ssb, R.drawable.ic_ui_formation, "إجمالي الضرر بالعدو: ${formatResourceNumber(report.myDamage)}")
             appendIconWithText(ssb, R.drawable.ic_ui_weapons, "مكافآت الأبطال والعتاد: نشطة وفعالة 🟢\n")
@@ -519,7 +517,6 @@ class MainActivity : AppCompatActivity() {
                     val remHeal = GameState.healingEndTime - now; val hospitalPlot = GameState.myPlots.find { it.idCode == "HOSPITAL" }
                     if (remHeal <= 0) {
                         GameState.isHealing = false; 
-                        // 💡 [إغلاق ثغرة العلاج] تفريغ قائمة قيد العلاج فقط، وترك الجرحى الجدد
                         GameState.playerTroops.forEach { tr ->
                             tr.count += tr.healing
                             tr.healing = 0L
@@ -549,10 +546,16 @@ class MainActivity : AppCompatActivity() {
                             GameState.addQuestProgress(QuestType.TRAIN_TROOPS, p.trainingAmount); GameState.calculatePower(); updateHudUI(); GameState.saveGameData(this@MainActivity); p.layoutUpgradeProgress?.visibility = View.GONE; DialogManager.showGameMessage(this@MainActivity, "معسكر التدريب", "تم تدريب ${p.trainingAmount} قوات بنجاح!", R.drawable.ic_settings_gear) 
                         } 
                         else { p.pbUpgrade?.progress = (((p.trainingTotalTime - rem).toFloat() / p.trainingTotalTime) * 100).toInt(); p.tvUpgradeTimer?.text = "%02d:%02d".format((rem/60000), (rem%60000)/1000) }
-                    } else if (p.resourceType != ResourceType.NONE && !p.isReady && p.idCode != "HOSPITAL") {
-                        p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectTimer += 1000; val targetTime = if(GameState.isVipActive()) 45000L else 60000L
-                        if (p.collectTimer >= targetTime) { p.isReady = true; p.layoutUpgradeProgress?.visibility = View.GONE; p.collectIcon?.visibility = View.VISIBLE } 
-                        else { p.pbUpgrade?.progress = ((p.collectTimer.toFloat() / targetTime.toFloat()) * 100).toInt(); val rem = targetTime - p.collectTimer; p.tvUpgradeTimer?.text = "%02d:%02d".format((rem/60000), (rem%60000)/1000) }
+                    // 💡 [مُصلح تجمّد العداد] تحديث الواجهة فوراً إذا كانت المزرعة جاهزة بالفعل
+                    } else if (p.resourceType != ResourceType.NONE && p.idCode != "HOSPITAL") {
+                        if (p.isReady) {
+                            p.layoutUpgradeProgress?.visibility = View.GONE
+                            p.collectIcon?.visibility = View.VISIBLE
+                        } else {
+                            p.layoutUpgradeProgress?.visibility = View.VISIBLE; p.collectTimer += 1000; val targetTime = if(GameState.isVipActive()) 45000L else 60000L
+                            if (p.collectTimer >= targetTime) { p.isReady = true; p.layoutUpgradeProgress?.visibility = View.GONE; p.collectIcon?.visibility = View.VISIBLE } 
+                            else { p.pbUpgrade?.progress = ((p.collectTimer.toFloat() / targetTime.toFloat()) * 100).toInt(); val rem = targetTime - p.collectTimer; p.tvUpgradeTimer?.text = "%02d:%02d".format((rem/60000), (rem%60000)/1000) }
+                        }
                     }
                 }
 
