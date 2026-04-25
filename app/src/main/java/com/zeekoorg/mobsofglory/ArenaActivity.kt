@@ -319,7 +319,8 @@ class ArenaActivity : AppCompatActivity() {
             }
 
             var hasBonusLoot = false
-            if (damageDealt >= 50000) {
+            // 💡 [إصلاح الشرط] عودة الشرط إلى 2,000,000 كما اتفقنا للغنائم الإضافية!
+            if (damageDealt >= 2000000) {
                 hasBonusLoot = true
             }
 
@@ -342,7 +343,8 @@ class ArenaActivity : AppCompatActivity() {
                     if (hasBonusLoot) {
                         Handler(Looper.getMainLooper()).postDelayed({
                             SoundManager.playWindowOpen()
-                            DialogManager.showGameMessage(this@ArenaActivity, "دمار أسطوري!", "لقد ألحقت ضرراً استثنائياً بالقلعة!\n\nمكافأة فورية:\n+ 50K حديد\n+ 50K قمح\n+ 25K ذهب", R.drawable.ic_ui_castle_rewards)
+                            // 💡 تحديث الرسالة لتعكس الإنجاز العظيم!
+                            DialogManager.showGameMessage(this@ArenaActivity, "دمار أسطوري!", "لقد ألحقت ضرراً تجاوز 2,000,000 بالقلعة!\n\nمكافأة فورية:\n+ 50K حديد\n+ 50K قمح\n+ 25K ذهب", R.drawable.ic_ui_castle_rewards)
                         }, 500)
                     }
                 }, 800)
@@ -358,7 +360,7 @@ class ArenaActivity : AppCompatActivity() {
         val ssb = SpannableStringBuilder()
         ssb.append("━━━━━━ نتيجة الغزوة ━━━━━━\n")
         appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة الفيلق المهاجم الأساسية: ${formatResourceNumber(attackerDisplayPower)} ⚔️")
-        appendIconWithText(ssb, R.drawable.ic_ui_arena, "الظرر الكلي على القلعة: ${formatResourceNumber(damage)}")
+        appendIconWithText(ssb, R.drawable.ic_ui_arena, "الضرر الكلي المُحدث: ${formatResourceNumber(damage)}")
         appendIconWithText(ssb, R.drawable.ic_ui_arena, "نقاط الساحة المكتسبة: +${formatResourceNumber(scoreEarned)}")
         
         ssb.append("\n━━━━━━ الخسائر ━━━━━━\n")
@@ -366,7 +368,11 @@ class ArenaActivity : AppCompatActivity() {
         appendIconWithText(ssb, R.drawable.ic_ui_arena, "الجرحى (في دار الشفاء): ${formatResourceNumber(wounded)}")
 
         ssb.append("\n━━━━━━ الأداء القتالي ━━━━━━\n")
-        appendIconWithText(ssb, R.drawable.ic_ui_weapons, "مكافآت الأبطال والعتاد: نشطة وفعالة 🟢\n")
+        val buffBonus = attackerCombatPower - attackerDisplayPower
+        if (buffBonus > 0) {
+            appendIconWithText(ssb, R.drawable.ic_ui_weapons, "مكافآت الأبطال والأسلحة: +${formatResourceNumber(buffBonus)}")
+        }
+        appendIconWithText(ssb, R.drawable.ic_ui_formation, "القوة الضاربة الإجمالية: ${formatResourceNumber(attackerCombatPower)}\n")
         
         d.findViewById<TextView>(R.id.tvMessageTitle)?.text = "تقرير الساحة"
         d.findViewById<TextView>(R.id.tvMessageBody)?.text = ssb
@@ -443,8 +449,11 @@ class ArenaActivity : AppCompatActivity() {
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الناجون: ${formatResourceNumber(report.mySurviving)}")
             
             ssb.append("\n━━━━━━ الأداء القتالي ━━━━━━\n")
-            appendIconWithText(ssb, R.drawable.ic_ui_formation, "إجمالي القوة المُدَمَّرة للعدو: ${formatResourceNumber(report.myDamage)}")
-            appendIconWithText(ssb, R.drawable.ic_ui_weapons, "مكافآت الأبطال والعتاد: نشطة وفعالة 🟢\n")
+            val buffBonus = report.myDamage - (report.myTotalPowerStr.toLongOrNull() ?: 0L)
+            if (buffBonus > 0) {
+                appendIconWithText(ssb, R.drawable.ic_ui_weapons, "مكافآت الأبطال والأسلحة: +${formatResourceNumber(buffBonus)}")
+            }
+            appendIconWithText(ssb, R.drawable.ic_ui_formation, "إجمالي الضرر: ${formatResourceNumber(report.myDamage)}\n")
         }
         
         if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
