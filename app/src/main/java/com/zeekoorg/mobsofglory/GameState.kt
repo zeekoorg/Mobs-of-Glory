@@ -219,7 +219,6 @@ object GameState {
         val wallDelta = resumeWallTime - lastPauseWallTime
         val elapsedDelta = resumeElapsedTime - lastPauseElapsedTime
 
-        // 💡 [مُصلح الجمع في الخلفية] إضافة الوقت الحقيقي المنقضي في الخلفية لعدادات الموارد!
         myPlots.forEach {
             if (!it.isUpgrading && !it.isTraining && it.resourceType != ResourceType.NONE && !it.isReady) {
                 it.collectTimer += elapsedDelta
@@ -1433,5 +1432,13 @@ object GameState {
             }
         }
         while (checkPlayerLevelUp(true)) { }
+    }
+
+    // 💡 تمت إعادة الدالة المفقودة هنا لحل مشكلة Unresolved reference
+    private fun formatResourceNumber(num: Long): String = when { 
+        num >= 1_000_000_000 -> String.format(Locale.US, "%.1fB", num / 1_000_000_000.0)
+        num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0)
+        num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0)
+        else -> num.toString() 
     }
 }
