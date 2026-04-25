@@ -691,7 +691,6 @@ object GameState {
 
                     var playerDead = 0L; var playerWounded = 0L
                     
-                    // 💡 [مُصلح] حساب مساحة المستشفى الدقيقة مع الجرحى العائدين لمنع التداخل
                     val hospitalCap = getHospitalCapacity()
                     val pendingWounded = activeMarches.filter { it.status == MarchStatus.RETURNING }.sumOf { it.reportWounded }
                     var currentWoundedInHospital = getTotalWoundedTroops() + pendingWounded
@@ -885,7 +884,6 @@ object GameState {
             else if (march.status == MarchStatus.RETURNING && now >= march.endTime) {
                 needsUpdate = true
                 
-                // 💡 [مُصلح] الجيوش المنتقمة من العدو تتبخر بعد هجومها، ولا تعود لثكناتك أبداً!
                 if (march.type != MarchType.REVENGE) {
                     march.marchTroops.forEach { marchTroop ->
                         val mainTroop = playerTroops.find { it.type == marchTroop.type && it.tier == marchTroop.tier }
@@ -1002,7 +1000,6 @@ object GameState {
         prefs.putInt("ARENA_ADS_TODAY", arenaAdsWatchedToday)
         prefs.putLong("ARENA_ADS_LAST_TIME", arenaAdsLastWatchedTime)
 
-        // 💡 [مُصلح] الجدار الناري ضد الغش (تخزين وقت المعالج لحماية اللعبة من التلاعب بساعة الهاتف)
         prefs.putLong("LAST_LOGIN_TIME", System.currentTimeMillis())
         prefs.putLong("LAST_ELAPSED_TIME", android.os.SystemClock.elapsedRealtime())
         prefs.putInt("PENDING_LEVEL_UP", pendingLevelUpCount)
@@ -1119,71 +1116,68 @@ object GameState {
 
         arenaAdsWatchedToday = prefs.getInt("ARENA_ADS_TODAY", 0)
         arenaAdsLastWatchedTime = prefs.getLong("ARENA_ADS_LAST_TIME", 0L)
-        
-        var currentTime = System.currentTimeMillis()
-        val sdf = java.text.SimpleDateFormat("yyyyMMdd", Locale.US)
-        if (sdf.format(java.util.Date(currentTime)) != sdf.format(java.util.Date(arenaAdsLastWatchedTime))) {
-            arenaAdsWatchedToday = 0
-            arenaAdsLastWatchedTime = currentTime
-        }
 
-        // 💡 [مُصلح] نظام مكافحة التلاعب بالوقت (Time Anti-Cheat System)
-        val lastLogin = prefs.getLong("LAST_LOGIN_TIME", currentTime)
+        val currentMillis = System.currentTimeMillis()
+        val lastLogin = prefs.getLong("LAST_LOGIN_TIME", currentMillis)
         val currentElapsed = android.os.SystemClock.elapsedRealtime()
         val lastElapsed = prefs.getLong("LAST_ELAPSED_TIME", currentElapsed)
 
-        var offlineTime = currentTime - lastLogin
-        var timeCheatOffset = 0L
+        val rawOfflineTime = currentMillis - lastLogin
+        val trueOfflineTime: Long
 
+        // 💡 [المحرك الجبار] - نظام "ساعة الظل المزدوجة" (Zero-Trust)
         if (currentElapsed >= lastElapsed) {
             val elapsedDelta = currentElapsed - lastElapsed
-            if (kotlin.math.abs(offlineTime - elapsedDelta) > 60000) { 
-                timeCheatOffset = offlineTime - elapsedDelta
-                offlineTime = elapsedDelta
-                currentTime = lastLogin + elapsedDelta
+            if (kotlin.math.abs(rawOfflineTime - elapsedDelta) > 60000) { 
+                trueOfflineTime = elapsedDelta // تلاعب بالساعة! نعتمد على وقت المعالج
+            } else {
+                trueOfflineTime = rawOfflineTime
+            }
+        } else {
+            // إعادة تشغيل الجهاز. نثق بالوقت لكن نضع حداً أقصى لمنع استغلال الثغرات
+            if (rawOfflineTime < 0) {
+                trueOfflineTime = 0 // عودة بالزمن!
+            } else {
+                trueOfflineTime = minOf(rawOfflineTime, 24L * 3600000L) // أقصى تقدم 24 ساعة
             }
         }
 
-        if (offlineTime < 0) {
-            timeCheatOffset += offlineTime 
-            offlineTime = 0
-            currentTime = lastLogin
-        }
-        if (offlineTime > 24L * 3600000L) {
-            offlineTime = 24L * 3600000L
-        }
+        val offlineTime = trueOfflineTime
+        val timeShiftOffset = currentMillis - lastLogin - trueOfflineTime
 
-        // إزاحة جميع المواقيت للأمام لمعاقبة الغشاش وإبطال مفعول التلاعب
-        if (timeCheatOffset != 0L) {
-            vipEndTime += timeCheatOffset
-            arenaStaminaLastRegenTime += timeCheatOffset
-            arenaSeasonEndTime += timeCheatOffset
-            arenaAdsLastWatchedTime += timeCheatOffset
-            healingEndTime += timeCheatOffset
-            weeklyQuestEndTime += timeCheatOffset
-            
-            myHeroes.forEach { if (it.isUpgrading) it.upgradeEndTime += timeCheatOffset }
-            arsenal.forEach { if (it.isUpgrading) it.upgradeEndTime += timeCheatOffset }
-            myPlots.forEach { 
-                if (it.isUpgrading) it.upgradeEndTime += timeCheatOffset 
-                if (it.isTraining) it.trainingEndTime += timeCheatOffset 
-            }
+        // إزاحة المواقيت المطلقة لتتزامن مع ساعة الجهاز الجديدة (سواء تقدمت أو تأخرت)
+        if (timeShiftOffset != 0L) {
+            if (arenaAdsLastWatchedTime > 0L) arenaAdsLastWatchedTime += timeShiftOffset
+            if (vipEndTime > 0L) vipEndTime += timeShiftOffset
+            if (healingEndTime > 0L) healingEndTime += timeShiftOffset
+        }
+        
+        val sdf = java.text.SimpleDateFormat("yyyyMMdd", Locale.US)
+        if (sdf.format(java.util.Date(currentMillis)) != sdf.format(java.util.Date(arenaAdsLastWatchedTime))) {
+            arenaAdsWatchedToday = 0
+            arenaAdsLastWatchedTime = currentMillis
         }
 
         arenaScore = prefs.getLong("ARENA_SCORE", 0); arenaStamina = prefs.getInt("ARENA_STAMINA", 5)
+        arenaStaminaLastRegenTime = prefs.getLong("ARENA_STAMINA_REGEN", currentMillis)
         
         arenaSeasonEndTime = prefs.getLong("ARENA_SEASON_END", 0L)
-        if (arenaSeasonEndTime == 0L) arenaSeasonEndTime = currentTime + (7L * 24 * 3600000L)
+        if (timeShiftOffset != 0L) {
+            if (arenaStaminaLastRegenTime > 0L) arenaStaminaLastRegenTime += timeShiftOffset
+            if (arenaSeasonEndTime > 0L) arenaSeasonEndTime += timeShiftOffset
+        }
+
+        if (arenaSeasonEndTime == 0L) arenaSeasonEndTime = currentMillis + (7L * 24 * 3600000L)
         checkArenaSeason()
 
         if (arenaStamina < 5) {
-            val timePassedForStamina = currentTime - arenaStaminaLastRegenTime
+            val timePassedForStamina = currentMillis - arenaStaminaLastRegenTime
             val staminaToRecover = (timePassedForStamina / 3600000L).toInt()
             if (staminaToRecover > 0) {
                 arenaStamina += staminaToRecover; if (arenaStamina > 5) arenaStamina = 5
                 arenaStaminaLastRegenTime += (staminaToRecover * 3600000L)
             }
-        } else arenaStaminaLastRegenTime = currentTime
+        } else arenaStaminaLastRegenTime = currentMillis
 
         val hoursOffline = (offlineTime / 3600000L).toInt()
         val powerMultiplier = maxOf(1.0, (playerPower / 100_000.0).pow(0.8))
@@ -1211,12 +1205,14 @@ object GameState {
 
         dailyQuestsList.forEachIndexed { i, q -> q.currentAmount = prefs.getInt("QUEST_${i}_PROG", 0); q.isCollected = prefs.getBoolean("QUEST_${i}_COLL", false) }
         weeklyQuestsList.forEachIndexed { i, q -> q.currentAmount = prefs.getInt("WQUEST_${i}_PROG", 0); q.isCollected = prefs.getBoolean("WQUEST_${i}_COLL", false) }
-        weeklyQuestEndTime = prefs.getLong("WEEKLY_QUEST_END", 0L)
         
-        if (weeklyQuestEndTime == 0L) weeklyQuestEndTime = currentTime + (7L * 24 * 3600000L)
-        if (currentTime >= weeklyQuestEndTime) {
+        weeklyQuestEndTime = prefs.getLong("WEEKLY_QUEST_END", 0L)
+        if (timeShiftOffset != 0L && weeklyQuestEndTime > 0L) weeklyQuestEndTime += timeShiftOffset
+        
+        if (weeklyQuestEndTime == 0L) weeklyQuestEndTime = currentMillis + (7L * 24 * 3600000L)
+        if (currentMillis >= weeklyQuestEndTime) {
             weeklyQuestsList.forEach { it.currentAmount = 0; it.isCollected = false }
-            weeklyQuestEndTime = currentTime + (7L * 24 * 3600000L)
+            weeklyQuestEndTime = currentMillis + (7L * 24 * 3600000L)
         }
 
         val claimedStr = prefs.getString("CLAIMED_CASTLE_REWARDS", "") ?: ""
@@ -1237,12 +1233,14 @@ object GameState {
                     }
                 }
                 val aiBuff = prefs.getFloat("BF_NODE_${i}_BUFF", 0.0f).toDouble()
+                val lastAtt = prefs.getLong("BF_NODE_${i}_TIME", 0L)
 
                 battlefieldNodes.add(
                     BattlefieldNode(
                         i, NodeType.valueOf(typeStr), prefs.getLong("BF_NODE_${i}_CUR_PWR", 0L),
                         prefs.getLong("BF_NODE_${i}_MAX_PWR", 0L), prefs.getInt("BF_NODE_${i}_LVL", 1),
-                        prefs.getBoolean("BF_NODE_${i}_DEF", false), prefs.getLong("BF_NODE_${i}_TIME", 0L),
+                        prefs.getBoolean("BF_NODE_${i}_DEF", false), 
+                        if (timeShiftOffset != 0L && lastAtt > 0L) lastAtt + timeShiftOffset else lastAtt,
                         prefs.getLong("BF_NODE_${i}_RES", 0L),
                         prefs.getString("BF_NODE_${i}_IMG", "img_enemy_castle_1") ?: "img_enemy_castle_1",
                         prefs.getString("BF_NODE_${i}_PNAME", "قلعة مجهولة") ?: "قلعة مجهولة",
@@ -1256,12 +1254,12 @@ object GameState {
         var enemyRecovered = false
         battlefieldNodes.filter { it.type == NodeType.ENEMY_CASTLE && !it.isDefeated && it.currentPower < it.maxPower }.forEach { node ->
             if (node.lastAttackedTime > 0) {
-                val hPassed = (currentTime - node.lastAttackedTime) / 3600000L
+                val hPassed = (currentMillis - node.lastAttackedTime) / 3600000L
                 if (hPassed > 0) {
                     val recovery = (node.maxPower * 0.10).toLong() * hPassed
                     node.currentPower += recovery
                     if (node.currentPower > node.maxPower) node.currentPower = node.maxPower
-                    node.lastAttackedTime = currentTime
+                    node.lastAttackedTime = currentMillis
                     enemyRecovered = true
                 }
             }
@@ -1285,6 +1283,10 @@ object GameState {
             
             val hStr = prefs.getString("AM_${i}_HEROES", "") ?: ""
             val wStr = prefs.getString("AM_${i}_WEAPONS", "") ?: ""
+            
+            val loadedEnd = prefs.getLong("AM_${i}_END", 0L)
+            val loadedGatherEnd = prefs.getLong("AM_${i}_GEND", 0L)
+            
             activeMarches.add(ActiveMarch(
                 id = prefs.getLong("AM_${i}_ID", 0L),
                 targetNodeId = prefs.getInt("AM_${i}_NODE", 0),
@@ -1293,9 +1295,9 @@ object GameState {
                 heroIds = if (hStr.isEmpty()) emptyList() else hStr.split(",").map { it.toInt() },
                 weaponIds = if (wStr.isEmpty()) emptyList() else wStr.split(",").map { it.toInt() },
                 status = MarchStatus.valueOf(prefs.getString("AM_${i}_STATUS", "MARCHING")!!),
-                endTime = prefs.getLong("AM_${i}_END", 0L) + timeCheatOffset, // حماية المسيرات
+                endTime = if (timeShiftOffset != 0L && loadedEnd > 0L) loadedEnd + timeShiftOffset else loadedEnd,
                 totalTime = prefs.getLong("AM_${i}_TOT", 0L),
-                gatherEndTime = prefs.getLong("AM_${i}_GEND", 0L) + timeCheatOffset, // حماية المسيرات
+                gatherEndTime = if (timeShiftOffset != 0L && loadedGatherEnd > 0L) loadedGatherEnd + timeShiftOffset else loadedGatherEnd,
                 payloadGold = prefs.getLong("AM_${i}_PG", 0L),
                 payloadIron = prefs.getLong("AM_${i}_PI", 0L),
                 payloadWheat = prefs.getLong("AM_${i}_PW", 0L),
@@ -1313,7 +1315,7 @@ object GameState {
 
         processActiveMarches(context)
 
-        if (isHealing && currentTime >= healingEndTime) {
+        if (isHealing && currentMillis >= healingEndTime) {
             isHealing = false
             playerTroops.forEach { 
                 it.count += it.wounded
@@ -1325,26 +1327,41 @@ object GameState {
         myHeroes.forEachIndexed { i, h ->
             h.isUnlocked = prefs.getBoolean("H_${i}_U", h.isUnlocked); h.level = prefs.getInt("H_${i}_L", h.level)
             h.shardsOwned = prefs.getInt("H_${i}_S", h.shardsOwned); h.isEquipped = prefs.getBoolean("H_${i}_EQ", false)
-            h.isUpgrading = prefs.getBoolean("H_${i}_UPG", false); h.upgradeEndTime = prefs.getLong("H_${i}_UEND", 0L); h.totalUpgradeTime = prefs.getLong("H_${i}_UTOT", 0L)
-            if (h.isUpgrading && currentTime >= h.upgradeEndTime) { h.isUpgrading = false; h.level++; pendingOfflineMessages.add(PendingMessage("ترقية بطل", "تمت ترقية البطل ${h.name} للمستوى ${h.level}!", h.iconResId)) }
+            h.isUpgrading = prefs.getBoolean("H_${i}_UPG", false); h.totalUpgradeTime = prefs.getLong("H_${i}_UTOT", 0L)
+            
+            val loadedUpg = prefs.getLong("H_${i}_UEND", 0L)
+            h.upgradeEndTime = if (timeShiftOffset != 0L && loadedUpg > 0L) loadedUpg + timeShiftOffset else loadedUpg
+            
+            if (h.isUpgrading && currentMillis >= h.upgradeEndTime) { h.isUpgrading = false; h.level++; pendingOfflineMessages.add(PendingMessage("ترقية بطل", "تمت ترقية البطل ${h.name} للمستوى ${h.level}!", h.iconResId)) }
         }
         
         arsenal.forEachIndexed { i, w ->
             w.isOwned = prefs.getBoolean("W_${i}_O", false); w.isEquipped = prefs.getBoolean("W_${i}_EQ", false)
             w.level = prefs.getInt("W_${i}_L", 1); w.isUpgrading = prefs.getBoolean("W_${i}_UPG", false)
-            w.upgradeEndTime = prefs.getLong("W_${i}_UEND", 0L); w.totalUpgradeTime = prefs.getLong("W_${i}_UTOT", 0L)
-            if (w.isUpgrading && currentTime >= w.upgradeEndTime) { w.isUpgrading = false; w.level++; pendingOfflineMessages.add(PendingMessage("ترقية سلاح", "تمت ترقية السلاح ${w.name} للمستوى ${w.level}!", w.iconResId)) }
+            w.totalUpgradeTime = prefs.getLong("W_${i}_UTOT", 0L)
+            
+            val loadedUpg = prefs.getLong("W_${i}_UEND", 0L)
+            w.upgradeEndTime = if (timeShiftOffset != 0L && loadedUpg > 0L) loadedUpg + timeShiftOffset else loadedUpg
+            
+            if (w.isUpgrading && currentMillis >= w.upgradeEndTime) { w.isUpgrading = false; w.level++; pendingOfflineMessages.add(PendingMessage("ترقية سلاح", "تمت ترقية السلاح ${w.name} للمستوى ${w.level}!", w.iconResId)) }
         }
 
         myPlots.forEach { 
             it.level = prefs.getInt("L_${it.idCode}", 1); it.isUpgrading = prefs.getBoolean("U_${it.idCode}", false)
-            it.upgradeEndTime = prefs.getLong("UT_${it.idCode}", 0L); it.isTraining = prefs.getBoolean("TR_${it.idCode}", false)
-            it.trainingEndTime = prefs.getLong("TT_${it.idCode}", 0L); it.trainingAmount = prefs.getInt("TA_${it.idCode}", 0)
-            it.collectTimer = prefs.getLong("CT_${it.idCode}", 0L); it.isReady = prefs.getBoolean("IR_${it.idCode}", false)
+            it.isTraining = prefs.getBoolean("TR_${it.idCode}", false)
+            it.trainingAmount = prefs.getInt("TA_${it.idCode}", 0)
+            it.isReady = prefs.getBoolean("IR_${it.idCode}", false)
             
-            if (it.isUpgrading && currentTime >= it.upgradeEndTime) { it.isUpgrading = false; it.level++; playerExp += it.getExpReward(); pendingOfflineMessages.add(PendingMessage("أعمال البناء", "تم تطوير ${it.name} بنجاح!", R.drawable.ic_settings_gear)) }
+            val loadedUpg = prefs.getLong("UT_${it.idCode}", 0L)
+            val loadedTrn = prefs.getLong("TT_${it.idCode}", 0L)
+            it.upgradeEndTime = if (timeShiftOffset != 0L && loadedUpg > 0L) loadedUpg + timeShiftOffset else loadedUpg
+            it.trainingEndTime = if (timeShiftOffset != 0L && loadedTrn > 0L) loadedTrn + timeShiftOffset else loadedTrn
             
-            if (it.isTraining && currentTime >= it.trainingEndTime) { 
+            it.collectTimer = prefs.getLong("CT_${it.idCode}", 0L)
+            
+            if (it.isUpgrading && currentMillis >= it.upgradeEndTime) { it.isUpgrading = false; it.level++; playerExp += it.getExpReward(); pendingOfflineMessages.add(PendingMessage("أعمال البناء", "تم تطوير ${it.name} بنجاح!", R.drawable.ic_settings_gear)) }
+            
+            if (it.isTraining && currentMillis >= it.trainingEndTime) { 
                 it.isTraining = false
                 if (it.idCode == "BARRACKS_1") {
                     playerTroops.find { t -> t.type == TroopType.INFANTRY && t.tier == 1 }?.let { tr -> tr.count += it.trainingAmount }
