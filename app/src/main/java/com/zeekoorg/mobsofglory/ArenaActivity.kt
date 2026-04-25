@@ -170,6 +170,8 @@ class ArenaActivity : AppCompatActivity() {
         imgMarchingLegion.clearAnimation(); imgMarchingLegion.animate().cancel()
         imgMarchingLegion.scaleX = 1.0f; imgMarchingLegion.scaleY = 1.0f; imgMarchingLegion.translationX = 0f; imgMarchingLegion.translationY = 0f
         imgMarchingLegion.alpha = 1.0f; imgMarchingLegion.visibility = View.VISIBLE
+
+        val rootLayout = imgMarchingLegion.parent as? ViewGroup ?: findViewById<ViewGroup>(android.R.id.content) ?: return
         
         val startY = imgMarchingLegion.y
         val targetY = layoutGhostCastle.y + layoutGhostCastle.height - (imgMarchingLegion.height / 2f) - 50f
@@ -334,7 +336,6 @@ class ArenaActivity : AppCompatActivity() {
                 refreshArenaUI()
 
                 Handler(Looper.getMainLooper()).postDelayed({
-                    // 💡 [مُصلح] تمرير القوة الإجمالية الضاربة (myTotalAtk + myTotalDef + myTotalHp) لفك الشفرة في التقرير
                     val attackerCombatPower = (myTotalAtk + myTotalDef + myTotalHp).toLong()
                     showArenaBattleReport(damageDealt, earnedScore, totalDead, totalWounded, attackerDisplayPower, attackerCombatPower)
                     
@@ -364,12 +365,8 @@ class ArenaActivity : AppCompatActivity() {
         appendIconWithText(ssb, R.drawable.ic_ui_arena, "القتلى: ${formatResourceNumber(dead)}")
         appendIconWithText(ssb, R.drawable.ic_ui_arena, "الجرحى (في دار الشفاء): ${formatResourceNumber(wounded)}")
 
-        ssb.append("\n━━━━━━ تفاصيل الاشتباك ━━━━━━\n")
-        val buffBonus = attackerCombatPower - attackerDisplayPower
-        if (buffBonus > 0) {
-            appendIconWithText(ssb, R.drawable.ic_ui_weapons, "مكافآت الأبطال والأسلحة: +${formatResourceNumber(buffBonus)}")
-        }
-        appendIconWithText(ssb, R.drawable.ic_ui_formation, "القوة الضاربة الإجمالية: ${formatResourceNumber(attackerCombatPower)}\n")
+        ssb.append("\n━━━━━━ الأداء القتالي ━━━━━━\n")
+        appendIconWithText(ssb, R.drawable.ic_ui_weapons, "مكافآت الأبطال والعتاد: نشطة وفعالة 🟢\n")
         
         d.findViewById<TextView>(R.id.tvMessageTitle)?.text = "تقرير الساحة"
         d.findViewById<TextView>(R.id.tvMessageBody)?.text = ssb
@@ -445,12 +442,9 @@ class ArenaActivity : AppCompatActivity() {
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الجرحى: ${formatResourceNumber(report.myWounded)}")
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الناجون: ${formatResourceNumber(report.mySurviving)}")
             
-            ssb.append("\n━━━━━━ تفاصيل الاشتباك ━━━━━━\n")
-            val buffBonus = report.myDamage - (report.myTotalPowerStr.toLongOrNull() ?: 0L)
-            if (buffBonus > 0) {
-                appendIconWithText(ssb, R.drawable.ic_ui_weapons, "مكافآت الأبطال والأسلحة: +${formatResourceNumber(buffBonus)}")
-            }
-            appendIconWithText(ssb, R.drawable.ic_ui_formation, "القوة الضاربة الإجمالية: ${formatResourceNumber(report.myDamage)}\n")
+            ssb.append("\n━━━━━━ الأداء القتالي ━━━━━━\n")
+            appendIconWithText(ssb, R.drawable.ic_ui_formation, "إجمالي القوة المُدَمَّرة للعدو: ${formatResourceNumber(report.myDamage)}")
+            appendIconWithText(ssb, R.drawable.ic_ui_weapons, "مكافآت الأبطال والعتاد: نشطة وفعالة 🟢\n")
         }
         
         if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
@@ -486,7 +480,9 @@ class ArenaActivity : AppCompatActivity() {
     }
 
     private fun showRevengeWarningDialog(nodeId: Int) {
+        if (!isActivityResumed) return
         isReportDialogOpen = true 
+        
         SoundManager.playWindowOpen()
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_game_message)
@@ -499,7 +495,7 @@ class ArenaActivity : AppCompatActivity() {
         d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(R.drawable.ic_settings_gear)
         
         val btn = d.findViewById<Button>(R.id.btnMessageOk)
-        btn?.text = "حسناً، لنجعله يندم!"
+        btn?.text = "حسناً!"
         btn?.setBackgroundResource(R.drawable.bg_btn_gold_border)
         
         btn?.setOnClickListener {
@@ -510,7 +506,6 @@ class ArenaActivity : AppCompatActivity() {
         d.setOnDismissListener {
             isReportDialogOpen = false 
             GameState.triggerRevengeMarch(nodeId)
-            checkPendingReports()
         }
         d.show()
     }
