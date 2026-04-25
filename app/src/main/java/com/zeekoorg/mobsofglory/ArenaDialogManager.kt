@@ -154,10 +154,11 @@ object ArenaDialogManager {
         var selectedInfantry = 0L
         var selectedCavalry = 0L
 
+        // 💡 جلب القوات المتاحة وسعة الفيلق
         val maxInf = GameState.playerTroops.filter { it.type == TroopType.INFANTRY }.sumOf { it.count }
         val maxCav = GameState.playerTroops.filter { it.type == TroopType.CAVALRY }.sumOf { it.count }
+        val maxMarchCapacity = GameState.getMaxMarchCapacity()
 
-        // 💡 رفعنا الدالة إلى هنا لكي تتعرف عليها الـ SeekBars قبل استدعائها
         fun updateFormationPower() {
             var heroAtkBuff = 0.0; var wpAtkBuff = 0.0
             GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { heroAtkBuff += it.getCurrentAttackBuff() }
@@ -181,29 +182,52 @@ object ArenaDialogManager {
             val totalAtkBuff = 1.0 + heroAtkBuff + wpAtkBuff
             val totalPower = (pwr * totalAtkBuff).toLong()
             
-            tvFormationPower?.text = "قوة الهجوم: ⚔️ ${formatResourceNumber(totalPower)}"
+            // 💡 إظهار سعة المسيرة مع قوة الهجوم
+            val totalSelected = selectedInfantry + selectedCavalry
+            tvFormationPower?.text = "قوة الفيلق: ⚔️ ${formatResourceNumber(totalPower)}\nالسعة: $totalSelected / $maxMarchCapacity"
         }
 
-        // 💡 إعداد الـ SeekBars بعد أن أصبحت الدالة معرفة في الأعلى
+        // 💡 إعداد شريط المشاة (يحدده الحد الأقصى لجنوده أو سعة المسيرة المتبقية)
+        val infMaxProgress = minOf(maxInf, maxMarchCapacity).toInt()
         tvInfantryMax?.text = "متاح: ${formatResourceNumber(maxInf)}"
-        seekInfantry?.max = if (maxInf > Int.MAX_VALUE) Int.MAX_VALUE else maxInf.toInt()
+        seekInfantry?.max = infMaxProgress
+        
         seekInfantry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { 
-                selectedInfantry = progress.toLong()
-                tvInfantrySelected?.text = formatResourceNumber(selectedInfantry)
-                updateFormationPower() 
+                if (fromUser) {
+                    val newInfantry = progress.toLong()
+                    // نمنع تجاوز السعة الكلية
+                    if (newInfantry + selectedCavalry > maxMarchCapacity) {
+                        selectedCavalry = maxOf(0L, maxMarchCapacity - newInfantry)
+                        seekCavalry?.progress = selectedCavalry.toInt()
+                    }
+                    selectedInfantry = newInfantry
+                    tvInfantrySelected?.text = formatResourceNumber(selectedInfantry)
+                    updateFormationPower() 
+                }
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
+        // 💡 إعداد شريط الفرسان
+        val cavMaxProgress = minOf(maxCav, maxMarchCapacity).toInt()
         tvCavalryMax?.text = "متاح: ${formatResourceNumber(maxCav)}"
-        seekCavalry?.max = if (maxCav > Int.MAX_VALUE) Int.MAX_VALUE else maxCav.toInt()
+        seekCavalry?.max = cavMaxProgress
+
         seekCavalry?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { 
-                selectedCavalry = progress.toLong()
-                tvCavalrySelected?.text = formatResourceNumber(selectedCavalry)
-                updateFormationPower() 
+                if (fromUser) {
+                    val newCavalry = progress.toLong()
+                    // نمنع تجاوز السعة الكلية
+                    if (selectedInfantry + newCavalry > maxMarchCapacity) {
+                        selectedInfantry = maxOf(0L, maxMarchCapacity - newCavalry)
+                        seekInfantry?.progress = selectedInfantry.toInt()
+                    }
+                    selectedCavalry = newCavalry
+                    tvCavalrySelected?.text = formatResourceNumber(selectedCavalry)
+                    updateFormationPower() 
+                }
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
@@ -308,7 +332,7 @@ object ArenaDialogManager {
         
         val ssb = SpannableStringBuilder()
         ssb.append("━━━━━━ نتيجة الغزوة ━━━━━━\n")
-        appendIconWithText(activity, ssb, R.drawable.ic_ui_arena, "الضرر المُحدث: ${formatResourceNumber(damageDealt)}")
+        appendIconWithText(activity, ssb, R.drawable.ic_ui_arena, "الضرر: ${formatResourceNumber(damageDealt)}")
         appendIconWithText(activity, ssb, R.drawable.ic_ui_arena, "النقاط المكتسبة: +${formatResourceNumber(earnedScore)}")
         
         ssb.append("\n━━━━━━ الخسائر ━━━━━━\n")
