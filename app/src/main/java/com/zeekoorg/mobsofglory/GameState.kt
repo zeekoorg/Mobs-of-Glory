@@ -151,7 +151,6 @@ object GameState {
     var arenaAdsWatchedToday: Int = 0
     var arenaAdsLastWatchedTime: Long = 0L
 
-    // 💡 [مُصلح الاحترافية] حساب سعة المسيرة القصوى بناءً على مستوى القلعة
     fun getMaxMarchCapacity(): Long {
         val castleLevel = myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
         return 10000L + (castleLevel * 5000L)
@@ -203,7 +202,6 @@ object GameState {
     val pendingBattleReports = CopyOnWriteArrayList<BattleReport>()
     val globalNewsQueue = CopyOnWriteArrayList<String>()
 
-    // 🛡️🛡️ الحماية الزمنية (Anti-Time-Travel Firewall) 🛡️🛡️
     private var lastPauseWallTime: Long = 0L
     private var lastPauseElapsedTime: Long = 0L
 
@@ -220,6 +218,18 @@ object GameState {
 
         val wallDelta = resumeWallTime - lastPauseWallTime
         val elapsedDelta = resumeElapsedTime - lastPauseElapsedTime
+
+        // 💡 [مُصلح الجمع في الخلفية] إضافة الوقت الحقيقي المنقضي في الخلفية لعدادات الموارد!
+        myPlots.forEach {
+            if (!it.isUpgrading && !it.isTraining && it.resourceType != ResourceType.NONE && !it.isReady) {
+                it.collectTimer += elapsedDelta
+                val targetTime = if(isVipActive()) 45000L else 60000L
+                if (it.collectTimer >= targetTime) { 
+                    it.isReady = true
+                    it.collectTimer = targetTime 
+                }
+            }
+        }
 
         if (kotlin.math.abs(wallDelta - elapsedDelta) > 60000) { 
             val timeShiftOffset = wallDelta - elapsedDelta
@@ -247,7 +257,6 @@ object GameState {
         lastPauseWallTime = 0L
         lastPauseElapsedTime = 0L
     }
-    // 🛡️🛡️ نهاية الحماية 🛡️🛡️
 
     fun isHeroBusy(heroId: Int): Boolean = activeMarches.any { it.heroIds.contains(heroId) && it.status != MarchStatus.COMPLETED }
     fun isWeaponBusy(weaponId: Int): Boolean = activeMarches.any { it.weaponIds.contains(weaponId) && it.status != MarchStatus.COMPLETED }
