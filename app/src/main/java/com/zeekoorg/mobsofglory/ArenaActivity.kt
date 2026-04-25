@@ -161,30 +161,6 @@ class ArenaActivity : AppCompatActivity() {
         d.show()
     }
 
-    // 💡 [مُصلح] ربط النقاط بأسفل الفيلق مع إضافة تأثير التلاشي للخلف لمنعها من سبقه
-    private fun createTrailingDots(rootLayout: ViewGroup, referenceView: View, colorHex: String = "#DDDDDD") {
-        val currentScale = referenceView.scaleY
-        val centerX = referenceView.x + referenceView.translationX + (referenceView.width / 2f)
-        
-        // حساب النقطة السفلية للفيلق بدقة مع الأخذ بالاعتبار حجمه الحالي
-        val centerY = referenceView.y + referenceView.translationY + (referenceView.height / 2f)
-        val bottomY = centerY + (referenceView.height / 2f * currentScale)
-
-        for (i in 0..1) {
-            val dot = View(this).apply {
-                layoutParams = ViewGroup.LayoutParams(25, 25) 
-                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor(colorHex)) }
-                
-                x = centerX - 12.5f + Random.nextInt(-20, 20)
-                y = bottomY - 12.5f + Random.nextInt(-10, 10)
-                elevation = 45f
-            }
-            rootLayout.addView(dot)
-            // تحريك النقطة للأسفل ببطء أثناء تلاشيها لتعطي تأثير الأثر الخلفي
-            dot.animate().translationYBy(20f).alpha(0f).scaleX(0.2f).scaleY(0.2f).setDuration(400).withEndAction { rootLayout.removeView(dot) }.start()
-        }
-    }
-
     private fun startMarchAnimation(marchTroops: List<TroopData>) {
         GameState.arenaStamina--; if (GameState.arenaStamina == 4) GameState.arenaStaminaLastRegenTime = System.currentTimeMillis()
         refreshArenaUI(); layoutAttackPrompt.visibility = View.INVISIBLE
@@ -194,11 +170,8 @@ class ArenaActivity : AppCompatActivity() {
         imgMarchingLegion.clearAnimation(); imgMarchingLegion.animate().cancel()
         imgMarchingLegion.scaleX = 1.0f; imgMarchingLegion.scaleY = 1.0f; imgMarchingLegion.translationX = 0f; imgMarchingLegion.translationY = 0f
         imgMarchingLegion.alpha = 1.0f; imgMarchingLegion.visibility = View.VISIBLE
-
-        val rootLayout = imgMarchingLegion.parent as? ViewGroup ?: findViewById<ViewGroup>(android.R.id.content) ?: return
         
         val startY = imgMarchingLegion.y
-        // تحديد الهدف ليكون أسفل القلعة قليلاً
         val targetY = layoutGhostCastle.y + layoutGhostCastle.height - (imgMarchingLegion.height / 2f) - 50f
 
         val moveAnim = ObjectAnimator.ofFloat(imgMarchingLegion, "translationY", 0f, targetY - startY)
@@ -209,15 +182,6 @@ class ArenaActivity : AppCompatActivity() {
         animSet.playTogether(moveAnim, scaleXAnim, scaleYAnim)
         animSet.duration = 2200
         animSet.interpolator = AccelerateInterpolator()
-
-        var lastDotTime = 0L
-        moveAnim.addUpdateListener {
-            val now = System.currentTimeMillis()
-            if (now - lastDotTime > 35) { 
-                createTrailingDots(rootLayout, imgMarchingLegion, "#DDDDDD")
-                lastDotTime = now
-            }
-        }
 
         animSet.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: Animator) {
@@ -284,7 +248,6 @@ class ArenaActivity : AppCompatActivity() {
             var baseAtk = 0.0; var baseDef = 0.0; var baseHp = 0.0
             var totalSent = 0L
             
-            // 💡 [الضغط الرقمي] - حساب قوة الاستعراض للمهاجم
             var attackerDisplayPower = 0L
 
             marchTroops.forEach { troop ->
@@ -300,7 +263,6 @@ class ArenaActivity : AppCompatActivity() {
             val myTotalDef = baseDef * totalDefBuff
             val myTotalHp = baseHp * totalHpBuff
 
-            // 💡 [تعديل استراتيجي] - ضبط قوة قلعة الشبح في الساحة لتكون منطقية مع النظام الجديد
             val enemyAtk = 5000.0 + (GameState.playerLevel * 500.0) 
             val enemyDef = 3500.0 + (GameState.playerLevel * 300.0)
             
@@ -355,7 +317,6 @@ class ArenaActivity : AppCompatActivity() {
             }
 
             var hasBonusLoot = false
-            // 💡 [تعديل استراتيجي] - تعديل شرط الغنيمة الإضافية ليتناسب مع الضرر الجديد المصغر
             if (damageDealt >= 50000) {
                 hasBonusLoot = true
             }
@@ -373,8 +334,9 @@ class ArenaActivity : AppCompatActivity() {
                 refreshArenaUI()
 
                 Handler(Looper.getMainLooper()).postDelayed({
-                    // تمرير قوة الاستعراض للتقرير بدلاً من إجمالي الخصائص المتضخم
-                    showArenaBattleReport(damageDealt, earnedScore, totalDead, totalWounded, attackerDisplayPower)
+                    // 💡 [مُصلح] تمرير القوة الإجمالية الضاربة (myTotalAtk + myTotalDef + myTotalHp) لفك الشفرة في التقرير
+                    val attackerCombatPower = (myTotalAtk + myTotalDef + myTotalHp).toLong()
+                    showArenaBattleReport(damageDealt, earnedScore, totalDead, totalWounded, attackerDisplayPower, attackerCombatPower)
                     
                     if (hasBonusLoot) {
                         Handler(Looper.getMainLooper()).postDelayed({
@@ -387,20 +349,27 @@ class ArenaActivity : AppCompatActivity() {
         }
     }
 
-    private fun showArenaBattleReport(damage: Long, scoreEarned: Long, dead: Long, wounded: Long, attackerPower: Long) {
+    private fun showArenaBattleReport(damage: Long, scoreEarned: Long, dead: Long, wounded: Long, attackerDisplayPower: Long, attackerCombatPower: Long) {
         SoundManager.playWindowOpen()
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_game_message)
         
         val ssb = SpannableStringBuilder()
         ssb.append("━━━━━━ نتيجة الغزوة ━━━━━━\n")
-        appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة الفيلق المُهاجِم: ${formatResourceNumber(attackerPower)} ⚔️")
+        appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة الفيلق المهاجم الأساسية: ${formatResourceNumber(attackerDisplayPower)} ⚔️")
         appendIconWithText(ssb, R.drawable.ic_ui_arena, "الضرر الكلي المُحدث: ${formatResourceNumber(damage)}")
         appendIconWithText(ssb, R.drawable.ic_ui_arena, "نقاط الساحة المكتسبة: +${formatResourceNumber(scoreEarned)}")
         
         ssb.append("\n━━━━━━ الخسائر ━━━━━━\n")
         appendIconWithText(ssb, R.drawable.ic_ui_arena, "القتلى: ${formatResourceNumber(dead)}")
         appendIconWithText(ssb, R.drawable.ic_ui_arena, "الجرحى (في دار الشفاء): ${formatResourceNumber(wounded)}")
+
+        ssb.append("\n━━━━━━ تفاصيل الاشتباك ━━━━━━\n")
+        val buffBonus = attackerCombatPower - attackerDisplayPower
+        if (buffBonus > 0) {
+            appendIconWithText(ssb, R.drawable.ic_ui_weapons, "مكافآت الأبطال والأسلحة: +${formatResourceNumber(buffBonus)}")
+        }
+        appendIconWithText(ssb, R.drawable.ic_ui_formation, "القوة الضاربة الإجمالية: ${formatResourceNumber(attackerCombatPower)}\n")
         
         d.findViewById<TextView>(R.id.tvMessageTitle)?.text = "تقرير الساحة"
         d.findViewById<TextView>(R.id.tvMessageBody)?.text = ssb
@@ -467,15 +436,21 @@ class ArenaActivity : AppCompatActivity() {
             
             ssb.append("━━━━━━ قواتك ━━━━━━\n")
             if (report.title.contains("دفاع") || report.title.contains("هزيمة دفاعية")) {
-                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة دفاعات المدينة: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} 🛡️")
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة دفاعات المدينة الأساسية: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} 🛡️")
             } else {
-                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة الفيلق المُهاجِم: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} ⚔️")
+                appendIconWithText(ssb, R.drawable.ic_ui_arena, "قوة الفيلق المهاجم الأساسية: ${formatResourceNumber(report.myTotalPowerStr.toLongOrNull() ?: 0L)} ⚔️")
             }
             
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "القتلى: ${formatResourceNumber(report.myDead)}")
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الجرحى: ${formatResourceNumber(report.myWounded)}")
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الناجون: ${formatResourceNumber(report.mySurviving)}")
-            appendIconWithText(ssb, R.drawable.ic_ui_arena, "الضرر المُحدث: ${formatResourceNumber(report.myDamage)}\n")
+            
+            ssb.append("\n━━━━━━ تفاصيل الاشتباك ━━━━━━\n")
+            val buffBonus = report.myDamage - (report.myTotalPowerStr.toLongOrNull() ?: 0L)
+            if (buffBonus > 0) {
+                appendIconWithText(ssb, R.drawable.ic_ui_weapons, "مكافآت الأبطال والأسلحة: +${formatResourceNumber(buffBonus)}")
+            }
+            appendIconWithText(ssb, R.drawable.ic_ui_formation, "القوة الضاربة الإجمالية: ${formatResourceNumber(report.myDamage)}\n")
         }
         
         if (report.lootGold > 0 || report.lootIron > 0 || report.lootWheat > 0) {
@@ -524,7 +499,7 @@ class ArenaActivity : AppCompatActivity() {
         d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(R.drawable.ic_settings_gear)
         
         val btn = d.findViewById<Button>(R.id.btnMessageOk)
-        btn?.text = "حسناً!"
+        btn?.text = "حسناً، لنجعله يندم!"
         btn?.setBackgroundResource(R.drawable.bg_btn_gold_border)
         
         btn?.setOnClickListener {
