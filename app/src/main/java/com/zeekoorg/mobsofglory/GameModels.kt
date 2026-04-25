@@ -22,8 +22,8 @@ enum class QuestType {
 
 enum class Rarity(val buffMultiplier: Double, val costMultiplier: Double, val timeMultiplier: Double) {
     COMMON(1.0, 1.0, 1.0),
-    RARE(2.5, 3.0, 2.0),
-    LEGENDARY(6.0, 8.0, 4.0)
+    RARE(1.5, 3.0, 2.0),
+    LEGENDARY(2.5, 8.0, 4.0)
 }
 
 enum class TroopType {
@@ -52,7 +52,7 @@ data class TroopData(
     val tier: Int,
     var count: Long = 0L,      
     var wounded: Long = 0L,
-    var healing: Long = 0L      // 💡 تمت إضافة خانة العلاج لترقيع الثغرة
+    var healing: Long = 0L      
 )
 
 data class Hero(
@@ -73,20 +73,21 @@ data class Hero(
     val arcAtkBuff: Double = 0.0,
     val siegeAtkBuff: Double = 0.0
 ) {
-    fun getCurrentAttackBuff(): Double = baseAttackBuff + (level * 0.01 * rarity.buffMultiplier)
-    fun getCurrentDefenseBuff(): Double = baseDefenseBuff + (level * 0.01 * rarity.buffMultiplier)
-    fun getCurrentHpBuff(): Double = baseHpBuff + (level * 0.01 * rarity.buffMultiplier)
-    fun getCurrentSpeedBuff(): Double = baseSpeedBuff + (level * 0.005 * rarity.buffMultiplier)
+    // 💡 [مُصلح التوازن] الخصائص الآن تتصاعد بمعدل بطيء وموزون لكل مستوى وحسب الندرة
+    fun getCurrentAttackBuff(): Double = baseAttackBuff + ((level - 1) * 0.005 * rarity.buffMultiplier)
+    fun getCurrentDefenseBuff(): Double = baseDefenseBuff + ((level - 1) * 0.005 * rarity.buffMultiplier)
+    fun getCurrentHpBuff(): Double = baseHpBuff + ((level - 1) * 0.005 * rarity.buffMultiplier)
+    fun getCurrentSpeedBuff(): Double = baseSpeedBuff + ((level - 1) * 0.002 * rarity.buffMultiplier)
 
-    fun getCurrentInfAtkBuff(): Double = infAtkBuff + (level * 0.015 * rarity.buffMultiplier)
-    fun getCurrentCavAtkBuff(): Double = cavAtkBuff + (level * 0.015 * rarity.buffMultiplier)
-    fun getCurrentArcAtkBuff(): Double = arcAtkBuff + (level * 0.015 * rarity.buffMultiplier)
-    fun getCurrentSiegeAtkBuff(): Double = siegeAtkBuff + (level * 0.015 * rarity.buffMultiplier)
+    fun getCurrentInfAtkBuff(): Double = infAtkBuff + ((level - 1) * 0.008 * rarity.buffMultiplier)
+    fun getCurrentCavAtkBuff(): Double = cavAtkBuff + ((level - 1) * 0.008 * rarity.buffMultiplier)
+    fun getCurrentArcAtkBuff(): Double = arcAtkBuff + ((level - 1) * 0.008 * rarity.buffMultiplier)
+    fun getCurrentSiegeAtkBuff(): Double = siegeAtkBuff + ((level - 1) * 0.008 * rarity.buffMultiplier)
 
-    fun getCurrentPower(): Long = (level * 2000 * rarity.buffMultiplier).toLong()
+    fun getCurrentPower(): Long = (level * 1500 * rarity.buffMultiplier).toLong()
     
-    fun getUpgradeCostGold(): Long = (level.toDouble().pow(2.2) * 10000 * rarity.costMultiplier).toLong()
-    fun getUpgradeTimeSeconds(): Long = (level * 300 * rarity.timeMultiplier).toLong()
+    fun getUpgradeCostGold(): Long = (level.toDouble().pow(1.8) * 5000 * rarity.costMultiplier).toLong()
+    fun getUpgradeTimeSeconds(): Long = (level * 180 * rarity.timeMultiplier).toLong()
 }
 
 data class Weapon(
@@ -103,19 +104,20 @@ data class Weapon(
     val arcDefBuff: Double = 0.0,
     val siegeDefBuff: Double = 0.0
 ) {
-    fun getCurrentAttackBuff(): Double = baseWeaponAttackBuff + (level * 0.015 * rarity.buffMultiplier)
-    fun getCurrentDefenseBuff(): Double = baseWeaponDefenseBuff + (level * 0.015 * rarity.buffMultiplier)
+    // 💡 [مُصلح التوازن] الأسلحة أصبحت تعطي إضافات دقيقة ومعقولة تتصاعد مع كل مستوى
+    fun getCurrentAttackBuff(): Double = baseWeaponAttackBuff + ((level - 1) * 0.004 * rarity.buffMultiplier)
+    fun getCurrentDefenseBuff(): Double = baseWeaponDefenseBuff + ((level - 1) * 0.004 * rarity.buffMultiplier)
     
-    fun getCurrentInfDefBuff(): Double = infDefBuff + (level * 0.015 * rarity.buffMultiplier)
-    fun getCurrentCavDefBuff(): Double = cavDefBuff + (level * 0.015 * rarity.buffMultiplier)
-    fun getCurrentArcDefBuff(): Double = arcDefBuff + (level * 0.015 * rarity.buffMultiplier)
-    fun getCurrentSiegeDefBuff(): Double = siegeDefBuff + (level * 0.015 * rarity.buffMultiplier)
+    fun getCurrentInfDefBuff(): Double = infDefBuff + ((level - 1) * 0.006 * rarity.buffMultiplier)
+    fun getCurrentCavDefBuff(): Double = cavDefBuff + ((level - 1) * 0.006 * rarity.buffMultiplier)
+    fun getCurrentArcDefBuff(): Double = arcDefBuff + ((level - 1) * 0.006 * rarity.buffMultiplier)
+    fun getCurrentSiegeDefBuff(): Double = siegeDefBuff + ((level - 1) * 0.006 * rarity.buffMultiplier)
 
-    fun getCurrentPower(): Long = (level.toDouble().pow(1.8) * 4000 * rarity.buffMultiplier).toLong()
+    fun getCurrentPower(): Long = (level.toDouble().pow(1.5) * 3000 * rarity.buffMultiplier).toLong()
     
-    fun getCostIron(): Long = (level.toDouble().pow(2.1) * 45000 * rarity.costMultiplier).toLong()
-    fun getCostGold(): Long = (level.toDouble().pow(1.9) * 10000 * rarity.costMultiplier).toLong()
-    fun getUpgradeTimeSeconds(): Long = (level * level * 120 * rarity.timeMultiplier).toLong()
+    fun getCostIron(): Long = (level.toDouble().pow(1.9) * 25000 * rarity.costMultiplier).toLong()
+    fun getCostGold(): Long = (level.toDouble().pow(1.7) * 8000 * rarity.costMultiplier).toLong()
+    fun getUpgradeTimeSeconds(): Long = (level * level * 90 * rarity.timeMultiplier).toLong()
 }
 
 data class DynamicQuest(
