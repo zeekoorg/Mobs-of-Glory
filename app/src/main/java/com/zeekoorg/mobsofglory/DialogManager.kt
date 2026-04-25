@@ -466,10 +466,9 @@ object DialogManager {
         fun refreshHospitalUI() {
             d.findViewById<TextView>(R.id.tvDialogTitle)?.text = "دار الشفاء (مستوى ${p.level})"
             
-            // 💡 تحديث قراءة الجرحى من القائمة الجديدة
             val woundedInfArc = GameState.playerTroops.filter { it.type == TroopType.INFANTRY || it.type == TroopType.ARCHER }.sumOf { it.wounded }
             val woundedCavSiege = GameState.playerTroops.filter { it.type == TroopType.CAVALRY || it.type == TroopType.SIEGE }.sumOf { it.wounded }
-            val totalWounded = GameState.getTotalWoundedTroops()
+            val totalWounded = GameState.playerTroops.sumOf { it.wounded }
 
             d.findViewById<TextView>(R.id.tvWoundedInfantry)?.text = "المشاة/الرماة: ${formatResourceNumber(woundedInfArc)}"
             d.findViewById<TextView>(R.id.tvWoundedCavalry)?.text = "الفرسان/العربات: ${formatResourceNumber(woundedCavSiege)}"
@@ -483,7 +482,6 @@ object DialogManager {
                 tvHealCostWheat?.text = "0"; tvHealCostIron?.text = "0"; tvHealTime?.text = "00:00"
                 btnAction?.text = "لا يوجد جرحى"; btnAction?.isEnabled = false; btnAction?.setBackgroundColor(Color.GRAY)
             } else {
-                // 💡 حساب تكلفة ووقت العلاج بناءً على خصائص الـ Tier (تكلفة العلاج = 30% من تكلفة التدريب)
                 var costWheat = 0L; var costIron = 0L; var healTimeSec = 0L
                 GameState.playerTroops.forEach {
                     if (it.wounded > 0) {
@@ -507,10 +505,19 @@ object DialogManager {
                         GameState.isHealing = true
                         GameState.healingTotalTime = healTimeSec * 1000L
                         GameState.healingEndTime = System.currentTimeMillis() + GameState.healingTotalTime
+
+                        // 💡 [مُصلح] نقل كل الجرحى (من جميع الفئات) إلى أسرة العلاج لضمان تماثلهم للشفاء مع التسريع
+                        GameState.playerTroops.forEach {
+                            if (it.wounded > 0) {
+                                it.healing += it.wounded
+                                it.wounded = 0L
+                            }
+                        }
+
                         GameState.saveGameData(activity); updateUI(activity)
-                        showGameMessage(activity, "دار الشفاء", "بدأ علاج الجرحى. ستعود قواتك لصفوف الجيش قريباً!", R.drawable.ic_settings_gear)
+                        showGameMessage(activity, "دار الشفاء", "بدأ علاج الجرحى. استخدم التسريع إن أردت عودتهم فوراً!", R.drawable.ic_settings_gear)
                         d.dismiss()
-                    } else showGameMessage(activity, "عذراً", "الموارد لا تكفي لعلاج الجرحى!", R.drawable.ic_resource_wheat)
+                    } else showGameMessage(activity, "عذراً", "الموارد لا تكفي لعلاج جميع الجرحى!", R.drawable.ic_resource_wheat)
                 }
             }
         }
@@ -524,7 +531,6 @@ object DialogManager {
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_train_troops)
 
-        // 💡 جلب الإحصائيات الحقيقية للجندي (حتى الآن الثكنات تدرب T1)
         val type = if (p.idCode == "BARRACKS_1") TroopType.INFANTRY else TroopType.CAVALRY
         val stats = GameState.getTroopStats(type, 1)
         
@@ -854,7 +860,6 @@ object DialogManager {
         val handler = Handler(Looper.getMainLooper())
 
         fun refreshWeaponsList() {
-            // 💡 [تعديل أساسي] هذا السطر يمنع تكرار الأسلحة واستنساخها في النافذة
             container?.removeAllViews()
             
             GameState.arsenal.forEach { weapon ->
@@ -882,7 +887,6 @@ object DialogManager {
                             showSpeedupDialog(activity, null, weapon) 
                         }
                         
-                        // 💡 [تعديل] نضمن إزالة الـ Callbacks السابقة قبل إضافة جديد لمنع تداخل المؤقتات
                         handler.removeCallbacksAndMessages(weapon.id)
                         handler.postDelayed({ refreshWeaponsList() }, weapon.id, 1000)
                     } else { 
@@ -1011,7 +1015,6 @@ object DialogManager {
 
         val prefs = activity.getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
         
-        // 💡 إحضار إجمالي القوات المتاحة (السليمة) من كل الأنواع لتعيينها في الـ Sliders
         val maxInf = GameState.playerTroops.filter { it.type == TroopType.INFANTRY }.sumOf { it.count }
         val maxCav = GameState.playerTroops.filter { it.type == TroopType.CAVALRY }.sumOf { it.count }
         
