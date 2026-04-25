@@ -161,13 +161,11 @@ class ArenaActivity : AppCompatActivity() {
         d.show()
     }
 
-    // 💡 تم برمجة الغبار ليُحسب مكان الفيلق الحقيقي ويتمركز خلفه بدون أن يطير للقلعة!
     private fun createTrailingDots(rootLayout: ViewGroup, referenceView: View, colorHex: String = "#DDDDDD") {
         val currentScale = referenceView.scaleY
         val centerX = referenceView.x + referenceView.translationX + (referenceView.width / 2f)
         val centerY = referenceView.y + referenceView.translationY + (referenceView.height / 2f)
         
-        // النقطة السفلية للفيلق بدقة
         val bottomY = centerY + (referenceView.height / 2f * currentScale)
 
         for (i in 0..1) {
@@ -180,7 +178,6 @@ class ArenaActivity : AppCompatActivity() {
                 elevation = 45f
             }
             rootLayout.addView(dot)
-            // الغبار يبقى في مكانه ليتلاشى، مما يعطي التأثير الطبيعي أنه يتأخر عن الفيلق المنطلق
             dot.animate().translationYBy(15f).alpha(0f).scaleX(0.2f).scaleY(0.2f).setDuration(400).withEndAction { rootLayout.removeView(dot) }.start()
         }
     }
@@ -197,11 +194,9 @@ class ArenaActivity : AppCompatActivity() {
 
         val rootLayout = imgMarchingLegion.parent as? ViewGroup ?: findViewById<ViewGroup>(android.R.id.content) ?: return
         
-        // 💡 إيقاف الفيلق عند باب القلعة (أعلى الفيلق يلامس أسفل القلعة)
         val startY = imgMarchingLegion.y
         val targetY = layoutGhostCastle.y + layoutGhostCastle.height - (imgMarchingLegion.height / 2f)
 
-        // 💡 استخدام ObjectAnimator لمزامنة الغبار مع الحركة تماماً
         val moveAnim = ObjectAnimator.ofFloat(imgMarchingLegion, "translationY", 0f, targetY - startY)
         val scaleXAnim = ObjectAnimator.ofFloat(imgMarchingLegion, "scaleX", 1.0f, 0.4f)
         val scaleYAnim = ObjectAnimator.ofFloat(imgMarchingLegion, "scaleY", 1.0f, 0.4f)
@@ -214,7 +209,6 @@ class ArenaActivity : AppCompatActivity() {
         var lastDotTime = 0L
         moveAnim.addUpdateListener {
             val now = System.currentTimeMillis()
-            // رسم الغبار بتزامن كامل مع الفريمات الحالية
             if (now - lastDotTime > 35) { 
                 createTrailingDots(rootLayout, imgMarchingLegion, "#DDDDDD")
                 lastDotTime = now
@@ -507,20 +501,22 @@ class ArenaActivity : AppCompatActivity() {
     }
 
     private fun showRevengeWarningDialog(nodeId: Int) {
+        if (!isActivityResumed) return
         isReportDialogOpen = true 
+        
         SoundManager.playWindowOpen()
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_game_message)
         
         val tvTitle = d.findViewById<TextView>(R.id.tvMessageTitle)
-        tvTitle?.text = "⚠️ تحذير هجوم وشيك ⚠️"
+        tvTitle?.text = "تحذير هجوم وشيك"
         tvTitle?.setTextColor(Color.parseColor("#FF5252")) 
         
         d.findViewById<TextView>(R.id.tvMessageBody)?.text = "العدو لم يُهزم! لقد قام بحشد قواته المتبقية وهو في طريقه الآن للانتقام من مدينتك!\n\nتجهز للدفاع فوراً!"
         d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(R.drawable.ic_settings_gear)
         
         val btn = d.findViewById<Button>(R.id.btnMessageOk)
-        btn?.text = "حسناً، لنجعله يندم!"
+        btn?.text = "حسناً!"
         btn?.setBackgroundResource(R.drawable.bg_btn_gold_border)
         
         btn?.setOnClickListener {
@@ -531,7 +527,6 @@ class ArenaActivity : AppCompatActivity() {
         d.setOnDismissListener {
             isReportDialogOpen = false 
             GameState.triggerRevengeMarch(nodeId)
-            checkPendingReports()
         }
         d.show()
     }
