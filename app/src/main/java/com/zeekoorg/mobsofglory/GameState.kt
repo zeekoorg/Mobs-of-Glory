@@ -96,32 +96,32 @@ object GameState {
     fun getTroopStats(type: TroopType, tier: Int): TroopTier {
         return when (type) {
             TroopType.INFANTRY -> when (tier) {
-                1 -> TroopTier(1, type, 12.0, 40.0, 80.0, 25.0, 10.0, 1, 10, 0, 5)
-                2 -> TroopTier(2, type, 20.0, 60.0, 120.0, 30.0, 10.0, 2, 20, 5, 10)
-                3 -> TroopTier(3, type, 35.0, 90.0, 180.0, 35.0, 11.0, 3, 40, 15, 20)
-                4 -> TroopTier(4, type, 55.0, 140.0, 260.0, 40.0, 11.0, 4, 80, 35, 40)
-                else -> TroopTier(5, type, 85.0, 210.0, 380.0, 50.0, 12.0, 5, 150, 80, 80)
+                1 -> TroopTier(1, type, 12.0, 40.0, 80.0, 25.0, 10.0, 1, 10, 0, 1)
+                2 -> TroopTier(2, type, 20.0, 60.0, 120.0, 30.0, 10.0, 2, 20, 5, 2)
+                3 -> TroopTier(3, type, 35.0, 90.0, 180.0, 35.0, 11.0, 3, 40, 15, 3)
+                4 -> TroopTier(4, type, 55.0, 140.0, 260.0, 40.0, 11.0, 4, 80, 35, 5)
+                else -> TroopTier(5, type, 85.0, 210.0, 380.0, 50.0, 12.0, 5, 150, 80, 8)
             }
             TroopType.CAVALRY -> when (tier) {
-                1 -> TroopTier(1, type, 28.0, 18.0, 55.0, 12.0, 18.0, 1, 10, 5, 5)
-                2 -> TroopTier(2, type, 45.0, 25.0, 80.0, 15.0, 19.0, 2, 20, 15, 10)
-                3 -> TroopTier(3, type, 75.0, 40.0, 120.0, 18.0, 20.0, 3, 40, 35, 20)
-                4 -> TroopTier(4, type, 120.0, 60.0, 180.0, 22.0, 21.0, 4, 80, 75, 40)
-                else -> TroopTier(5, type, 180.0, 90.0, 270.0, 28.0, 22.0, 5, 150, 150, 80)
+                1 -> TroopTier(1, type, 28.0, 18.0, 55.0, 12.0, 18.0, 1, 10, 5, 1)
+                2 -> TroopTier(2, type, 45.0, 25.0, 80.0, 15.0, 19.0, 2, 20, 15, 2)
+                3 -> TroopTier(3, type, 75.0, 40.0, 120.0, 18.0, 20.0, 3, 40, 35, 3)
+                4 -> TroopTier(4, type, 120.0, 60.0, 180.0, 22.0, 21.0, 4, 80, 75, 5)
+                else -> TroopTier(5, type, 180.0, 90.0, 270.0, 28.0, 22.0, 5, 150, 150, 8)
             }
             TroopType.ARCHER -> when (tier) {
-                1 -> TroopTier(1, type, 22.0, 15.0, 40.0, 18.0, 12.0, 1, 12, 0, 5)
-                2 -> TroopTier(2, type, 38.0, 22.0, 60.0, 22.0, 12.0, 2, 25, 5, 10)
-                3 -> TroopTier(3, type, 65.0, 35.0, 90.0, 26.0, 13.0, 3, 50, 15, 20)
-                4 -> TroopTier(4, type, 105.0, 55.0, 135.0, 32.0, 13.0, 4, 100, 35, 40)
-                else -> TroopTier(5, type, 160.0, 85.0, 200.0, 40.0, 14.0, 5, 180, 80, 80)
+                1 -> TroopTier(1, type, 22.0, 15.0, 40.0, 18.0, 12.0, 1, 12, 0, 1)
+                2 -> TroopTier(2, type, 38.0, 22.0, 60.0, 22.0, 12.0, 2, 25, 5, 2)
+                3 -> TroopTier(3, type, 65.0, 35.0, 90.0, 26.0, 13.0, 3, 50, 15, 3)
+                4 -> TroopTier(4, type, 105.0, 55.0, 135.0, 32.0, 13.0, 4, 100, 35, 5)
+                else -> TroopTier(5, type, 160.0, 85.0, 200.0, 40.0, 14.0, 5, 180, 80, 8)
             }
             TroopType.SIEGE -> when (tier) {
-                1 -> TroopTier(1, type, 15.0, 30.0, 60.0, 80.0, 6.0, 1, 15, 10, 8)
-                2 -> TroopTier(2, type, 25.0, 45.0, 90.0, 120.0, 6.0, 2, 30, 25, 15)
-                3 -> TroopTier(3, type, 40.0, 70.0, 140.0, 180.0, 7.0, 3, 60, 55, 30)
-                4 -> TroopTier(4, type, 65.0, 105.0, 210.0, 260.0, 7.0, 4, 120, 110, 60)
-                else -> TroopTier(5, type, 100.0, 160.0, 310.0, 350.0, 8.0, 5, 200, 220, 120)
+                1 -> TroopTier(1, type, 15.0, 30.0, 60.0, 80.0, 6.0, 1, 15, 10, 1)
+                2 -> TroopTier(2, type, 25.0, 45.0, 90.0, 120.0, 6.0, 2, 30, 25, 2)
+                3 -> TroopTier(3, type, 40.0, 70.0, 140.0, 180.0, 7.0, 3, 60, 55, 3)
+                4 -> TroopTier(4, type, 65.0, 105.0, 210.0, 260.0, 7.0, 4, 120, 110, 5)
+                else -> TroopTier(5, type, 100.0, 160.0, 310.0, 350.0, 8.0, 5, 200, 220, 8)
             }
         }
     }
@@ -303,9 +303,9 @@ object GameState {
     private fun generateEnemyArmy(regionLevel: Int): Pair<MutableList<TroopData>, Double> {
         val troops = mutableListOf<TroopData>()
         
-        val baseTroops = 5000L
+        val baseTroops = 2000L
         val multiplier = 1.0 + (regionLevel * 0.15)
-        val totalEnemyTroops = (baseTroops * multiplier.pow(1.5)).toLong() + Random.nextLong(1000, 5000)
+        val totalEnemyTroops = (baseTroops * multiplier.pow(1.5)).toLong() + Random.nextLong(500, 2000)
 
         val tierProbabilities = mutableMapOf<Int, Double>()
         when {
@@ -361,7 +361,6 @@ object GameState {
                 generatedTroops.forEach { troop ->
                     actualPower += (troop.count * getTroopStats(troop.type, troop.tier).power)
                 }
-                actualPower = (actualPower * (1.0 + aiBuff)).toLong()
                 
                 battlefieldNodes.add(BattlefieldNode(
                     id = i, 
@@ -459,32 +458,12 @@ object GameState {
     }
 
     fun calculateLegionPower() {
-        var baseAtk = 0.0; var baseDef = 0.0; var baseHp = 0.0
+        var basePower = 0L
         playerTroops.forEach { troop ->
             val stats = getTroopStats(troop.type, troop.tier)
-            baseAtk += troop.count * stats.baseAtk
-            baseDef += troop.count * stats.baseDef
-            baseHp += troop.count * stats.baseHp
+            basePower += troop.count * stats.power
         }
-
-        var heroAtkBuff = 0.0; var heroDefBuff = 0.0; var heroHpBuff = 0.0
-        myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { 
-            heroAtkBuff += it.getCurrentAttackBuff()
-            heroDefBuff += it.getCurrentDefenseBuff()
-            heroHpBuff += it.getCurrentHpBuff()
-        }
-        
-        var wpAtkBuff = 0.0; var wpDefBuff = 0.0
-        arsenal.filter { it.isOwned && it.isEquipped }.forEach { 
-            wpAtkBuff += it.getCurrentAttackBuff()
-            wpDefBuff += it.getCurrentDefenseBuff()
-        }
-
-        val finalAtk = baseAtk * (1.0 + heroAtkBuff + wpAtkBuff)
-        val finalDef = baseDef * (1.0 + heroDefBuff + wpDefBuff)
-        val finalHp = baseHp * (1.0 + heroHpBuff)
-
-        legionPower = (finalAtk + finalDef + finalHp).toLong()
+        legionPower = basePower
     }
 
     fun checkPlayerLevelUp(isOffline: Boolean = false): Boolean {
@@ -612,7 +591,11 @@ object GameState {
                     val finalAtkDef = atkBaseDef * (1.0 + atkBuffDef)
                     var finalAtkHp = atkBaseHp * (1.0 + atkBuffHp)
                     val initialAtkHp = finalAtkHp
-                    val attackerInitialCombatPower = (finalAtkAtk + finalAtkDef + finalAtkHp).toLong()
+                    
+                    var attackerDisplayPower = 0L
+                    march.marchTroops.forEach { troop ->
+                        attackerDisplayPower += troop.count * getTroopStats(troop.type, troop.tier).power
+                    }
 
                     var defBaseAtk = 0.0; var defBaseDef = 0.0; var defBaseHp = 0.0
                     var defenderTotalTroops = 0L
@@ -651,7 +634,17 @@ object GameState {
                     val finalDefDef = defBaseDef * (1.0 + defBuffDef)
                     var finalDefHp = defBaseHp * (1.0 + defBuffHp)
                     val initialDefHp = finalDefHp
-                    val defenderInitialCombatPower = (finalDefAtk + finalDefDef + finalDefHp).toLong()
+
+                    var defenderDisplayPower = 0L
+                    if (march.type == MarchType.ATTACK) {
+                        node!!.enemyTroops.forEach { troop ->
+                            defenderDisplayPower += troop.count * getTroopStats(troop.type, troop.tier).power
+                        }
+                    } else {
+                        playerTroops.forEach { troop ->
+                            defenderDisplayPower += troop.count * getTroopStats(troop.type, troop.tier).power
+                        }
+                    }
 
                     var rounds = 0; val maxRounds = 20
                     var actualDmgToAtk = 0.0; var actualDmgToDef = 0.0
@@ -744,23 +737,19 @@ object GameState {
                         }
                     }
 
-                    var enemyFinalPower = 0L
+                    var enemyFinalDisplayPower = 0L
                     enemyTroopsList.forEach { troop ->
-                        val stats = getTroopStats(troop.type, troop.tier)
-                        val tAtk = troop.count * stats.baseAtk * (1.0 + aiBuffForMarch)
-                        val tDef = troop.count * stats.baseDef * (1.0 + aiBuffForMarch)
-                        val tHp = troop.count * stats.baseHp * (1.0 + aiBuffForMarch)
-                        enemyFinalPower += (tAtk + tDef + tHp).toLong()
+                        enemyFinalDisplayPower += troop.count * getTroopStats(troop.type, troop.tier).power
                     }
                     
                     if (march.type == MarchType.ATTACK) {
-                        node!!.currentPower = enemyFinalPower
+                        node!!.currentPower = enemyFinalDisplayPower
                     }
 
                     val enemyName = node?.playerName ?: march.reportEnemyName
                     
                     if (march.type == MarchType.ATTACK) {
-                        if (finalIsAttackerVictory || enemyFinalPower <= 0) {
+                        if (finalIsAttackerVictory || enemyFinalDisplayPower <= 0) {
                             node!!.isDefeated = true; node.currentPower = 0
                             if (node.maxPower > 0) globalNewsQueue.add("عاجل: هجم القائد [$playerName] على [$enemyName] وحقق انتصاراً ساحقاً!")
                             
@@ -779,8 +768,9 @@ object GameState {
                         march.reportIsVictory = finalIsAttackerVictory
                         march.reportRounds = rounds 
                         
-                        march.reportMyTotalPowerStr = attackerInitialCombatPower.toString()
-                        march.reportEnemyPowerStr = defenderInitialCombatPower.toString()
+                        march.reportMyTotalPowerStr = attackerDisplayPower.toString()
+                        march.reportEnemyPowerStr = defenderDisplayPower.toString()
+                        
                         march.reportEnemyName = enemyName
                         march.hasReport = true
 
@@ -791,15 +781,15 @@ object GameState {
                         val isCityDefended = !finalIsAttackerVictory
                         val playerSurviving = playerTroops.sumOf { it.count }
                         
-                        if (isCityDefended || enemyFinalPower <= 0) {
+                        if (isCityDefended || enemyFinalDisplayPower <= 0) {
                             globalNewsQueue.add("عاجل: تم صد هجوم [$enemyName] على مدينتنا بنجاح!")
                             pendingBattleReports.add(BattleReport(
                                 marchId = march.id,
                                 title = "دفاع أسطوري!",
                                 message = "تم تدمير قوات [$enemyName] المهاجمة على أسوارنا!",
                                 enemyName = enemyName,
-                                enemyPowerBefore = attackerInitialCombatPower, 
-                                enemyPowerAfter = enemyFinalPower,
+                                enemyPowerBefore = attackerDisplayPower, 
+                                enemyPowerAfter = enemyFinalDisplayPower,
                                 myTotalSent = enemyTotalSent, 
                                 myDead = enemyDead, 
                                 myWounded = 0, 
@@ -807,7 +797,7 @@ object GameState {
                                 myDamage = actualDmgToAtk.toLong(),  
                                 lootGold = 0, lootIron = 0, lootWheat = 0, isVictory = true,
                                 battleRounds = rounds,
-                                myTotalPowerStr = defenderInitialCombatPower.toString()
+                                myTotalPowerStr = defenderDisplayPower.toString()
                             ))
                         } else {
                             val lostIron = minOf(totalIron, Random.nextLong(10000, 60000))
@@ -823,8 +813,8 @@ object GameState {
                                 title = "هزيمة دفاعية مريرة!",
                                 message = "دفاعاتنا لم تصمد أمام هجوم [$enemyName] وتم نهب خزائننا!",
                                 enemyName = enemyName,
-                                enemyPowerBefore = attackerInitialCombatPower, 
-                                enemyPowerAfter = enemyFinalPower, 
+                                enemyPowerBefore = attackerDisplayPower, 
+                                enemyPowerAfter = enemyFinalDisplayPower, 
                                 myTotalSent = enemyTotalSent,
                                 myDead = enemyDead,
                                 myWounded = 0,
@@ -832,7 +822,7 @@ object GameState {
                                 myDamage = actualDmgToAtk.toLong(), 
                                 lootGold = 0, lootIron = -lostIron, lootWheat = -lostWheat, isVictory = false,
                                 battleRounds = rounds,
-                                myTotalPowerStr = defenderInitialCombatPower.toString()
+                                myTotalPowerStr = defenderDisplayPower.toString()
                             ))
                         }
                         
@@ -1000,8 +990,9 @@ object GameState {
         prefs.putInt("ARENA_ADS_TODAY", arenaAdsWatchedToday)
         prefs.putLong("ARENA_ADS_LAST_TIME", arenaAdsLastWatchedTime)
 
+        val currentElapsed = android.os.SystemClock.elapsedRealtime()
         prefs.putLong("LAST_LOGIN_TIME", System.currentTimeMillis())
-        prefs.putLong("LAST_ELAPSED_TIME", android.os.SystemClock.elapsedRealtime())
+        prefs.putLong("LAST_ELAPSED_TIME", currentElapsed)
         prefs.putInt("PENDING_LEVEL_UP", pendingLevelUpCount)
         
         prefs.putBoolean("IS_HEALING", isHealing); prefs.putLong("HEALING_END_TIME", healingEndTime); prefs.putLong("HEALING_TOTAL_TIME", healingTotalTime)
@@ -1125,27 +1116,24 @@ object GameState {
         val rawOfflineTime = currentMillis - lastLogin
         val trueOfflineTime: Long
 
-        // 💡 [المحرك الجبار] - نظام "ساعة الظل المزدوجة" (Zero-Trust)
         if (currentElapsed >= lastElapsed) {
             val elapsedDelta = currentElapsed - lastElapsed
             if (kotlin.math.abs(rawOfflineTime - elapsedDelta) > 60000) { 
-                trueOfflineTime = elapsedDelta // تلاعب بالساعة! نعتمد على وقت المعالج
+                trueOfflineTime = elapsedDelta 
             } else {
                 trueOfflineTime = rawOfflineTime
             }
         } else {
-            // إعادة تشغيل الجهاز. نثق بالوقت لكن نضع حداً أقصى لمنع استغلال الثغرات
             if (rawOfflineTime < 0) {
-                trueOfflineTime = 0 // عودة بالزمن!
+                trueOfflineTime = 0 
             } else {
-                trueOfflineTime = minOf(rawOfflineTime, 24L * 3600000L) // أقصى تقدم 24 ساعة
+                trueOfflineTime = minOf(rawOfflineTime, 24L * 3600000L) 
             }
         }
 
         val offlineTime = trueOfflineTime
         val timeShiftOffset = currentMillis - lastLogin - trueOfflineTime
 
-        // إزاحة المواقيت المطلقة لتتزامن مع ساعة الجهاز الجديدة (سواء تقدمت أو تأخرت)
         if (timeShiftOffset != 0L) {
             if (arenaAdsLastWatchedTime > 0L) arenaAdsLastWatchedTime += timeShiftOffset
             if (vipEndTime > 0L) vipEndTime += timeShiftOffset
@@ -1162,9 +1150,9 @@ object GameState {
         arenaStaminaLastRegenTime = prefs.getLong("ARENA_STAMINA_REGEN", currentMillis)
         
         arenaSeasonEndTime = prefs.getLong("ARENA_SEASON_END", 0L)
-        if (timeShiftOffset != 0L) {
-            if (arenaStaminaLastRegenTime > 0L) arenaStaminaLastRegenTime += timeShiftOffset
-            if (arenaSeasonEndTime > 0L) arenaSeasonEndTime += timeShiftOffset
+        if (timeShiftOffset != 0L && arenaSeasonEndTime > 0L) {
+            arenaStaminaLastRegenTime += timeShiftOffset
+            arenaSeasonEndTime += timeShiftOffset
         }
 
         if (arenaSeasonEndTime == 0L) arenaSeasonEndTime = currentMillis + (7L * 24 * 3600000L)
