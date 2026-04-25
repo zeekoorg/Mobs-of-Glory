@@ -93,7 +93,6 @@ object GameState {
 
     val playerTroops = mutableListOf<TroopData>()
     
-    // 💡 [مُصلح الاقتصاد] تم إضافة تكلفة الحديد (الرقم قبل الأخير) للمشاة والرماة لجميع المستويات
     fun getTroopStats(type: TroopType, tier: Int): TroopTier {
         return when (type) {
             TroopType.INFANTRY -> when (tier) {
@@ -151,6 +150,12 @@ object GameState {
 
     var arenaAdsWatchedToday: Int = 0
     var arenaAdsLastWatchedTime: Long = 0L
+
+    // 💡 [مُصلح الاحترافية] حساب سعة المسيرة القصوى بناءً على مستوى القلعة
+    fun getMaxMarchCapacity(): Long {
+        val castleLevel = myPlots.find { it.idCode == "CASTLE" }?.level ?: 1
+        return 10000L + (castleLevel * 5000L)
+    }
 
     fun canWatchArenaAd(): Boolean {
         val sdf = java.text.SimpleDateFormat("yyyyMMdd", Locale.US)
@@ -1004,13 +1009,6 @@ object GameState {
         return needsUpdate
     }
 
-    private fun formatResourceNumber(num: Long): String = when { 
-        num >= 1_000_000_000 -> String.format(Locale.US, "%.1fB", num / 1_000_000_000.0)
-        num >= 1_000_000 -> String.format(Locale.US, "%.1fM", num / 1_000_000.0)
-        num >= 1_000 -> String.format(Locale.US, "%.1fK", num / 1_000.0)
-        else -> num.toString() 
-    }
-
     fun saveGameData(context: Context?) {
         if (context == null) return
         val prefs = context.getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE).edit()
@@ -1213,8 +1211,8 @@ object GameState {
         checkArenaSeason()
 
         if (arenaStamina < 5) {
-            val timePassedForStamina = currentMillis - arenaStaminaLastRegenTime
-            val staminaToRecover = (timePassedForStamina / 3600000L).toInt()
+            val timePassed = currentMillis - arenaStaminaLastRegenTime
+            val staminaToRecover = (timePassed / 3600000L).toInt()
             if (staminaToRecover > 0) {
                 arenaStamina += staminaToRecover; if (arenaStamina > 5) arenaStamina = 5
                 arenaStaminaLastRegenTime += (staminaToRecover * 3600000L)
