@@ -3,7 +3,9 @@ name: Build Mobs Of Glory APK (SDK 35)
 on:
   workflow_dispatch: 
 
-# تم حذف قسم env الذي كان يسبب ظهور التحذير
+# أعدنا هذا السطر لإسكات تحذير Node.js 20
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
