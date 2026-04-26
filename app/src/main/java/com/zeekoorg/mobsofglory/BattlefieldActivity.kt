@@ -6,6 +6,7 @@ import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.app.Dialog
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
@@ -43,6 +44,9 @@ class BattlefieldActivity : AppCompatActivity() {
     private lateinit var tvMainTotalPower: TextView 
     private lateinit var imgMainPlayerAvatar: ImageView
     
+    // 💡 [إضافة] تعريف عنصر البوابة
+    private lateinit var imgImperialGate: ImageView
+    
     private val gameHandler = Handler(Looper.getMainLooper())
     private var isActivityResumed = false
     
@@ -79,6 +83,9 @@ class BattlefieldActivity : AppCompatActivity() {
         updateHudUI()
         renderBattlefield()
         startGameLoop()
+        
+        // 💡 [إضافة] فتح البوابة فور دخول الشاشة
+        TransitionHelper.openGate(this, imgImperialGate)
     }
 
     override fun onResume() {
@@ -115,6 +122,12 @@ class BattlefieldActivity : AppCompatActivity() {
         isActivityResumed = false
     }
 
+    // 💡 [مُصلح] برمجة زر الرجوع الفعلي للهاتف ليغلق البوابة ويعود للمدينة
+    override fun onBackPressed() {
+        SoundManager.playClick()
+        TransitionHelper.closeGateAndNavigate(this, imgImperialGate, Intent(this, MainActivity::class.java))
+    }
+
     private fun initViews() {
         tvTotalGold = findViewById(R.id.tvTotalGold); tvTotalIron = findViewById(R.id.tvTotalIron)
         tvTotalWheat = findViewById(R.id.tvTotalWheat); tvPlayerLevel = findViewById(R.id.tvPlayerLevel)
@@ -123,6 +136,9 @@ class BattlefieldActivity : AppCompatActivity() {
         
         val avatarView = findViewById<ImageView>(resources.getIdentifier("imgMainPlayerAvatar", "id", packageName))
         if(avatarView != null) imgMainPlayerAvatar = avatarView
+
+        // 💡 [إضافة] ربط البوابة
+        imgImperialGate = findViewById(R.id.imgImperialGate)
 
         val bgArray = arrayOf(
             resources.getIdentifier("bg_battlefield_1", "drawable", packageName),
@@ -152,9 +168,11 @@ class BattlefieldActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showQuestsDialog(this) }
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showStoreDialog(this) }
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showBagDialog(this) }
+        
+        // 💡 [مُصلح] تعديل زر العودة ليغلق البوابة أولاً
         findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
             SoundManager.playClick()
-            finish() 
+            TransitionHelper.closeGateAndNavigate(this, imgImperialGate, Intent(this, MainActivity::class.java))
         }
     }
 
@@ -324,7 +342,6 @@ class BattlefieldActivity : AppCompatActivity() {
         
         btnConfirm?.text = if (isAttack) "بدء الهجوم" else "الذهاب للجمع"
 
-        // 💡 [مُصلح] فلترة الأبطال والأسلحة المشغولة من الظهور التلقائي في الفيلق الجديد
         val selectedHeroesForMarch = GameState.myHeroes.filter { it.isUnlocked && it.isEquipped && !GameState.isHeroBusy(it.id) }.toMutableList()
         val selectedWeaponsForMarch = GameState.arsenal.filter { it.isOwned && it.isEquipped && !GameState.isWeaponBusy(it.id) }.toMutableList()
         
