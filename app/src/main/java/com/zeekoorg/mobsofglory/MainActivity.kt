@@ -200,7 +200,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isActivityResumed = true
-        GameState.onAppResume(this)
+        GameState.onAppResume(this) 
         
         val prefs = getSharedPreferences("MobsOfGlorySettings", Context.MODE_PRIVATE)
         val isMusicOn = prefs.getBoolean("MUSIC", true)
@@ -218,7 +218,7 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         isActivityResumed = false
-        GameState.onAppPause()
+        GameState.onAppPause() 
         GameState.saveGameData(this)
         SoundManager.pauseBGM()
     }
@@ -226,7 +226,7 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         isActivityResumed = false
-        SoundManager.onDestroy()
+        // 💡 [مُصلح الكراش] تم إزالة SoundManager.onDestroy() لكي لا ينهار التطبيق عند الانتقال بين الشاشات والخروج
     }
 
     override fun onBackPressed() {
@@ -310,8 +310,14 @@ class MainActivity : AppCompatActivity() {
         SoundManager.playWindowOpen()
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
         d.setContentView(R.layout.dialog_game_message)
+        d.setCancelable(false)
         
         val ssb = SpannableStringBuilder()
+
+        // 💡 [مُصلح التقرير] طباعة النص الأساسي (مهم جداً لتقارير الجمع)
+        if (report.message.isNotEmpty()) {
+            ssb.append(report.message).append("\n\n")
+        }
         
         if (report.enemyPowerBefore > 0) {
             ssb.append("━━━━━━ قوات العدو ━━━━━━\n")
@@ -352,9 +358,12 @@ class MainActivity : AppCompatActivity() {
         d.findViewById<TextView>(R.id.tvMessageBody)?.text = ssb
         d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(if(report.isVictory) R.drawable.ic_vip_crown else R.drawable.ic_ui_formation)
         
-        d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener { 
-            SoundManager.playClick()
-            d.dismiss() 
+        d.findViewById<Button>(R.id.btnMessageOk)?.apply {
+            text = "حسناً"
+            setOnClickListener { 
+                SoundManager.playClick()
+                d.dismiss() 
+            }
         }
         
         d.setOnDismissListener {
@@ -426,7 +435,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-        private fun showAvatarPreviewDialog(imgResId: Int, title: String) {
+    private fun showAvatarPreviewDialog(imgResId: Int, title: String) {
         val d = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar); d.setContentView(R.layout.dialog_avatar_preview)
         d.findViewById<ImageView>(R.id.imgPreviewAvatar)?.setImageResource(imgResId)
         d.findViewById<Button>(R.id.btnClosePreview)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }; d.show()
@@ -539,14 +548,13 @@ class MainActivity : AppCompatActivity() {
                         if (rem <= 0) { 
                             p.isTraining = false; 
                             if (p.idCode == "BARRACKS_1") {
-                                GameState.playerTroops.find { it.type == TroopType.INFANTRY && it.tier == 1 }?.let { it.count += p.trainingAmount }
+                                GameState.playerTroops.find { it.type == TroopType.INFANTRY && t.tier == 1 }?.let { it.count += p.trainingAmount }
                             } else {
-                                GameState.playerTroops.find { it.type == TroopType.CAVALRY && it.tier == 1 }?.let { it.count += p.trainingAmount }
+                                GameState.playerTroops.find { t -> t.type == TroopType.CAVALRY && t.tier == 1 }?.let { it.count += p.trainingAmount }
                             }
                             GameState.addQuestProgress(QuestType.TRAIN_TROOPS, p.trainingAmount); GameState.calculatePower(); updateHudUI(); GameState.saveGameData(this@MainActivity); p.layoutUpgradeProgress?.visibility = View.GONE; DialogManager.showGameMessage(this@MainActivity, "معسكر التدريب", "تم تدريب ${p.trainingAmount} قوات بنجاح!", R.drawable.ic_settings_gear) 
                         } 
                         else { p.pbUpgrade?.progress = (((p.trainingTotalTime - rem).toFloat() / p.trainingTotalTime) * 100).toInt(); p.tvUpgradeTimer?.text = "%02d:%02d".format((rem/60000), (rem%60000)/1000) }
-                    // 💡 [مُصلح تجمّد العداد] تحديث الواجهة فوراً إذا كانت المزرعة جاهزة بالفعل
                     } else if (p.resourceType != ResourceType.NONE && p.idCode != "HOSPITAL") {
                         if (p.isReady) {
                             p.layoutUpgradeProgress?.visibility = View.GONE
