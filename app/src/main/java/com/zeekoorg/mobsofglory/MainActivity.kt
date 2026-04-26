@@ -44,6 +44,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvWeeklyTimerUI: TextView
     private lateinit var imgFloatingCastleEvent: ImageView
     
+    // 💡 [إضافة] تعريف عنصر البوابة
+    private lateinit var imgImperialGate: ImageView
+    
     private val gameHandler = Handler(Looper.getMainLooper())
     private var doubleBackToExitPressedOnce = false
     private var isActivityResumed = false 
@@ -110,9 +113,10 @@ class MainActivity : AppCompatActivity() {
         checkPendingLevelUps()
         showPendingOfflineMessages()
 
-        // استدعاء نافذة سياسة الخصوصية فوراً عند بدء التطبيق
+        // 💡 [مُصلح] رفع البوابة لاستقبال اللاعب عند بدء أو العودة للمدينة
+        TransitionHelper.openGate(this, imgImperialGate)
+
         DialogManager.showPrivacyPolicyDialog(this) {
-            // إذا وافق، أو إذا كان موافقاً مسبقاً، نكمل خطوات اللعبة التعليمية
             Handler(Looper.getMainLooper()).postDelayed({
                 checkAndRunSpotlightTutorial()
             }, 1500)
@@ -248,6 +252,8 @@ class MainActivity : AppCompatActivity() {
         imgMainPlayerAvatar = findViewById(R.id.imgMainPlayerAvatar); tvVipTimerUI = findViewById(R.id.tvVipTimerUI)
         tvMainTotalPower = findViewById(R.id.tvMainTotalPower); tvWeeklyTimerUI = findViewById(R.id.tvWeeklyTimerUI)
         imgFloatingCastleEvent = findViewById(R.id.imgFloatingCastleEvent)
+        // ربط البوابة
+        imgImperialGate = findViewById(R.id.imgImperialGate)
     }
 
     private fun setupFloatingEventIcon() {
@@ -276,20 +282,16 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showBagDialog(this) }
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showStoreDialog(this) }
         
-        // 💡 [مُصلح] الانتقال لساحة الغزوات عبر شاشة الفيديو السينمائية
+        // 💡 [مُصلح] الانتقال لساحة الغزوات عبر إغلاق البوابة
         findViewById<View>(R.id.btnNavArena)?.setOnClickListener { 
             SoundManager.playClick()
-            val intent = Intent(this, TransitionActivity::class.java)
-            intent.putExtra("TARGET_ACTIVITY", "ARENA")
-            startActivity(intent)
+            TransitionHelper.closeGateAndNavigate(this, imgImperialGate, Intent(this, ArenaActivity::class.java))
         }
         
-        // 💡 [مُصلح] الانتقال لخريطة المعركة عبر شاشة الفيديو السينمائية
+        // 💡 [مُصلح] الانتقال لخريطة المعركة عبر إغلاق البوابة
         findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
             SoundManager.playClick()
-            val intent = Intent(this, TransitionActivity::class.java)
-            intent.putExtra("TARGET_ACTIVITY", "BATTLE_MAP")
-            startActivity(intent)
+            TransitionHelper.closeGateAndNavigate(this, imgImperialGate, Intent(this, BattlefieldActivity::class.java))
         } 
     }
 
