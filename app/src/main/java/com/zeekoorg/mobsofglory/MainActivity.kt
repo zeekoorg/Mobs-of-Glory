@@ -110,7 +110,7 @@ class MainActivity : AppCompatActivity() {
         checkPendingLevelUps()
         showPendingOfflineMessages()
 
-        // 💡 [مُصلح] استدعاء نافذة سياسة الخصوصية فوراً عند بدء التطبيق
+        // استدعاء نافذة سياسة الخصوصية فوراً عند بدء التطبيق
         DialogManager.showPrivacyPolicyDialog(this) {
             // إذا وافق، أو إذا كان موافقاً مسبقاً، نكمل خطوات اللعبة التعليمية
             Handler(Looper.getMainLooper()).postDelayed({
@@ -263,8 +263,6 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.layoutVipClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showVipDialog(this) }
         findViewById<View>(R.id.layoutCastleRewardsClick)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showCastleRewardsDialog(this, GameState.myPlots.find { it.idCode == "CASTLE" }?.level ?: 1) }
         
-        findViewById<View>(R.id.btnNavArena)?.setOnClickListener { SoundManager.playClick(); startActivity(Intent(this, ArenaActivity::class.java)) }
-        
         findViewById<View>(R.id.layoutWeeklyQuestsClick)?.setOnClickListener { 
             SoundManager.playWindowOpen()
             DialogManager.showWeeklyQuestsDialog(this) 
@@ -278,9 +276,20 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showBagDialog(this) }
         findViewById<View>(R.id.btnNavStore)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showStoreDialog(this) }
         
+        // 💡 [مُصلح] الانتقال لساحة الغزوات عبر شاشة الفيديو السينمائية
+        findViewById<View>(R.id.btnNavArena)?.setOnClickListener { 
+            SoundManager.playClick()
+            val intent = Intent(this, TransitionActivity::class.java)
+            intent.putExtra("TARGET_ACTIVITY", "ARENA")
+            startActivity(intent)
+        }
+        
+        // 💡 [مُصلح] الانتقال لخريطة المعركة عبر شاشة الفيديو السينمائية
         findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
             SoundManager.playClick()
-            startActivity(Intent(this, BattlefieldActivity::class.java)) 
+            val intent = Intent(this, TransitionActivity::class.java)
+            intent.putExtra("TARGET_ACTIVITY", "BATTLE_MAP")
+            startActivity(intent)
         } 
     }
 
