@@ -38,7 +38,7 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 [إضافة جديدة] نافذة سياسة الخصوصية
+    // 💡 [مُصلح] نافذة سياسة الخصوصية بتصميم متناسق
     fun showPrivacyPolicyDialog(activity: Activity, onAccepted: () -> Unit) {
         val prefs = activity.getSharedPreferences("MobsOfGlorySettings", Context.MODE_PRIVATE)
         val isAccepted = prefs.getBoolean("PRIVACY_ACCEPTED", false)
@@ -62,20 +62,15 @@ object DialogManager {
         bodyTv?.text = "أهلاً بك في حشود المجد!\nيرجى قراءة والموافقة على سياسة الخصوصية وشروط الاستخدام للمتابعة.\n\nWelcome to Mobs of Glory!\nPlease read and accept our Privacy Policy and Terms of Service to continue."
         iconImg?.setImageResource(R.drawable.ic_settings_gear) 
         
-        btnAccept?.text = "موافقة / Accept"
+        btnAccept?.text = "موافقة / ACCEPT"
         btnAccept?.setBackgroundResource(R.drawable.bg_btn_gold_border)
         
-        // إنشاء زر جديد برمجياً لـ "قراءة السياسة"
         val btnReadPolicy = Button(activity).apply {
-            text = "قراءة السياسة / Read Policy"
-            setTextColor(Color.WHITE)
+            text = "قراءة السياسة / READ POLICY"
+            setTextColor(Color.parseColor("#BDC3C7")) 
             setBackgroundResource(R.drawable.bg_inner_frame)
-            setPadding(20, 10, 20, 10)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { setMargins(0, 0, 0, 20) }
-            
+            textSize = 12f
+            setPadding(10, 10, 10, 10)
             setOnClickListener {
                 SoundManager.playClick()
                 val url = "https://www.google.com" // ⚠️ ضع رابط سياسة الخصوصية الفعلي هنا
@@ -84,8 +79,33 @@ object DialogManager {
             }
         }
         
+        // 💡 استخدام حاوية عمودية لضمان ترتيب الأزرار تحت بعضها بدقة
         val container = btnAccept?.parent as? ViewGroup
-        container?.addView(btnReadPolicy, container.indexOfChild(btnAccept))
+        if (container != null && btnAccept != null) {
+            val index = container.indexOfChild(btnAccept)
+            val originalParams = btnAccept.layoutParams
+            val originalId = btnAccept.id
+
+            container.removeView(btnAccept)
+
+            val wrapper = LinearLayout(activity).apply {
+                id = originalId
+                orientation = LinearLayout.VERTICAL
+                layoutParams = originalParams
+            }
+
+            btnAccept.id = View.generateViewId()
+            val acceptParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            acceptParams.setMargins(0, 0, 0, 15) // مسافة بين زر القبول وزر القراءة
+            btnAccept.layoutParams = acceptParams
+            wrapper.addView(btnAccept)
+
+            val readParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            btnReadPolicy.layoutParams = readParams
+            wrapper.addView(btnReadPolicy)
+
+            container.addView(wrapper, index)
+        }
 
         btnAccept?.setOnClickListener {
             SoundManager.playClick()
