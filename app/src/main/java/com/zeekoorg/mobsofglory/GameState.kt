@@ -725,7 +725,8 @@ object GameState {
                         while (finalAtkHp > 0 && finalDefHp > 0 && rounds < maxRounds) {
                             rounds++
                             val dmgToDef = (finalAtkAtk.pow(2.0) / (finalAtkAtk + finalDefDef.coerceAtLeast(1.0))) * Random.nextDouble(0.9, 1.1)
-                            val dmgToAtk = (finalDefAtk.pow(2.0) / (finalDefAtk + atkAtkDef.coerceAtLeast(1.0))) * Random.nextDouble(0.9, 1.1)
+                            // 💡 [مُصلح] الخطأ المطبعي هنا تم حله ليصبح finalAtkDef
+                            val dmgToAtk = (finalDefAtk.pow(2.0) / (finalDefAtk + finalAtkDef.coerceAtLeast(1.0))) * Random.nextDouble(0.9, 1.1)
 
                             finalDefHp -= dmgToDef
                             finalAtkHp -= dmgToAtk
@@ -1407,6 +1408,7 @@ object GameState {
             if (w.isUpgrading && currentMillis >= w.upgradeEndTime) { w.isUpgrading = false; w.level++; pendingOfflineMessages.add(PendingMessage("ترقية سلاح", "تمت ترقية السلاح ${w.name} للمستوى ${w.level}!", w.iconResId)) }
         }
 
+        val offlineTime = trueOfflineTime
         myPlots.forEach { 
             it.level = prefs.getInt("L_${it.idCode}", 1); it.isUpgrading = prefs.getBoolean("U_${it.idCode}", false)
             it.isTraining = prefs.getBoolean("TR_${it.idCode}", false)
@@ -1427,7 +1429,7 @@ object GameState {
                 if (it.idCode == "BARRACKS_1") {
                     playerTroops.find { it.type == TroopType.INFANTRY && it.tier == 1 }?.let { tr -> tr.count += it.trainingAmount }
                 } else if (it.idCode == "BARRACKS_2") {
-                    playerTroops.find { t -> t.type == TroopType.CAVALRY && t.tier == 1 }?.let { tr -> tr.count += it.trainingAmount }
+                    playerTroops.find { it.type == TroopType.CAVALRY && it.tier == 1 }?.let { tr -> tr.count += it.trainingAmount }
                 }
                 pendingOfflineMessages.add(PendingMessage("معسكر التدريب", "تم تدريب ${it.trainingAmount} قوات بنجاح!", R.drawable.ic_settings_gear)) 
             }
@@ -1441,18 +1443,15 @@ object GameState {
             }
         }
         
-        // 💡 [مُصلح الفخ] تفعيل جدار الحماية لمهمة تسجيل الدخول وتصفير المهام اليومية
         val lastLoginDate = sdf.format(java.util.Date(lastLogin))
         val correctedCurrentMillis = lastLogin + offlineTime
         val todayDate = sdf.format(java.util.Date(correctedCurrentMillis))
         
         if (isFirstLaunch || lastLoginDate != todayDate) {
-            // تصفير جميع المهام اليومية مع بداية اليوم الحقيقي الجديد
             dailyQuestsList.forEach { 
                 it.currentAmount = 0
                 it.isCollected = false 
             }
-            // إعطاء نقطة تسجيل الدخول
             addQuestProgress(QuestType.DAILY_LOGIN, 1)
         }
         
