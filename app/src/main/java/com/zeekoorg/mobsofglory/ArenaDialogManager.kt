@@ -154,15 +154,15 @@ object ArenaDialogManager {
         var selectedInfantry = 0L
         var selectedCavalry = 0L
 
-        // 💡 جلب القوات المتاحة وسعة الفيلق
         val maxInf = GameState.playerTroops.filter { it.type == TroopType.INFANTRY }.sumOf { it.count }
         val maxCav = GameState.playerTroops.filter { it.type == TroopType.CAVALRY }.sumOf { it.count }
         val maxMarchCapacity = GameState.getMaxMarchCapacity()
 
         fun updateFormationPower() {
             var heroAtkBuff = 0.0; var wpAtkBuff = 0.0
-            GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.forEach { heroAtkBuff += it.getCurrentAttackBuff() }
-            GameState.arsenal.filter { it.isOwned && it.isEquipped }.forEach { wpAtkBuff += it.getCurrentAttackBuff() }
+            // 💡 [مُصلح] حساب القوة باستخدام الأبطال والأسلحة المتاحة فقط
+            GameState.myHeroes.filter { it.isUnlocked && it.isEquipped && !GameState.isHeroBusy(it.id) }.forEach { heroAtkBuff += it.getCurrentAttackBuff() }
+            GameState.arsenal.filter { it.isOwned && it.isEquipped && !GameState.isWeaponBusy(it.id) }.forEach { wpAtkBuff += it.getCurrentAttackBuff() }
             
             var pwr = 0.0
             fun simulate(type: TroopType, amount: Long) {
@@ -182,12 +182,10 @@ object ArenaDialogManager {
             val totalAtkBuff = 1.0 + heroAtkBuff + wpAtkBuff
             val totalPower = (pwr * totalAtkBuff).toLong()
             
-            // 💡 إظهار سعة المسيرة مع قوة الهجوم
             val totalSelected = selectedInfantry + selectedCavalry
             tvFormationPower?.text = "قوة الفيلق: ⚔️ ${formatResourceNumber(totalPower)}\nالسعة: $totalSelected / $maxMarchCapacity"
         }
 
-        // 💡 إعداد شريط المشاة (يحدده الحد الأقصى لجنوده أو سعة المسيرة المتبقية)
         val infMaxProgress = minOf(maxInf, maxMarchCapacity).toInt()
         tvInfantryMax?.text = "متاح: ${formatResourceNumber(maxInf)}"
         seekInfantry?.max = infMaxProgress
@@ -196,7 +194,6 @@ object ArenaDialogManager {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { 
                 if (fromUser) {
                     val newInfantry = progress.toLong()
-                    // نمنع تجاوز السعة الكلية
                     if (newInfantry + selectedCavalry > maxMarchCapacity) {
                         selectedCavalry = maxOf(0L, maxMarchCapacity - newInfantry)
                         seekCavalry?.progress = selectedCavalry.toInt()
@@ -210,7 +207,6 @@ object ArenaDialogManager {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // 💡 إعداد شريط الفرسان
         val cavMaxProgress = minOf(maxCav, maxMarchCapacity).toInt()
         tvCavalryMax?.text = "متاح: ${formatResourceNumber(maxCav)}"
         seekCavalry?.max = cavMaxProgress
@@ -219,7 +215,6 @@ object ArenaDialogManager {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { 
                 if (fromUser) {
                     val newCavalry = progress.toLong()
-                    // نمنع تجاوز السعة الكلية
                     if (selectedInfantry + newCavalry > maxMarchCapacity) {
                         selectedInfantry = maxOf(0L, maxMarchCapacity - newCavalry)
                         seekInfantry?.progress = selectedInfantry.toInt()
@@ -242,8 +237,9 @@ object ArenaDialogManager {
 
         fun refreshFormationUI() {
             updateFormationPower()
-            val equippedHeroes = GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }
-            val equippedWeapons = GameState.arsenal.filter { it.isOwned && it.isEquipped }
+            // 💡 [مُصلح] جلب فقط الأبطال والأسلحة غير المشغولين حالياً
+            val equippedHeroes = GameState.myHeroes.filter { it.isUnlocked && it.isEquipped && !GameState.isHeroBusy(it.id) }
+            val equippedWeapons = GameState.arsenal.filter { it.isOwned && it.isEquipped && !GameState.isWeaponBusy(it.id) }
 
             for (i in 0..3) {
                 val (slot, imgFull, imgAdd) = heroSlots[i]; val lock = lockHeroes[i]; val reqLevel = unlockLevels[i]
