@@ -5,6 +5,8 @@ import android.animation.AnimatorListenerAdapter
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.app.Dialog
+import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
@@ -50,6 +52,9 @@ class ArenaActivity : AppCompatActivity() {
     private lateinit var imgMarchingLegion: ImageView
     private lateinit var imgArenaBackground: ImageView
     private lateinit var layoutAttackPrompt: View
+    
+    // 💡 [إضافة] تعريف عنصر البوابة
+    private lateinit var imgImperialGate: ImageView
 
     private val arenaHandler = Handler(Looper.getMainLooper())
     private val REGEN_TIME_MS = 3600000L 
@@ -70,6 +75,9 @@ class ArenaActivity : AppCompatActivity() {
         val floatAnim = TranslateAnimation(0f, 0f, -10f, 10f)
         floatAnim.duration = 800; floatAnim.repeatMode = Animation.REVERSE; floatAnim.repeatCount = Animation.INFINITE
         layoutAttackPrompt.startAnimation(floatAnim)
+        
+        // 💡 [إضافة] فتح البوابة فور الدخول إلى الساحة
+        TransitionHelper.openGate(this, imgImperialGate)
     }
 
     override fun onResume() {
@@ -99,6 +107,12 @@ class ArenaActivity : AppCompatActivity() {
         super.onDestroy()
         isActivityResumed = false
     }
+    
+    // 💡 [إضافة] إغلاق البوابة عند الضغط على زر الرجوع الفعلي للهاتف
+    override fun onBackPressed() {
+        SoundManager.playClick()
+        TransitionHelper.closeGateAndNavigate(this, imgImperialGate, Intent(this, MainActivity::class.java))
+    }
 
     private fun initViews() {
         tvTotalGold = findViewById(R.id.tvTotalGold); tvTotalIron = findViewById(R.id.tvTotalIron)
@@ -111,6 +125,9 @@ class ArenaActivity : AppCompatActivity() {
 
         layoutGhostCastle = findViewById(R.id.layoutGhostCastle); imgMarchingLegion = findViewById(R.id.imgMarchingLegion)
         imgArenaBackground = findViewById(R.id.imgArenaBackground); layoutAttackPrompt = findViewById(R.id.layoutAttackPrompt)
+        
+        // 💡 [إضافة] ربط البوابة
+        imgImperialGate = findViewById(R.id.imgImperialGate)
     }
 
     private fun setupActionListeners() {
@@ -135,7 +152,13 @@ class ArenaActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnArenaRewards)?.setOnClickListener { SoundManager.playWindowOpen(); ArenaDialogManager.showArenaRewardsDialog(this) }
         findViewById<View>(R.id.btnSettings)?.setOnClickListener { SoundManager.playClick(); DialogManager.showSettingsDialog(this) }
         findViewById<View>(R.id.layoutAvatarClick)?.setOnClickListener { SoundManager.playClick(); DialogManager.showGameMessage(this, "ملف الإمبراطور", "يمكنك تغيير اسمك وصورتك من داخل المدينة الرئيسية.", R.drawable.ic_user_frame) }
-        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { SoundManager.playClick(); finish() }
+        
+        // 💡 [مُصلح] تعديل زر الرجوع في الشريط السفلي ليغلق البوابة
+        findViewById<View>(R.id.btnNavCity)?.setOnClickListener { 
+            SoundManager.playClick()
+            TransitionHelper.closeGateAndNavigate(this, imgImperialGate, Intent(this, MainActivity::class.java))
+        }
+        
         findViewById<View>(R.id.btnNavHeroes)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showHeroesDialog(this) }
         findViewById<View>(R.id.btnNavQuests)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showQuestsDialog(this) }
         findViewById<View>(R.id.btnNavBag)?.setOnClickListener { SoundManager.playWindowOpen(); DialogManager.showBagDialog(this) }
@@ -176,9 +199,12 @@ class ArenaActivity : AppCompatActivity() {
 
         val rootLayout = imgMarchingLegion.parent as? ViewGroup ?: findViewById<ViewGroup>(android.R.id.content) ?: return
         
-        val startY = imgMarchingLegion.y
-        // 💡 [مُصلح] نقطة وصول الفيلق ليتمركز أمام باب القلعة تماماً بناءً على طلبك
-        val targetY = layoutGhostCastle.y + layoutGhostCastle.height - (imgMarchingLegion.height / 2f) - 50f
+        // 💡 [مُصلح] تعديل نقطة الانطلاق لتكون أسفل قليلاً لتبدو كأنها تنطلق من خلف الشريط السفلي
+        val startY = imgMarchingLegion.y + 150f 
+        imgMarchingLegion.y = startY // إعادة تعيين موقع العنصر قبل بدء الحركة
+        
+        // 💡 [مُصلح] تعديل نقطة الوصول لترتفع قليلاً وتصطدم بأطراف القلعة
+        val targetY = layoutGhostCastle.y + layoutGhostCastle.height - (imgMarchingLegion.height / 2f) - 180f
 
         val moveAnim = ObjectAnimator.ofFloat(imgMarchingLegion, "translationY", 0f, targetY - startY)
         val scaleXAnim = ObjectAnimator.ofFloat(imgMarchingLegion, "scaleX", 1.0f, 0.4f)
@@ -284,7 +310,6 @@ class ArenaActivity : AppCompatActivity() {
             if (totalCasualties > totalSent) totalCasualties = totalSent
             if (totalCasualties < 0) totalCasualties = 0
 
-            // 💡 [مُصلح] لا يوجد قتلى إطلاقاً، إما جرحى في المستشفى أو يعودون سالمين!
             var totalDead = 0L; var totalWounded = 0L
 
             val hospitalCap = GameState.getHospitalCapacity()
@@ -318,7 +343,6 @@ class ArenaActivity : AppCompatActivity() {
             }
 
             var hasBonusLoot = false
-            // 💡 [مُصلح] الجوائز الفورية لن تُصرف إلا للذين يتجاوزون الـ 2 مليون ضرر
             if (damageDealt >= 2000000) {
                 hasBonusLoot = true
             }
