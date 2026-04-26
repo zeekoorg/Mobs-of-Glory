@@ -393,7 +393,6 @@ object DialogManager {
                         GameState.totalGold -= cost; h.isUpgrading = true; h.totalUpgradeTime = h.getUpgradeTimeSeconds() * 1000
                         h.upgradeEndTime = System.currentTimeMillis() + h.totalUpgradeTime
                         
-                        // 💡 [مُصلح المهام] إضافة نقطة لمهمة ترقية البطل
                         GameState.addQuestProgress(QuestType.UPGRADE_HERO, 1)
 
                         updateUI(activity); GameState.saveGameData(activity); updateHeroUI(i, tvL, tvB, btn)
@@ -913,7 +912,7 @@ object DialogManager {
                             weapon.totalUpgradeTime = weapon.getUpgradeTimeSeconds() * 1000
                             weapon.upgradeEndTime = System.currentTimeMillis() + weapon.totalUpgradeTime
                             
-                            // 💡 [مُصلح المهام] إضافة نقطة لمهمة ترقية السلاح
+                            // 💡 [إضافة مهمة الأسلحة]
                             GameState.addQuestProgress(QuestType.UPGRADE_WEAPON, 1)
 
                             updateUI(activity)
