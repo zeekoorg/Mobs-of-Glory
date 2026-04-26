@@ -311,7 +311,6 @@ class BattlefieldActivity : AppCompatActivity() {
 
         val maxInf = GameState.playerTroops.filter { it.type == TroopType.INFANTRY }.sumOf { it.count }
         val maxCav = GameState.playerTroops.filter { it.type == TroopType.CAVALRY }.sumOf { it.count }
-        // 💡 استخدام سعة المسيرة القصوى
         val maxMarchCapacity = GameState.getMaxMarchCapacity()
 
         val tvPower = d.findViewById<TextView>(R.id.tvFormationPower)
@@ -325,9 +324,9 @@ class BattlefieldActivity : AppCompatActivity() {
         
         btnConfirm?.text = if (isAttack) "بدء الهجوم" else "الذهاب للجمع"
 
-        // 💡 تحميل الأبطال والأسلحة المجهزة مسبقاً (الذكاء الاستراتيجي)
-        val selectedHeroesForMarch = GameState.myHeroes.filter { it.isUnlocked && it.isEquipped }.toMutableList()
-        val selectedWeaponsForMarch = GameState.arsenal.filter { it.isOwned && it.isEquipped }.toMutableList()
+        // 💡 [مُصلح] فلترة الأبطال والأسلحة المشغولة من الظهور التلقائي في الفيلق الجديد
+        val selectedHeroesForMarch = GameState.myHeroes.filter { it.isUnlocked && it.isEquipped && !GameState.isHeroBusy(it.id) }.toMutableList()
+        val selectedWeaponsForMarch = GameState.arsenal.filter { it.isOwned && it.isEquipped && !GameState.isWeaponBusy(it.id) }.toMutableList()
         
         var selectedInfantry = maxInf / 2
         var selectedCavalry = maxCav / 2
@@ -401,7 +400,6 @@ class BattlefieldActivity : AppCompatActivity() {
             }
         }
 
-        // 💡 إعداد شرائط السحب المربوطة بسعة المسيرة
         val infMaxProgress = minOf(maxInf, maxMarchCapacity).toInt()
         tvInfMax?.text = "متاح: ${formatResourceNumber(maxInf)}"
         seekInf?.max = infMaxProgress
@@ -788,7 +786,7 @@ class BattlefieldActivity : AppCompatActivity() {
             appendIconWithText(ssb, R.drawable.ic_ui_arena, "الناجون: ${formatResourceNumber(report.mySurviving)}")
             
             ssb.append("\n━━━━━━ الأداء القتالي ━━━━━━\n")
-            appendIconWithText(ssb, R.drawable.ic_ui_formation, "الضرر الذي الحقته بالعدو: ${formatResourceNumber(report.myDamage)}")
+            appendIconWithText(ssb, R.drawable.ic_ui_formation, "إجمالي الضرر بالعدو: ${formatResourceNumber(report.myDamage)}")
             appendIconWithText(ssb, R.drawable.ic_ui_weapons, "مكافآت الأبطال والعتاد: نشطة وفعالة 🟢\n")
         }
         
@@ -833,14 +831,14 @@ class BattlefieldActivity : AppCompatActivity() {
         d.setContentView(R.layout.dialog_game_message)
         
         val tvTitle = d.findViewById<TextView>(R.id.tvMessageTitle)
-        tvTitle?.text = "تحذير هجوم وشيك"
+        tvTitle?.text = "⚠️ تحذير هجوم وشيك ⚠️"
         tvTitle?.setTextColor(Color.parseColor("#FF5252")) 
         
         d.findViewById<TextView>(R.id.tvMessageBody)?.text = "العدو لم يُهزم! لقد قام بحشد قواته المتبقية وهو في طريقه الآن للانتقام من مدينتك!\n\nتجهز للدفاع فوراً!"
         d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(R.drawable.ic_settings_gear)
         
         val btn = d.findViewById<Button>(R.id.btnMessageOk)
-        btn?.text = "حسناً!"
+        btn?.text = "حسناً، لنجعله يندم!"
         btn?.setBackgroundResource(R.drawable.bg_btn_gold_border)
         
         btn?.setOnClickListener {
