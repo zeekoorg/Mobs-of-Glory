@@ -38,7 +38,7 @@ object DialogManager {
         d.show()
     }
 
-    // 💡 [مُصلح] نافذة سياسة الخصوصية بتصميم متناسق
+    // 💡 [مُصلح] نافذة سياسة الخصوصية باستخدام الملف الجديد المخصص
     fun showPrivacyPolicyDialog(activity: Activity, onAccepted: () -> Unit) {
         val prefs = activity.getSharedPreferences("MobsOfGlorySettings", Context.MODE_PRIVATE)
         val isAccepted = prefs.getBoolean("PRIVACY_ACCEPTED", false)
@@ -50,61 +50,17 @@ object DialogManager {
 
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
-        d.setContentView(R.layout.dialog_game_message)
+        d.setContentView(R.layout.dialog_privacy_policy) // استخدام الواجهة الجديدة
         d.setCancelable(false) 
 
-        val titleTv = d.findViewById<TextView>(R.id.tvMessageTitle)
-        val bodyTv = d.findViewById<TextView>(R.id.tvMessageBody)
-        val iconImg = d.findViewById<ImageView>(R.id.imgMessageIcon)
-        val btnAccept = d.findViewById<Button>(R.id.btnMessageOk)
+        val btnAccept = d.findViewById<Button>(R.id.btnAcceptPolicy)
+        val btnRead = d.findViewById<Button>(R.id.btnReadPolicy)
         
-        titleTv?.text = "سياسة الخصوصية\nPrivacy Policy"
-        bodyTv?.text = "أهلاً بك في حشود المجد!\nيرجى قراءة والموافقة على سياسة الخصوصية وشروط الاستخدام للمتابعة.\n\nWelcome to Mobs of Glory!\nPlease read and accept our Privacy Policy and Terms of Service to continue."
-        iconImg?.setImageResource(R.drawable.ic_settings_gear) 
-        
-        btnAccept?.text = "موافقة / ACCEPT"
-        btnAccept?.setBackgroundResource(R.drawable.bg_btn_gold_border)
-        
-        val btnReadPolicy = Button(activity).apply {
-            text = "قراءة السياسة / READ POLICY"
-            setTextColor(Color.parseColor("#BDC3C7")) 
-            setBackgroundResource(R.drawable.bg_inner_frame)
-            textSize = 12f
-            setPadding(10, 10, 10, 10)
-            setOnClickListener {
-                SoundManager.playClick()
-                val url = "https://www.google.com" // ⚠️ ضع رابط سياسة الخصوصية الفعلي هنا
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                activity.startActivity(intent)
-            }
-        }
-        
-        // 💡 استخدام حاوية عمودية لضمان ترتيب الأزرار تحت بعضها بدقة
-        val container = btnAccept?.parent as? ViewGroup
-        if (container != null && btnAccept != null) {
-            val index = container.indexOfChild(btnAccept)
-            val originalParams = btnAccept.layoutParams
-            val originalId = btnAccept.id
-
-            container.removeView(btnAccept)
-
-            val wrapper = LinearLayout(activity).apply {
-                id = originalId
-                orientation = LinearLayout.VERTICAL
-                layoutParams = originalParams
-            }
-
-            btnAccept.id = View.generateViewId()
-            val acceptParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            acceptParams.setMargins(0, 0, 0, 15) // مسافة بين زر القبول وزر القراءة
-            btnAccept.layoutParams = acceptParams
-            wrapper.addView(btnAccept)
-
-            val readParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            btnReadPolicy.layoutParams = readParams
-            wrapper.addView(btnReadPolicy)
-
-            container.addView(wrapper, index)
+        btnRead?.setOnClickListener {
+            SoundManager.playClick()
+            val url = "https://www.google.com" // ⚠️ ضع رابط سياسة الخصوصية الفعلي هنا
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            activity.startActivity(intent)
         }
 
         btnAccept?.setOnClickListener {
