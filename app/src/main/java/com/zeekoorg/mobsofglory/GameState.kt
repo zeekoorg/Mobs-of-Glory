@@ -1134,6 +1134,7 @@ object GameState {
 
     fun loadGameDataAndProcessOffline(context: Context) {
         val prefs = context.getSharedPreferences("MobsOfGlorySave", Context.MODE_PRIVATE)
+        val isFirstLaunch = !prefs.contains("LAST_LOGIN_TIME")
         playerName = prefs.getString("PLAYER_NAME", "المهيب زيكو") ?: "المهيب زيكو"
         selectedAvatarUri = prefs.getString("PLAYER_AVATAR", null)
         totalGold = prefs.getLong("TOTAL_GOLD", 100000); totalIron = prefs.getLong("TOTAL_IRON", 100000); totalWheat = prefs.getLong("TOTAL_WHEAT", 100000)
@@ -1406,7 +1407,6 @@ object GameState {
             if (w.isUpgrading && currentMillis >= w.upgradeEndTime) { w.isUpgrading = false; w.level++; pendingOfflineMessages.add(PendingMessage("ترقية سلاح", "تمت ترقية السلاح ${w.name} للمستوى ${w.level}!", w.iconResId)) }
         }
 
-        val offlineTime = trueOfflineTime
         myPlots.forEach { 
             it.level = prefs.getInt("L_${it.idCode}", 1); it.isUpgrading = prefs.getBoolean("U_${it.idCode}", false)
             it.isTraining = prefs.getBoolean("TR_${it.idCode}", false)
@@ -1425,7 +1425,6 @@ object GameState {
             if (it.isTraining && currentMillis >= it.trainingEndTime) { 
                 it.isTraining = false
                 if (it.idCode == "BARRACKS_1") {
-                    // 💡 تم التصحيح هنا من t.tier إلى it.tier
                     playerTroops.find { t -> t.type == TroopType.INFANTRY && t.tier == 1 }?.let { tr -> tr.count += it.trainingAmount }
                 } else if (it.idCode == "BARRACKS_2") {
                     playerTroops.find { t -> t.type == TroopType.CAVALRY && t.tier == 1 }?.let { tr -> tr.count += it.trainingAmount }
@@ -1444,7 +1443,11 @@ object GameState {
         
         val lastLoginDate = sdf.format(java.util.Date(lastLogin))
         val todayDate = sdf.format(java.util.Date(currentMillis))
-        if (lastLoginDate != todayDate) {
+        if (isFirstLaunch || lastLoginDate != todayDate) {
+            dailyQuestsList.forEach { 
+                it.currentAmount = 0
+                it.isCollected = false 
+            }
             addQuestProgress(QuestType.DAILY_LOGIN, 1)
         }
         
