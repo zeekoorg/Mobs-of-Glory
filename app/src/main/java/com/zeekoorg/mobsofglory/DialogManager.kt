@@ -3,6 +3,7 @@ package com.zeekoorg.mobsofglory
 import android.app.Activity
 import android.app.Dialog
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Handler
@@ -34,6 +35,64 @@ object DialogManager {
         d.findViewById<TextView>(R.id.tvMessageBody)?.text = message
         d.findViewById<ImageView>(R.id.imgMessageIcon)?.setImageResource(iconResId)
         d.findViewById<Button>(R.id.btnMessageOk)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
+        d.show()
+    }
+
+    // 💡 [إضافة جديدة] نافذة سياسة الخصوصية
+    fun showPrivacyPolicyDialog(activity: Activity, onAccepted: () -> Unit) {
+        val prefs = activity.getSharedPreferences("MobsOfGlorySettings", Context.MODE_PRIVATE)
+        val isAccepted = prefs.getBoolean("PRIVACY_ACCEPTED", false)
+        
+        if (isAccepted) {
+            onAccepted()
+            return
+        }
+
+        SoundManager.playWindowOpen()
+        val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
+        d.setContentView(R.layout.dialog_game_message)
+        d.setCancelable(false) 
+
+        val titleTv = d.findViewById<TextView>(R.id.tvMessageTitle)
+        val bodyTv = d.findViewById<TextView>(R.id.tvMessageBody)
+        val iconImg = d.findViewById<ImageView>(R.id.imgMessageIcon)
+        val btnAccept = d.findViewById<Button>(R.id.btnMessageOk)
+        
+        titleTv?.text = "سياسة الخصوصية\nPrivacy Policy"
+        bodyTv?.text = "أهلاً بك في حشود المجد!\nيرجى قراءة والموافقة على سياسة الخصوصية وشروط الاستخدام للمتابعة.\n\nWelcome to Mobs of Glory!\nPlease read and accept our Privacy Policy and Terms of Service to continue."
+        iconImg?.setImageResource(R.drawable.ic_settings_gear) 
+        
+        btnAccept?.text = "موافقة / Accept"
+        btnAccept?.setBackgroundResource(R.drawable.bg_btn_gold_border)
+        
+        // إنشاء زر جديد برمجياً لـ "قراءة السياسة"
+        val btnReadPolicy = Button(activity).apply {
+            text = "قراءة السياسة / Read Policy"
+            setTextColor(Color.WHITE)
+            setBackgroundResource(R.drawable.bg_inner_frame)
+            setPadding(20, 10, 20, 10)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(0, 0, 0, 20) }
+            
+            setOnClickListener {
+                SoundManager.playClick()
+                val url = "https://www.google.com" // ⚠️ ضع رابط سياسة الخصوصية الفعلي هنا
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                activity.startActivity(intent)
+            }
+        }
+        
+        val container = btnAccept?.parent as? ViewGroup
+        container?.addView(btnReadPolicy, container.indexOfChild(btnAccept))
+
+        btnAccept?.setOnClickListener {
+            SoundManager.playClick()
+            prefs.edit().putBoolean("PRIVACY_ACCEPTED", true).apply()
+            d.dismiss()
+            onAccepted()
+        }
         d.show()
     }
 
@@ -912,7 +971,6 @@ object DialogManager {
                             weapon.totalUpgradeTime = weapon.getUpgradeTimeSeconds() * 1000
                             weapon.upgradeEndTime = System.currentTimeMillis() + weapon.totalUpgradeTime
                             
-                            // 💡 [إضافة مهمة الأسلحة]
                             GameState.addQuestProgress(QuestType.UPGRADE_WEAPON, 1)
 
                             updateUI(activity)
