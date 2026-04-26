@@ -47,9 +47,9 @@
             android:exported="false"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.MobsOfGlory.Fullscreen" />
-
+            
         <activity
-            android:name=".GameActivity"
+            android:name=".TransitionActivity"
             android:exported="false"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.MobsOfGlory.Fullscreen" />
