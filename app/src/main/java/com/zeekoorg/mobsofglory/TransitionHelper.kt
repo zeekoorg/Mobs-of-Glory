@@ -3,9 +3,9 @@ package com.zeekoorg.mobsofglory
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
-import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.view.View
@@ -14,86 +14,80 @@ import android.view.animation.DecelerateInterpolator
 
 object TransitionHelper {
 
-    // المتغيرات الخاصة بالتوقيتات (قابلة للتعديل بسهولة)
-    private const val ANIMATION_DURATION = 700L // 700 جزء من الثانية للنزول والارتفاع
-    private const val WAIT_DURATION = 1000L     // ثانية واحدة للانتظار والبوابة مغلقة
+    // التوقيتات المعتمدة بناءً على طلبك
+    private const val ANIM_DURATION = 700L   // وقت الحركة (نزول أو رفع)
+    private const val CLOSE_WAIT = 1000L      // وقت الانتظار بعد الإغلاق وقبل الانتقال
+    private const val OPEN_DELAY = 500L       // وقت بقاء البوابة مغلقة في الشاشة الجديدة قبل البدء بالرفع
 
     /**
      * دالة إغلاق البوابة والانتقال إلى شاشة جديدة
-     * @param activity الشاشة الحالية
-     * @param gateView عنصر صورة البوابة
-     * @param targetIntent وجهة الانتقال (الخريطة أو الساحة)
      */
     fun closeGateAndNavigate(activity: Activity, gateView: View, targetIntent: Intent) {
-        // التأكد من أن البوابة مرئية قبل بدء الحركة
         gateView.visibility = View.VISIBLE
         
-        // تشغيل صوت الإغلاق والارتطام
+        // تشغيل صوت الإغلاق
         playSound(activity, R.raw.sfx_gate_drop)
 
-        // تحريك البوابة للأسفل (لتغطي الشاشة) باستخدام تسارع الجاذبية
+        // النزول في 700 جزء من الثانية
         gateView.animate()
-            .translationY(0f) // 0 تعني العودة للمكان الأصلي لتغطي الشاشة
-            .setDuration(ANIMATION_DURATION)
-            .setInterpolator(AccelerateInterpolator(1.5f)) // حركة تتسارع وكأنها تسقط بقوة
+            .translationY(0f)
+            .setDuration(ANIM_DURATION)
+            .setInterpolator(AccelerateInterpolator(1.5f))
             .setListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
                     super.onAnimationEnd(animation)
                     
-                    // بعد أن تصطدم البوابة وتغلق الشاشة، ننتظر ثانية واحدة
+                    // الانتظار لمدة ثانية كاملة والبوابة مغلقة قبل الانتقال
                     Handler(Looper.getMainLooper()).postDelayed({
                         activity.startActivity(targetIntent)
-                        
-                        // إزالة تأثير الانتقال الافتراضي للأندرويد لكي لا يفسد الخدعة
                         activity.overridePendingTransition(0, 0)
-                        
-                        // إنهاء الشاشة الحالية إذا لزم الأمر
-                        // activity.finish() // قم بإلغاء التهميش إذا كنت تريد إغلاق الشاشة تماماً من الخلفية
-                    }, WAIT_DURATION)
+                    }, CLOSE_WAIT)
                 }
             })
             .start()
     }
 
     /**
-     * دالة فتح البوابة عند دخول الشاشة
-     * @param activity الشاشة الحالية
-     * @param gateView عنصر صورة البوابة
+     * دالة فتح البوابة عند دخول الشاشة (مع تأخير البداية)
      */
     fun openGate(activity: Activity, gateView: View) {
-        // في البداية نجعل البوابة تغطي الشاشة تماماً لكي لا يرى اللاعب الشاشة وهي تحمل
+        // التأكد أن البوابة مغلقة في البداية
         gateView.translationY = 0f
         gateView.visibility = View.VISIBLE
 
-        // تشغيل صوت فتح البوابة والسلاسل
-        playSound(activity, R.raw.sfx_gate_rise)
+        // الانتظار لمدة 500 جزء من الثانية وهي مغلقة قبل بدء الرفع
+        Handler(Looper.getMainLooper()).postDelayed({
+            
+            // تشغيل صوت الرفع والسلاسل عند بدء الحركة فقط
+            playSound(activity, R.raw.sfx_gate_rise)
 
-        // سحب البوابة للأعلى (خارج الشاشة)
-        gateView.post {
-            val screenHeight = gateView.height.toFloat()
-            gateView.animate()
-                .translationY(-screenHeight) // سحب البوابة للأعلى بمقدار طولها لتختفي
-                .setDuration(ANIMATION_DURATION)
-                .setInterpolator(DecelerateInterpolator(1.5f)) // حركة تبدأ سريعة ثم تتباطأ لتظهر وزن البوابة
-                .setListener(object : AnimatorListenerAdapter() {
-                    override fun onAnimationEnd(animation: Animator) {
-                        super.onAnimationEnd(animation)
-                        // إخفاء العنصر تماماً لتوفير موارد الرام بعد انتهاء الحركة
-                        gateView.visibility = View.GONE
-                    }
-                })
-                .start()
-        }
+            gateView.post {
+                val screenHeight = gateView.height.toFloat()
+                
+                // الرفع في 700 جزء من الثانية
+                gateView.animate()
+                    .translationY(-screenHeight)
+                    .setDuration(ANIM_DURATION)
+                    .setInterpolator(DecelerateInterpolator(1.5f))
+                    .setListener(object : AnimatorListenerAdapter() {
+                        override fun onAnimationEnd(animation: Animator) {
+                            super.onAnimationEnd(animation)
+                            gateView.visibility = View.GONE
+                        }
+                    })
+                    .start()
+            }
+        }, OPEN_DELAY)
     }
 
     /**
-     * مشغل صوت داخلي بسيط وفعال لتأثيرات البوابة
+     * مشغل صوت داخلي لتأثيرات البوابة
      */
     private fun playSound(context: Context, soundResId: Int) {
         try {
             val mediaPlayer = MediaPlayer.create(context, soundResId)
             mediaPlayer.setOnCompletionListener { mp ->
-                mp.release() // تحرير الذاكرة فور انتهاء الصوت
+                mp.release()
             }
             mediaPlayer.start()
         } catch (e: Exception) {
