@@ -1406,6 +1406,7 @@ object GameState {
             if (w.isUpgrading && currentMillis >= w.upgradeEndTime) { w.isUpgrading = false; w.level++; pendingOfflineMessages.add(PendingMessage("ترقية سلاح", "تمت ترقية السلاح ${w.name} للمستوى ${w.level}!", w.iconResId)) }
         }
 
+        val offlineTime = trueOfflineTime
         myPlots.forEach { 
             it.level = prefs.getInt("L_${it.idCode}", 1); it.isUpgrading = prefs.getBoolean("U_${it.idCode}", false)
             it.isTraining = prefs.getBoolean("TR_${it.idCode}", false)
