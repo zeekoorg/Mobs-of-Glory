@@ -226,7 +226,6 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         isActivityResumed = false
-        // 💡 [مُصلح الكراش] تم إزالة SoundManager.onDestroy() لكي لا ينهار التطبيق عند الانتقال بين الشاشات والخروج
     }
 
     override fun onBackPressed() {
@@ -314,7 +313,6 @@ class MainActivity : AppCompatActivity() {
         
         val ssb = SpannableStringBuilder()
 
-        // 💡 [مُصلح التقرير] طباعة النص الأساسي (مهم جداً لتقارير الجمع)
         if (report.message.isNotEmpty()) {
             ssb.append(report.message).append("\n\n")
         }
@@ -548,9 +546,9 @@ class MainActivity : AppCompatActivity() {
                         if (rem <= 0) { 
                             p.isTraining = false; 
                             if (p.idCode == "BARRACKS_1") {
-                                GameState.playerTroops.find { it.type == TroopType.INFANTRY && t.tier == 1 }?.let { it.count += p.trainingAmount }
-                            } else {
-                                GameState.playerTroops.find { t -> t.type == TroopType.CAVALRY && t.tier == 1 }?.let { it.count += p.trainingAmount }
+                                GameState.playerTroops.find { t -> t.type == TroopType.INFANTRY && t.tier == 1 }?.let { tr -> tr.count += p.trainingAmount }
+                            } else if (p.idCode == "BARRACKS_2") {
+                                GameState.playerTroops.find { t -> t.type == TroopType.CAVALRY && t.tier == 1 }?.let { tr -> tr.count += p.trainingAmount }
                             }
                             GameState.addQuestProgress(QuestType.TRAIN_TROOPS, p.trainingAmount); GameState.calculatePower(); updateHudUI(); GameState.saveGameData(this@MainActivity); p.layoutUpgradeProgress?.visibility = View.GONE; DialogManager.showGameMessage(this@MainActivity, "معسكر التدريب", "تم تدريب ${p.trainingAmount} قوات بنجاح!", R.drawable.ic_settings_gear) 
                         } 
