@@ -28,6 +28,20 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease --no-daemon
 
+      # ===== [إضافة: التوقيع التلقائي للتطبيق] =====
+      - name: Decode Keystore and Sign APK
+        run: |
+          echo "1. فك تشفير الشهادة الملكية..."
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
+          
+          echo "2. البحث عن مسار التطبيق وأداة التوقيع..."
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          APKSIGNER=$(find $ANDROID_HOME/build-tools -name "apksigner" | sort -r | head -n 1)
+          
+          echo "3. جاري ختم التطبيق بخاتم الإمبراطورية..."
+          $APKSIGNER sign --ks keystore.jks --ks-key-alias "${{ secrets.KEY_ALIAS }}" --ks-pass pass:"${{ secrets.KEYSTORE_PASSWORD }}" --key-pass pass:"${{ secrets.KEY_PASSWORD }}" "$APK_PATH"
+      # ===============================================
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
