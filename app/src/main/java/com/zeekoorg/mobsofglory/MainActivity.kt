@@ -110,9 +110,13 @@ class MainActivity : AppCompatActivity() {
         checkPendingLevelUps()
         showPendingOfflineMessages()
 
-        Handler(Looper.getMainLooper()).postDelayed({
-            checkAndRunSpotlightTutorial()
-        }, 1500)
+        // 💡 [مُصلح] استدعاء نافذة سياسة الخصوصية فوراً عند بدء التطبيق
+        DialogManager.showPrivacyPolicyDialog(this) {
+            // إذا وافق، أو إذا كان موافقاً مسبقاً، نكمل خطوات اللعبة التعليمية
+            Handler(Looper.getMainLooper()).postDelayed({
+                checkAndRunSpotlightTutorial()
+            }, 1500)
+        }
     }
 
     fun checkAndRunSpotlightTutorial() {
@@ -212,7 +216,6 @@ class MainActivity : AppCompatActivity() {
         SoundManager.playBGM(this, R.raw.bgm_city)
         
         gameHandler.post { checkPendingReports() }
-        Handler(Looper.getMainLooper()).postDelayed({ checkAndRunSpotlightTutorial() }, 500)
     }
 
     override fun onPause() {
