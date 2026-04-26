@@ -1,64 +1,104 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#A6000000"
-    android:padding="20dp">
+    android:background="#B3000000">
 
-    <LinearLayout
-        android:layout_width="match_parent"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:background="@drawable/bg_inner_frame"
-        android:orientation="vertical"
-        android:padding="20dp">
+        app:layout_constraintWidth_percent="0.80"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:scaleType="fitXY"
+            android:src="@drawable/bg_dialog_dark" />
 
         <TextView
             android:id="@+id/tvMessageTitle"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="25dp"
             android:gravity="center"
             android:text="سياسة الخصوصية\nPrivacy Policy"
-            android:textColor="#FFFFFF"
+            android:textColor="#F4D03F"
             android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <ImageView
             android:id="@+id/imgMessageIcon"
             android:layout_width="60dp"
             android:layout_height="60dp"
-            android:layout_gravity="center"
-            android:layout_marginTop="15dp"
-            android:src="@drawable/ic_settings_gear" />
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_inner_frame"
+            android:padding="10dp"
+            android:src="@drawable/ic_settings_gear"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvMessageTitle" />
 
         <TextView
             android:id="@+id/tvMessageBody"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginTop="20dp"
             android:gravity="center"
+            android:lineSpacingExtra="4dp"
             android:text="أهلاً بك في حشود المجد!\nيرجى قراءة والموافقة على سياسة الخصوصية وشروط الاستخدام للمتابعة.\n\nWelcome to Mobs of Glory!\nPlease read and accept our Privacy Policy and Terms of Service to continue."
             android:textColor="#FFFFFF"
-            android:textSize="14sp" />
+            android:textSize="13sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/imgMessageIcon" />
 
         <Button
             android:id="@+id/btnReadPolicy"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="25dp"
+            android:layout_width="0dp"
+            android:layout_height="45dp"
+            android:layout_marginTop="20dp"
             android:background="@drawable/bg_inner_frame"
+            android:gravity="center"
+            android:padding="0dp"
             android:text="قراءة السياسة / READ POLICY"
-            android:textColor="#BDC3C7" />
+            android:textColor="#BDC3C7"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            app:layout_constraintWidth_percent="0.8"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvMessageBody" />
 
         <Button
             android:id="@+id/btnAcceptPolicy"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_width="0dp"
+            android:layout_height="45dp"
             android:layout_marginTop="10dp"
+            android:layout_marginBottom="25dp"
             android:background="@drawable/bg_btn_gold_border"
+            android:gravity="center"
+            android:padding="0dp"
             android:text="موافقة / ACCEPT"
             android:textColor="#FFFFFF"
-            android:textStyle="bold" />
+            android:textSize="14sp"
+            android:textStyle="bold"
+            app:layout_constraintWidth_percent="0.8"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/btnReadPolicy"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
-    </LinearLayout>
-</FrameLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
