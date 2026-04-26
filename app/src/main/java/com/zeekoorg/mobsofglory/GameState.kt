@@ -725,7 +725,7 @@ object GameState {
                         while (finalAtkHp > 0 && finalDefHp > 0 && rounds < maxRounds) {
                             rounds++
                             val dmgToDef = (finalAtkAtk.pow(2.0) / (finalAtkAtk + finalDefDef.coerceAtLeast(1.0))) * Random.nextDouble(0.9, 1.1)
-                            val dmgToAtk = (finalDefAtk.pow(2.0) / (finalDefAtk + finalAtkDef.coerceAtLeast(1.0))) * Random.nextDouble(0.9, 1.1)
+                            val dmgToAtk = (finalDefAtk.pow(2.0) / (finalDefAtk + atkAtkDef.coerceAtLeast(1.0))) * Random.nextDouble(0.9, 1.1)
 
                             finalDefHp -= dmgToDef
                             finalAtkHp -= dmgToAtk
@@ -1425,7 +1425,7 @@ object GameState {
             if (it.isTraining && currentMillis >= it.trainingEndTime) { 
                 it.isTraining = false
                 if (it.idCode == "BARRACKS_1") {
-                    playerTroops.find { t -> t.type == TroopType.INFANTRY && t.tier == 1 }?.let { tr -> tr.count += it.trainingAmount }
+                    playerTroops.find { it.type == TroopType.INFANTRY && it.tier == 1 }?.let { tr -> tr.count += it.trainingAmount }
                 } else if (it.idCode == "BARRACKS_2") {
                     playerTroops.find { t -> t.type == TroopType.CAVALRY && t.tier == 1 }?.let { tr -> tr.count += it.trainingAmount }
                 }
@@ -1441,13 +1441,18 @@ object GameState {
             }
         }
         
+        // 💡 [مُصلح الفخ] تفعيل جدار الحماية لمهمة تسجيل الدخول وتصفير المهام اليومية
         val lastLoginDate = sdf.format(java.util.Date(lastLogin))
-        val todayDate = sdf.format(java.util.Date(currentMillis))
+        val correctedCurrentMillis = lastLogin + offlineTime
+        val todayDate = sdf.format(java.util.Date(correctedCurrentMillis))
+        
         if (isFirstLaunch || lastLoginDate != todayDate) {
+            // تصفير جميع المهام اليومية مع بداية اليوم الحقيقي الجديد
             dailyQuestsList.forEach { 
                 it.currentAmount = 0
                 it.isCollected = false 
             }
+            // إعطاء نقطة تسجيل الدخول
             addQuestProgress(QuestType.DAILY_LOGIN, 1)
         }
         
