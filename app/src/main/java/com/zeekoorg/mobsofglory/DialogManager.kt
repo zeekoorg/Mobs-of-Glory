@@ -888,6 +888,7 @@ object DialogManager {
         d.show()
     }
 
+    // 💡 [مُصلح] دالة إظهار نافذة الأسلحة بشكل محدث لمنع التكرار تماماً
     fun showWeaponsDialog(activity: Activity) {
         SoundManager.playWindowOpen()
         val d = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
@@ -896,24 +897,31 @@ object DialogManager {
         val inflater = LayoutInflater.from(activity)
         val handler = Handler(Looper.getMainLooper())
 
-        fun refreshWeaponsList() {
-            container?.removeAllViews()
+        // مسح الحاوية مرة واحدة فقط عند فتح النافذة
+        container?.removeAllViews()
             
-            GameState.arsenal.forEach { weapon ->
-                val view = inflater.inflate(R.layout.item_weapon, container, false)
-                val imgIcon = view.findViewById<ImageView>(R.id.imgWeaponIcon); imgIcon.setImageResource(weapon.iconResId)
+        GameState.arsenal.forEach { weapon ->
+            // إنشاء العنصر البصري للسلاح مرة واحدة
+            val view = inflater.inflate(R.layout.item_weapon, container, false)
+            val imgIcon = view.findViewById<ImageView>(R.id.imgWeaponIcon); imgIcon.setImageResource(weapon.iconResId)
+            val tvWeaponName = view.findViewById<TextView>(R.id.tvWeaponName)
+            val tvWeaponPower = view.findViewById<TextView>(R.id.tvWeaponPower)
+            val tvWeaponCost = view.findViewById<TextView>(R.id.tvWeaponCost)
+            val btnAction = view.findViewById<Button>(R.id.btnUpgradeWeapon)
+
+            // دالة داخلية لتحديث محتوى هذا السلاح تحديداً فقط دون إعادة رسم القائمة
+            fun updateWeaponItemUI() {
                 val rarityName = when(weapon.rarity) { Rarity.COMMON -> "شائع"; Rarity.RARE -> "نادر"; Rarity.LEGENDARY -> "أسطوري" }
                 val rarityColor = when(weapon.rarity) { Rarity.COMMON -> "#BDC3C7"; Rarity.RARE -> "#3498DB"; Rarity.LEGENDARY -> "#9B59B6" }
                 
-                view.findViewById<TextView>(R.id.tvWeaponName).apply { text = "${weapon.name} (مستوى ${weapon.level})"; setTextColor(Color.parseColor(rarityColor)) }
+                tvWeaponName.apply { text = "${weapon.name} (مستوى ${weapon.level})"; setTextColor(Color.parseColor(rarityColor)) }
                 
                 val atkBuffPercent = (weapon.getCurrentAttackBuff() * 100).toInt()
                 val defBuffPercent = (weapon.getCurrentDefenseBuff() * 100).toInt()
-                view.findViewById<TextView>(R.id.tvWeaponPower).text = "هجوم: +$atkBuffPercent% | دفاع: +$defBuffPercent%"
+                tvWeaponPower.text = "هجوم: +$atkBuffPercent% | دفاع: +$defBuffPercent%"
                 
-                view.findViewById<TextView>(R.id.tvWeaponCost).text = "التكلفة: ${formatResourceNumber(weapon.getCostIron())} حديد + ${formatResourceNumber(weapon.getCostGold())} ذهب"
+                tvWeaponCost.text = "التكلفة: ${formatResourceNumber(weapon.getCostIron())} حديد + ${formatResourceNumber(weapon.getCostGold())} ذهب"
                 
-                val btnAction = view.findViewById<Button>(R.id.btnUpgradeWeapon)
                 if (weapon.isUpgrading) {
                     val remaining = weapon.upgradeEndTime - System.currentTimeMillis()
                     if (remaining > 0) {
@@ -924,11 +932,12 @@ object DialogManager {
                             showSpeedupDialog(activity, null, weapon) 
                         }
                         
+                        // استخدام هوية السلاح للتأكد من عدم تداخل الأوامر
                         handler.removeCallbacksAndMessages(weapon.id)
-                        handler.postDelayed({ refreshWeaponsList() }, weapon.id, 1000)
+                        handler.postDelayed({ updateWeaponItemUI() }, weapon.id, 1000)
                     } else { 
                         weapon.isUpgrading = false; weapon.level++; GameState.calculatePower(); GameState.saveGameData(activity)
-                        refreshWeaponsList() 
+                        updateWeaponItemUI() 
                     }
                 } else {
                     btnAction.text = if (weapon.isOwned) "ترقية" else "صناعة"
@@ -952,17 +961,20 @@ object DialogManager {
                             updateUI(activity)
                             GameState.saveGameData(activity)
                             
-                            refreshWeaponsList()
+                            // تحديث الزر والنصوص لهذا السلاح فقط
+                            updateWeaponItemUI()
                         } else { 
                             SoundManager.playClick()
                             showGameMessage(activity, "موارد غير كافية", "تنقصك الموارد لصناعة أو ترقية السلاح!", R.drawable.ic_resource_iron) 
                         }
                     }
                 }
-                container?.addView(view)
             }
+            
+            // تشغيل التحديث الأولي ثم إضافته للحاوية
+            updateWeaponItemUI()
+            container?.addView(view)
         }
-        refreshWeaponsList()
         
         d.findViewById<View>(R.id.btnClose)?.setOnClickListener { SoundManager.playClick(); d.dismiss() }
 
