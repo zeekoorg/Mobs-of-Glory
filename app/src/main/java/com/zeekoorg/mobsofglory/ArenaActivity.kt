@@ -203,8 +203,8 @@ class ArenaActivity : AppCompatActivity() {
         val startY = imgMarchingLegion.y + 150f 
         imgMarchingLegion.y = startY // إعادة تعيين موقع العنصر قبل بدء الحركة
         
-        // 💡 [مُصلح] إنزال نقطة الوصول لتكون في المنتصف بين النقطة السابقة وأسفل القلعة
-        val targetY = layoutGhostCastle.y + layoutGhostCastle.height - (imgMarchingLegion.height / 2f) - 90f
+        // 💡 [مُصلح] إنزال نقطة الوصول لتكون أسفل من التعديل السابق بـ 50 نقطة لتستقر تماماً عند الباب
+        val targetY = layoutGhostCastle.y + layoutGhostCastle.height - (imgMarchingLegion.height / 2f) - 50f
 
         val moveAnim = ObjectAnimator.ofFloat(imgMarchingLegion, "translationY", 0f, targetY - startY)
         val scaleXAnim = ObjectAnimator.ofFloat(imgMarchingLegion, "scaleX", 1.0f, 0.4f)
