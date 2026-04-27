@@ -293,6 +293,12 @@ class MainActivity : AppCompatActivity() {
             SoundManager.playClick()
             TransitionHelper.closeGateAndNavigate(this, imgImperialGate, Intent(this, BattlefieldActivity::class.java))
         } 
+        
+        // 💡 [إضافة] الانتقال لقصر المجد عبر إغلاق البوابة
+        findViewById<View>(R.id.btnNavPalace)?.setOnClickListener { 
+            SoundManager.playClick()
+            TransitionHelper.closeGateAndNavigate(this, imgImperialGate, Intent(this, PalaceActivity::class.java))
+        }
     }
 
     private fun checkPendingReports() {
