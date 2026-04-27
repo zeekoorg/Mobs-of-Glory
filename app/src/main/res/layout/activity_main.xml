@@ -501,6 +501,39 @@
             android:paddingVertical="2dp"/>
     </LinearLayout>
 
+    <LinearLayout
+        android:id="@+id/btnNavPalace"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="@id/layoutFormationClick"
+        app:layout_constraintEnd_toEndOf="@id/layoutFormationClick"
+        app:layout_constraintTop_toBottomOf="@id/layoutFormationClick"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:src="@drawable/ic_ui_palace" 
+            android:background="@drawable/bg_btn_gold_border"
+            android:padding="6dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="قصر المجد"
+            android:textColor="#FFFFFF"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            android:layout_marginTop="3dp"
+            android:background="@drawable/bg_level_tag"
+            android:paddingHorizontal="5dp"
+            android:paddingVertical="2dp"/>
+    </LinearLayout>
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/bottomNavBar"
         android:layout_width="match_parent"
