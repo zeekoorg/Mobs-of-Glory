@@ -14,10 +14,13 @@ import android.view.animation.DecelerateInterpolator
 
 object TransitionHelper {
 
-    // التوقيتات المعتمدة بناءً على طلبك
-    private const val ANIM_DURATION = 700L   // وقت الحركة (نزول أو رفع)
+    // التوقيتات المعتمدة 
+    private const val ANIM_DURATION = 800L   // وقت الحركة (نزول أو رفع)
     private const val CLOSE_WAIT = 1000L      // وقت الانتظار بعد الإغلاق وقبل الانتقال
-    private const val OPEN_DELAY = 500L       // وقت بقاء البوابة مغلقة في الشاشة الجديدة قبل البدء بالرفع
+    private const val OPEN_DELAY = 400L       // وقت بقاء البوابة مغلقة في الشاشة الجديدة قبل البدء بالرفع
+
+    // 💡 [إضافة] متغير لحفظ مشغل الصوت للتمكن من إيقافه عند تصغير اللعبة
+    private var activeMediaPlayer: MediaPlayer? = null
 
     /**
      * دالة إغلاق البوابة والانتقال إلى شاشة جديدة
@@ -85,11 +88,33 @@ object TransitionHelper {
      */
     private fun playSound(context: Context, soundResId: Int) {
         try {
-            val mediaPlayer = MediaPlayer.create(context, soundResId)
-            mediaPlayer.setOnCompletionListener { mp ->
+            // إيقاف أي صوت سابق للبوابة إن وُجد قبل تشغيل الجديد
+            stopSound()
+            activeMediaPlayer = MediaPlayer.create(context, soundResId)
+            activeMediaPlayer?.setOnCompletionListener { mp ->
                 mp.release()
+                if (activeMediaPlayer == mp) {
+                    activeMediaPlayer = null
+                }
             }
-            mediaPlayer.start()
+            activeMediaPlayer?.start()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * 💡 [إضافة] دالة لإيقاف صوت البوابة فوراً عند الخروج أو تصغير اللعبة
+     */
+    fun stopSound() {
+        try {
+            activeMediaPlayer?.let {
+                if (it.isPlaying) {
+                    it.stop()
+                }
+                it.release()
+            }
+            activeMediaPlayer = null
         } catch (e: Exception) {
             e.printStackTrace()
         }
